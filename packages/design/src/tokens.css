@@ -1,0 +1,62 @@
+:root {
+	color-scheme: light;
+	--font-sans:
+		Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+		sans-serif;
+	--font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+	--color-canvas: #f3f4ef;
+	--color-surface: #fafbf7;
+	--color-surface-raised: #ffffff;
+	--color-surface-soft: #eef0e8;
+	--color-border: #dfe2d7;
+	--color-border-strong: #c9cec0;
+	--color-text: #20231c;
+	--color-text-muted: #6c7264;
+	--color-text-faint: #929889;
+	--color-accent: #d54f35;
+	--color-accent-hover: #bd402a;
+	--color-accent-soft: #f8e4de;
+	--color-success: #4f7755;
+	--color-success-soft: #e0ede1;
+	--color-warning: #9a6a21;
+	--color-warning-soft: #f5ead4;
+	--color-danger: #b53d3d;
+	--color-danger-soft: #f8dfdf;
+	--shadow-sm: 0 1px 2px rgb(28 34 22 / 0.06);
+	--shadow-md: 0 16px 48px rgb(28 34 22 / 0.14);
+	--radius-sm: 6px;
+	--radius-md: 10px;
+	--radius-lg: 16px;
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 20px;
+	--space-6: 24px;
+	--space-8: 32px;
+	--focus-ring: 0 0 0 3px rgb(213 79 53 / 0.2);
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--color-canvas: #10120f;
+	--color-surface: #151814;
+	--color-surface-raised: #1d211b;
+	--color-surface-soft: #20251e;
+	--color-border: #2b3128;
+	--color-border-strong: #3c4437;
+	--color-text: #edf0e8;
+	--color-text-muted: #a5ad9d;
+	--color-text-faint: #727a6b;
+	--color-accent: #e66a4d;
+	--color-accent-hover: #f07a5d;
+	--color-accent-soft: #3b241e;
+	--color-success: #80af84;
+	--color-success-soft: #203324;
+	--color-warning: #d4a04e;
+	--color-warning-soft: #392d1b;
+	--color-danger: #e17474;
+	--color-danger-soft: #3b2020;
+	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.25);
+	--shadow-md: 0 18px 54px rgb(0 0 0 / 0.42);
+}

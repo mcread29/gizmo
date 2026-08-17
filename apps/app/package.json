@@ -1,0 +1,31 @@
+{
+	"name": "@unity-agent/app",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vite build",
+		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"dev": "vite",
+		"preview": "vite preview",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@lucide/svelte": "^1.31.0",
+		"@unity-agent/design": "workspace:*",
+		"@unity-agent/protocol": "workspace:*",
+		"bits-ui": "latest",
+		"svelte": "latest"
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "latest",
+		"@testing-library/jest-dom": "latest",
+		"@testing-library/svelte": "latest",
+		"jsdom": "latest",
+		"svelte-check": "latest",
+		"typescript": "^6.0.0",
+		"vite": "latest",
+		"vitest": "latest",
+		"vitest-axe": "latest"
+	}
+}
