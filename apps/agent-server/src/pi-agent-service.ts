@@ -4,6 +4,7 @@ import {
 	type AgentEvent,
 	type SessionOptions,
 } from '@unity-agent/protocol';
+import { createUnityTools } from '@unity-agent/unity-tools';
 import { basename } from 'node:path';
 import {
 	PiEventTranslator,
@@ -120,6 +121,7 @@ const createDefaultPiSession: PiSessionFactory = async (options) => {
 	const cwd = options.cwd ?? process.cwd();
 	const { session } = await createAgentSession({
 		cwd,
+		customTools: createUnityTools(),
 		sessionManager: SessionManager.inMemory(cwd),
 	});
 	return session;

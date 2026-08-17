@@ -151,6 +151,13 @@ function getToolResultText(result: unknown): string {
 }
 
 function normalizeToolResult(result: unknown): unknown {
+	if (result && typeof result === 'object' && 'details' in result) {
+		try {
+			return JSON.parse(JSON.stringify(result.details));
+		} catch {
+			return String(result.details);
+		}
+	}
 	const text = getToolResultText(result);
 	if (text) return text;
 	try {

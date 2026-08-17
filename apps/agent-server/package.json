@@ -12,6 +12,7 @@
 	"dependencies": {
 		"@earendil-works/pi-coding-agent": "^0.84.2",
 		"@unity-agent/protocol": "workspace:*",
+		"@unity-agent/unity-tools": "workspace:*",
 		"ws": "^8.21.3"
 	},
 	"devDependencies": {

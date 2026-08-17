@@ -26,6 +26,7 @@
 		AgentStore,
 		WebSocketAgentClient,
 		type AgentClient,
+		type ToolCallView,
 	} from './lib/agent-client';
 	import {
 		Button,
@@ -58,6 +59,23 @@
 	let draft = $state('');
 	let toolActivity = $derived(
 		agentStore.messages.flatMap((message) => message.tools),
+	);
+	let unityStatus = $derived(findUnityStatus(toolActivity));
+	let editor = $derived(unityStatus?.instances[0]);
+	let editorProjectPath = $derived(
+		readEditorValue(editor, ['projectPath', 'project']),
+	);
+	let editorProjectName = $derived(
+		readEditorValue(editor, ['projectName', 'name']) ??
+			projectName(editorProjectPath) ??
+			(unityStatus ? 'No Editor connected' : 'Editor not checked'),
+	);
+	let editorVersion = $derived(
+		readEditorValue(editor, ['version', 'unityVersion']),
+	);
+	let editorState = $derived(
+		readEditorValue(editor, ['state', 'connectionState']) ??
+			statusLabel(unityStatus?.state),
 	);
 
 	onMount(() => {
@@ -106,6 +124,67 @@
 		if (typeof result === 'string') return result;
 		return JSON.stringify(result);
 	}
+
+	interface UnityStatusView {
+		state: 'connected' | 'disconnected' | 'unavailable' | 'error';
+		instances: Record<string, unknown>[];
+		errors: { code: string; message: string }[];
+	}
+
+	function findUnityStatus(tools: ToolCallView[]): UnityStatusView | undefined {
+		for (let index = tools.length - 1; index >= 0; index--) {
+			const tool = tools[index];
+			if (tool.name !== 'unity_status' || !isUnityStatus(tool.result)) continue;
+			return tool.result;
+		}
+	}
+
+	function isUnityStatus(value: unknown): value is UnityStatusView {
+		if (!value || typeof value !== 'object') return false;
+		const state = 'state' in value ? value.state : undefined;
+		return (
+			(state === 'connected' ||
+				state === 'disconnected' ||
+				state === 'unavailable' ||
+				state === 'error') &&
+			'instances' in value &&
+			Array.isArray(value.instances) &&
+			'errors' in value &&
+			Array.isArray(value.errors)
+		);
+	}
+
+	function readEditorValue(
+		instance: Record<string, unknown> | undefined,
+		keys: string[],
+	): string | undefined {
+		if (!instance) return;
+		for (const key of keys) {
+			const value = instance[key];
+			if (typeof value === 'string' || typeof value === 'number') {
+				return String(value);
+			}
+		}
+	}
+
+	function projectName(path: string | undefined): string | undefined {
+		return path?.split(/[\\/]/).filter(Boolean).at(-1);
+	}
+
+	function statusLabel(state: UnityStatusView['state'] | undefined): string {
+		switch (state) {
+			case 'connected':
+				return 'Ready';
+			case 'disconnected':
+				return 'Disconnected';
+			case 'unavailable':
+				return 'CLI unavailable';
+			case 'error':
+				return 'Check failed';
+			default:
+				return 'Not checked';
+		}
+	}
 </script>
 
 <svelte:head
@@ -136,9 +215,11 @@
 			<span data-ui="preview-badge">Preview</span>
 		</div>
 		<div data-ui="titlebar-center">
-			<span data-ui="project-dot"></span>
-			<span>ThirdPersonSandbox</span>
-			<span data-ui="muted">Unity 6.3</span>
+			<span data-ui="project-dot" data-state={unityStatus?.state}></span>
+			<span>{editorProjectName}</span>
+			<span data-ui="muted"
+				>{editorVersion ? `Unity ${editorVersion}` : editorState}</span
+			>
 		</div>
 		<div data-ui="titlebar-end">
 			<Tooltip text={theme === 'dark' ? 'Use light theme' : 'Use dark theme'}>
@@ -369,10 +450,12 @@
 	<aside data-ui="inspector" aria-label="Unity Editor inspector">
 		<div data-ui="inspector-header">
 			<div>
-				<span data-ui="eyebrow">Connected Editor</span>
-				<h2>ThirdPersonSandbox</h2>
+				<span data-ui="eyebrow">Unity Editor</span>
+				<h2>{editorProjectName}</h2>
 			</div>
-			<span data-ui="status-pill"><span></span> Live</span>
+			<span data-ui="status-pill" data-state={unityStatus?.state ?? 'unchecked'}
+				><span></span>{statusLabel(unityStatus?.state)}</span
+			>
 		</div>
 
 		<Tabs
@@ -391,27 +474,52 @@
 								<div>
 									<dt>State</dt>
 									<dd>
-										<span data-ui="status-dot" data-status="online"></span> Ready
+										<span
+											data-ui="status-dot"
+											data-status={unityStatus?.state === 'connected'
+												? 'online'
+												: 'disconnected'}
+										></span>{editorState}
 									</dd>
 								</div>
 								<div>
 									<dt>Version</dt>
-									<dd>6000.3.7f1</dd>
+									<dd>{editorVersion ?? '—'}</dd>
 								</div>
 								<div>
 									<dt>Pipeline</dt>
-									<dd>Installed</dd>
+									<dd>
+										{unityStatus?.state === 'connected' ? 'Connected' : '—'}
+									</dd>
 								</div>
 							</dl>
 						</section>
 						<section data-ui="inspector-card">
-							<div data-ui="card-label">Available commands <span>12</span></div>
-							<div data-ui="command-list">
-								<code>scene.validate</code><code
-									>character-controller.describe</code
-								><code>assets.find-missing</code>
-							</div>
-							<Button variant="ghost" size="sm">View all commands</Button>
+							<div data-ui="card-label">Connection</div>
+							{#if editor}
+								<dl>
+									<div>
+										<dt>Project</dt>
+										<dd>{editorProjectPath ?? '—'}</dd>
+									</div>
+									<div>
+										<dt>Port</dt>
+										<dd>{readEditorValue(editor, ['port']) ?? '—'}</dd>
+									</div>
+									<div>
+										<dt>Process</dt>
+										<dd>
+											{readEditorValue(editor, ['pid', 'processId']) ?? '—'}
+										</dd>
+									</div>
+								</dl>
+							{:else}
+								<p data-ui="inspector-message">
+									{unityStatus?.errors[0]?.message ??
+										'Ask the agent to inspect Unity status.'}
+								</p>
+								<code data-ui="inspector-command">unity pipeline install</code>
+							{/if}
 						</section>
 					</div>
 				{:else if toolActivity.length === 0}

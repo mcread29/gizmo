@@ -103,7 +103,10 @@ describe('PiAgentService', () => {
 				type: 'tool_execution_end',
 				toolCallId: 'tool-1',
 				toolName: 'unity_status',
-				result: { content: [{ type: 'text', text: 'Connected' }] },
+				result: {
+					content: [{ type: 'text', text: 'Connected' }],
+					details: { state: 'connected', instances: [{ port: 6400 }] },
+				},
 				isError: false,
 			}),
 		);
@@ -125,7 +128,7 @@ describe('PiAgentService', () => {
 		]);
 		expect(events.find((item) => item.type === 'tool.completed')).toMatchObject(
 			{
-				result: 'Connected',
+				result: { state: 'connected', instances: [{ port: 6400 }] },
 				isError: false,
 			},
 		);

@@ -22,6 +22,15 @@ Browser WebSockets are restricted to the local Vite origin by default. Set a
 comma-separated `UNITY_AGENT_ORIGINS` value when intentionally serving the UI
 from another origin.
 
+The first registered Unity tool is `unity_status`. It safely runs:
+
+```sh
+unity --non-interactive --no-banner --format json status
+```
+
+Its connected or disconnected result is shown in the Editor inspector after the
+agent invokes the tool.
+
 ```sh
 pnpm check
 pnpm test

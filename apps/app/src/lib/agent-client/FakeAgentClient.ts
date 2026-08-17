@@ -133,7 +133,22 @@ export class FakeAgentClient implements AgentClient {
 				type: 'tool.completed',
 				sessionId,
 				toolCallId,
-				result: { project: 'ThirdPersonSandbox', version: '6000.3.7f1' },
+				result: {
+					state: 'connected',
+					ok: true,
+					exitCode: 0,
+					instances: [
+						{
+							projectPath: '/projects/ThirdPersonSandbox',
+							version: '6000.3.7f1',
+							port: 6400,
+							pid: 42,
+							state: 'ready',
+						},
+					],
+					errors: [],
+					warnings: [],
+				},
 				isError: false,
 			});
 			if (!(await this.#wait(abortController.signal))) return;

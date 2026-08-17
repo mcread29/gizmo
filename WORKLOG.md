@@ -62,3 +62,20 @@ pnpm build
 
 The development stack runs at `http://localhost:5173` with the agent server on
 `ws://127.0.0.1:8787/agent`.
+
+## 2026-08-17 — First Unity CLI tool
+
+Completed the first Unity-aware vertical slice:
+
+- Confirmed the installed experimental Unity CLI `1.0.0-beta.5` syntax from its live help.
+- Added a shell-free Unity process runner with separate stdout and stderr capture, exact exit codes, cancellation, timeouts, bounded output, and forced termination fallback.
+- Added structured parsing for `unity status`, including its exit-code-6 no-Editor response.
+- Added and registered the constrained `unity_status` Pi tool.
+- Preserved structured tool details through the server protocol for UI consumers.
+- Replaced placeholder Editor status data with the latest observed `unity_status` result.
+- Added focused process, parsing, tool, translation, and UI coverage.
+- Verified a real Pi turn called `unity_status`, ran the installed Unity CLI, reported the disconnected state, and returned a final assistant response.
+
+The machine currently has no connected Unity Editor with the Pipeline package,
+so the live result is `STATUS_NO_INSTANCES`. No Unity installation, project, or
+authentication state was changed.
