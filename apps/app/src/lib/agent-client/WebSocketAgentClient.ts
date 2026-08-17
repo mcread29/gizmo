@@ -1,4 +1,5 @@
 import {
+	parseAgentModelCatalog,
 	parseAgentResponse,
 	parseSessionCatalog,
 	parseSessionSnapshot,
@@ -8,6 +9,7 @@ import {
 	protocolVersion,
 	type AgentRequest,
 	type AgentResponse,
+	type AgentModelCatalog,
 	type SessionCatalog,
 	type SessionOptions,
 	type SessionSnapshot,
@@ -133,6 +135,37 @@ export class WebSocketAgentClient implements AgentClient {
 
 	async deleteSession(sessionId: string): Promise<void> {
 		await this.#request({ type: 'session.delete', sessionId });
+	}
+
+	async getModelCatalog(sessionId: string): Promise<AgentModelCatalog> {
+		const response = await this.#request({ type: 'model.catalog', sessionId });
+		return parseAgentModelCatalog(response.result);
+	}
+
+	async selectModel(
+		sessionId: string,
+		provider: string,
+		modelId: string,
+	): Promise<AgentModelCatalog> {
+		const response = await this.#request({
+			type: 'model.select',
+			sessionId,
+			provider,
+			modelId,
+		});
+		return parseAgentModelCatalog(response.result);
+	}
+
+	async selectThinkingLevel(
+		sessionId: string,
+		level: string,
+	): Promise<AgentModelCatalog> {
+		const response = await this.#request({
+			type: 'thinking.select',
+			sessionId,
+			level,
+		});
+		return parseAgentModelCatalog(response.result);
 	}
 
 	async listProjects(): Promise<UnityProject[]> {

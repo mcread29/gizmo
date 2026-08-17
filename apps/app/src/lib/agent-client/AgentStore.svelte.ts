@@ -1,5 +1,7 @@
 import {
 	parseAgentEvent,
+	type AgentModelCatalog,
+	type AgentModelOption,
 	type AgentEvent,
 	type AgentSessionSummary,
 	type ConversationMessage,
@@ -23,6 +25,9 @@ export class AgentStore {
 	sessionId = $state<string>();
 	sessionState = $state<SessionState>('idle');
 	model = $state<AgentModel>();
+	availableModels = $state<AgentModelOption[]>([]);
+	thinkingLevels = $state<string[]>([]);
+	modelLoading = $state(false);
 	activeTools = $state<string[]>([]);
 	messages = $state<ConversationMessage[]>([]);
 	sessions = $state<AgentSessionSummary[]>([]);
@@ -37,7 +42,7 @@ export class AgentStore {
 	readonly #client: AgentClient;
 	#unsubscribe?: () => void;
 	#unsubscribeDisconnect?: () => void;
-	#statusRequest?: Promise<void>;
+	#statusRequest?: { projectPath: string; promise: Promise<void> };
 
 	constructor(client: AgentClient) {
 		this.#client = client;
@@ -96,28 +101,21 @@ export class AgentStore {
 		}
 	}
 
-	async selectProject(projectPath: string): Promise<void> {
-		if (
-			this.sessionState === 'streaming' ||
-			!this.projects.some((project) => project.path === projectPath)
-		) {
-			return;
-		}
-		if (this.selectedProjectPath === projectPath) return;
-		this.selectedProjectPath = projectPath;
-		this.projectStatus = undefined;
-		await Promise.all([this.refreshProjectStatus(), this.newSession()]);
-	}
-
 	refreshProjectStatus(): Promise<void> {
 		if (this.connection !== 'connected' || !this.selectedProjectPath) {
 			return Promise.resolve();
 		}
-		if (this.#statusRequest) return this.#statusRequest;
-		this.#statusRequest = this.#loadProjectStatus().finally(() => {
-			this.#statusRequest = undefined;
+		const projectPath = this.selectedProjectPath;
+		if (this.#statusRequest?.projectPath === projectPath) {
+			return this.#statusRequest.promise;
+		}
+		const promise = this.#loadProjectStatus().finally(() => {
+			if (this.#statusRequest?.projectPath === projectPath) {
+				this.#statusRequest = undefined;
+			}
 		});
-		return this.#statusRequest;
+		this.#statusRequest = { projectPath, promise };
+		return promise;
 	}
 
 	async #loadProjectStatus(): Promise<void> {
@@ -150,14 +148,33 @@ export class AgentStore {
 		}
 	}
 
-	async newSession(): Promise<void> {
+	async newSession(projectPath?: string): Promise<void> {
 		if (this.connection !== 'connected' || this.sessionState === 'streaming') {
 			return;
 		}
+		if (
+			projectPath &&
+			!this.projects.some((project) => project.path === projectPath)
+		) {
+			return;
+		}
+		const previousProjectPath = this.selectedProjectPath;
+		const previousProjectStatus = this.projectStatus;
 		const previousId = this.sessionId;
 		const previousMessages = this.messages;
+		const previousModel = this.model;
+		const previousModels = this.availableModels;
+		const previousThinkingLevels = this.thinkingLevels;
+		if (projectPath) {
+			this.selectedProjectPath = projectPath;
+			this.projectStatus = undefined;
+			await this.refreshProjectStatus();
+		}
 		this.sessionId = undefined;
 		this.messages = [];
+		this.model = undefined;
+		this.availableModels = [];
+		this.thinkingLevels = [];
 		this.sessionState = 'idle';
 		try {
 			const sessionId = await this.#client.createSession({
@@ -175,9 +192,15 @@ export class AgentStore {
 				lastActiveAt: now,
 				messageCount: 0,
 			});
+			await this.refreshModelCatalog();
 		} catch (error) {
 			this.sessionId = previousId;
 			this.messages = previousMessages;
+			this.model = previousModel;
+			this.availableModels = previousModels;
+			this.thinkingLevels = previousThinkingLevels;
+			this.selectedProjectPath = previousProjectPath;
+			this.projectStatus = previousProjectStatus;
 			this.error = errorMessage(error);
 		}
 	}
@@ -191,6 +214,11 @@ export class AgentStore {
 		if (!session) return;
 		const previousId = this.sessionId;
 		const previousMessages = this.messages;
+		const previousModel = this.model;
+		const previousModels = this.availableModels;
+		const previousThinkingLevels = this.thinkingLevels;
+		const previousProjectPath = this.selectedProjectPath;
+		const previousProjectStatus = this.projectStatus;
 		this.sessionId = sessionId;
 		this.messages = [];
 		this.sessionState = 'idle';
@@ -203,10 +231,78 @@ export class AgentStore {
 				this.projectStatus = undefined;
 				await this.refreshProjectStatus();
 			}
+			await this.refreshModelCatalog();
 		} catch (error) {
 			this.sessionId = previousId;
 			this.messages = previousMessages;
+			this.model = previousModel;
+			this.availableModels = previousModels;
+			this.thinkingLevels = previousThinkingLevels;
+			this.selectedProjectPath = previousProjectPath;
+			this.projectStatus = previousProjectStatus;
 			this.error = errorMessage(error);
+		}
+	}
+
+	async refreshModelCatalog(): Promise<void> {
+		if (!this.sessionId || this.connection !== 'connected') return;
+		const sessionId = this.sessionId;
+		this.modelLoading = true;
+		try {
+			const catalog = await this.#client.getModelCatalog(sessionId);
+			if (this.sessionId === sessionId) this.#applyModelCatalog(catalog);
+		} catch (error) {
+			if (this.sessionId === sessionId) this.error = errorMessage(error);
+		} finally {
+			if (this.sessionId === sessionId) this.modelLoading = false;
+		}
+	}
+
+	async selectModel(provider: string, modelId: string): Promise<void> {
+		if (
+			!this.sessionId ||
+			this.sessionState === 'streaming' ||
+			this.modelLoading ||
+			(this.model?.provider === provider && this.model.id === modelId)
+		) {
+			return;
+		}
+		this.modelLoading = true;
+		this.error = undefined;
+		const sessionId = this.sessionId;
+		try {
+			const catalog = await this.#client.selectModel(
+				sessionId,
+				provider,
+				modelId,
+			);
+			if (this.sessionId === sessionId) this.#applyModelCatalog(catalog);
+		} catch (error) {
+			this.error = errorMessage(error);
+		} finally {
+			this.modelLoading = false;
+		}
+	}
+
+	async selectThinkingLevel(level: string): Promise<void> {
+		if (
+			!this.sessionId ||
+			this.sessionState === 'streaming' ||
+			this.modelLoading ||
+			this.model?.thinkingLevel === level
+		) {
+			return;
+		}
+		this.modelLoading = true;
+		this.error = undefined;
+		const sessionId = this.sessionId;
+		try {
+			const catalog = await this.#client.selectThinkingLevel(sessionId, level);
+			if (this.sessionId === sessionId) this.#applyModelCatalog(catalog);
+		} catch (error) {
+			this.error = errorMessage(error);
+		} finally {
+			this.modelLoading = false;
 		}
 	}
 
@@ -373,6 +469,12 @@ export class AgentStore {
 
 	#currentSession(): AgentSessionSummary | undefined {
 		return this.sessions.find(({ id }) => id === this.sessionId);
+	}
+
+	#applyModelCatalog(catalog: AgentModelCatalog): void {
+		this.availableModels = [...catalog.models];
+		this.thinkingLevels = [...catalog.thinkingLevels];
+		if (catalog.current) this.model = catalog.current;
 	}
 }
 

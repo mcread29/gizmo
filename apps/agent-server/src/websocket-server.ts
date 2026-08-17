@@ -155,6 +155,23 @@ async function dispatch(
 		case 'session.delete':
 			await service.deleteSession(request.sessionId);
 			return {};
+		case 'model.catalog':
+			return { result: await service.getModelCatalog(request.sessionId) };
+		case 'model.select':
+			return {
+				result: await service.selectModel(
+					request.sessionId,
+					request.provider,
+					request.modelId,
+				),
+			};
+		case 'thinking.select':
+			return {
+				result: await service.selectThinkingLevel(
+					request.sessionId,
+					request.level,
+				),
+			};
 		case 'project.list':
 			return { result: await projectService.listProjects() };
 		case 'project.status':

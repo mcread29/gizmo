@@ -96,22 +96,6 @@
 	line-height: 1.5;
 }
 
-[data-ui='command-list'] {
-	display: grid;
-	gap: 7px;
-	margin-bottom: var(--space-3);
-}
-
-[data-ui='command-list'] code {
-	overflow: hidden;
-	padding: 8px;
-	border-radius: 5px;
-	background: var(--color-surface-soft);
-	color: var(--color-text-muted);
-	font-size: 0.625rem;
-	text-overflow: ellipsis;
-}
-
 [data-ui='empty-state'] {
 	display: grid;
 	justify-items: center;
@@ -163,7 +147,7 @@
 
 [data-ui='project-option'] {
 	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) auto;
+	grid-template-columns: auto minmax(0, 1fr);
 	align-items: center;
 	gap: var(--space-3);
 	width: 100%;

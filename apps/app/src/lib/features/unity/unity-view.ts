@@ -5,17 +5,9 @@ import type {
 	UnityStatus,
 } from '@unity-agent/protocol';
 
-export interface UnityCommandsView {
-	state: 'available' | 'disconnected' | 'unavailable' | 'error';
-	commands: unknown[];
-	errors: { code: string; message: string }[];
-}
-
 export interface UnityView {
 	selectedProject?: UnityProject;
 	status?: UnityStatus;
-	commands?: UnityCommandsView;
-	commandNames: string[];
 	editor?: Record<string, unknown>;
 	projectPath?: string;
 	projectName: string;
@@ -38,7 +30,6 @@ export function createUnityView(input: UnityViewInput): UnityView {
 		(project) => project.path === input.selectedProjectPath,
 	);
 	const status = input.projectStatus ?? findUnityStatus(toolActivity);
-	const commands = findUnityCommands(toolActivity);
 	const editor = status?.instances[0];
 	const projectPath =
 		readEditorValue(editor, ['projectPath', 'project']) ??
@@ -58,11 +49,6 @@ export function createUnityView(input: UnityViewInput): UnityView {
 	return {
 		...(selectedProject ? { selectedProject } : {}),
 		...(status ? { status } : {}),
-		...(commands ? { commands } : {}),
-		commandNames:
-			commands?.commands
-				.map(commandName)
-				.filter((name): name is string => name !== undefined) ?? [],
 		...(editor ? { editor } : {}),
 		...(projectPath ? { projectPath } : {}),
 		projectName: projectNameValue,
@@ -118,32 +104,6 @@ function isUnityStatus(value: unknown): value is UnityStatus {
 			state === 'error') &&
 		'instances' in value &&
 		Array.isArray(value.instances) &&
-		'errors' in value &&
-		Array.isArray(value.errors)
-	);
-}
-
-function findUnityCommands(
-	tools: ToolCallView[],
-): UnityCommandsView | undefined {
-	for (let index = tools.length - 1; index >= 0; index--) {
-		const tool = tools[index];
-		if (tool.name !== 'unity_list_commands' || !isUnityCommands(tool.result))
-			continue;
-		return tool.result;
-	}
-}
-
-function isUnityCommands(value: unknown): value is UnityCommandsView {
-	if (!value || typeof value !== 'object') return false;
-	const state = 'state' in value ? value.state : undefined;
-	return (
-		(state === 'available' ||
-			state === 'disconnected' ||
-			state === 'unavailable' ||
-			state === 'error') &&
-		'commands' in value &&
-		Array.isArray(value.commands) &&
 		'errors' in value &&
 		Array.isArray(value.errors)
 	);

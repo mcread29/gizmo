@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	agentToolPolicy,
+	parseAgentModelCatalog,
 	parseAgentEvent,
 	parseAgentRequest,
 	parseAgentResponse,
@@ -37,6 +38,37 @@ describe('agent protocol validation', () => {
 		});
 
 		expect(request.type).toBe('session.prompt');
+	});
+
+	it('validates model catalogs and model-selection requests', () => {
+		expect(
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'request-model',
+				type: 'model.select',
+				sessionId: 'session-1',
+				provider: 'openai-codex',
+				modelId: 'gpt-5.6-sol',
+			}),
+		).toMatchObject({ type: 'model.select', modelId: 'gpt-5.6-sol' });
+		expect(
+			parseAgentModelCatalog({
+				current: {
+					provider: 'openai-codex',
+					id: 'gpt-5.6-sol',
+					thinkingLevel: 'high',
+				},
+				models: [
+					{
+						provider: 'openai-codex',
+						id: 'gpt-5.6-sol',
+						name: 'GPT-5.6 Sol',
+						reasoning: true,
+					},
+				],
+				thinkingLevels: ['low', 'high'],
+			}),
+		).toMatchObject({ current: { thinkingLevel: 'high' } });
 	});
 
 	it('correlates successful and failed transport responses', () => {

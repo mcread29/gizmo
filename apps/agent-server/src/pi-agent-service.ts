@@ -3,6 +3,7 @@ import type { SessionManager } from '@earendil-works/pi-coding-agent';
 import {
 	agentToolPolicy,
 	protocolVersion,
+	type AgentModelCatalog,
 	type AgentEvent,
 	type SessionCatalog,
 	type SessionOptions,
@@ -24,7 +25,11 @@ export interface PiSessionLike {
 	readonly sessionName?: string;
 	readonly model?: { readonly provider: string; readonly id: string };
 	readonly thinkingLevel?: string;
+	readonly isStreaming?: boolean;
 	getActiveToolNames?(): string[];
+	getModelCatalog?(): Promise<AgentModelCatalog>;
+	selectModel?(provider: string, modelId: string): Promise<void>;
+	selectThinkingLevel?(level: string): void;
 	subscribe(listener: (event: AgentSessionEvent) => void): () => void;
 	prompt(text: string): Promise<void>;
 	steer(text: string): Promise<void>;
@@ -146,6 +151,49 @@ export class PiAgentService {
 		return this.#session(sessionId).abort();
 	}
 
+	async getModelCatalog(sessionId: string): Promise<AgentModelCatalog> {
+		const session = this.#session(sessionId);
+		if (!session.getModelCatalog) {
+			throw new Error('Model selection is unavailable for this session');
+		}
+		return session.getModelCatalog();
+	}
+
+	async selectModel(
+		sessionId: string,
+		provider: string,
+		modelId: string,
+	): Promise<AgentModelCatalog> {
+		const session = this.#session(sessionId);
+		if (session.isStreaming) {
+			throw new Error('Cannot change models while the agent is responding');
+		}
+		if (!session.selectModel || !session.getModelCatalog) {
+			throw new Error('Model selection is unavailable for this session');
+		}
+		await session.selectModel(provider, modelId);
+		return session.getModelCatalog();
+	}
+
+	async selectThinkingLevel(
+		sessionId: string,
+		level: string,
+	): Promise<AgentModelCatalog> {
+		const session = this.#session(sessionId);
+		if (session.isStreaming) {
+			throw new Error(
+				'Cannot change thinking level while the agent is responding',
+			);
+		}
+		if (!session.selectThinkingLevel || !session.getModelCatalog) {
+			throw new Error(
+				'Thinking-level selection is unavailable for this session',
+			);
+		}
+		session.selectThinkingLevel(level);
+		return session.getModelCatalog();
+	}
+
 	async deleteSession(sessionId: string): Promise<void> {
 		const active = this.#sessions.get(sessionId);
 		if (active) {
@@ -216,7 +264,49 @@ const createDefaultPiSession: PiSessionFactory = async (
 		sessionManager,
 		settingsManager,
 	});
-	return session;
+	return Object.assign(session, {
+		async getModelCatalog(): Promise<AgentModelCatalog> {
+			const models = await session.modelRuntime.getAvailable();
+			return {
+				...(session.model
+					? {
+							current: {
+								provider: session.model.provider,
+								id: session.model.id,
+								thinkingLevel: session.thinkingLevel,
+							},
+						}
+					: {}),
+				models: models
+					.map((model) => ({
+						provider: model.provider,
+						id: model.id,
+						name: model.name,
+						reasoning: model.reasoning,
+					}))
+					.sort((left, right) =>
+						`${left.provider}/${left.name}`.localeCompare(
+							`${right.provider}/${right.name}`,
+						),
+					),
+				thinkingLevels: session.getAvailableThinkingLevels(),
+			};
+		},
+		async selectModel(provider: string, modelId: string): Promise<void> {
+			const model = session.modelRuntime.getModel(provider, modelId);
+			if (!model) throw new Error(`Unknown model: ${provider}/${modelId}`);
+			await session.setModel(model);
+		},
+		selectThinkingLevel(level: string): void {
+			const available = session.getAvailableThinkingLevels();
+			if (!available.includes(level as (typeof available)[number])) {
+				throw new Error(`Unsupported thinking level: ${level}`);
+			}
+			session.setThinkingLevel(
+				level as Parameters<typeof session.setThinkingLevel>[0],
+			);
+		},
+	});
 };
 
 function sessionTitle(prompt: string): string {

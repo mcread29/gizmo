@@ -10,6 +10,7 @@
 	import { formatToolResult } from './lib/features/conversation/format';
 	import SessionSidebar from './lib/features/sessions/SessionSidebar.svelte';
 	import AppDialogs from './lib/features/shell/AppDialogs.svelte';
+	import PanelResizeHandle from './lib/features/shell/PanelResizeHandle.svelte';
 	import Titlebar from './lib/features/shell/Titlebar.svelte';
 	import UnityInspector from './lib/features/unity/UnityInspector.svelte';
 	import { createUnityView } from './lib/features/unity/unity-view';
@@ -28,13 +29,34 @@
 	const agentStore = new AgentStore(untrack(() => client));
 
 	let theme = $state<'light' | 'dark'>('dark');
-	let leftOpen = $state(false);
-	let rightOpen = $state(false);
+	let viewportWidth = $state(Number.POSITIVE_INFINITY);
+	let leftCollapsed = $state(false);
+	let rightCollapsed = $state(false);
+	let leftDrawerOpen = $state(false);
+	let rightDrawerOpen = $state(false);
+	let leftWidth = $state(248);
+	let rightWidth = $state(288);
 	let projectDialogOpen = $state(false);
 	let settingsDialogOpen = $state(false);
 	let renameDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
 	let renameDraft = $state('');
+	let leftOverlay = $derived(viewportWidth <= 720);
+	let rightOverlay = $derived(viewportWidth <= 1040);
+	let leftVisible = $derived(leftOverlay ? leftDrawerOpen : !leftCollapsed);
+	let rightVisible = $derived(rightOverlay ? rightDrawerOpen : !rightCollapsed);
+	let leftMax = $derived(
+		Math.max(
+			200,
+			Math.min(420, viewportWidth - (rightVisible ? rightWidth : 0) - 420),
+		),
+	);
+	let rightMax = $derived(
+		Math.max(
+			240,
+			Math.min(480, viewportWidth - (leftVisible ? leftWidth : 0) - 420),
+		),
+	);
 	let currentSession = $derived(
 		agentStore.sessions.find((session) => session.id === agentStore.sessionId),
 	);
@@ -49,12 +71,25 @@
 	);
 
 	onMount(() => {
+		const updateViewport = () => {
+			viewportWidth = window.innerWidth;
+			if (viewportWidth <= 1040) return;
+			const available = viewportWidth - 420;
+			if (leftWidth + rightWidth <= available) return;
+			rightWidth = Math.max(240, available - leftWidth);
+			if (leftWidth + rightWidth > available) {
+				leftWidth = Math.max(200, available - rightWidth);
+			}
+		};
+		updateViewport();
+		window.addEventListener('resize', updateViewport);
 		void agentStore.connect();
 		const statusInterval = window.setInterval(
 			() => void agentStore.refreshProjectStatus(),
 			5_000,
 		);
 		return () => {
+			window.removeEventListener('resize', updateViewport);
 			window.clearInterval(statusInterval);
 			void agentStore.disconnect();
 		};
@@ -65,13 +100,31 @@
 	});
 
 	function closeDrawers() {
-		leftOpen = false;
-		rightOpen = false;
+		leftDrawerOpen = false;
+		rightDrawerOpen = false;
 	}
 
-	async function selectProject(projectPath: string) {
+	function toggleLeftPanel() {
+		if (leftOverlay) {
+			leftDrawerOpen = !leftDrawerOpen;
+			if (leftDrawerOpen) rightDrawerOpen = false;
+		} else {
+			leftCollapsed = !leftCollapsed;
+		}
+	}
+
+	function toggleRightPanel() {
+		if (rightOverlay) {
+			rightDrawerOpen = !rightDrawerOpen;
+			if (rightDrawerOpen) leftDrawerOpen = false;
+		} else {
+			rightCollapsed = !rightCollapsed;
+		}
+	}
+
+	async function startThread(projectPath: string) {
 		projectDialogOpen = false;
-		await agentStore.selectProject(projectPath);
+		await agentStore.newSession(projectPath);
 	}
 
 	function beginRename() {
@@ -130,18 +183,25 @@
 	/></svelte:head
 >
 
-<div data-ui="app-shell" data-left-open={leftOpen} data-right-open={rightOpen}>
+<div
+	data-ui="app-shell"
+	data-left-visible={leftVisible}
+	data-right-visible={rightVisible}
+	style={`--sidebar-width:${leftWidth}px;--inspector-width:${rightWidth}px`}
+>
 	<Titlebar
 		{agent}
 		{theme}
 		view={unityView}
-		onToggleLeft={() => (leftOpen = !leftOpen)}
-		onToggleRight={() => (rightOpen = !rightOpen)}
+		{leftVisible}
+		{rightVisible}
+		onToggleLeft={toggleLeftPanel}
+		onToggleRight={toggleRightPanel}
 		onToggleTheme={() => (theme = theme === 'dark' ? 'light' : 'dark')}
 		onOpenSettings={() => (settingsDialogOpen = true)}
 	/>
 
-	{#if leftOpen || rightOpen}<button
+	{#if (leftOverlay && leftDrawerOpen) || (rightOverlay && rightDrawerOpen)}<button
 			data-ui="drawer-scrim"
 			aria-label="Close navigation panels"
 			onclick={closeDrawers}
@@ -149,9 +209,18 @@
 
 	<SessionSidebar
 		store={agentStore}
-		selectedProject={unityView.selectedProject}
 		onOpenProjectPicker={() => (projectDialogOpen = true)}
 	/>
+	{#if leftVisible && !leftOverlay}
+		<PanelResizeHandle
+			side="left"
+			size={leftWidth}
+			min={200}
+			max={leftMax}
+			onResize={(size) => (leftWidth = size)}
+			onReset={() => (leftWidth = 248)}
+		/>
+	{/if}
 	<Conversation
 		store={agentStore}
 		agentName={agent.name}
@@ -166,6 +235,16 @@
 		projectOpening={agentStore.projectOpening}
 		onOpenProject={() => agentStore.openSelectedProject()}
 	/>
+	{#if rightVisible && !rightOverlay}
+		<PanelResizeHandle
+			side="right"
+			size={rightWidth}
+			min={240}
+			max={rightMax}
+			onResize={(size) => (rightWidth = size)}
+			onReset={() => (rightWidth = 288)}
+		/>
+	{/if}
 
 	<AppDialogs
 		store={agentStore}
@@ -174,7 +253,7 @@
 		bind:renameOpen={renameDialogOpen}
 		bind:deleteOpen={deleteDialogOpen}
 		bind:renameDraft
-		onSelectProject={selectProject}
+		onStartThread={startThread}
 		onRename={renameSession}
 		onDelete={deleteSession}
 	/>

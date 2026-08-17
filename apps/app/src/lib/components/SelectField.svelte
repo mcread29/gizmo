@@ -12,11 +12,17 @@
 		options,
 		label,
 		placeholder = 'Select an option',
+		disabled = false,
+		compact = false,
+		onValueChange,
 	}: {
 		value?: string;
 		options: SelectOption[];
 		label: string;
 		placeholder?: string;
+		disabled?: boolean;
+		compact?: boolean;
+		onValueChange?: (value: string) => void;
 	} = $props();
 
 	let selectedLabel = $derived(
@@ -24,8 +30,12 @@
 	);
 </script>
 
-<Select.Root type="single" bind:value>
-	<Select.Trigger data-ui="select-trigger" aria-label={label}>
+<Select.Root type="single" bind:value {disabled} {onValueChange}>
+	<Select.Trigger
+		data-ui="select-trigger"
+		data-size={compact ? 'compact' : undefined}
+		aria-label={label}
+	>
 		<span>{selectedLabel ?? placeholder}</span>
 		<ChevronDown size={14} />
 	</Select.Trigger>

@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 3 as const;
+export const protocolVersion = 4 as const;
 
 export const agentToolPolicy = {
 	tools: [
@@ -111,6 +111,38 @@ export const sessionSnapshotSchema = Type.Object(
 );
 
 export type SessionSnapshot = Static<typeof sessionSnapshotSchema>;
+
+export const agentModelOptionSchema = Type.Object(
+	{
+		provider: Type.String({ minLength: 1 }),
+		id: Type.String({ minLength: 1 }),
+		name: Type.String({ minLength: 1 }),
+		reasoning: Type.Boolean(),
+	},
+	{ additionalProperties: false },
+);
+
+export type AgentModelOption = Static<typeof agentModelOptionSchema>;
+
+export const agentModelCatalogSchema = Type.Object(
+	{
+		current: Type.Optional(
+			Type.Object(
+				{
+					provider: Type.String({ minLength: 1 }),
+					id: Type.String({ minLength: 1 }),
+					thinkingLevel: Type.String({ minLength: 1 }),
+				},
+				{ additionalProperties: false },
+			),
+		),
+		models: Type.Array(agentModelOptionSchema),
+		thinkingLevels: Type.Array(Type.String({ minLength: 1 })),
+	},
+	{ additionalProperties: false },
+);
+
+export type AgentModelCatalog = Static<typeof agentModelCatalogSchema>;
 
 const unityCliMessageSchema = Type.Object(
 	{
@@ -245,6 +277,33 @@ export const agentRequestSchema = Type.Union([
 			...envelope,
 			type: Type.Literal('session.delete'),
 			sessionId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('model.catalog'),
+			sessionId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('model.select'),
+			sessionId: Type.String({ minLength: 1 }),
+			provider: Type.String({ minLength: 1 }),
+			modelId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('thinking.select'),
+			sessionId: Type.String({ minLength: 1 }),
+			level: Type.String({ minLength: 1 }),
 		},
 		{ additionalProperties: false },
 	),
@@ -451,6 +510,13 @@ export function parseSessionCatalog(input: unknown): SessionCatalog {
 
 export function parseSessionSnapshot(input: unknown): SessionSnapshot {
 	if (!Value.Check(sessionSnapshotSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseAgentModelCatalog(input: unknown): AgentModelCatalog {
+	if (!Value.Check(agentModelCatalogSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

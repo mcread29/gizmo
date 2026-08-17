@@ -1,4 +1,5 @@
 import type {
+	AgentModelCatalog,
 	SessionCatalog,
 	SessionOptions,
 	SessionSnapshot,
@@ -30,6 +31,15 @@ class InvalidEventClient implements AgentClient {
 	async steer() {}
 	async abort() {}
 	async deleteSession() {}
+	async getModelCatalog(): Promise<AgentModelCatalog> {
+		return { models: [], thinkingLevels: [] };
+	}
+	async selectModel(): Promise<AgentModelCatalog> {
+		return { models: [], thinkingLevels: [] };
+	}
+	async selectThinkingLevel(): Promise<AgentModelCatalog> {
+		return { models: [], thinkingLevels: [] };
+	}
 	async listProjects() {
 		return [];
 	}
@@ -104,5 +114,24 @@ describe('AgentStore', () => {
 			role: 'user',
 			content: 'Remember this scene',
 		});
+	});
+
+	it('creates workspace-bound threads and changes the live Pi model settings', async () => {
+		const store = new AgentStore(new FakeAgentClient({ latencyMs: 0 }));
+		await store.connect();
+
+		await store.newSession('/projects/RenderingPlayground');
+		expect(store.sessions[0]).toMatchObject({
+			projectPath: '/projects/RenderingPlayground',
+		});
+
+		await store.selectModel('openai-codex', 'gpt-5.6-terra');
+		expect(store.model).toMatchObject({
+			provider: 'openai-codex',
+			id: 'gpt-5.6-terra',
+		});
+
+		await store.selectThinkingLevel('medium');
+		expect(store.model?.thinkingLevel).toBe('medium');
 	});
 });

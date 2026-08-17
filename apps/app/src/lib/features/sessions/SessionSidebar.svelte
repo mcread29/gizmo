@@ -1,17 +1,15 @@
 <script lang="ts">
-	import type { UnityProject } from '@unity-agent/protocol';
-	import { ChevronDown, FolderOpen, MessageSquare, Plus } from '@lucide/svelte';
+	import { MessageSquare, Plus } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel } from '../../components';
 	import ComponentGallery from '../../components/ComponentGallery.svelte';
 
 	interface Props {
 		store: AgentStore;
-		selectedProject?: UnityProject;
 		onOpenProjectPicker: () => void;
 	}
 
-	let { store, selectedProject, onOpenProjectPicker }: Props = $props();
+	let { store, onOpenProjectPicker }: Props = $props();
 
 	function formatSessionTime(timestamp: number) {
 		const elapsedMinutes = Math.floor((Date.now() - timestamp) / 60_000);
@@ -22,36 +20,34 @@
 			day: 'numeric',
 		}).format(timestamp);
 	}
+
+	function workspaceName(projectPath: string | undefined) {
+		return (
+			store.projects.find((project) => project.path === projectPath)?.title ??
+			projectPath?.split(/[\\/]/).filter(Boolean).at(-1) ??
+			'No workspace'
+		);
+	}
 </script>
 
-<aside data-ui="sidebar" aria-label="Sessions">
+<aside data-ui="sidebar" aria-label="Threads">
 	<div data-ui="sidebar-header">
-		<span data-ui="eyebrow">Workspace</span>
+		<span data-ui="eyebrow">Threads</span>
 		<Button
 			variant="secondary"
 			size="sm"
 			disabled={store.connection !== 'connected' ||
-				!store.sessionId ||
+				store.projects.length === 0 ||
 				store.sessionState === 'streaming'}
-			onclick={() => store.newSession()}><Plus size={14} /> New session</Button
+			onclick={onOpenProjectPicker}><Plus size={14} /> New thread</Button
 		>
 	</div>
-
-	<button data-ui="project-card" onclick={onOpenProjectPicker}>
-		<span data-ui="project-icon"><FolderOpen size={17} /></span>
-		<span
-			><strong>{selectedProject?.title ?? 'Select a project'}</strong><small
-				>{selectedProject?.path ?? 'No registered project selected'}</small
-			></span
-		>
-		<ChevronDown size={14} />
-	</button>
 
 	<div data-ui="section-label">
-		<span>Recent sessions</span><span>{store.sessions.length}</span>
+		<span>Recent threads</span><span>{store.sessions.length}</span>
 	</div>
 	<ScrollPanel data-ui="session-scroll">
-		<nav data-ui="session-list" aria-label="Recent sessions">
+		<nav data-ui="session-list" aria-label="Recent threads">
 			{#each store.sessions as session (session.id)}
 				<button
 					type="button"
@@ -61,11 +57,18 @@
 					onclick={() => store.switchSession(session.id)}
 				>
 					<MessageSquare size={15} />
-					<span
-						><strong>{session.title}</strong><small
-							>{formatSessionTime(session.lastActiveAt)}</small
-						></span
-					>
+					<span>
+						<strong
+							>{session.title === 'New session'
+								? 'New thread'
+								: session.title}</strong
+						>
+						<small title={session.projectPath}
+							>{workspaceName(session.projectPath)} · {formatSessionTime(
+								session.lastActiveAt,
+							)}</small
+						>
+					</span>
 				</button>
 			{/each}
 		</nav>

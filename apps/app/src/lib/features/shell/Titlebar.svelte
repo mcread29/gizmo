@@ -15,6 +15,8 @@
 		agent: AgentIdentity;
 		theme: 'light' | 'dark';
 		view: UnityView;
+		leftVisible: boolean;
+		rightVisible: boolean;
 		onToggleLeft: () => void;
 		onToggleRight: () => void;
 		onToggleTheme: () => void;
@@ -25,6 +27,8 @@
 		agent,
 		theme,
 		view,
+		leftVisible,
+		rightVisible,
 		onToggleLeft,
 		onToggleRight,
 		onToggleTheme,
@@ -34,13 +38,14 @@
 
 <header data-ui="titlebar">
 	<div data-ui="titlebar-start">
-		<Tooltip text="Toggle session sidebar">
+		<Tooltip text={`${leftVisible ? 'Hide' : 'Show'} thread sidebar`}>
 			{#snippet children(props)}
 				<Button
 					{...props}
 					variant="ghost"
 					size="icon"
-					aria-label="Toggle session sidebar"
+					aria-label="Toggle thread sidebar"
+					aria-expanded={leftVisible}
 					onclick={onToggleLeft}
 				>
 					<PanelLeft size={17} />
@@ -78,13 +83,14 @@
 			aria-label="Settings"
 			onclick={onOpenSettings}><Settings size={17} /></Button
 		>
-		<Tooltip text="Toggle editor inspector">
+		<Tooltip text={`${rightVisible ? 'Hide' : 'Show'} editor inspector`}>
 			{#snippet children(props)}
 				<Button
 					{...props}
 					variant="ghost"
 					size="icon"
 					aria-label="Toggle editor inspector"
+					aria-expanded={rightVisible}
 					onclick={onToggleRight}
 				>
 					<PanelRight size={17} />

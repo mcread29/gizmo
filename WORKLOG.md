@@ -165,3 +165,29 @@ transport or store ownership:
 - Added focused security, Markdown, diff, tool presentation, and full application-flow coverage.
 
 The app passes Svelte diagnostics with no warnings and all frontend tests.
+
+## 2026-08-17 — Workspace threads and Pi model controls
+
+Simplified thread and runtime configuration around the real Pi session:
+
+- Removed the inspector command inventory because it represented only the most recent filtered `unity_list_commands` result, not the Editor's complete registry.
+- Replaced the separate workspace dropdown and session button with one “New thread” action that creates a thread from the chosen registered Unity workspace.
+- Added each thread's workspace name to the recent-thread list and made switching threads restore that workspace and Editor status.
+- Added live model and thinking-level selectors to the composer, backed by Pi's authenticated model runtime, `setModel`, and `setThinkingLevel` APIs.
+- Extended and versioned the browser protocol for model catalog and selection operations, with changes disabled while a response is streaming.
+- Kept the model dropdown bounded for large provider catalogs and retained `data-ui`/state attributes for styling.
+
+Live verification against the running agent returned the active
+`openai-codex/gpt-5.6-sol` model, 20 available authenticated models, and all
+seven supported thinking levels.
+
+## 2026-08-17 — Resizable shell and growing composer
+
+- Made the composer textarea grow with wrapped content up to 240 pixels before
+  enabling its internal scrollbar.
+- Made both desktop sidebars collapsible from their existing title-bar buttons.
+- Added draggable resize edges with responsive width limits, arrow-key control,
+  and double-click reset for the thread sidebar and Editor inspector.
+- Preserved the existing overlay drawer behavior on narrower layouts.
+- Added focused coverage for composer overflow, sidebar collapsing, and
+  keyboard resizing.

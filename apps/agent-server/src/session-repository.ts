@@ -13,6 +13,7 @@ import type {
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { normalizeToolResult, toolResultIsError } from './tool-result';
 
 export interface SessionRepository {
 	create(projectPath: string): Promise<SessionManager>;
@@ -189,9 +190,14 @@ function transcript(manager: SessionManager): ConversationMessage[] {
 		if (message.role === 'toolResult') {
 			const tool = tools.get(message.toolCallId);
 			if (!tool) continue;
-			tool.status = message.isError ? 'error' : 'complete';
-			tool.statusText = message.isError ? 'Failed' : 'Completed';
-			tool.result = message.details ?? textContent(message.content);
+			const rawResult = {
+				content: message.content,
+				details: message.details,
+			};
+			const isError = message.isError || toolResultIsError(rawResult);
+			tool.status = isError ? 'error' : 'complete';
+			tool.statusText = isError ? 'Failed' : 'Completed';
+			tool.result = normalizeToolResult(rawResult);
 		}
 	}
 

@@ -3,6 +3,7 @@ export { default as Dialog } from './Dialog.svelte';
 export { default as Menu } from './Menu.svelte';
 export { default as ScrollPanel } from './ScrollPanel.svelte';
 export { default as SelectField } from './SelectField.svelte';
+export type { SelectOption } from './SelectField.svelte';
 export { default as Tabs } from './Tabs.svelte';
 export { default as Toast } from './Toast.svelte';
 export { default as Tooltip } from './Tooltip.svelte';

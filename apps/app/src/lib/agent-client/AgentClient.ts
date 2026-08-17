@@ -1,4 +1,5 @@
 import type {
+	AgentModelCatalog,
 	SessionCatalog,
 	SessionOptions,
 	SessionSnapshot,
@@ -21,6 +22,16 @@ export interface AgentClient {
 	steer(sessionId: string, text: string): Promise<void>;
 	abort(sessionId: string): Promise<void>;
 	deleteSession(sessionId: string): Promise<void>;
+	getModelCatalog(sessionId: string): Promise<AgentModelCatalog>;
+	selectModel(
+		sessionId: string,
+		provider: string,
+		modelId: string,
+	): Promise<AgentModelCatalog>;
+	selectThinkingLevel(
+		sessionId: string,
+		level: string,
+	): Promise<AgentModelCatalog>;
 	listProjects(): Promise<UnityProject[]>;
 	getProjectStatus(projectPath: string): Promise<UnityStatus>;
 	openProject(projectPath: string): Promise<UnityOpenProjectResult>;

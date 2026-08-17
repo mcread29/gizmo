@@ -100,22 +100,6 @@
 							{/if}
 						{/if}
 					</section>
-					<section data-ui="inspector-card">
-						<div data-ui="card-label">
-							Available commands
-							<span>{view.commands ? view.commandNames.length : '—'}</span>
-						</div>
-						{#if view.commandNames.length > 0}
-							<div data-ui="command-list">
-								{#each view.commandNames as name}<code>{name}</code>{/each}
-							</div>
-						{:else}
-							<p data-ui="inspector-message">
-								{view.commands?.errors[0]?.message ??
-									'Ask the agent to list registered Unity commands.'}
-							</p>
-						{/if}
-					</section>
 				</div>
 			{:else if view.toolActivity.length === 0}
 				<div data-ui="empty-state">

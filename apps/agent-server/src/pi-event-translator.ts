@@ -1,4 +1,5 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
+import { normalizeToolResult, toolResultIsError } from './tool-result';
 
 export type TranslatedPiEvent =
 	| {
@@ -126,7 +127,7 @@ export class PiEventTranslator {
 					type: 'tool.completed',
 					toolCallId: event.toolCallId,
 					result: normalizeToolResult(event.result),
-					isError: event.isError,
+					isError: event.isError || toolResultIsError(event.result),
 				});
 				break;
 		}
@@ -148,21 +149,4 @@ function getToolResultText(result: unknown): string {
 	if (!result || typeof result !== 'object' || !('content' in result))
 		return '';
 	return getMessageText(result.content);
-}
-
-function normalizeToolResult(result: unknown): unknown {
-	if (result && typeof result === 'object' && 'details' in result) {
-		try {
-			return JSON.parse(JSON.stringify(result.details));
-		} catch {
-			return String(result.details);
-		}
-	}
-	const text = getToolResultText(result);
-	if (text) return text;
-	try {
-		return JSON.parse(JSON.stringify(result));
-	} catch {
-		return String(result);
-	}
 }

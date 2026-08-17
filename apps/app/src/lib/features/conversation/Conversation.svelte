@@ -10,6 +10,7 @@
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Menu, ScrollPanel } from '../../components';
+	import ComposerModelControls from './ComposerModelControls.svelte';
 	import ConversationMessage from './ConversationMessage.svelte';
 
 	interface Props {
@@ -30,6 +31,7 @@
 		onDelete,
 	}: Props = $props();
 	let draft = $state('');
+	let promptElement: HTMLTextAreaElement;
 	let scrollAnchor: HTMLDivElement;
 	let followOutput = true;
 
@@ -68,8 +70,36 @@
 		if (!draft.trim() || store.sessionState === 'streaming') return;
 		const prompt = draft;
 		draft = '';
+		void tick().then(() => resizeComposer(promptElement));
 		followOutput = true;
 		void store.prompt(prompt);
+	}
+
+	function autoGrow(node: HTMLTextAreaElement) {
+		const resize = () => resizeComposer(node);
+		resize();
+		node.addEventListener('input', resize);
+		const observer =
+			typeof ResizeObserver === 'undefined'
+				? undefined
+				: new ResizeObserver(resize);
+		observer?.observe(node);
+		return {
+			destroy() {
+				node.removeEventListener('input', resize);
+				observer?.disconnect();
+			},
+		};
+	}
+
+	function resizeComposer(node: HTMLTextAreaElement | undefined) {
+		if (!node) return;
+		node.style.height = 'auto';
+		const computedMax = Number.parseFloat(getComputedStyle(node).maxHeight);
+		const maxHeight = Number.isFinite(computedMax) ? computedMax : 240;
+		const height = Math.min(node.scrollHeight, maxHeight);
+		node.style.height = `${height}px`;
+		node.style.overflowY = node.scrollHeight > maxHeight ? 'auto' : 'hidden';
 	}
 
 	function handleComposerKeydown(event: KeyboardEvent) {
@@ -83,8 +113,12 @@
 <main id="conversation" data-ui="conversation" tabindex="-1">
 	<div data-ui="conversation-header">
 		<div>
-			<span data-ui="eyebrow">Session</span>
-			<h1>{currentSession?.title ?? 'New session'}</h1>
+			<span data-ui="eyebrow">Thread</span>
+			<h1>
+				{currentSession?.title === 'New session'
+					? 'New thread'
+					: (currentSession?.title ?? 'New thread')}
+			</h1>
 		</div>
 		<Menu
 			items={[
@@ -103,7 +137,7 @@
 					{...props}
 					variant="ghost"
 					size="icon"
-					aria-label="Session actions"><MoreHorizontal size={18} /></Button
+					aria-label="Thread actions"><MoreHorizontal size={18} /></Button
 				>
 			{/snippet}
 		</Menu>
@@ -144,16 +178,14 @@
 			<label for="prompt" data-ui="sr-only">Message Unity Agent</label>
 			<textarea
 				id="prompt"
+				bind:this={promptElement}
 				bind:value={draft}
+				use:autoGrow
 				onkeydown={handleComposerKeydown}
 				rows="1"
 				placeholder="Ask about your Unity project…"></textarea>
 			<div data-ui="composer-toolbar">
-				<span data-ui="model-indicator">
-					{store.model
-						? `${store.model.provider} / ${store.model.id}`
-						: 'Pi default model'}
-				</span>
+				<ComposerModelControls {store} />
 				<span data-ui="composer-hint"
 					><kbd>Enter</kbd> send · <kbd>Shift Enter</kbd> newline</span
 				>

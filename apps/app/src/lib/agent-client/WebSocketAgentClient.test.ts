@@ -156,6 +156,64 @@ describe('WebSocketAgentClient', () => {
 		await expect(resume).resolves.toEqual({ session, messages: [] });
 	});
 
+	it('gets and updates the active Pi model configuration', async () => {
+		const socket = new TestSocket();
+		const client = new WebSocketAgentClient({
+			url: 'ws://agent.test/agent',
+			createSocket: () => socket as unknown as WebSocket,
+		});
+		const connecting = client.connect();
+		socket.open();
+		await connecting;
+		const result = {
+			current: {
+				provider: 'openai-codex',
+				id: 'gpt-5.6-sol',
+				thinkingLevel: 'high',
+			},
+			models: [
+				{
+					provider: 'openai-codex',
+					id: 'gpt-5.6-sol',
+					name: 'GPT-5.6 Sol',
+					reasoning: true,
+				},
+			],
+			thinkingLevels: ['low', 'high'],
+		};
+
+		const catalog = client.getModelCatalog('session-1');
+		expect(socket.sent[0]).toMatchObject({
+			type: 'model.catalog',
+			sessionId: 'session-1',
+		});
+		socket.receive({
+			protocolVersion,
+			requestId: 'request-1',
+			type: 'response.success',
+			result,
+		});
+		await expect(catalog).resolves.toEqual(result);
+
+		const thinking = client.selectThinkingLevel('session-1', 'low');
+		expect(socket.sent[1]).toMatchObject({
+			type: 'thinking.select',
+			level: 'low',
+		});
+		socket.receive({
+			protocolVersion,
+			requestId: 'request-2',
+			type: 'response.success',
+			result: {
+				...result,
+				current: { ...result.current, thinkingLevel: 'low' },
+			},
+		});
+		await expect(thinking).resolves.toMatchObject({
+			current: { thinkingLevel: 'low' },
+		});
+	});
+
 	it('reports an unexpected connection close', async () => {
 		const socket = new TestSocket();
 		const client = new WebSocketAgentClient({

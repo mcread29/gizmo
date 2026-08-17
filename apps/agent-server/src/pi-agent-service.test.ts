@@ -1,5 +1,9 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
-import { parseAgentEvent, type AgentEvent } from '@unity-agent/protocol';
+import {
+	parseAgentEvent,
+	type AgentEvent,
+	type AgentModelCatalog,
+} from '@unity-agent/protocol';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,11 +14,31 @@ import { PiSessionRepository } from './session-repository';
 class FakePiSession implements PiSessionLike {
 	sessionId: string;
 	sessionName = 'New session';
+	model = { provider: 'openai-codex', id: 'gpt-5.6-sol' };
+	thinkingLevel = 'high';
+	isStreaming = false;
 	readonly prompt = vi.fn(async () => {});
 	readonly steer = vi.fn(async () => {});
 	readonly abort = vi.fn(async () => {});
 	readonly setSessionName = vi.fn((name: string) => (this.sessionName = name));
 	readonly dispose = vi.fn();
+	readonly getModelCatalog = vi.fn(async (): Promise<AgentModelCatalog> => ({
+		current: { ...this.model, thinkingLevel: this.thinkingLevel },
+		models: [
+			{
+				...this.model,
+				name: this.model.id,
+				reasoning: true,
+			},
+		],
+		thinkingLevels: ['low', 'high'],
+	}));
+	readonly selectModel = vi.fn(async (provider: string, modelId: string) => {
+		this.model = { provider, id: modelId };
+	});
+	readonly selectThinkingLevel = vi.fn((level: string) => {
+		this.thinkingLevel = level;
+	});
 	#listener?: (event: AgentSessionEvent) => void;
 
 	constructor(sessionId = 'pi-session-1') {
@@ -82,6 +106,25 @@ describe('PiAgentService', () => {
 		await expect(service.prompt(sessionId, 'No longer active')).rejects.toThrow(
 			'Unknown session',
 		);
+	});
+
+	it('updates model and thinking settings on the live Pi session', async () => {
+		const pi = new FakePiSession();
+		const service = await createTestService(pi);
+		const sessionId = await service.createSession();
+
+		await service.selectModel(sessionId, 'openai-codex', 'gpt-5.6-terra');
+		const catalog = await service.selectThinkingLevel(sessionId, 'low');
+
+		expect(pi.selectModel).toHaveBeenCalledWith(
+			'openai-codex',
+			'gpt-5.6-terra',
+		);
+		expect(pi.selectThinkingLevel).toHaveBeenCalledWith('low');
+		expect(catalog.current).toMatchObject({
+			id: 'gpt-5.6-terra',
+			thinkingLevel: 'low',
+		});
 	});
 
 	it('does not leave a persisted session when Pi creation fails', async () => {

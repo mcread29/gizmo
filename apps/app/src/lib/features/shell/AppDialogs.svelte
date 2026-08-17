@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { agentToolPolicy } from '@unity-agent/protocol';
-	import { CircleCheck, FolderOpen } from '@lucide/svelte';
+	import { FolderOpen } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Dialog } from '../../components';
 
@@ -11,7 +11,7 @@
 		renameOpen?: boolean;
 		deleteOpen?: boolean;
 		renameDraft?: string;
-		onSelectProject: (projectPath: string) => void | Promise<void>;
+		onStartThread: (projectPath: string) => void | Promise<void>;
 		onRename: () => void | Promise<void>;
 		onDelete: () => void | Promise<void>;
 	}
@@ -23,7 +23,7 @@
 		renameOpen = $bindable(false),
 		deleteOpen = $bindable(false),
 		renameDraft = $bindable(''),
-		onSelectProject,
+		onStartThread,
 		onRename,
 		onDelete,
 	}: Props = $props();
@@ -31,13 +31,14 @@
 
 <Dialog
 	bind:open={projectOpen}
-	title="Open a Unity project"
-	description="Choose the project this session can inspect and modify"
+	title="New thread"
+	description="Choose the Unity workspace this thread can inspect and modify"
 >
 	{#snippet trigger(props)}<button
 			{...props}
 			data-ui="hidden-trigger"
-			tabindex="-1">Open project</button
+			hidden
+			tabindex="-1">New thread</button
 		>{/snippet}
 	<div data-ui="project-picker">
 		{#if store.projectsLoading}
@@ -50,12 +51,10 @@
 			{#each store.projects as project (project.path)}
 				<button
 					data-ui="project-option"
-					onclick={() => onSelectProject(project.path)}
+					onclick={() => onStartThread(project.path)}
 					><FolderOpen size={19} /><span
 						><strong>{project.title}</strong><small>{project.path}</small></span
-					>{#if project.path === store.selectedProjectPath}<CircleCheck
-							size={17}
-						/>{/if}</button
+					></button
 				>
 			{/each}
 		{/if}
@@ -68,7 +67,7 @@
 	description="Runtime configuration loaded by the local Pi agent"
 >
 	{#snippet trigger(props)}
-		<button {...props} data-ui="hidden-trigger" tabindex="-1"
+		<button {...props} data-ui="hidden-trigger" hidden tabindex="-1"
 			>Open settings</button
 		>
 	{/snippet}
@@ -80,7 +79,7 @@
 		</div>
 		<div>
 			<span>Model</span><strong
-				>{store.model?.id ?? 'Resolved on session start'}</strong
+				>{store.model?.id ?? 'Resolved on thread start'}</strong
 			>
 		</div>
 		<div>
@@ -109,12 +108,12 @@
 
 <Dialog
 	bind:open={renameOpen}
-	title="Rename session"
-	description="Choose a name for this local session"
+	title="Rename thread"
+	description="Choose a name for this local thread"
 >
 	{#snippet trigger(props)}
-		<button {...props} data-ui="hidden-trigger" tabindex="-1"
-			>Rename session</button
+		<button {...props} data-ui="hidden-trigger" hidden tabindex="-1"
+			>Rename thread</button
 		>
 	{/snippet}
 	<form
@@ -124,7 +123,7 @@
 			void onRename();
 		}}
 	>
-		<label for="session-title">Session name</label>
+		<label for="session-title">Thread name</label>
 		<input id="session-title" bind:value={renameDraft} autocomplete="off" />
 		<div data-ui="dialog-actions">
 			<Button type="submit" variant="primary" disabled={!renameDraft.trim()}
@@ -136,15 +135,15 @@
 
 <Dialog
 	bind:open={deleteOpen}
-	title="Delete session?"
+	title="Delete thread?"
 	description="This permanently removes the local transcript."
 >
 	{#snippet trigger(props)}
-		<button {...props} data-ui="hidden-trigger" tabindex="-1"
-			>Delete session</button
+		<button {...props} data-ui="hidden-trigger" hidden tabindex="-1"
+			>Delete thread</button
 		>
 	{/snippet}
 	<div data-ui="dialog-actions">
-		<Button variant="danger" onclick={onDelete}>Delete session</Button>
+		<Button variant="danger" onclick={onDelete}>Delete thread</Button>
 	</div>
 </Dialog>

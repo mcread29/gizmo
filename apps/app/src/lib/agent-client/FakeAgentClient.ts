@@ -1,6 +1,7 @@
 import {
 	agentToolPolicy,
 	protocolVersion,
+	type AgentModelCatalog,
 	type AgentSessionSummary,
 	type AgentEvent,
 	type ConversationMessage,
@@ -20,6 +21,8 @@ import type {
 interface FakeSession {
 	abortController?: AbortController;
 	running: boolean;
+	model: { provider: string; id: string };
+	thinkingLevel: string;
 	summary: AgentSessionSummary;
 	messages: ConversationMessage[];
 }
@@ -79,6 +82,8 @@ export class FakeAgentClient implements AgentClient {
 		const now = Date.now();
 		this.#sessions.set(sessionId, {
 			running: false,
+			model: { provider: 'openai-codex', id: 'gpt-5.6-sol' },
+			thinkingLevel: 'high',
 			summary: {
 				id: sessionId,
 				title: 'New session',
@@ -90,18 +95,7 @@ export class FakeAgentClient implements AgentClient {
 			messages: [],
 		});
 		this.#lastSessionId = sessionId;
-		this.#emit({
-			type: 'session.created',
-			sessionId,
-			title: 'New session',
-			model: {
-				provider: 'openai-codex',
-				id: 'gpt-5.6-sol',
-				thinkingLevel: 'high',
-			},
-			tools: [...agentToolPolicy.tools],
-		});
-		this.#emit({ type: 'session.state', sessionId, state: 'idle' });
+		this.#emitCreated(this.#getSession(sessionId));
 		return sessionId;
 	}
 
@@ -327,6 +321,43 @@ export class FakeAgentClient implements AgentClient {
 		if (this.#lastSessionId === sessionId) this.#lastSessionId = undefined;
 	}
 
+	async getModelCatalog(sessionId: string): Promise<AgentModelCatalog> {
+		return this.#modelCatalog(this.#getSession(sessionId));
+	}
+
+	async selectModel(
+		sessionId: string,
+		provider: string,
+		modelId: string,
+	): Promise<AgentModelCatalog> {
+		const session = this.#getSession(sessionId);
+		if (session.running)
+			throw new Error('Cannot change models while streaming');
+		if (
+			!fakeModels.some(
+				(model) => model.provider === provider && model.id === modelId,
+			)
+		) {
+			throw new Error(`Unknown model: ${provider}/${modelId}`);
+		}
+		session.model = { provider, id: modelId };
+		return this.#modelCatalog(session);
+	}
+
+	async selectThinkingLevel(
+		sessionId: string,
+		level: string,
+	): Promise<AgentModelCatalog> {
+		const session = this.#getSession(sessionId);
+		if (session.running)
+			throw new Error('Cannot change thinking level while streaming');
+		if (!fakeThinkingLevels.includes(level)) {
+			throw new Error(`Unsupported thinking level: ${level}`);
+		}
+		session.thinkingLevel = level;
+		return this.#modelCatalog(session);
+	}
+
 	async listProjects(): Promise<UnityProject[]> {
 		this.#assertConnected();
 		return fakeProjects;
@@ -397,9 +428,8 @@ export class FakeAgentClient implements AgentClient {
 			sessionId: session.summary.id,
 			title: session.summary.title,
 			model: {
-				provider: 'openai-codex',
-				id: 'gpt-5.6-sol',
-				thinkingLevel: 'high',
+				...session.model,
+				thinkingLevel: session.thinkingLevel,
 			},
 			tools: [...agentToolPolicy.tools],
 		});
@@ -408,6 +438,17 @@ export class FakeAgentClient implements AgentClient {
 			sessionId: session.summary.id,
 			state: 'idle',
 		});
+	}
+
+	#modelCatalog(session: FakeSession): AgentModelCatalog {
+		return {
+			current: {
+				...session.model,
+				thinkingLevel: session.thinkingLevel,
+			},
+			models: fakeModels,
+			thinkingLevels: fakeThinkingLevels,
+		};
 	}
 
 	#wait(signal: AbortSignal): Promise<boolean> {
@@ -425,6 +466,23 @@ export class FakeAgentClient implements AgentClient {
 		});
 	}
 }
+
+const fakeModels = [
+	{
+		provider: 'openai-codex',
+		id: 'gpt-5.6-sol',
+		name: 'GPT-5.6 Sol',
+		reasoning: true,
+	},
+	{
+		provider: 'openai-codex',
+		id: 'gpt-5.6-terra',
+		name: 'GPT-5.6 Terra',
+		reasoning: true,
+	},
+] satisfies AgentModelCatalog['models'];
+
+const fakeThinkingLevels = ['off', 'low', 'medium', 'high', 'xhigh'];
 
 const fakeProjects: UnityProject[] = [
 	{
