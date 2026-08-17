@@ -4,12 +4,21 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"check": "tsc -p tsconfig.json"
+		"check": "tsc -p tsconfig.json",
+		"dev": "tsx watch src/server.ts",
+		"start": "tsx src/server.ts",
+		"test": "vitest run"
 	},
 	"dependencies": {
-		"@unity-agent/protocol": "workspace:*"
+		"@earendil-works/pi-coding-agent": "^0.84.2",
+		"@unity-agent/protocol": "workspace:*",
+		"ws": "^8.21.3"
 	},
 	"devDependencies": {
-		"typescript": "^6.0.0"
+		"@types/node": "^26.2.0",
+		"@types/ws": "^8.18.1",
+		"tsx": "^4.23.12",
+		"typescript": "^6.0.0",
+		"vitest": "^4.1.10"
 	}
 }

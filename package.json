@@ -5,7 +5,7 @@
 	"scripts": {
 		"build": "pnpm -r --if-present build",
 		"check": "pnpm -r --if-present check",
-		"dev": "pnpm --filter @unity-agent/app dev",
+		"dev": "pnpm --parallel --filter @unity-agent/agent-server --filter @unity-agent/app dev",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"test": "pnpm -r --if-present test"

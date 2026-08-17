@@ -5,6 +5,7 @@
 		ChevronDown,
 		CircleCheck,
 		CircleDashed,
+		CircleX,
 		FolderOpen,
 		MessageSquare,
 		Moon,
@@ -15,44 +16,58 @@
 		Send,
 		Settings,
 		Sparkles,
+		Square,
 		Sun,
 		Terminal,
 		User,
 	} from '@lucide/svelte';
+	import { onMount, untrack } from 'svelte';
+	import {
+		AgentStore,
+		WebSocketAgentClient,
+		type AgentClient,
+	} from './lib/agent-client';
 	import {
 		Button,
 		Dialog,
 		Menu,
 		ScrollPanel,
-		SelectField,
 		Tabs,
 		Tooltip,
 	} from './lib/components';
 	import ComponentGallery from './lib/components/ComponentGallery.svelte';
+
+	interface Props {
+		client?: AgentClient;
+	}
+
+	let { client = new WebSocketAgentClient() }: Props = $props();
 
 	const agent: AgentIdentity = {
 		name: 'Unity Agent',
 		version: '0.0.0',
 		capabilities: ['editor-status', 'pipeline-commands'],
 	};
+	const agentStore = new AgentStore(untrack(() => client));
 
 	let theme = $state<'light' | 'dark'>('dark');
 	let leftOpen = $state(false);
 	let rightOpen = $state(false);
 	let projectDialogOpen = $state(false);
-	let model = $state('sonnet');
 	let inspectorTab = $state('editor');
 	let draft = $state('');
+	let toolActivity = $derived(
+		agentStore.messages.flatMap((message) => message.tools),
+	);
+
+	onMount(() => {
+		void agentStore.connect();
+		return () => void agentStore.disconnect();
+	});
 
 	$effect(() => {
 		document.documentElement.dataset.theme = theme;
 	});
-
-	const modelOptions = [
-		{ value: 'sonnet', label: 'Claude Sonnet 4.6' },
-		{ value: 'gpt', label: 'GPT-5.4' },
-		{ value: 'gemini', label: 'Gemini 3.1 Pro' },
-	];
 
 	const sessions = [
 		{ title: 'Character controller', detail: '2m ago', active: true },
@@ -63,6 +78,33 @@
 	function closeDrawers() {
 		leftOpen = false;
 		rightOpen = false;
+	}
+
+	function sendPrompt() {
+		if (!draft.trim() || agentStore.sessionState === 'streaming') return;
+		const prompt = draft;
+		draft = '';
+		void agentStore.prompt(prompt);
+	}
+
+	function handleComposerKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' && !event.shiftKey) {
+			event.preventDefault();
+			sendPrompt();
+		}
+	}
+
+	function formatTime(timestamp: number) {
+		return new Intl.DateTimeFormat([], {
+			hour: '2-digit',
+			minute: '2-digit',
+		}).format(timestamp);
+	}
+
+	function formatToolResult(result: unknown) {
+		if (!result) return '';
+		if (typeof result === 'string') return result;
+		return JSON.stringify(result);
 	}
 </script>
 
@@ -182,7 +224,12 @@
 		<div data-ui="sidebar-footer">
 			<ComponentGallery />
 			<div data-ui="connection-row">
-				<span data-ui="status-dot" data-status="online"></span> Local agent ready
+				<span data-ui="status-dot" data-status={agentStore.connection}></span>
+				{agentStore.connection === 'connected'
+					? 'Local agent ready'
+					: agentStore.connection === 'connecting'
+						? 'Connecting to agent'
+						: 'Local agent offline'}
 			</div>
 		</div>
 	</aside>
@@ -213,84 +260,106 @@
 
 		<ScrollPanel data-ui="messages">
 			<div data-ui="message-list">
-				<div data-ui="message" data-role="user">
-					<div data-ui="avatar"><User size={15} /></div>
-					<div data-ui="message-body">
-						<div data-ui="message-meta">
-							<strong>You</strong><span>10:42</span>
-						</div>
+				{#if agentStore.error}
+					<div data-ui="error-banner" role="alert">
+						<CircleX size={17} />{agentStore.error}
+					</div>
+				{/if}
+				{#if agentStore.messages.length === 0}
+					<div data-ui="conversation-empty">
+						<div data-ui="brand-mark"><Sparkles size={18} /></div>
+						<h2>Ready when you are</h2>
 						<p>
-							Check the player controller setup and tell me why grounded
-							movement feels inconsistent on slopes.
+							Ask about the open project, inspect the Editor, or run a
+							registered command.
 						</p>
 					</div>
-				</div>
-
-				<div data-ui="message" data-role="assistant">
-					<div data-ui="avatar"><Bot size={15} /></div>
-					<div data-ui="message-body">
-						<div data-ui="message-meta">
-							<strong>Unity Agent</strong><span>10:42</span>
-						</div>
-						<p>
-							I’ll inspect the active Editor, then trace the controller and its
-							ground detection settings.
-						</p>
-
-						<div data-ui="tool-call" data-state="complete">
-							<div data-ui="tool-header">
-								<Terminal size={15} /><strong>unity_status</strong><CircleCheck
+				{/if}
+				{#each agentStore.messages as message (message.id)}
+					<div data-ui="message" data-role={message.role}>
+						<div data-ui="avatar">
+							{#if message.role === 'user'}<User size={15} />{:else}<Bot
 									size={15}
-								/>
-							</div>
-							<div data-ui="tool-result">
-								<span>Connected</span><code
-									>ThirdPersonSandbox · 6000.3.7f1</code
-								>
-							</div>
+								/>{/if}
 						</div>
-
-						<div data-ui="tool-call" data-state="running">
-							<div data-ui="tool-header">
-								<Terminal size={15} /><strong>unity_command</strong
-								><CircleDashed data-ui="spinner" size={15} />
+						<div data-ui="message-body">
+							<div data-ui="message-meta">
+								<strong>{message.role === 'user' ? 'You' : agent.name}</strong>
+								<span>{formatTime(message.createdAt)}</span>
 							</div>
-							<div data-ui="tool-result">
-								<span>Inspecting</span><code
-									>character-controller.describe Player</code
-								>
-							</div>
+							{#if message.content}<p>{message.content}</p>{/if}
+							{#each message.tools as tool (tool.id)}
+								<div data-ui="tool-call" data-state={tool.status}>
+									<div data-ui="tool-header">
+										<Terminal size={15} /><strong>{tool.name}</strong>
+										{#if tool.status === 'running'}
+											<CircleDashed data-ui="spinner" size={15} />
+										{:else if tool.status === 'complete'}
+											<CircleCheck size={15} />
+										{:else}
+											<CircleX size={15} />
+										{/if}
+									</div>
+									<div data-ui="tool-result">
+										<span>{tool.statusText}</span><code
+											>{formatToolResult(tool.result)}</code
+										>
+									</div>
+								</div>
+							{/each}
 						</div>
 					</div>
-				</div>
+				{/each}
 			</div>
 		</ScrollPanel>
 
 		<div data-ui="composer-wrap">
-			<div data-ui="composer">
+			<form
+				data-ui="composer"
+				onsubmit={(event) => {
+					event.preventDefault();
+					sendPrompt();
+				}}
+			>
 				<label for="prompt" data-ui="sr-only">Message Unity Agent</label>
 				<textarea
 					id="prompt"
 					bind:value={draft}
+					onkeydown={handleComposerKeydown}
 					rows="1"
 					placeholder="Ask about your Unity project…"></textarea>
 				<div data-ui="composer-toolbar">
-					<SelectField
-						label="Model"
-						options={modelOptions}
-						bind:value={model}
-					/>
+					<span data-ui="model-indicator">
+						{agentStore.model
+							? `${agentStore.model.provider} / ${agentStore.model.id}`
+							: 'Pi default model'}
+					</span>
 					<span data-ui="composer-hint"
 						><kbd>Enter</kbd> send · <kbd>Shift Enter</kbd> newline</span
 					>
-					<Button
-						variant="primary"
-						size="icon"
-						aria-label="Send message"
-						disabled={!draft.trim()}><Send size={16} /></Button
-					>
+					{#if agentStore.sessionState === 'streaming'}
+						<Button
+							type="button"
+							variant="danger"
+							size="icon"
+							aria-label="Stop response"
+							onclick={() => agentStore.abort()}
+						>
+							<Square size={14} />
+						</Button>
+					{:else}
+						<Button
+							type="submit"
+							variant="primary"
+							size="icon"
+							aria-label="Send message"
+							disabled={!draft.trim() || agentStore.connection !== 'connected'}
+						>
+							<Send size={16} />
+						</Button>
+					{/if}
 				</div>
-			</div>
+			</form>
 			<p data-ui="disclaimer">
 				Unity Agent can modify your project. Review changes before committing.
 			</p>
@@ -345,11 +414,22 @@
 							<Button variant="ghost" size="sm">View all commands</Button>
 						</section>
 					</div>
-				{:else}
+				{:else if toolActivity.length === 0}
 					<div data-ui="empty-state">
 						<CircleCheck size={22} /><strong>All caught up</strong><span
 							>Tool activity will appear here.</span
 						>
+					</div>
+				{:else}
+					<div data-ui="activity-list">
+						{#each toolActivity as tool (tool.id)}
+							<div data-ui="activity-item" data-state={tool.status}>
+								<Terminal size={14} /><span
+									><strong>{tool.name}</strong><small>{tool.statusText}</small
+									></span
+								>
+							</div>
+						{/each}
 					</div>
 				{/if}
 			{/snippet}

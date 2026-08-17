@@ -1,13 +1,18 @@
-import { cleanup, fireEvent, render } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { axe } from 'vitest-axe';
 import { afterEach, describe, expect, it } from 'vitest';
 import App from './App.svelte';
+import { FakeAgentClient } from './lib/agent-client';
 
 afterEach(cleanup);
 
+function renderApp() {
+	return render(App, { client: new FakeAgentClient({ latencyMs: 0 }) });
+}
+
 describe('application shell', () => {
 	it('renders the primary workspace regions', () => {
-		const { getByRole } = render(App);
+		const { getByRole } = renderApp();
 
 		expect(getByRole('main')).toBeInTheDocument();
 		expect(
@@ -22,7 +27,7 @@ describe('application shell', () => {
 	});
 
 	it('has no detectable accessibility violations', async () => {
-		const { container } = render(App);
+		const { container } = renderApp();
 		const results = await axe(container, {
 			rules: { 'color-contrast': { enabled: false } },
 		});
@@ -31,7 +36,7 @@ describe('application shell', () => {
 	});
 
 	it('exposes every design-system primitive in the component gallery', async () => {
-		const { findByRole, getByRole, getByText } = render(App);
+		const { findByRole, getByRole, getByText } = renderApp();
 
 		await fireEvent.click(getByRole('button', { name: /components/i }));
 		expect(
@@ -41,5 +46,27 @@ describe('application shell', () => {
 		expect(getByText('Menus and selection')).toBeInTheDocument();
 		expect(getByText('Tabs and scrolling')).toBeInTheDocument();
 		expect(getByText('Feedback')).toBeInTheDocument();
+	});
+
+	it('streams a fake agent response through the production UI state', async () => {
+		const { findAllByText, findByText, getByRole, queryByRole } = renderApp();
+		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+		const send = getByRole('button', { name: 'Send message' });
+		await fireEvent.input(composer, {
+			target: { value: 'Inspect the Editor' },
+		});
+		await waitFor(() => expect(send).toBeEnabled());
+		await fireEvent.click(send);
+
+		expect(await findByText('Inspect the Editor')).toBeInTheDocument();
+		expect(await findAllByText('unity_status')).toHaveLength(2);
+		expect(
+			await findByText(/connected and ready for commands/),
+		).toBeInTheDocument();
+		await waitFor(() =>
+			expect(
+				queryByRole('button', { name: 'Stop response' }),
+			).not.toBeInTheDocument(),
+		);
 	});
 });
