@@ -20,7 +20,7 @@ export function createUnityStatusTool(options: UnityToolOptions = {}) {
 		],
 		parameters: Type.Object({}, { additionalProperties: false }),
 		async execute(_toolCallId, _params, signal) {
-			const details = await getUnityStatus(runner, signal);
+			const details = await getUnityStatus(runner, { signal });
 			return {
 				content: [{ type: 'text', text: summarize(details) }],
 				details,

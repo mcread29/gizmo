@@ -46,6 +46,19 @@ describe('PiAgentService', () => {
 		expect(pi.dispose).toHaveBeenCalledOnce();
 	});
 
+	it('disposes a deleted session immediately', async () => {
+		const pi = new FakePiSession();
+		const service = new PiAgentService(async () => pi);
+		const sessionId = await service.createSession();
+
+		service.deleteSession(sessionId);
+
+		expect(pi.dispose).toHaveBeenCalledOnce();
+		expect(() => service.prompt(sessionId, 'No longer active')).toThrow(
+			'Unknown session',
+		);
+	});
+
 	it('translates Pi streaming and tool events into the shared protocol', async () => {
 		const pi = new FakePiSession();
 		const service = new PiAgentService(async () => pi);

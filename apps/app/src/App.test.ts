@@ -48,6 +48,29 @@ describe('application shell', () => {
 		expect(getByText('Feedback')).toBeInTheDocument();
 	});
 
+	it('opens the selected project Editor from a disconnected state', async () => {
+		const { findByRole, queryByRole } = render(App, {
+			client: new FakeAgentClient({ latencyMs: 0, editorOpen: false }),
+		});
+		const openEditor = await findByRole('button', { name: 'Open Editor' });
+
+		await fireEvent.click(openEditor);
+
+		await waitFor(() =>
+			expect(
+				queryByRole('button', { name: 'Open Editor' }),
+			).not.toBeInTheDocument(),
+		);
+	});
+
+	it('shows the model and local auth boundary reported by Pi', async () => {
+		const { findByText, getByRole } = renderApp();
+		await fireEvent.click(getByRole('button', { name: 'Settings' }));
+
+		expect(await findByText('gpt-5.6-sol')).toBeInTheDocument();
+		expect(await findByText('Managed by Pi')).toBeInTheDocument();
+	});
+
 	it('streams a fake agent response through the production UI state', async () => {
 		const { findAllByText, findByText, getByRole, queryByRole } = renderApp();
 		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
@@ -58,14 +81,16 @@ describe('application shell', () => {
 		await waitFor(() => expect(send).toBeEnabled());
 		await fireEvent.click(send);
 
-		expect(await findByText('Inspect the Editor')).toBeInTheDocument();
+		expect((await findAllByText('Inspect the Editor')).length).toBeGreaterThan(
+			0,
+		);
 		expect(await findAllByText('unity_status')).toHaveLength(2);
 		expect(
 			await findByText(/connected and ready for commands/),
 		).toBeInTheDocument();
 		expect(
-			await findByText('/projects/ThirdPersonSandbox'),
-		).toBeInTheDocument();
+			(await findAllByText('/projects/ThirdPersonSandbox')).length,
+		).toBeGreaterThan(0);
 		expect(await findByText('scene.validate')).toBeInTheDocument();
 		await waitFor(() =>
 			expect(

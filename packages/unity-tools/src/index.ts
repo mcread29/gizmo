@@ -7,6 +7,12 @@ export type {
 } from './unity-runner';
 export { runUnityJson } from './unity-json';
 export type { UnityJsonDetails } from './unity-json';
+export { listUnityProjects, openUnityProject } from './unity-projects';
+export type {
+	UnityOpenProjectDetails,
+	UnityProject,
+	UnityProjectsDetails,
+} from './unity-projects';
 export { listUnityCommands } from './unity-list-commands';
 export type {
 	UnityListCommandsDetails,
@@ -18,6 +24,7 @@ export { getUnityStatus, unityStatusArgs } from './unity-status';
 export type {
 	UnityCliMessage,
 	UnityEditorInstance,
+	UnityStatusOptions,
 	UnityStatusDetails,
 } from './unity-status';
 export { createUnityStatusTool } from './unity-status-tool';

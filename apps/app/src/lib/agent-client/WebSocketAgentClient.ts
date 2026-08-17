@@ -1,9 +1,15 @@
 import {
 	parseAgentResponse,
+	parseUnityOpenProjectResult,
+	parseUnityProjects,
+	parseUnityStatus,
 	protocolVersion,
 	type AgentRequest,
 	type AgentResponse,
 	type SessionOptions,
+	type UnityOpenProjectResult,
+	type UnityProject,
+	type UnityStatus,
 } from '@unity-agent/protocol';
 import type {
 	AgentClient,
@@ -105,6 +111,31 @@ export class WebSocketAgentClient implements AgentClient {
 
 	async abort(sessionId: string): Promise<void> {
 		await this.#request({ type: 'session.abort', sessionId });
+	}
+
+	async deleteSession(sessionId: string): Promise<void> {
+		await this.#request({ type: 'session.delete', sessionId });
+	}
+
+	async listProjects(): Promise<UnityProject[]> {
+		const response = await this.#request({ type: 'project.list' });
+		return parseUnityProjects(response.result);
+	}
+
+	async getProjectStatus(projectPath: string): Promise<UnityStatus> {
+		const response = await this.#request({
+			type: 'project.status',
+			projectPath,
+		});
+		return parseUnityStatus(response.result);
+	}
+
+	async openProject(projectPath: string): Promise<UnityOpenProjectResult> {
+		const response = await this.#request({
+			type: 'project.open',
+			projectPath,
+		});
+		return parseUnityOpenProjectResult(response.result);
 	}
 
 	subscribe(listener: AgentEventListener): () => void {

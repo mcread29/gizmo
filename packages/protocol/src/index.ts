@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 1 as const;
+export const protocolVersion = 2 as const;
 
 export interface AgentIdentity {
 	name: string;
@@ -33,6 +33,75 @@ export const sessionOptionsSchema = Type.Object(
 );
 
 export type SessionOptions = Static<typeof sessionOptionsSchema>;
+
+const unityCliMessageSchema = Type.Object(
+	{
+		code: Type.String(),
+		message: Type.String(),
+	},
+	{ additionalProperties: false },
+);
+
+export const unityProjectSchema = Type.Object(
+	{
+		title: Type.String({ minLength: 1 }),
+		path: Type.String({ minLength: 1 }),
+		version: Type.Optional(Type.String()),
+		lastModified: Type.Optional(Type.Integer({ minimum: 0 })),
+		isFavorite: Type.Boolean(),
+		buildTarget: Type.Optional(Type.String()),
+		renderPipeline: Type.Optional(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+
+export type UnityProject = Static<typeof unityProjectSchema>;
+
+export const unityStatusSchema = Type.Object(
+	{
+		state: Type.Union([
+			Type.Literal('connected'),
+			Type.Literal('disconnected'),
+			Type.Literal('unavailable'),
+			Type.Literal('error'),
+		]),
+		ok: Type.Boolean(),
+		command: Type.Array(Type.String()),
+		exitCode: Type.Union([Type.Integer(), Type.Null()]),
+		durationMs: Type.Integer({ minimum: 0 }),
+		instances: Type.Array(Type.Record(Type.String(), Type.Unknown())),
+		errors: Type.Array(unityCliMessageSchema),
+		warnings: Type.Array(unityCliMessageSchema),
+		stderr: Type.Optional(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+
+export type UnityStatus = Static<typeof unityStatusSchema>;
+
+export const unityOpenProjectResultSchema = Type.Object(
+	{
+		state: Type.Union([
+			Type.Literal('opened'),
+			Type.Literal('already_open'),
+			Type.Literal('error'),
+		]),
+		ok: Type.Boolean(),
+		command: Type.Array(Type.String()),
+		exitCode: Type.Union([Type.Integer(), Type.Null()]),
+		durationMs: Type.Integer({ minimum: 0 }),
+		data: Type.Unknown(),
+		errors: Type.Array(unityCliMessageSchema),
+		warnings: Type.Array(unityCliMessageSchema),
+		stderr: Type.Optional(Type.String()),
+		status: Type.Optional(unityStatusSchema),
+	},
+	{ additionalProperties: false },
+);
+
+export type UnityOpenProjectResult = Static<
+	typeof unityOpenProjectResultSchema
+>;
 
 export const agentRequestSchema = Type.Union([
 	Type.Object(
@@ -69,6 +138,37 @@ export const agentRequestSchema = Type.Union([
 		},
 		{ additionalProperties: false },
 	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.delete'),
+			sessionId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.list'),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.status'),
+			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.open'),
+			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
 ]);
 
 export type AgentRequest = Static<typeof agentRequestSchema>;
@@ -79,6 +179,7 @@ export const agentResponseSchema = Type.Union([
 			...responseEnvelope,
 			type: Type.Literal('response.success'),
 			sessionId: Type.Optional(Type.String({ minLength: 1 })),
+			result: Type.Optional(Type.Unknown()),
 		},
 		{ additionalProperties: false },
 	),
@@ -226,6 +327,30 @@ export function parseAgentResponse(input: unknown): AgentResponse {
 export function parseAgentEvent(input: unknown): AgentEvent {
 	if (!Value.Check(agentEventSchema, input)) {
 		throw new ProtocolValidationError('event', input);
+	}
+	return input;
+}
+
+export function parseUnityProjects(input: unknown): UnityProject[] {
+	const schema = Type.Array(unityProjectSchema);
+	if (!Value.Check(schema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseUnityStatus(input: unknown): UnityStatus {
+	if (!Value.Check(unityStatusSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseUnityOpenProjectResult(
+	input: unknown,
+): UnityOpenProjectResult {
+	if (!Value.Check(unityOpenProjectResultSchema, input)) {
+		throw new ProtocolValidationError('response', input);
 	}
 	return input;
 }

@@ -44,7 +44,7 @@ describe('agent protocol validation', () => {
 	it('rejects unknown and incompatible events', () => {
 		expect(() =>
 			parseAgentEvent({
-				protocolVersion: 2,
+				protocolVersion: 3,
 				eventId: 1,
 				sessionId: 'session-1',
 				type: 'message.delta',

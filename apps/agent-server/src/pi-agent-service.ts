@@ -84,6 +84,14 @@ export class PiAgentService {
 		return this.#session(sessionId).abort();
 	}
 
+	deleteSession(sessionId: string): void {
+		const active = this.#sessions.get(sessionId);
+		if (!active) throw new Error(`Unknown session: ${sessionId}`);
+		active.unsubscribe();
+		active.session.dispose();
+		this.#sessions.delete(sessionId);
+	}
+
 	subscribe(listener: AgentEventListener): () => void {
 		this.#listeners.add(listener);
 		return () => this.#listeners.delete(listener);

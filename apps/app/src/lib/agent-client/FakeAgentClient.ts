@@ -2,6 +2,9 @@ import {
 	protocolVersion,
 	type AgentEvent,
 	type SessionOptions,
+	type UnityOpenProjectResult,
+	type UnityProject,
+	type UnityStatus,
 } from '@unity-agent/protocol';
 import type {
 	AgentClient,
@@ -21,6 +24,7 @@ type EmittedAgentEvent = WithoutEventEnvelope<AgentEvent>;
 
 export interface FakeAgentClientOptions {
 	latencyMs?: number;
+	editorOpen?: boolean;
 }
 
 export class FakeAgentClient implements AgentClient {
@@ -31,9 +35,11 @@ export class FakeAgentClient implements AgentClient {
 	#connected = false;
 	#eventId = 0;
 	#id = 0;
+	#editorOpen = true;
 
 	constructor(options: FakeAgentClientOptions = {}) {
 		this.#latencyMs = options.latencyMs ?? 90;
+		this.#editorOpen = options.editorOpen ?? true;
 	}
 
 	async connect(): Promise<void> {
@@ -54,7 +60,16 @@ export class FakeAgentClient implements AgentClient {
 		this.#assertConnected();
 		const sessionId = `session-${++this.#id}`;
 		this.#sessions.set(sessionId, { running: false });
-		this.#emit({ type: 'session.created', sessionId, title: 'New session' });
+		this.#emit({
+			type: 'session.created',
+			sessionId,
+			title: 'New session',
+			model: {
+				provider: 'openai-codex',
+				id: 'gpt-5.6-sol',
+				thinkingLevel: 'high',
+			},
+		});
 		this.#emit({ type: 'session.state', sessionId, state: 'idle' });
 		return sessionId;
 	}
@@ -208,6 +223,39 @@ export class FakeAgentClient implements AgentClient {
 		this.#getSession(sessionId).abortController?.abort();
 	}
 
+	async deleteSession(sessionId: string): Promise<void> {
+		const session = this.#getSession(sessionId);
+		session.abortController?.abort();
+		this.#sessions.delete(sessionId);
+	}
+
+	async listProjects(): Promise<UnityProject[]> {
+		this.#assertConnected();
+		return fakeProjects;
+	}
+
+	async getProjectStatus(projectPath: string): Promise<UnityStatus> {
+		this.#assertProject(projectPath);
+		return fakeStatus(projectPath, this.#editorOpen);
+	}
+
+	async openProject(projectPath: string): Promise<UnityOpenProjectResult> {
+		this.#assertProject(projectPath);
+		const alreadyOpen = this.#editorOpen;
+		this.#editorOpen = true;
+		return {
+			state: alreadyOpen ? 'already_open' : 'opened',
+			ok: true,
+			command: ['unity', 'open', projectPath],
+			exitCode: 0,
+			durationMs: 1,
+			data: null,
+			errors: [],
+			warnings: [],
+			...(alreadyOpen ? { status: fakeStatus(projectPath, true) } : {}),
+		};
+	}
+
 	subscribe(listener: AgentEventListener): () => void {
 		this.#listeners.add(listener);
 		return () => this.#listeners.delete(listener);
@@ -227,6 +275,13 @@ export class FakeAgentClient implements AgentClient {
 		const session = this.#sessions.get(sessionId);
 		if (!session) throw new Error(`Unknown session: ${sessionId}`);
 		return session;
+	}
+
+	#assertProject(projectPath: string): void {
+		this.#assertConnected();
+		if (!fakeProjects.some((project) => project.path === projectPath)) {
+			throw new Error('Unknown Unity project');
+		}
 	}
 
 	#emit(event: EmittedAgentEvent): void {
@@ -252,4 +307,46 @@ export class FakeAgentClient implements AgentClient {
 			signal.addEventListener('abort', onAbort, { once: true });
 		});
 	}
+}
+
+const fakeProjects: UnityProject[] = [
+	{
+		title: 'ThirdPersonSandbox',
+		path: '/projects/ThirdPersonSandbox',
+		version: '6000.3.7f1',
+		lastModified: 1,
+		isFavorite: true,
+		buildTarget: 'StandaloneLinux64',
+		renderPipeline: 'Universal',
+	},
+	{
+		title: 'RenderingPlayground',
+		path: '/projects/RenderingPlayground',
+		version: '6000.3.7f1',
+		lastModified: 0,
+		isFavorite: false,
+	},
+];
+
+function fakeStatus(projectPath: string, open: boolean): UnityStatus {
+	return {
+		state: open ? 'connected' : 'disconnected',
+		ok: true,
+		command: ['unity', 'status', '--project-path', projectPath],
+		exitCode: 0,
+		durationMs: 1,
+		instances: open
+			? [
+					{
+						projectPath,
+						version: '6000.3.7f1',
+						port: 6400,
+						pid: 42,
+						state: 'ready',
+					},
+				]
+			: [],
+		errors: [],
+		warnings: [],
+	};
 }

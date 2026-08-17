@@ -6,6 +6,7 @@ import {
 } from '@unity-agent/protocol';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { PiAgentService } from './pi-agent-service';
+import { UnityProjectService } from './unity-project-service';
 
 export interface AgentWebSocketServerOptions {
 	host?: string;
@@ -13,6 +14,7 @@ export interface AgentWebSocketServerOptions {
 	path?: string;
 	allowedOrigins?: readonly string[];
 	createService?: () => PiAgentService;
+	createProjectService?: () => UnityProjectService;
 }
 
 export interface AgentWebSocketServer {
@@ -33,23 +35,30 @@ export async function createAgentWebSocketServer(
 		maxPayload: 1024 * 1024,
 		verifyClient,
 	});
-	const services = new Map<WebSocket, PiAgentService>();
+	const services = new Map<
+		WebSocket,
+		{ agent: PiAgentService; projects: UnityProjectService }
+	>();
 
 	server.on('connection', (socket) => {
 		const service = options.createService?.() ?? new PiAgentService();
-		services.set(socket, service);
+		const projectService =
+			options.createProjectService?.() ?? new UnityProjectService();
+		services.set(socket, { agent: service, projects: projectService });
 		const unsubscribe = service.subscribe((event) => send(socket, event));
 
 		socket.on('message', (data, isBinary) => {
 			void handleMessage(
 				socket,
 				service,
+				projectService,
 				isBinary ? undefined : data.toString(),
 			);
 		});
 		socket.once('close', () => {
 			unsubscribe();
 			service.dispose();
+			projectService.dispose();
 			services.delete(socket);
 		});
 	});
@@ -81,6 +90,7 @@ const defaultAllowedOrigins = [
 async function handleMessage(
 	socket: WebSocket,
 	service: PiAgentService,
+	projectService: UnityProjectService,
 	text: string | undefined,
 ): Promise<void> {
 	let input: unknown;
@@ -101,12 +111,12 @@ async function handleMessage(
 	}
 
 	try {
-		const sessionId = await dispatch(service, request);
+		const result = await dispatch(service, projectService, request);
 		send(socket, {
 			protocolVersion,
 			requestId: request.requestId,
 			type: 'response.success',
-			...(sessionId ? { sessionId } : {}),
+			...result,
 		} satisfies AgentResponse);
 	} catch (error) {
 		sendError(socket, request.requestId, 'request_failed', error);
@@ -115,20 +125,30 @@ async function handleMessage(
 
 async function dispatch(
 	service: PiAgentService,
+	projectService: UnityProjectService,
 	request: AgentRequest,
-): Promise<string | undefined> {
+): Promise<{ sessionId?: string; result?: unknown }> {
 	switch (request.type) {
 		case 'session.create':
-			return service.createSession(request.options);
+			return { sessionId: await service.createSession(request.options) };
 		case 'session.prompt':
 			await service.prompt(request.sessionId, request.text);
-			return;
+			return {};
 		case 'session.steer':
 			await service.steer(request.sessionId, request.text);
-			return;
+			return {};
 		case 'session.abort':
 			await service.abort(request.sessionId);
-			return;
+			return {};
+		case 'session.delete':
+			service.deleteSession(request.sessionId);
+			return {};
+		case 'project.list':
+			return { result: await projectService.listProjects() };
+		case 'project.status':
+			return { result: await projectService.getStatus(request.projectPath) };
+		case 'project.open':
+			return { result: await projectService.openProject(request.projectPath) };
 	}
 }
 

@@ -55,12 +55,26 @@
 	let leftOpen = $state(false);
 	let rightOpen = $state(false);
 	let projectDialogOpen = $state(false);
+	let settingsDialogOpen = $state(false);
+	let renameDialogOpen = $state(false);
+	let deleteDialogOpen = $state(false);
+	let renameDraft = $state('');
 	let inspectorTab = $state('editor');
 	let draft = $state('');
 	let toolActivity = $derived(
 		agentStore.messages.flatMap((message) => message.tools),
 	);
-	let unityStatus = $derived(findUnityStatus(toolActivity));
+	let selectedProject = $derived(
+		agentStore.projects.find(
+			(project) => project.path === agentStore.selectedProjectPath,
+		),
+	);
+	let currentSession = $derived(
+		agentStore.sessions.find((session) => session.id === agentStore.sessionId),
+	);
+	let unityStatus = $derived(
+		agentStore.projectStatus ?? findUnityStatus(toolActivity),
+	);
 	let unityCommands = $derived(findUnityCommands(toolActivity));
 	let unityCommandNames = $derived(
 		unityCommands?.commands
@@ -69,15 +83,18 @@
 	);
 	let editor = $derived(unityStatus?.instances[0]);
 	let editorProjectPath = $derived(
-		readEditorValue(editor, ['projectPath', 'project']),
+		readEditorValue(editor, ['projectPath', 'project']) ??
+			selectedProject?.path,
 	);
 	let editorProjectName = $derived(
-		readEditorValue(editor, ['projectName', 'name']) ??
+		selectedProject?.title ??
+			readEditorValue(editor, ['projectName', 'name']) ??
 			projectName(editorProjectPath) ??
-			(unityStatus ? 'No Editor connected' : 'Editor not checked'),
+			(agentStore.projectsLoading ? 'Loading projects' : 'Select a project'),
 	);
 	let editorVersion = $derived(
-		readEditorValue(editor, ['version', 'unityVersion']),
+		readEditorValue(editor, ['version', 'unityVersion']) ??
+			selectedProject?.version,
 	);
 	let editorState = $derived(
 		readEditorValue(editor, ['state', 'connectionState']) ??
@@ -86,18 +103,19 @@
 
 	onMount(() => {
 		void agentStore.connect();
-		return () => void agentStore.disconnect();
+		const statusInterval = window.setInterval(
+			() => void agentStore.refreshProjectStatus(),
+			5_000,
+		);
+		return () => {
+			window.clearInterval(statusInterval);
+			void agentStore.disconnect();
+		};
 	});
 
 	$effect(() => {
 		document.documentElement.dataset.theme = theme;
 	});
-
-	const sessions = [
-		{ title: 'Character controller', detail: '2m ago', active: true },
-		{ title: 'Validate scene lighting', detail: 'Yesterday', active: false },
-		{ title: 'Prefab cleanup', detail: 'Mon', active: false },
-	];
 
 	function closeDrawers() {
 		leftOpen = false;
@@ -123,6 +141,69 @@
 			hour: '2-digit',
 			minute: '2-digit',
 		}).format(timestamp);
+	}
+
+	function formatSessionTime(timestamp: number) {
+		const elapsedMinutes = Math.floor((Date.now() - timestamp) / 60_000);
+		if (elapsedMinutes < 1) return 'Now';
+		if (elapsedMinutes < 60) return `${elapsedMinutes}m ago`;
+		return new Intl.DateTimeFormat([], {
+			month: 'short',
+			day: 'numeric',
+		}).format(timestamp);
+	}
+
+	async function selectProject(projectPath: string) {
+		projectDialogOpen = false;
+		await agentStore.selectProject(projectPath);
+	}
+
+	function beginRename() {
+		if (!currentSession) return;
+		renameDraft = currentSession.title;
+		renameDialogOpen = true;
+	}
+
+	function renameSession() {
+		if (!currentSession || !renameDraft.trim()) return;
+		agentStore.renameSession(currentSession.id, renameDraft);
+		renameDialogOpen = false;
+	}
+
+	function exportTranscript() {
+		if (!currentSession) return;
+		const lines = [`# ${currentSession.title}`, ''];
+		for (const message of agentStore.messages) {
+			lines.push(`## ${message.role === 'user' ? 'You' : agent.name}`, '');
+			if (message.content) lines.push(message.content, '');
+			for (const tool of message.tools) {
+				lines.push(`- \`${tool.name}\`: ${tool.statusText}`);
+				if (tool.result !== undefined) {
+					lines.push('', '```json', formatToolResult(tool.result), '```', '');
+				}
+			}
+		}
+		const url = URL.createObjectURL(
+			new Blob([lines.join('\n')], { type: 'text/markdown' }),
+		);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `${safeFileName(currentSession.title)}.md`;
+		link.click();
+		URL.revokeObjectURL(url);
+	}
+
+	function safeFileName(value: string) {
+		return (
+			value.replace(/[^a-z0-9-_]+/gi, '-').replace(/^-|-$/g, '') || 'session'
+		);
+	}
+
+	async function deleteSession() {
+		if (!currentSession) return;
+		const sessionId = currentSession.id;
+		deleteDialogOpen = false;
+		await agentStore.deleteSession(sessionId);
 	}
 
 	function formatToolResult(result: unknown) {
@@ -284,7 +365,11 @@
 					</Button>
 				{/snippet}
 			</Tooltip>
-			<Button variant="ghost" size="icon" aria-label="Settings"
+			<Button
+				variant="ghost"
+				size="icon"
+				aria-label="Settings"
+				onclick={() => (settingsDialogOpen = true)}
 				><Settings size={17} /></Button
 			>
 			<Tooltip text="Toggle editor inspector">
@@ -312,7 +397,13 @@
 	<aside data-ui="sidebar" aria-label="Sessions">
 		<div data-ui="sidebar-header">
 			<span data-ui="eyebrow">Workspace</span>
-			<Button variant="secondary" size="sm"
+			<Button
+				variant="secondary"
+				size="sm"
+				disabled={agentStore.connection !== 'connected' ||
+					!agentStore.sessionId ||
+					agentStore.sessionState === 'streaming'}
+				onclick={() => agentStore.newSession()}
 				><Plus size={14} /> New session</Button
 			>
 		</div>
@@ -320,31 +411,35 @@
 		<button data-ui="project-card" onclick={() => (projectDialogOpen = true)}>
 			<span data-ui="project-icon"><FolderOpen size={17} /></span>
 			<span
-				><strong>ThirdPersonSandbox</strong><small
-					>~/Projects/third-person</small
+				><strong>{selectedProject?.title ?? 'Select a project'}</strong><small
+					>{selectedProject?.path ?? 'No registered project selected'}</small
 				></span
 			>
 			<ChevronDown size={14} />
 		</button>
 
 		<div data-ui="section-label">
-			<span>Recent sessions</span><span>{sessions.length}</span>
+			<span>Recent sessions</span><span>{agentStore.sessions.length}</span>
 		</div>
 		<ScrollPanel data-ui="session-scroll">
 			<nav data-ui="session-list" aria-label="Recent sessions">
-				{#each sessions as session}
-					<a
-						href="#conversation"
+				{#each agentStore.sessions as session (session.id)}
+					<button
+						type="button"
 						data-ui="session-item"
-						data-active={session.active || undefined}
-						aria-current={session.active ? 'page' : undefined}
+						data-active={session.id === agentStore.sessionId || undefined}
+						aria-current={session.id === agentStore.sessionId
+							? 'page'
+							: undefined}
+						onclick={() => agentStore.switchSession(session.id)}
 					>
 						<MessageSquare size={15} />
 						<span
-							><strong>{session.title}</strong><small>{session.detail}</small
+							><strong>{session.title}</strong><small
+								>{formatSessionTime(session.lastActiveAt)}</small
 							></span
 						>
-					</a>
+					</button>
 				{/each}
 			</nav>
 		</ScrollPanel>
@@ -366,13 +461,18 @@
 		<div data-ui="conversation-header">
 			<div>
 				<span data-ui="eyebrow">Session</span>
-				<h1>Character controller</h1>
+				<h1>{currentSession?.title ?? 'New session'}</h1>
 			</div>
 			<Menu
 				items={[
-					{ label: 'Rename' },
-					{ label: 'Export transcript' },
-					{ label: 'Delete', tone: 'danger' },
+					{ label: 'Rename', onSelect: beginRename },
+					{ label: 'Export transcript', onSelect: exportTranscript },
+					{
+						label: 'Delete',
+						tone: 'danger',
+						disabled: agentStore.sessionState === 'streaming',
+						onSelect: () => (deleteDialogOpen = true),
+					},
 				]}
 			>
 				{#snippet trigger(props)}
@@ -481,7 +581,9 @@
 							variant="primary"
 							size="icon"
 							aria-label="Send message"
-							disabled={!draft.trim() || agentStore.connection !== 'connected'}
+							disabled={!draft.trim() ||
+								agentStore.connection !== 'connected' ||
+								!agentStore.sessionId}
 						>
 							<Send size={16} />
 						</Button>
@@ -562,10 +664,21 @@
 								</dl>
 							{:else}
 								<p data-ui="inspector-message">
-									{unityStatus?.errors[0]?.message ??
-										'Ask the agent to inspect Unity status.'}
+									{agentStore.projectError ??
+										unityStatus?.errors[0]?.message ??
+										'The selected project Editor is not open.'}
 								</p>
-								<code data-ui="inspector-command">unity pipeline install</code>
+								{#if selectedProject}
+									<Button
+										variant="primary"
+										size="sm"
+										disabled={agentStore.projectOpening}
+										onclick={() => agentStore.openSelectedProject()}
+										><FolderOpen size={14} />{agentStore.projectOpening
+											? 'Opening Editor…'
+											: 'Open Editor'}</Button
+									>
+								{/if}
 							{/if}
 						</section>
 						<section data-ui="inspector-card">
@@ -618,24 +731,104 @@
 				tabindex="-1">Open project</button
 			>{/snippet}
 		<div data-ui="project-picker">
-			<button
-				data-ui="project-option"
-				onclick={() => (projectDialogOpen = false)}
-				><FolderOpen size={19} /><span
-					><strong>ThirdPersonSandbox</strong><small
-						>~/Projects/third-person</small
-					></span
-				><CircleCheck size={17} /></button
+			{#if agentStore.projectsLoading}
+				<p data-ui="inspector-message">Loading registered projects…</p>
+			{:else if agentStore.projects.length === 0}
+				<p data-ui="inspector-message">
+					{agentStore.projectError ?? 'No registered Unity projects found.'}
+				</p>
+			{:else}
+				{#each agentStore.projects as project (project.path)}
+					<button
+						data-ui="project-option"
+						onclick={() => selectProject(project.path)}
+						><FolderOpen size={19} /><span
+							><strong>{project.title}</strong><small>{project.path}</small
+							></span
+						>{#if project.path === agentStore.selectedProjectPath}<CircleCheck
+								size={17}
+							/>{/if}</button
+					>
+				{/each}
+			{/if}
+		</div>
+	</Dialog>
+
+	<Dialog
+		bind:open={settingsDialogOpen}
+		title="Agent settings"
+		description="Runtime configuration loaded by the local Pi agent"
+	>
+		{#snippet trigger(props)}
+			<button {...props} data-ui="hidden-trigger" tabindex="-1"
+				>Open settings</button
 			>
-			<button
-				data-ui="project-option"
-				onclick={() => (projectDialogOpen = false)}
-				><FolderOpen size={19} /><span
-					><strong>RenderingPlayground</strong><small
-						>~/Projects/rendering</small
-					></span
-				></button
+		{/snippet}
+		<div data-ui="settings-list">
+			<div>
+				<span>Provider</span><strong
+					>{agentStore.model?.provider ?? 'Pi default'}</strong
+				>
+			</div>
+			<div>
+				<span>Model</span><strong
+					>{agentStore.model?.id ?? 'Resolved on session start'}</strong
+				>
+			</div>
+			<div>
+				<span>Thinking</span><strong
+					>{agentStore.model?.thinkingLevel ?? 'Default'}</strong
+				>
+			</div>
+			<div>
+				<span>Authentication</span><strong>Managed by Pi</strong>
+			</div>
+			<p>
+				Credentials stay in the local Pi configuration and are never sent to the
+				browser. Start <code>pi</code>, then use <code>/login</code> to change accounts.
+			</p>
+		</div>
+	</Dialog>
+
+	<Dialog
+		bind:open={renameDialogOpen}
+		title="Rename session"
+		description="Choose a name for this local session"
+	>
+		{#snippet trigger(props)}
+			<button {...props} data-ui="hidden-trigger" tabindex="-1"
+				>Rename session</button
 			>
+		{/snippet}
+		<form
+			data-ui="dialog-form"
+			onsubmit={(event) => {
+				event.preventDefault();
+				renameSession();
+			}}
+		>
+			<label for="session-title">Session name</label>
+			<input id="session-title" bind:value={renameDraft} autocomplete="off" />
+			<div data-ui="dialog-actions">
+				<Button type="submit" variant="primary" disabled={!renameDraft.trim()}
+					>Rename</Button
+				>
+			</div>
+		</form>
+	</Dialog>
+
+	<Dialog
+		bind:open={deleteDialogOpen}
+		title="Delete session?"
+		description="This removes the in-memory transcript and cannot be undone."
+	>
+		{#snippet trigger(props)}
+			<button {...props} data-ui="hidden-trigger" tabindex="-1"
+				>Delete session</button
+			>
+		{/snippet}
+		<div data-ui="dialog-actions">
+			<Button variant="danger" onclick={deleteSession}>Delete session</Button>
 		</div>
 	</Dialog>
 </div>

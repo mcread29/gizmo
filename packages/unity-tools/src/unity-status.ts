@@ -48,6 +48,11 @@ export interface UnityStatusDetails {
 	stderr?: string;
 }
 
+export interface UnityStatusOptions {
+	projectPath?: string;
+	signal?: AbortSignal;
+}
+
 export const unityStatusArgs = [
 	'--non-interactive',
 	'--no-banner',
@@ -58,9 +63,13 @@ export const unityStatusArgs = [
 
 export async function getUnityStatus(
 	runner: UnityCommandRunner,
-	signal?: AbortSignal,
+	options: UnityStatusOptions = {},
 ): Promise<UnityStatusDetails> {
-	const run = await runner.run(unityStatusArgs, { signal });
+	const args = [
+		...unityStatusArgs,
+		...(options.projectPath ? ['--project-path', options.projectPath] : []),
+	];
+	const run = await runner.run(args, { signal: options.signal });
 	const command = [run.executable, ...run.args];
 
 	if (run.spawnError) {

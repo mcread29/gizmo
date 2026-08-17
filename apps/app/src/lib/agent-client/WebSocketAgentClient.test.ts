@@ -86,6 +86,36 @@ describe('WebSocketAgentClient', () => {
 		await expect(prompt).rejects.toThrow('Unknown session');
 	});
 
+	it('validates project data returned by the server', async () => {
+		const socket = new TestSocket();
+		const client = new WebSocketAgentClient({
+			url: 'ws://agent.test/agent',
+			createSocket: () => socket as unknown as WebSocket,
+		});
+		const connecting = client.connect();
+		socket.open();
+		await connecting;
+
+		const projects = client.listProjects();
+		expect(socket.sent[0]).toMatchObject({ type: 'project.list' });
+		socket.receive({
+			protocolVersion,
+			requestId: 'request-1',
+			type: 'response.success',
+			result: [
+				{
+					title: 'Game',
+					path: '/projects/game',
+					isFavorite: false,
+				},
+			],
+		});
+
+		await expect(projects).resolves.toEqual([
+			{ title: 'Game', path: '/projects/game', isFavorite: false },
+		]);
+	});
+
 	it('reports an unexpected connection close', async () => {
 		const socket = new TestSocket();
 		const client = new WebSocketAgentClient({

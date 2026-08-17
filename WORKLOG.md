@@ -94,3 +94,20 @@ The live CLI returned exit code `6` because no reachable Pipeline server is
 currently available. Arbitrary `unity_command` execution remains intentionally
 unregistered until the app has a user-confirmation boundary for potentially
 mutating Editor commands.
+
+## 2026-08-17 — Real project and session workspace
+
+Replaced the remaining project and session fixtures with working application state:
+
+- Added protocol operations and a backend service for listing Hub-registered projects, checking the selected project's Editor status, and opening its Editor.
+- Restricted status and open operations to exact paths returned by the Unity project registry.
+- Added a status-before-open check so an already-open project never launches a second Editor.
+- Connected the project picker to the live Unity CLI registry and refresh the selected Editor status every five seconds.
+- Rooted each new Pi session in the selected project and added in-memory session creation, switching, first-prompt titles, rename, transcript export, and deletion.
+- Disposed deleted Pi sessions on the backend instead of leaving hidden agent sessions alive.
+- Added a functional settings view showing the provider, model, thinking level, and local Pi authentication boundary reported by the real session.
+- Added focused coverage for normalized project data, exact-path validation, no-duplicate opening, disconnected opening UI, project transport parsing, and session lifecycle.
+
+Live read-only verification found eight registered Unity projects. The first project was reported as connected through the WebSocket project API. No Editor was opened during verification.
+
+Arbitrary registered-command execution remains the next intentional boundary: it needs a request/approval flow before the `unity command` tool is exposed to Pi.
