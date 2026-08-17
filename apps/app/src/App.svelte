@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AgentIdentity } from '@unity-agent/protocol';
+	import { agentToolPolicy, type AgentIdentity } from '@unity-agent/protocol';
 	import {
 		Bot,
 		ChevronDown,
@@ -783,9 +783,24 @@
 			<div>
 				<span>Authentication</span><strong>Managed by Pi</strong>
 			</div>
+			<div>
+				<span>Tools</span><strong
+					>{(agentStore.activeTools.length
+						? agentStore.activeTools
+						: agentToolPolicy.tools
+					).join(', ')}</strong
+				>
+			</div>
+			<div>
+				<span>Approvals</span><strong>Full access</strong>
+			</div>
+			<div>
+				<span>Installed extensions</span><strong>Disabled</strong>
+			</div>
 			<p>
 				Credentials stay in the local Pi configuration and are never sent to the
 				browser. Start <code>pi</code>, then use <code>/login</code> to change accounts.
+				The listed tools execute without approval prompts.
 			</p>
 		</div>
 	</Dialog>

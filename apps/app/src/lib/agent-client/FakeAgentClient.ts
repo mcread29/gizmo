@@ -1,4 +1,5 @@
 import {
+	agentToolPolicy,
 	protocolVersion,
 	type AgentEvent,
 	type SessionOptions,
@@ -69,6 +70,7 @@ export class FakeAgentClient implements AgentClient {
 				id: 'gpt-5.6-sol',
 				thinkingLevel: 'high',
 			},
+			tools: [...agentToolPolicy.tools],
 		});
 		this.#emit({ type: 'session.state', sessionId, state: 'idle' });
 		return sessionId;

@@ -5,6 +5,7 @@ import { UnityRunner, type UnityCommandRunner } from './unity-runner';
 
 export interface UnityToolOptions {
 	runner?: UnityCommandRunner;
+	projectPath?: string;
 }
 
 export function createUnityStatusTool(options: UnityToolOptions = {}) {
@@ -20,7 +21,10 @@ export function createUnityStatusTool(options: UnityToolOptions = {}) {
 		],
 		parameters: Type.Object({}, { additionalProperties: false }),
 		async execute(_toolCallId, _params, signal) {
-			const details = await getUnityStatus(runner, { signal });
+			const details = await getUnityStatus(runner, {
+				...(options.projectPath ? { projectPath: options.projectPath } : {}),
+				signal,
+			});
 			return {
 				content: [{ type: 'text', text: summarize(details) }],
 				details,

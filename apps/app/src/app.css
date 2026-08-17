@@ -814,6 +814,11 @@ kbd {
 	border-bottom: 1px solid var(--color-border);
 }
 
+[data-ui='settings-list'] strong {
+	max-width: 70%;
+	text-align: right;
+}
+
 [data-ui='settings-list'] span,
 [data-ui='dialog-form'] label {
 	color: var(--color-text-muted);

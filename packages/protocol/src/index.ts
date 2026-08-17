@@ -3,6 +3,19 @@ import { Value } from 'typebox/value';
 
 export const protocolVersion = 2 as const;
 
+export const agentToolPolicy = {
+	tools: [
+		'read',
+		'edit',
+		'write',
+		'unity_status',
+		'unity_list_commands',
+		'unity_command',
+	],
+	approvals: false,
+	extensions: false,
+} as const;
+
 export interface AgentIdentity {
 	name: string;
 	version: string;
@@ -210,6 +223,7 @@ export const agentEventSchema = Type.Union([
 			...eventEnvelope,
 			type: Type.Literal('session.created'),
 			title: Type.String(),
+			tools: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
 			model: Type.Optional(
 				Type.Object(
 					{

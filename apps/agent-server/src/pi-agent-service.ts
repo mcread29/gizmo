@@ -1,5 +1,6 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
 import {
+	agentToolPolicy,
 	protocolVersion,
 	type AgentEvent,
 	type SessionOptions,
@@ -15,6 +16,7 @@ export interface PiSessionLike {
 	readonly sessionId: string;
 	readonly model?: { readonly provider: string; readonly id: string };
 	readonly thinkingLevel?: string;
+	getActiveToolNames?(): string[];
 	subscribe(listener: (event: AgentSessionEvent) => void): () => void;
 	prompt(text: string): Promise<void>;
 	steer(text: string): Promise<void>;
@@ -58,6 +60,9 @@ export class PiAgentService {
 		this.#emit(sessionId, {
 			type: 'session.created',
 			title: options.cwd ? basename(options.cwd) : 'New session',
+			...(session.getActiveToolNames
+				? { tools: session.getActiveToolNames() }
+				: {}),
 			...(session.model
 				? {
 						model: {
@@ -124,13 +129,30 @@ export class PiAgentService {
 }
 
 const createDefaultPiSession: PiSessionFactory = async (options) => {
-	const { createAgentSession, SessionManager } =
-		await import('@earendil-works/pi-coding-agent');
+	const {
+		createAgentSession,
+		DefaultResourceLoader,
+		getAgentDir,
+		SessionManager,
+		SettingsManager,
+	} = await import('@earendil-works/pi-coding-agent');
 	const cwd = options.cwd ?? process.cwd();
+	const agentDir = getAgentDir();
+	const settingsManager = SettingsManager.create(cwd, agentDir);
+	const resourceLoader = new DefaultResourceLoader({
+		cwd,
+		agentDir,
+		settingsManager,
+		noExtensions: true,
+	});
+	await resourceLoader.reload();
 	const { session } = await createAgentSession({
 		cwd,
-		customTools: createUnityTools(),
+		customTools: createUnityTools({ projectPath: cwd }),
+		tools: [...agentToolPolicy.tools],
+		resourceLoader,
 		sessionManager: SessionManager.inMemory(cwd),
+		settingsManager,
 	});
 	return session;
 };

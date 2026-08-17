@@ -110,4 +110,15 @@ Replaced the remaining project and session fixtures with working application sta
 
 Live read-only verification found eight registered Unity projects. The first project was reported as connected through the WebSocket project API. No Editor was opened during verification.
 
-Arbitrary registered-command execution remains the next intentional boundary: it needs a request/approval flow before the `unity command` tool is exposed to Pi.
+## 2026-08-17 — Explicit full-access tool policy
+
+Made the custom harness authoritative over Pi's active capabilities:
+
+- Replaced Pi's ambient default tools with the explicit `read`, `edit`, `write`, `unity_status`, `unity_list_commands`, and `unity_command` allowlist.
+- Disabled installed extension loading so extension tools and hooks are not introduced implicitly.
+- Bound all Unity tools to the selected session project rather than accepting a model-supplied project path.
+- Added unrestricted execution of commands registered by the connected Editor, with structured arguments, cancellation, timeouts, output limits, and no approval prompt.
+- Re-checks the Editor's live command registry before every execution and rejects unknown command names without spawning a second command process.
+- Report Pi's actual active tools in the session event and show the effective policy in Settings.
+
+Live verification confirmed that Pi activated exactly the six allowlisted tools. The `unity_command` execution path successfully invoked the read-only registered `editor_status` command against the selected project. No project or Editor state was changed during verification.

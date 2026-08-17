@@ -45,6 +45,7 @@ export class AgentStore {
 	sessionId = $state<string>();
 	sessionState = $state<SessionState>('idle');
 	model = $state<AgentModel>();
+	activeTools = $state<string[]>([]);
 	messages = $state<ConversationMessage[]>([]);
 	sessions = $state<AgentSessionSummary[]>([]);
 	projects = $state<UnityProject[]>([]);
@@ -294,6 +295,7 @@ export class AgentStore {
 		switch (event.type) {
 			case 'session.created':
 				this.model = event.model;
+				this.activeTools = event.tools ?? [];
 				break;
 			case 'session.state':
 				this.sessionState = event.state;

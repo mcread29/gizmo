@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	agentToolPolicy,
 	parseAgentEvent,
 	parseAgentRequest,
 	parseAgentResponse,
@@ -8,6 +9,22 @@ import {
 } from './index';
 
 describe('agent protocol validation', () => {
+	it('defines the harness-owned full-access tool boundary', () => {
+		expect(agentToolPolicy).toEqual({
+			tools: [
+				'read',
+				'edit',
+				'write',
+				'unity_status',
+				'unity_list_commands',
+				'unity_command',
+			],
+			approvals: false,
+			extensions: false,
+		});
+		expect(agentToolPolicy.tools).not.toContain('bash');
+	});
+
 	it('accepts a valid prompt request', () => {
 		const request = parseAgentRequest({
 			protocolVersion,

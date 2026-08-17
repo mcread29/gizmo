@@ -69,6 +69,9 @@ describe('application shell', () => {
 
 		expect(await findByText('gpt-5.6-sol')).toBeInTheDocument();
 		expect(await findByText('Managed by Pi')).toBeInTheDocument();
+		expect(await findByText('Full access')).toBeInTheDocument();
+		expect(await findByText('Disabled')).toBeInTheDocument();
+		expect(await findByText(/unity_command/)).toBeInTheDocument();
 	});
 
 	it('streams a fake agent response through the production UI state', async () => {

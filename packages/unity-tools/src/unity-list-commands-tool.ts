@@ -5,6 +5,7 @@ import { UnityRunner, type UnityCommandRunner } from './unity-runner';
 
 export interface UnityListCommandsToolOptions {
 	runner?: UnityCommandRunner;
+	projectPath?: string;
 }
 
 export function createUnityListCommandsTool(
@@ -20,17 +21,10 @@ export function createUnityListCommandsTool(
 		promptGuidelines: [
 			'Use unity_list_commands to discover custom Editor commands; do not invent command names.',
 		],
-		parameters: Type.Object(
-			{
-				projectPath: Type.Optional(
-					Type.String({ minLength: 1, maxLength: 4096 }),
-				),
-			},
-			{ additionalProperties: false },
-		),
-		async execute(_toolCallId, params, signal) {
+		parameters: Type.Object({}, { additionalProperties: false }),
+		async execute(_toolCallId, _params, signal) {
 			const details = await listUnityCommands(runner, {
-				...(params.projectPath ? { projectPath: params.projectPath } : {}),
+				...(options.projectPath ? { projectPath: options.projectPath } : {}),
 				signal,
 			});
 			return {
