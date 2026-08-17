@@ -6,8 +6,12 @@
 	"scripts": {
 		"build": "vite build",
 		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"desktop:build": "pnpm sidecar:build && tauri build",
+		"desktop:dev": "pnpm sidecar:build && tauri dev",
 		"dev": "vite",
 		"preview": "vite preview",
+		"sidecar:build": "bun ../../scripts/build-sidecar.ts",
+		"tauri": "tauri",
 		"test": "vitest run"
 	},
 	"dependencies": {
@@ -19,6 +23,7 @@
 	},
 	"devDependencies": {
 		"@sveltejs/vite-plugin-svelte": "latest",
+		"@tauri-apps/cli": "^2.11.4",
 		"@testing-library/jest-dom": "latest",
 		"@testing-library/svelte": "latest",
 		"jsdom": "latest",

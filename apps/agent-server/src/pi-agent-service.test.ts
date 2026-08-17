@@ -1,13 +1,19 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
 import { parseAgentEvent, type AgentEvent } from '@unity-agent/protocol';
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PiAgentService, type PiSessionLike } from './pi-agent-service';
+import { PiSessionRepository } from './session-repository';
 
 class FakePiSession implements PiSessionLike {
-	readonly sessionId: string;
+	sessionId: string;
+	sessionName = 'New session';
 	readonly prompt = vi.fn(async () => {});
 	readonly steer = vi.fn(async () => {});
 	readonly abort = vi.fn(async () => {});
+	readonly setSessionName = vi.fn((name: string) => (this.sessionName = name));
 	readonly dispose = vi.fn();
 	#listener?: (event: AgentSessionEvent) => void;
 
@@ -25,6 +31,25 @@ class FakePiSession implements PiSessionLike {
 	}
 }
 
+const temporaryDirectories: string[] = [];
+
+afterEach(async () => {
+	await Promise.all(
+		temporaryDirectories
+			.splice(0)
+			.map((path) => rm(path, { recursive: true, force: true })),
+	);
+});
+
+async function createTestService(pi: FakePiSession) {
+	const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+	temporaryDirectories.push(dataDir);
+	return new PiAgentService(async (_options, manager) => {
+		pi.sessionId = manager.getSessionId();
+		return pi;
+	}, new PiSessionRepository(dataDir));
+}
+
 function event(value: unknown): AgentSessionEvent {
 	return value as AgentSessionEvent;
 }
@@ -32,7 +57,7 @@ function event(value: unknown): AgentSessionEvent {
 describe('PiAgentService', () => {
 	it('routes commands into the Pi session', async () => {
 		const pi = new FakePiSession();
-		const service = new PiAgentService(async () => pi);
+		const service = await createTestService(pi);
 		const sessionId = await service.createSession({ cwd: '/projects/sandbox' });
 
 		await service.prompt(sessionId, 'Inspect this');
@@ -48,20 +73,34 @@ describe('PiAgentService', () => {
 
 	it('disposes a deleted session immediately', async () => {
 		const pi = new FakePiSession();
-		const service = new PiAgentService(async () => pi);
+		const service = await createTestService(pi);
 		const sessionId = await service.createSession();
 
-		service.deleteSession(sessionId);
+		await service.deleteSession(sessionId);
 
 		expect(pi.dispose).toHaveBeenCalledOnce();
-		expect(() => service.prompt(sessionId, 'No longer active')).toThrow(
+		await expect(service.prompt(sessionId, 'No longer active')).rejects.toThrow(
 			'Unknown session',
 		);
 	});
 
+	it('does not leave a persisted session when Pi creation fails', async () => {
+		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+		temporaryDirectories.push(dataDir);
+		const repository = new PiSessionRepository(dataDir);
+		const service = new PiAgentService(async () => {
+			throw new Error('No model available');
+		}, repository);
+
+		await expect(
+			service.createSession({ cwd: '/projects/game' }),
+		).rejects.toThrow('No model available');
+		expect((await repository.list()).sessions).toEqual([]);
+	});
+
 	it('translates Pi streaming and tool events into the shared protocol', async () => {
 		const pi = new FakePiSession();
-		const service = new PiAgentService(async () => pi);
+		const service = await createTestService(pi);
 		const events: AgentEvent[] = [];
 		service.subscribe((input) => events.push(parseAgentEvent(input)));
 		await service.createSession();

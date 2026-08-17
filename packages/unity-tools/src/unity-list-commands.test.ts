@@ -68,6 +68,45 @@ describe('listUnityCommands', () => {
 		});
 	});
 
+	it('filters the normalized live schema without changing the CLI request', async () => {
+		const runner = fakeRunner({
+			stdout: JSON.stringify({
+				success: true,
+				command: 'unity list',
+				data: {
+					tools: [
+						{
+							name: 'create_script',
+							description: 'Create a C# script',
+							group: 'built-in',
+							parameters: [{ name: 'name', type: 'string', required: true }],
+						},
+						{ name: 'editor_status', parameters: [] },
+					],
+				},
+				errors: [],
+				warnings: [],
+			}),
+		});
+
+		const result = await listUnityCommands(runner, {
+			query: 'script name',
+			limit: 1,
+		});
+
+		expect(result).toMatchObject({
+			totalCommands: 2,
+			matchedCommands: 1,
+			commands: [
+				{
+					name: 'create_script',
+					parameters: [{ name: 'name', type: 'string', required: true }],
+				},
+			],
+		});
+		expect(runner.run).toHaveBeenCalledOnce();
+	});
+
 	it('distinguishes an unavailable CLI', async () => {
 		const runner = fakeRunner({
 			ok: false,

@@ -116,6 +116,46 @@ describe('WebSocketAgentClient', () => {
 		]);
 	});
 
+	it('validates persisted session catalogs and hydrated resumes', async () => {
+		const socket = new TestSocket();
+		const client = new WebSocketAgentClient({
+			url: 'ws://agent.test/agent',
+			createSocket: () => socket as unknown as WebSocket,
+		});
+		const connecting = client.connect();
+		socket.open();
+		await connecting;
+		const session = {
+			id: 'session-1',
+			title: 'Saved session',
+			projectPath: '/projects/game',
+			createdAt: 1,
+			lastActiveAt: 2,
+			messageCount: 0,
+		};
+
+		const catalog = client.listSessions();
+		socket.receive({
+			protocolVersion,
+			requestId: 'request-1',
+			type: 'response.success',
+			result: { sessions: [session], lastSessionId: session.id },
+		});
+		await expect(catalog).resolves.toMatchObject({
+			lastSessionId: session.id,
+		});
+
+		const resume = client.resumeSession(session.id);
+		socket.receive({
+			protocolVersion,
+			requestId: 'request-2',
+			type: 'response.success',
+			sessionId: session.id,
+			result: { session, messages: [] },
+		});
+		await expect(resume).resolves.toEqual({ session, messages: [] });
+	});
+
 	it('reports an unexpected connection close', async () => {
 		const socket = new TestSocket();
 		const client = new WebSocketAgentClient({

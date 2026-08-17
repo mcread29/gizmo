@@ -164,9 +164,9 @@
 		renameDialogOpen = true;
 	}
 
-	function renameSession() {
+	async function renameSession() {
 		if (!currentSession || !renameDraft.trim()) return;
-		agentStore.renameSession(currentSession.id, renameDraft);
+		await agentStore.renameSession(currentSession.id, renameDraft);
 		renameDialogOpen = false;
 	}
 
@@ -819,7 +819,7 @@
 			data-ui="dialog-form"
 			onsubmit={(event) => {
 				event.preventDefault();
-				renameSession();
+				void renameSession();
 			}}
 		>
 			<label for="session-title">Session name</label>

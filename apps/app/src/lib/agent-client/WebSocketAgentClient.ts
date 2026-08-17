@@ -1,12 +1,16 @@
 import {
 	parseAgentResponse,
+	parseSessionCatalog,
+	parseSessionSnapshot,
 	parseUnityOpenProjectResult,
 	parseUnityProjects,
 	parseUnityStatus,
 	protocolVersion,
 	type AgentRequest,
 	type AgentResponse,
+	type SessionCatalog,
 	type SessionOptions,
+	type SessionSnapshot,
 	type UnityOpenProjectResult,
 	type UnityProject,
 	type UnityStatus,
@@ -99,6 +103,20 @@ export class WebSocketAgentClient implements AgentClient {
 			throw new Error('Agent server did not return a session ID');
 		}
 		return response.sessionId;
+	}
+
+	async listSessions(): Promise<SessionCatalog> {
+		const response = await this.#request({ type: 'session.list' });
+		return parseSessionCatalog(response.result);
+	}
+
+	async resumeSession(sessionId: string): Promise<SessionSnapshot> {
+		const response = await this.#request({ type: 'session.resume', sessionId });
+		return parseSessionSnapshot(response.result);
+	}
+
+	async renameSession(sessionId: string, title: string): Promise<void> {
+		await this.#request({ type: 'session.rename', sessionId, title });
 	}
 
 	async prompt(sessionId: string, text: string): Promise<void> {
@@ -223,6 +241,9 @@ export class WebSocketAgentClient implements AgentClient {
 }
 
 function defaultAgentUrl(): string {
+	if ('__TAURI_INTERNALS__' in window) {
+		return 'ws://127.0.0.1:8787/agent';
+	}
 	const url = new URL('/agent', window.location.href);
 	url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
 	return url.href;

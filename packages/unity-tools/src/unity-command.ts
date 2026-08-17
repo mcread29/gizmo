@@ -1,6 +1,7 @@
 import { runUnityJson, type UnityJsonDetails } from './unity-json';
 import {
 	listUnityCommands,
+	type UnityRegisteredCommand,
 	type UnityListCommandsDetails,
 } from './unity-list-commands';
 import type { UnityCommandRunner } from './unity-runner';
@@ -16,6 +17,7 @@ export interface ExecuteUnityCommandOptions {
 	projectPath: string;
 	command: string;
 	args?: readonly string[];
+	parameters?: Readonly<Record<string, unknown>>;
 	timeoutSeconds?: number;
 	signal?: AbortSignal;
 }
@@ -36,9 +38,10 @@ export async function executeUnityCommand(
 		signal: options.signal,
 	});
 	if (!listed.ok) return listingFailure(listed, options);
-	if (
-		!listed.commands.some((command) => commandName(command) === options.command)
-	) {
+	const registered = listed.commands.find(
+		(command) => command.name === options.command,
+	);
+	if (!registered) {
 		return {
 			...listed,
 			ok: false,
@@ -55,9 +58,27 @@ export async function executeUnityCommand(
 			],
 		};
 	}
+	const argumentResult = buildArguments(registered, options);
+	if ('error' in argumentResult) {
+		return {
+			...listed,
+			ok: false,
+			state: 'error',
+			data: null,
+			editorCommand: options.command,
+			args: [],
+			errors: [
+				...listed.errors,
+				{
+					code: 'UNITY_COMMAND_ARGUMENTS_INVALID',
+					message: argumentResult.error,
+				},
+			],
+		};
+	}
 
 	const timeoutSeconds = options.timeoutSeconds ?? 30;
-	const args = options.args ?? [];
+	const args = argumentResult.args;
 	const result = await runUnityJson(
 		runner,
 		[
@@ -102,10 +123,59 @@ function listingFailure(
 	};
 }
 
-function commandName(command: unknown): string | undefined {
-	if (typeof command === 'string') return command;
-	if (!command || typeof command !== 'object') return;
-	return 'name' in command && typeof command.name === 'string'
-		? command.name
-		: undefined;
+function buildArguments(
+	command: UnityRegisteredCommand,
+	options: ExecuteUnityCommandOptions,
+): { args: readonly string[] } | { error: string } {
+	if (options.args && options.parameters) {
+		return { error: 'Use parameters or raw args, not both.' };
+	}
+	if (!options.parameters) return { args: options.args ?? [] };
+
+	const known = new Set(command.parameters.map(({ name }) => name));
+	const unknown = Object.keys(options.parameters).filter(
+		(name) => !known.has(name),
+	);
+	if (unknown.length) {
+		return {
+			error: `Unknown parameter${unknown.length === 1 ? '' : 's'} for ${command.name}: ${unknown.join(', ')}.`,
+		};
+	}
+	const missing = command.parameters
+		.filter(
+			(parameter) =>
+				parameter.required &&
+				!Object.prototype.hasOwnProperty.call(
+					options.parameters,
+					parameter.name,
+				),
+		)
+		.map(({ name }) => name);
+	if (missing.length) {
+		return {
+			error: `Missing required parameter${missing.length === 1 ? '' : 's'} for ${command.name}: ${missing.join(', ')}.`,
+		};
+	}
+
+	const args: string[] = [];
+	for (const parameter of command.parameters) {
+		if (
+			!Object.prototype.hasOwnProperty.call(options.parameters, parameter.name)
+		) {
+			continue;
+		}
+		args.push(
+			`--${parameter.name}`,
+			serializeParameter(options.parameters[parameter.name]),
+		);
+	}
+	return { args };
+}
+
+function serializeParameter(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number' || typeof value === 'boolean') {
+		return String(value);
+	}
+	return JSON.stringify(value) ?? 'null';
 }

@@ -6,20 +6,26 @@ import {
 	type AgentResponse,
 } from '@unity-agent/protocol';
 import type { AddressInfo } from 'node:net';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { WebSocket } from 'ws';
 import { PiAgentService, type PiSessionLike } from './pi-agent-service';
+import { PiSessionRepository } from './session-repository';
 import {
 	createAgentWebSocketServer,
 	type AgentWebSocketServer,
 } from './websocket-server';
 
 class StreamingPiSession implements PiSessionLike {
-	readonly sessionId = 'pi-session-1';
+	sessionId = 'pi-session-1';
+	sessionName = 'New session';
 	readonly model = { provider: 'test-provider', id: 'test-model' };
 	readonly thinkingLevel = 'low';
 	readonly steer = vi.fn(async () => {});
 	readonly abort = vi.fn(async () => {});
+	readonly setSessionName = vi.fn((name: string) => (this.sessionName = name));
 	readonly dispose = vi.fn();
 	#listener?: (event: AgentSessionEvent) => void;
 
@@ -70,16 +76,30 @@ class StreamingPiSession implements PiSessionLike {
 
 const runningServers: AgentWebSocketServer[] = [];
 const openSockets: WebSocket[] = [];
+const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
 	for (const socket of openSockets.splice(0)) socket.close();
 	await Promise.all(runningServers.splice(0).map((server) => server.close()));
+	await Promise.all(
+		temporaryDirectories
+			.splice(0)
+			.map((path) => rm(path, { recursive: true, force: true })),
+	);
 });
 
 describe('agent WebSocket server', () => {
 	it('correlates requests and streams Pi events over one connection', async () => {
 		const pi = new StreamingPiSession();
-		const server = await start(() => new PiAgentService(async () => pi));
+		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+		temporaryDirectories.push(dataDir);
+		const server = await start(
+			() =>
+				new PiAgentService(async (_options, manager) => {
+					pi.sessionId = manager.getSessionId();
+					return pi;
+				}, new PiSessionRepository(dataDir)),
+		);
 		const socket = await connect(server);
 
 		const createdMessage = receive(

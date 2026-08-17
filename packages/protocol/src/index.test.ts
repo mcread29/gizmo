@@ -4,6 +4,8 @@ import {
 	parseAgentEvent,
 	parseAgentRequest,
 	parseAgentResponse,
+	parseSessionCatalog,
+	parseSessionSnapshot,
 	protocolVersion,
 	ProtocolValidationError,
 } from './index';
@@ -58,10 +60,39 @@ describe('agent protocol validation', () => {
 		).toMatchObject({ requestId: 'request-2', code: 'request_failed' });
 	});
 
+	it('validates durable session catalogs and hydrated transcripts', () => {
+		const session = {
+			id: 'session-1',
+			title: 'Scene inspection',
+			projectPath: '/projects/game',
+			createdAt: 1,
+			lastActiveAt: 2,
+			messageCount: 1,
+		};
+		expect(
+			parseSessionCatalog({ sessions: [session], lastSessionId: 'session-1' }),
+		).toMatchObject({ lastSessionId: 'session-1' });
+		expect(
+			parseSessionSnapshot({
+				session,
+				messages: [
+					{
+						id: 'message-1',
+						role: 'user',
+						content: 'Inspect the scene',
+						createdAt: 1,
+						complete: true,
+						tools: [],
+					},
+				],
+			}),
+		).toMatchObject({ session, messages: [{ role: 'user' }] });
+	});
+
 	it('rejects unknown and incompatible events', () => {
 		expect(() =>
 			parseAgentEvent({
-				protocolVersion: 3,
+				protocolVersion: protocolVersion + 1,
 				eventId: 1,
 				sessionId: 'session-1',
 				type: 'message.delta',

@@ -1,8 +1,12 @@
 import {
 	agentToolPolicy,
 	protocolVersion,
+	type AgentSessionSummary,
 	type AgentEvent,
+	type ConversationMessage,
+	type SessionCatalog,
 	type SessionOptions,
+	type SessionSnapshot,
 	type UnityOpenProjectResult,
 	type UnityProject,
 	type UnityStatus,
@@ -16,6 +20,8 @@ import type {
 interface FakeSession {
 	abortController?: AbortController;
 	running: boolean;
+	summary: AgentSessionSummary;
+	messages: ConversationMessage[];
 }
 
 type WithoutEventEnvelope<T> = T extends AgentEvent
@@ -36,6 +42,7 @@ export class FakeAgentClient implements AgentClient {
 	#connected = false;
 	#eventId = 0;
 	#id = 0;
+	#lastSessionId?: string;
 	#editorOpen = true;
 
 	constructor(options: FakeAgentClientOptions = {}) {
@@ -50,17 +57,39 @@ export class FakeAgentClient implements AgentClient {
 	async disconnect(): Promise<void> {
 		for (const session of this.#sessions.values())
 			session.abortController?.abort();
-		this.#sessions.clear();
 		this.#connected = false;
 		for (const listener of this.#disconnectListeners) {
 			listener(new Error('Agent connection closed'));
 		}
 	}
 
-	async createSession(_options: SessionOptions = {}): Promise<string> {
+	async listSessions(): Promise<SessionCatalog> {
+		this.#assertConnected();
+		return {
+			sessions: [...this.#sessions.values()]
+				.map(({ summary }) => ({ ...summary }))
+				.sort((left, right) => right.lastActiveAt - left.lastActiveAt),
+			...(this.#lastSessionId ? { lastSessionId: this.#lastSessionId } : {}),
+		};
+	}
+
+	async createSession(options: SessionOptions = {}): Promise<string> {
 		this.#assertConnected();
 		const sessionId = `session-${++this.#id}`;
-		this.#sessions.set(sessionId, { running: false });
+		const now = Date.now();
+		this.#sessions.set(sessionId, {
+			running: false,
+			summary: {
+				id: sessionId,
+				title: 'New session',
+				projectPath: options.cwd ?? fakeProjects[0]!.path,
+				createdAt: now,
+				lastActiveAt: now,
+				messageCount: 0,
+			},
+			messages: [],
+		});
+		this.#lastSessionId = sessionId;
 		this.#emit({
 			type: 'session.created',
 			sessionId,
@@ -76,6 +105,20 @@ export class FakeAgentClient implements AgentClient {
 		return sessionId;
 	}
 
+	async resumeSession(sessionId: string): Promise<SessionSnapshot> {
+		const session = this.#getSession(sessionId);
+		this.#lastSessionId = sessionId;
+		this.#emitCreated(session);
+		return {
+			session: { ...session.summary },
+			messages: structuredClone(session.messages),
+		};
+	}
+
+	async renameSession(sessionId: string, title: string): Promise<void> {
+		this.#getSession(sessionId).summary.title = title.trim();
+	}
+
 	async prompt(sessionId: string, text: string): Promise<void> {
 		const session = this.#getSession(sessionId);
 		if (session.running) throw new Error('Session is already streaming');
@@ -85,6 +128,20 @@ export class FakeAgentClient implements AgentClient {
 		session.running = true;
 
 		const userMessageId = `message-${++this.#id}`;
+		const userMessage: ConversationMessage = {
+			id: userMessageId,
+			role: 'user',
+			content: text,
+			createdAt: Date.now(),
+			complete: true,
+			tools: [],
+		};
+		session.messages.push(userMessage);
+		session.summary.messageCount++;
+		session.summary.lastActiveAt = Date.now();
+		if (session.summary.title === 'New session') {
+			session.summary.title = sessionTitle(text);
+		}
 		this.#emit({
 			type: 'message.started',
 			sessionId,
@@ -106,6 +163,16 @@ export class FakeAgentClient implements AgentClient {
 		this.#emit({ type: 'session.state', sessionId, state: 'streaming' });
 
 		const assistantMessageId = `message-${++this.#id}`;
+		const assistantMessage: ConversationMessage = {
+			id: assistantMessageId,
+			role: 'assistant',
+			content: '',
+			createdAt: Date.now(),
+			complete: false,
+			tools: [],
+		};
+		session.messages.push(assistantMessage);
+		session.summary.messageCount++;
 		this.#emit({
 			type: 'message.started',
 			sessionId,
@@ -120,6 +187,7 @@ export class FakeAgentClient implements AgentClient {
 				'then check the active project state.',
 			]) {
 				if (!(await this.#wait(abortController.signal))) return;
+				assistantMessage.content += delta;
 				this.#emit({
 					type: 'message.delta',
 					sessionId,
@@ -129,7 +197,14 @@ export class FakeAgentClient implements AgentClient {
 			}
 
 			const toolCallId = `tool-${++this.#id}`;
+			assistantMessage.tools.push({
+				id: toolCallId,
+				name: 'unity_status',
+				status: 'running',
+				statusText: 'Starting',
+			});
 			if (!(await this.#wait(abortController.signal))) return;
+			assistantMessage.tools[0]!.statusText = 'Connecting to Unity Editor';
 			this.#emit({
 				type: 'tool.started',
 				sessionId,
@@ -139,6 +214,11 @@ export class FakeAgentClient implements AgentClient {
 				input: {},
 			});
 			if (!(await this.#wait(abortController.signal))) return;
+			Object.assign(assistantMessage.tools[0]!, {
+				status: 'complete',
+				statusText: 'Completed',
+				result: { state: 'connected', instances: [{ port: 6400 }] },
+			});
 			this.#emit({
 				type: 'tool.updated',
 				sessionId,
@@ -170,7 +250,18 @@ export class FakeAgentClient implements AgentClient {
 			});
 
 			const listToolCallId = `tool-${++this.#id}`;
+			assistantMessage.tools.push({
+				id: listToolCallId,
+				name: 'unity_list_commands',
+				status: 'running',
+				statusText: 'Starting',
+			});
 			if (!(await this.#wait(abortController.signal))) return;
+			Object.assign(assistantMessage.tools[1]!, {
+				status: 'complete',
+				statusText: 'Completed',
+				result: { state: 'available' },
+			});
 			this.#emit({
 				type: 'tool.started',
 				sessionId,
@@ -180,6 +271,8 @@ export class FakeAgentClient implements AgentClient {
 				input: {},
 			});
 			if (!(await this.#wait(abortController.signal))) return;
+			assistantMessage.content +=
+				' The Editor is connected and ready for commands.';
 			this.#emit({
 				type: 'tool.completed',
 				sessionId,
@@ -205,6 +298,8 @@ export class FakeAgentClient implements AgentClient {
 				delta: ' The Editor is connected and ready for commands.',
 			});
 		} finally {
+			assistantMessage.complete = true;
+			session.summary.lastActiveAt = Date.now();
 			this.#emit({
 				type: 'message.completed',
 				sessionId,
@@ -229,6 +324,7 @@ export class FakeAgentClient implements AgentClient {
 		const session = this.#getSession(sessionId);
 		session.abortController?.abort();
 		this.#sessions.delete(sessionId);
+		if (this.#lastSessionId === sessionId) this.#lastSessionId = undefined;
 	}
 
 	async listProjects(): Promise<UnityProject[]> {
@@ -295,6 +391,25 @@ export class FakeAgentClient implements AgentClient {
 		for (const listener of this.#listeners) listener(envelope);
 	}
 
+	#emitCreated(session: FakeSession): void {
+		this.#emit({
+			type: 'session.created',
+			sessionId: session.summary.id,
+			title: session.summary.title,
+			model: {
+				provider: 'openai-codex',
+				id: 'gpt-5.6-sol',
+				thinkingLevel: 'high',
+			},
+			tools: [...agentToolPolicy.tools],
+		});
+		this.#emit({
+			type: 'session.state',
+			sessionId: session.summary.id,
+			state: 'idle',
+		});
+	}
+
 	#wait(signal: AbortSignal): Promise<boolean> {
 		return new Promise((resolve) => {
 			if (signal.aborted) return resolve(false);
@@ -351,4 +466,8 @@ function fakeStatus(projectPath: string, open: boolean): UnityStatus {
 		errors: [],
 		warnings: [],
 	};
+}
+
+function sessionTitle(prompt: string): string {
+	return prompt.length > 48 ? `${prompt.slice(0, 47)}…` : prompt;
 }

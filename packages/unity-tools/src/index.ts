@@ -22,6 +22,8 @@ export type {
 } from './unity-projects';
 export { listUnityCommands } from './unity-list-commands';
 export type {
+	UnityCommandParameter,
+	UnityRegisteredCommand,
 	UnityListCommandsDetails,
 	UnityListCommandsOptions,
 } from './unity-list-commands';

@@ -85,6 +85,8 @@ export async function createAgentWebSocketServer(
 const defaultAllowedOrigins = [
 	'http://localhost:5173',
 	'http://127.0.0.1:5173',
+	'tauri://localhost',
+	'http://tauri.localhost',
 ];
 
 async function handleMessage(
@@ -129,8 +131,18 @@ async function dispatch(
 	request: AgentRequest,
 ): Promise<{ sessionId?: string; result?: unknown }> {
 	switch (request.type) {
+		case 'session.list':
+			return { result: await service.listSessions() };
 		case 'session.create':
 			return { sessionId: await service.createSession(request.options) };
+		case 'session.resume':
+			return {
+				sessionId: request.sessionId,
+				result: await service.resumeSession(request.sessionId),
+			};
+		case 'session.rename':
+			await service.renameSession(request.sessionId, request.title);
+			return {};
 		case 'session.prompt':
 			await service.prompt(request.sessionId, request.text);
 			return {};
@@ -141,7 +153,7 @@ async function dispatch(
 			await service.abort(request.sessionId);
 			return {};
 		case 'session.delete':
-			service.deleteSession(request.sessionId);
+			await service.deleteSession(request.sessionId);
 			return {};
 		case 'project.list':
 			return { result: await projectService.listProjects() };

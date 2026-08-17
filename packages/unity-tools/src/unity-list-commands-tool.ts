@@ -21,10 +21,18 @@ export function createUnityListCommandsTool(
 		promptGuidelines: [
 			'Use unity_list_commands to discover custom Editor commands; do not invent command names.',
 		],
-		parameters: Type.Object({}, { additionalProperties: false }),
-		async execute(_toolCallId, _params, signal) {
+		parameters: Type.Object(
+			{
+				query: Type.Optional(Type.String({ maxLength: 200 })),
+				limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+			},
+			{ additionalProperties: false },
+		),
+		async execute(_toolCallId, params, signal) {
 			const details = await listUnityCommands(runner, {
 				...(options.projectPath ? { projectPath: options.projectPath } : {}),
+				...(params.query ? { query: params.query } : {}),
+				limit: params.limit ?? 20,
 				signal,
 			});
 			return {
@@ -38,7 +46,12 @@ export function createUnityListCommandsTool(
 function summarize(
 	details: Awaited<ReturnType<typeof listUnityCommands>>,
 ): string {
-	if (details.ok) return JSON.stringify({ commands: details.commands });
+	if (details.ok)
+		return JSON.stringify({
+			commands: details.commands,
+			matchedCommands: details.matchedCommands,
+			totalCommands: details.totalCommands,
+		});
 	return details.errors
 		.map((error) => `${error.code}: ${error.message}`)
 		.join('\n');

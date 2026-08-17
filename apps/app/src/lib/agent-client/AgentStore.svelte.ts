@@ -1,41 +1,19 @@
 import {
 	parseAgentEvent,
 	type AgentEvent,
+	type AgentSessionSummary,
+	type ConversationMessage,
 	type SessionState,
+	type ToolCallView,
 	type UnityProject,
 	type UnityStatus,
 } from '@unity-agent/protocol';
 import type { AgentClient } from './AgentClient';
 
-export interface ToolCallView {
-	id: string;
-	name: string;
-	status: 'running' | 'complete' | 'error';
-	statusText: string;
-	result?: unknown;
-}
-
-export interface ConversationMessage {
-	id: string;
-	role: 'user' | 'assistant';
-	content: string;
-	createdAt: number;
-	complete: boolean;
-	tools: ToolCallView[];
-}
-
 export interface AgentModel {
 	provider: string;
 	id: string;
 	thinkingLevel: string;
-}
-
-export interface AgentSessionSummary {
-	id: string;
-	title: string;
-	projectPath?: string;
-	createdAt: number;
-	lastActiveAt: number;
 }
 
 export class AgentStore {
@@ -60,7 +38,6 @@ export class AgentStore {
 	#unsubscribe?: () => void;
 	#unsubscribeDisconnect?: () => void;
 	#statusRequest?: Promise<void>;
-	readonly #messagesBySession = new Map<string, ConversationMessage[]>();
 
 	constructor(client: AgentClient) {
 		this.#client = client;
@@ -80,8 +57,16 @@ export class AgentStore {
 		try {
 			await this.#client.connect();
 			this.connection = 'connected';
+			this.sessionId = undefined;
+			this.messages = [];
 			await this.refreshProjects();
-			await this.newSession();
+			const catalog = await this.#client.listSessions();
+			this.sessions = catalog.sessions;
+			const session =
+				this.sessions.find(({ id }) => id === catalog.lastSessionId) ??
+				this.sessions[0];
+			if (session) await this.switchSession(session.id);
+			else await this.newSession();
 		} catch (error) {
 			this.error = error instanceof Error ? error.message : String(error);
 			this.connection = 'disconnected';
@@ -179,7 +164,6 @@ export class AgentStore {
 				...(this.selectedProjectPath ? { cwd: this.selectedProjectPath } : {}),
 			});
 			this.sessionId = sessionId;
-			this.#messagesBySession.set(sessionId, this.messages);
 			const now = Date.now();
 			this.sessions.unshift({
 				id: sessionId,
@@ -189,6 +173,7 @@ export class AgentStore {
 					: {}),
 				createdAt: now,
 				lastActiveAt: now,
+				messageCount: 0,
 			});
 		} catch (error) {
 			this.sessionId = previousId;
@@ -204,27 +189,47 @@ export class AgentStore {
 			(candidate) => candidate.id === sessionId,
 		);
 		if (!session) return;
+		const previousId = this.sessionId;
+		const previousMessages = this.messages;
 		this.sessionId = sessionId;
-		this.messages = this.#messagesBySession.get(sessionId) ?? [];
+		this.messages = [];
 		this.sessionState = 'idle';
-		if (session.projectPath !== this.selectedProjectPath) {
-			this.selectedProjectPath = session.projectPath;
-			this.projectStatus = undefined;
-			await this.refreshProjectStatus();
+		try {
+			const snapshot = await this.#client.resumeSession(sessionId);
+			this.messages = snapshot.messages;
+			Object.assign(session, snapshot.session);
+			if (session.projectPath !== this.selectedProjectPath) {
+				this.selectedProjectPath = session.projectPath;
+				this.projectStatus = undefined;
+				await this.refreshProjectStatus();
+			}
+		} catch (error) {
+			this.sessionId = previousId;
+			this.messages = previousMessages;
+			this.error = errorMessage(error);
 		}
 	}
 
-	renameSession(sessionId: string, title: string): void {
+	async renameSession(sessionId: string, title: string): Promise<void> {
 		const session = this.sessions.find(
 			(candidate) => candidate.id === sessionId,
 		);
-		if (session && title.trim()) session.title = title.trim();
+		const name = title.trim();
+		if (!session || !name) return;
+		const previousTitle = session.title;
+		session.title = name;
+		try {
+			await this.#client.renameSession(sessionId, name);
+		} catch (error) {
+			session.title = previousTitle;
+			this.error = errorMessage(error);
+		}
 	}
 
 	async deleteSession(sessionId: string): Promise<void> {
 		if (
 			this.sessionState === 'streaming' ||
-			!this.#messagesBySession.has(sessionId)
+			!this.sessions.some((session) => session.id === sessionId)
 		) {
 			return;
 		}
@@ -234,7 +239,6 @@ export class AgentStore {
 			this.error = errorMessage(error);
 			return;
 		}
-		this.#messagesBySession.delete(sessionId);
 		this.sessions = this.sessions.filter((session) => session.id !== sessionId);
 		if (this.sessionId !== sessionId) return;
 		const next = this.sessions[0];
@@ -309,6 +313,10 @@ export class AgentStore {
 					complete: false,
 					tools: [],
 				});
+				{
+					const session = this.#currentSession();
+					if (session) session.messageCount++;
+				}
 				break;
 			case 'message.delta': {
 				const message = this.#message(event.messageId);
@@ -361,6 +369,10 @@ export class AgentStore {
 			if (tool) return tool;
 		}
 		return undefined;
+	}
+
+	#currentSession(): AgentSessionSummary | undefined {
+		return this.sessions.find(({ id }) => id === this.sessionId);
 	}
 }
 

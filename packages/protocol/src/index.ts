@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 2 as const;
+export const protocolVersion = 3 as const;
 
 export const agentToolPolicy = {
 	tools: [
@@ -46,6 +46,71 @@ export const sessionOptionsSchema = Type.Object(
 );
 
 export type SessionOptions = Static<typeof sessionOptionsSchema>;
+
+export const toolCallViewSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1 }),
+		name: Type.String({ minLength: 1 }),
+		status: Type.Union([
+			Type.Literal('running'),
+			Type.Literal('complete'),
+			Type.Literal('error'),
+		]),
+		statusText: Type.String(),
+		result: Type.Optional(Type.Unknown()),
+	},
+	{ additionalProperties: false },
+);
+
+export type ToolCallView = Static<typeof toolCallViewSchema>;
+
+export const conversationMessageSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1 }),
+		role: Type.Union([Type.Literal('user'), Type.Literal('assistant')]),
+		content: Type.String(),
+		createdAt: Type.Integer({ minimum: 0 }),
+		complete: Type.Boolean(),
+		tools: Type.Array(toolCallViewSchema),
+	},
+	{ additionalProperties: false },
+);
+
+export type ConversationMessage = Static<typeof conversationMessageSchema>;
+
+export const agentSessionSummarySchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1 }),
+		title: Type.String({ minLength: 1 }),
+		projectPath: Type.Optional(Type.String({ minLength: 1 })),
+		createdAt: Type.Integer({ minimum: 0 }),
+		lastActiveAt: Type.Integer({ minimum: 0 }),
+		messageCount: Type.Integer({ minimum: 0 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type AgentSessionSummary = Static<typeof agentSessionSummarySchema>;
+
+export const sessionCatalogSchema = Type.Object(
+	{
+		sessions: Type.Array(agentSessionSummarySchema),
+		lastSessionId: Type.Optional(Type.String({ minLength: 1 })),
+	},
+	{ additionalProperties: false },
+);
+
+export type SessionCatalog = Static<typeof sessionCatalogSchema>;
+
+export const sessionSnapshotSchema = Type.Object(
+	{
+		session: agentSessionSummarySchema,
+		messages: Type.Array(conversationMessageSchema),
+	},
+	{ additionalProperties: false },
+);
+
+export type SessionSnapshot = Static<typeof sessionSnapshotSchema>;
 
 const unityCliMessageSchema = Type.Object(
 	{
@@ -120,8 +185,32 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('session.list'),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('session.create'),
 			options: sessionOptionsSchema,
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.resume'),
+			sessionId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.rename'),
+			sessionId: Type.String({ minLength: 1 }),
+			title: Type.String({ minLength: 1, maxLength: 200 }),
 		},
 		{ additionalProperties: false },
 	),
@@ -348,6 +437,20 @@ export function parseAgentEvent(input: unknown): AgentEvent {
 export function parseUnityProjects(input: unknown): UnityProject[] {
 	const schema = Type.Array(unityProjectSchema);
 	if (!Value.Check(schema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseSessionCatalog(input: unknown): SessionCatalog {
+	if (!Value.Check(sessionCatalogSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseSessionSnapshot(input: unknown): SessionSnapshot {
+	if (!Value.Check(sessionSnapshotSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

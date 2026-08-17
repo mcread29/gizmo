@@ -58,6 +58,78 @@ describe('Unity command execution', () => {
 		expect(result.errors[0]?.code).toBe('UNITY_COMMAND_NOT_REGISTERED');
 		expect(runner.run).toHaveBeenCalledOnce();
 	});
+
+	it('constructs arguments from the registered Editor schema', async () => {
+		const runner = sequenceRunner(
+			jsonResult({
+				data: {
+					tools: [
+						{
+							name: 'create_script',
+							parameters: [
+								{ name: 'name', type: 'string', required: true },
+								{ name: 'overwrite', type: 'bool', required: false },
+								{ name: 'metadata', type: 'jtoken', required: false },
+							],
+						},
+					],
+				},
+				command: 'list',
+			}),
+			jsonResult({ data: { path: 'Player.cs' }, command: 'create_script' }),
+		);
+
+		const result = await executeUnityCommand(runner, {
+			projectPath: '/projects/game',
+			command: 'create_script',
+			parameters: {
+				name: 'Player',
+				overwrite: true,
+				metadata: { owner: 'agent' },
+			},
+		});
+
+		expect(result.state).toBe('completed');
+		expect(runner.run).toHaveBeenNthCalledWith(
+			2,
+			expect.arrayContaining([
+				'--name',
+				'Player',
+				'--overwrite',
+				'true',
+				'--metadata',
+				'{"owner":"agent"}',
+			]),
+			{ signal: undefined, timeoutMs: 35_000 },
+		);
+	});
+
+	it('rejects parameters that do not match the live schema', async () => {
+		const runner = sequenceRunner(
+			jsonResult({
+				data: {
+					tools: [
+						{
+							name: 'create_script',
+							parameters: [{ name: 'name', type: 'string', required: true }],
+						},
+					],
+				},
+				command: 'list',
+			}),
+		);
+
+		const result = await executeUnityCommand(runner, {
+			projectPath: '/projects/game',
+			command: 'create_script',
+			parameters: { invented: true },
+		});
+
+		expect(result.errors).toEqual([
+			expect.objectContaining({ code: 'UNITY_COMMAND_ARGUMENTS_INVALID' }),
+		]);
+		expect(runner.run).toHaveBeenCalledOnce();
+	});
 });
 
 function sequenceRunner(...results: UnityRunResult[]): UnityCommandRunner & {

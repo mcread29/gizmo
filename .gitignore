@@ -5,6 +5,9 @@ coverage/
 .vite/
 .artifacts/
 target/
+apps/app/src-tauri/binaries/*
+!apps/app/src-tauri/binaries/.gitkeep
+apps/app/src-tauri/gen/
 .env
 .env.*
 !.env.example

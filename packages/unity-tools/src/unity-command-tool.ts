@@ -18,7 +18,7 @@ export function createUnityCommandTool(options: UnityCommandToolOptions) {
 		promptSnippet: 'Execute registered commands in the selected Unity Editor',
 		promptGuidelines: [
 			'Use unity_list_commands before unity_command so command names and arguments match the connected Editor schema.',
-			'Pass each command-line argument as a separate args entry, for example ["--name", "Ada", "--confirm", "true"].',
+			'Prefer the parameters object so names are validated against the live Editor schema. Use raw args only for an Editor command whose schema cannot represent its syntax.',
 		],
 		parameters: Type.Object(
 			{
@@ -32,6 +32,9 @@ export function createUnityCommandTool(options: UnityCommandToolOptions) {
 						maxItems: 100,
 					}),
 				),
+				parameters: Type.Optional(
+					Type.Record(Type.String({ minLength: 1 }), Type.Unknown()),
+				),
 				timeoutSeconds: Type.Optional(
 					Type.Integer({ minimum: 1, maximum: 300 }),
 				),
@@ -43,6 +46,7 @@ export function createUnityCommandTool(options: UnityCommandToolOptions) {
 				projectPath: options.projectPath,
 				command: params.command,
 				...(params.args ? { args: params.args } : {}),
+				...(params.parameters ? { parameters: params.parameters } : {}),
 				...(params.timeoutSeconds
 					? { timeoutSeconds: params.timeoutSeconds }
 					: {}),

@@ -1,5 +1,7 @@
 import type {
+	SessionCatalog,
 	SessionOptions,
+	SessionSnapshot,
 	UnityOpenProjectResult,
 	UnityStatus,
 } from '@unity-agent/protocol';
@@ -13,10 +15,17 @@ class InvalidEventClient implements AgentClient {
 
 	async connect() {}
 	async disconnect() {}
+	async listSessions(): Promise<SessionCatalog> {
+		return { sessions: [] };
+	}
 	async createSession(_options?: SessionOptions) {
 		this.#listener?.({ type: 'not-in-the-protocol' });
 		return 'session-1';
 	}
+	async resumeSession(_sessionId: string): Promise<SessionSnapshot> {
+		throw new Error('No session');
+	}
+	async renameSession() {}
 	async prompt() {}
 	async steer() {}
 	async abort() {}
@@ -66,7 +75,7 @@ describe('AgentStore', () => {
 		await store.switchSession(firstSession);
 		expect(store.messages.length).toBeGreaterThan(0);
 
-		store.renameSession(firstSession, 'Editor inspection');
+		await store.renameSession(firstSession, 'Editor inspection');
 		expect(
 			store.sessions.find((session) => session.id === firstSession)?.title,
 		).toBe('Editor inspection');
@@ -74,5 +83,26 @@ describe('AgentStore', () => {
 		expect(store.sessions.some((session) => session.id === firstSession)).toBe(
 			false,
 		);
+	});
+
+	it('restores the last session and transcript after reconnecting', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const firstStore = new AgentStore(client);
+		await firstStore.connect();
+		await firstStore.prompt('Remember this scene');
+		const sessionId = firstStore.sessionId;
+		await firstStore.disconnect();
+
+		const restartedStore = new AgentStore(client);
+		await restartedStore.connect();
+
+		expect(restartedStore.sessionId).toBe(sessionId);
+		expect(restartedStore.selectedProjectPath).toBe(
+			'/projects/ThirdPersonSandbox',
+		);
+		expect(restartedStore.messages[0]).toMatchObject({
+			role: 'user',
+			content: 'Remember this scene',
+		});
 	});
 });

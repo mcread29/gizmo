@@ -1,5 +1,7 @@
 import type {
+	SessionCatalog,
 	SessionOptions,
+	SessionSnapshot,
 	UnityOpenProjectResult,
 	UnityProject,
 	UnityStatus,
@@ -11,7 +13,10 @@ export type AgentDisconnectListener = (error: Error) => void;
 export interface AgentClient {
 	connect(): Promise<void>;
 	disconnect(): Promise<void>;
+	listSessions(): Promise<SessionCatalog>;
 	createSession(options?: SessionOptions): Promise<string>;
+	resumeSession(sessionId: string): Promise<SessionSnapshot>;
+	renameSession(sessionId: string, title: string): Promise<void>;
 	prompt(sessionId: string, text: string): Promise<void>;
 	steer(sessionId: string, text: string): Promise<void>;
 	abort(sessionId: string): Promise<void>;

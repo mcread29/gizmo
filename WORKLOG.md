@@ -122,3 +122,20 @@ Made the custom harness authoritative over Pi's active capabilities:
 - Report Pi's actual active tools in the session event and show the effective policy in Settings.
 
 Live verification confirmed that Pi activated exactly the six allowlisted tools. The `unity_command` execution path successfully invoked the read-only registered `editor_status` command against the selected project. No project or Editor state was changed during verification.
+
+## 2026-08-17 — Durable sessions, live schemas, and Tauri desktop
+
+Completed the recommended persistence and desktop foundation:
+
+- Replaced `SessionManager.inMemory()` with app-isolated, disk-backed Pi JSONL sessions under `~/.unity-agent/sessions` (or `UNITY_AGENT_DATA_DIR`).
+- Added backend session list, resume, rename, delete, transcript hydration, and last-session restoration operations.
+- Restored the selected project from the resumed session and removed the browser-only transcript/session source of truth.
+- Added restart recovery and cross-project isolation coverage using temporary data directories.
+- Normalized the live Unity command catalog, added text filtering and result limits, and exposed full parameter schemas to Pi.
+- Added schema-aware named argument construction with required/unknown parameter validation while retaining raw arguments for unusual command syntaxes.
+- Kept command discovery hot by reading the Editor registry for discovery and again immediately before execution.
+- Added a Tauri 2 desktop shell with a narrow frontend capability, CSP, generated app icons, and a Rust-owned agent sidecar lifecycle.
+- Added a target-aware Bun compile step so packaged desktop builds include the agent server and do not require Node on the destination machine.
+- Verified the compiled sidecar could create a real Pi session with the exact six-tool policy and built a Linux `.deb` package successfully.
+
+Focused verification covered 55 TypeScript tests at this point, plus Cargo check, a compiled-sidecar protocol smoke test, and the production desktop build.
