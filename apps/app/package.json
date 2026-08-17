@@ -19,6 +19,8 @@
 		"@unity-agent/design": "workspace:*",
 		"@unity-agent/protocol": "workspace:*",
 		"bits-ui": "latest",
+		"dompurify": "^3.4.13",
+		"marked": "^18.0.9",
 		"svelte": "latest"
 	},
 	"devDependencies": {

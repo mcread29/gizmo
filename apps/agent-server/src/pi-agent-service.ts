@@ -17,6 +17,7 @@ import {
 	PiSessionRepository,
 	type SessionRepository,
 } from './session-repository';
+import { unitySystemPrompt } from './unity-system-prompt';
 
 export interface PiSessionLike {
 	readonly sessionId: string;
@@ -204,6 +205,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 		agentDir,
 		settingsManager,
 		noExtensions: true,
+		systemPromptOverride: () => unitySystemPrompt,
 	});
 	await resourceLoader.reload();
 	const { session } = await createAgentSession({

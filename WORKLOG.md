@@ -139,3 +139,29 @@ Completed the recommended persistence and desktop foundation:
 - Verified the compiled sidecar could create a real Pi session with the exact six-tool policy and built a Linux `.deb` package successfully.
 
 Focused verification covered 55 TypeScript tests at this point, plus Cargo check, a compiled-sidecar protocol smoke test, and the production desktop build.
+
+## 2026-08-17 — Unity-specific system prompt
+
+Made the harness own its system prompt while retaining Pi's prompt structure:
+
+- Added a readable snapshot of Pi 0.84.2's generated default prompt for the current tool policy.
+- Added a Unity-focused runtime prompt covering project files, live Editor state, command discovery, command execution, and authoring missing Pipeline commands.
+- Wired the prompt through `DefaultResourceLoader.systemPromptOverride` without disabling Pi's runtime project context, appended instructions, skills, or working-directory suffix.
+- Added focused coverage ensuring every active harness tool remains documented in the prompt.
+
+Agent-server tests and type checking pass with the override enabled.
+
+## 2026-08-17 — Conversation UI rollout
+
+Reworked the frontend around the real agent conversation without changing its
+transport or store ownership:
+
+- Reduced the root application component to composition and lifecycle state, with focused shell, session sidebar, conversation, message, tool card, inspector, and dialog components.
+- Split application styling into shell, conversation, Unity, and development-gallery feature sheets while retaining Bits UI, shared tokens, and `data-ui` selectors.
+- Made the component gallery development-only so it is excluded from the product build.
+- Added sanitized GitHub-flavored Markdown with headings, lists, tables, links, inline code, fenced code blocks, and per-block copy controls.
+- Added response and tool-output copy actions, a streaming cursor, and bottom-following behavior that stops when the user scrolls away from the latest output.
+- Replaced one-line JSON tool results with collapsed summaries, structured output, readable file diffs, Unity Editor status cards, and registered-command chips.
+- Added focused security, Markdown, diff, tool presentation, and full application-flow coverage.
+
+The app passes Svelte diagnostics with no warnings and all frontend tests.
