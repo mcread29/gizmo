@@ -61,6 +61,12 @@
 		agentStore.messages.flatMap((message) => message.tools),
 	);
 	let unityStatus = $derived(findUnityStatus(toolActivity));
+	let unityCommands = $derived(findUnityCommands(toolActivity));
+	let unityCommandNames = $derived(
+		unityCommands?.commands
+			.map(commandName)
+			.filter((name) => name !== undefined) ?? [],
+	);
 	let editor = $derived(unityStatus?.instances[0]);
 	let editorProjectPath = $derived(
 		readEditorValue(editor, ['projectPath', 'project']),
@@ -131,6 +137,12 @@
 		errors: { code: string; message: string }[];
 	}
 
+	interface UnityCommandsView {
+		state: 'available' | 'disconnected' | 'unavailable' | 'error';
+		commands: unknown[];
+		errors: { code: string; message: string }[];
+	}
+
 	function findUnityStatus(tools: ToolCallView[]): UnityStatusView | undefined {
 		for (let index = tools.length - 1; index >= 0; index--) {
 			const tool = tools[index];
@@ -152,6 +164,41 @@
 			'errors' in value &&
 			Array.isArray(value.errors)
 		);
+	}
+
+	function findUnityCommands(
+		tools: ToolCallView[],
+	): UnityCommandsView | undefined {
+		for (let index = tools.length - 1; index >= 0; index--) {
+			const tool = tools[index];
+			if (tool.name !== 'unity_list_commands' || !isUnityCommands(tool.result))
+				continue;
+			return tool.result;
+		}
+	}
+
+	function isUnityCommands(value: unknown): value is UnityCommandsView {
+		if (!value || typeof value !== 'object') return false;
+		const state = 'state' in value ? value.state : undefined;
+		return (
+			(state === 'available' ||
+				state === 'disconnected' ||
+				state === 'unavailable' ||
+				state === 'error') &&
+			'commands' in value &&
+			Array.isArray(value.commands) &&
+			'errors' in value &&
+			Array.isArray(value.errors)
+		);
+	}
+
+	function commandName(command: unknown): string | undefined {
+		if (typeof command === 'string') return command;
+		if (!command || typeof command !== 'object') return;
+		const record = command as Record<string, unknown>;
+		for (const key of ['name', 'command', 'id']) {
+			if (typeof record[key] === 'string') return record[key];
+		}
 	}
 
 	function readEditorValue(
@@ -519,6 +566,22 @@
 										'Ask the agent to inspect Unity status.'}
 								</p>
 								<code data-ui="inspector-command">unity pipeline install</code>
+							{/if}
+						</section>
+						<section data-ui="inspector-card">
+							<div data-ui="card-label">
+								Available commands
+								<span>{unityCommands ? unityCommandNames.length : '—'}</span>
+							</div>
+							{#if unityCommandNames.length > 0}
+								<div data-ui="command-list">
+									{#each unityCommandNames as name}<code>{name}</code>{/each}
+								</div>
+							{:else}
+								<p data-ui="inspector-message">
+									{unityCommands?.errors[0]?.message ??
+										'Ask the agent to list registered Unity commands.'}
+								</p>
 							{/if}
 						</section>
 					</div>

@@ -29,10 +29,6 @@ export function createUnityStatusTool(options: UnityToolOptions = {}) {
 	});
 }
 
-export function createUnityTools(options: UnityToolOptions = {}) {
-	return [createUnityStatusTool(options)];
-}
-
 function summarize(
 	details: Awaited<ReturnType<typeof getUnityStatus>>,
 ): string {

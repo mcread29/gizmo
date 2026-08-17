@@ -66,6 +66,7 @@ describe('application shell', () => {
 		expect(
 			await findByText('/projects/ThirdPersonSandbox'),
 		).toBeInTheDocument();
+		expect(await findByText('scene.validate')).toBeInTheDocument();
 		await waitFor(() =>
 			expect(
 				queryByRole('button', { name: 'Stop response' }),

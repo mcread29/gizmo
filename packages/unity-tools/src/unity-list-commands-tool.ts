@@ -1,0 +1,51 @@
+import { defineTool } from '@earendil-works/pi-coding-agent';
+import { Type } from 'typebox';
+import { listUnityCommands } from './unity-list-commands';
+import { UnityRunner, type UnityCommandRunner } from './unity-runner';
+
+export interface UnityListCommandsToolOptions {
+	runner?: UnityCommandRunner;
+}
+
+export function createUnityListCommandsTool(
+	options: UnityListCommandsToolOptions = {},
+) {
+	const runner = options.runner ?? new UnityRunner();
+	return defineTool({
+		name: 'unity_list_commands',
+		label: 'List Unity commands',
+		description:
+			'List commands currently registered by the Pipeline package in a connected Unity Editor. Use this to discover custom commands instead of assuming names or schemas.',
+		promptSnippet: 'Discover registered Unity Pipeline commands',
+		promptGuidelines: [
+			'Use unity_list_commands to discover custom Editor commands; do not invent command names.',
+		],
+		parameters: Type.Object(
+			{
+				projectPath: Type.Optional(
+					Type.String({ minLength: 1, maxLength: 4096 }),
+				),
+			},
+			{ additionalProperties: false },
+		),
+		async execute(_toolCallId, params, signal) {
+			const details = await listUnityCommands(runner, {
+				...(params.projectPath ? { projectPath: params.projectPath } : {}),
+				signal,
+			});
+			return {
+				content: [{ type: 'text', text: summarize(details) }],
+				details,
+			};
+		},
+	});
+}
+
+function summarize(
+	details: Awaited<ReturnType<typeof listUnityCommands>>,
+): string {
+	if (details.ok) return JSON.stringify({ commands: details.commands });
+	return details.errors
+		.map((error) => `${error.code}: ${error.message}`)
+		.join('\n');
+}

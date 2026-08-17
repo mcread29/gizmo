@@ -79,3 +79,18 @@ Completed the first Unity-aware vertical slice:
 The machine currently has no connected Unity Editor with the Pipeline package,
 so the live result is `STATUS_NO_INSTANCES`. No Unity installation, project, or
 authentication state was changed.
+
+## 2026-08-17 — Unity command discovery
+
+Added safe discovery for custom Unity Pipeline commands:
+
+- Added reusable parsing for the Unity CLI's common JSON response envelope.
+- Added the read-only `unity_list_commands` tool with an optional constrained project path.
+- Registered command discovery alongside `unity_status` in every Pi session.
+- Added real discovered-command state to the Editor inspector.
+- Verified Pi selected and invoked `unity_list_commands` through the web transport.
+
+The live CLI returned exit code `6` because no reachable Pipeline server is
+currently available. Arbitrary `unity_command` execution remains intentionally
+unregistered until the app has a user-confirmation boundary for potentially
+mutating Editor commands.

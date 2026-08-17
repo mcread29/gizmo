@@ -151,6 +151,35 @@ export class FakeAgentClient implements AgentClient {
 				},
 				isError: false,
 			});
+
+			const listToolCallId = `tool-${++this.#id}`;
+			if (!(await this.#wait(abortController.signal))) return;
+			this.#emit({
+				type: 'tool.started',
+				sessionId,
+				messageId: assistantMessageId,
+				toolCallId: listToolCallId,
+				toolName: 'unity_list_commands',
+				input: {},
+			});
+			if (!(await this.#wait(abortController.signal))) return;
+			this.#emit({
+				type: 'tool.completed',
+				sessionId,
+				toolCallId: listToolCallId,
+				result: {
+					state: 'available',
+					ok: true,
+					commands: [
+						{ name: 'scene.validate' },
+						{ name: 'character-controller.describe' },
+						{ name: 'assets.find-missing' },
+					],
+					errors: [],
+					warnings: [],
+				},
+				isError: false,
+			});
 			if (!(await this.#wait(abortController.signal))) return;
 			this.#emit({
 				type: 'message.delta',
