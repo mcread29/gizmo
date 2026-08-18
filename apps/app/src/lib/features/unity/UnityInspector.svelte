@@ -15,7 +15,12 @@
 	let inspectorTab = $state('editor');
 </script>
 
-<aside data-ui="inspector" aria-label="Unity Editor inspector">
+<aside
+	data-ui="inspector"
+	data-context-kind="unity"
+	data-context-value={view.projectPath}
+	aria-label="Unity Editor inspector"
+>
 	<div data-ui="inspector-header">
 		<div>
 			<span data-ui="eyebrow">Unity Editor</span>

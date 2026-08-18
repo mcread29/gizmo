@@ -116,6 +116,22 @@ describe('AgentStore', () => {
 		});
 	});
 
+	it('reads a background thread without changing the active thread', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const store = new AgentStore(client);
+		await store.connect();
+		const backgroundId = store.sessionId!;
+		await store.prompt('Background transcript');
+		await store.newSession('/projects/RenderingPlayground');
+		const activeId = store.sessionId!;
+
+		const snapshot = await store.readSession(backgroundId);
+
+		expect(snapshot.messages[0]?.content).toBe('Background transcript');
+		expect(store.sessionId).toBe(activeId);
+		expect((await client.listSessions()).lastSessionId).toBe(activeId);
+	});
+
 	it('creates workspace-bound threads and changes the live Pi model settings', async () => {
 		const store = new AgentStore(new FakeAgentClient({ latencyMs: 0 }));
 		await store.connect();

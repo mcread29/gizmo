@@ -110,7 +110,13 @@
 	}
 </script>
 
-<main id="conversation" data-ui="conversation" tabindex="-1">
+<main
+	id="conversation"
+	data-ui="conversation"
+	data-context-kind="thread"
+	data-context-id={currentSession?.id}
+	tabindex="-1"
+>
 	<div data-ui="conversation-header">
 		<div>
 			<span data-ui="eyebrow">Thread</span>
@@ -170,6 +176,7 @@
 	<div data-ui="composer-wrap">
 		<form
 			data-ui="composer"
+			data-context-kind="composer"
 			onsubmit={(event) => {
 				event.preventDefault();
 				sendPrompt();

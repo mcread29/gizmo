@@ -10,6 +10,7 @@
 	import { formatToolResult } from './lib/features/conversation/format';
 	import SessionSidebar from './lib/features/sessions/SessionSidebar.svelte';
 	import AppDialogs from './lib/features/shell/AppDialogs.svelte';
+	import AppContextMenu from './lib/features/shell/AppContextMenu.svelte';
 	import PanelResizeHandle from './lib/features/shell/PanelResizeHandle.svelte';
 	import Titlebar from './lib/features/shell/Titlebar.svelte';
 	import UnityInspector from './lib/features/unity/UnityInspector.svelte';
@@ -40,6 +41,7 @@
 	let settingsDialogOpen = $state(false);
 	let renameDialogOpen = $state(false);
 	let deleteDialogOpen = $state(false);
+	let dialogSessionId = $state<string>();
 	let renameDraft = $state('');
 	let leftOverlay = $derived(viewportWidth <= 720);
 	let rightOverlay = $derived(viewportWidth <= 1040);
@@ -127,22 +129,31 @@
 		await agentStore.newSession(projectPath);
 	}
 
-	function beginRename() {
-		if (!currentSession) return;
-		renameDraft = currentSession.title;
+	function beginRename(sessionId = agentStore.sessionId) {
+		const session = agentStore.sessions.find(
+			(candidate) => candidate.id === sessionId,
+		);
+		if (!session) return;
+		dialogSessionId = session.id;
+		renameDraft = session.title;
 		renameDialogOpen = true;
 	}
 
 	async function renameSession() {
-		if (!currentSession || !renameDraft.trim()) return;
-		await agentStore.renameSession(currentSession.id, renameDraft);
+		if (!dialogSessionId || !renameDraft.trim()) return;
+		await agentStore.renameSession(dialogSessionId, renameDraft);
 		renameDialogOpen = false;
+		dialogSessionId = undefined;
 	}
 
-	function exportTranscript() {
-		if (!currentSession) return;
-		const lines = [`# ${currentSession.title}`, ''];
-		for (const message of agentStore.messages) {
+	async function exportTranscript(sessionId = agentStore.sessionId) {
+		if (!sessionId) return;
+		const snapshot =
+			sessionId === agentStore.sessionId && currentSession
+				? { session: currentSession, messages: agentStore.messages }
+				: await agentStore.readSession(sessionId);
+		const lines = [`# ${snapshot.session.title}`, ''];
+		for (const message of snapshot.messages) {
 			lines.push(`## ${message.role === 'user' ? 'You' : agent.name}`, '');
 			if (message.content) lines.push(message.content, '');
 			for (const tool of message.tools) {
@@ -157,7 +168,7 @@
 		);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = `${safeFileName(currentSession.title)}.md`;
+		link.download = `${safeFileName(snapshot.session.title)}.md`;
 		link.click();
 		URL.revokeObjectURL(url);
 	}
@@ -168,11 +179,28 @@
 		);
 	}
 
+	function beginDelete(sessionId = agentStore.sessionId) {
+		if (!sessionId) return;
+		dialogSessionId = sessionId;
+		deleteDialogOpen = true;
+	}
+
 	async function deleteSession() {
-		if (!currentSession) return;
-		const sessionId = currentSession.id;
+		if (!dialogSessionId) return;
+		const sessionId = dialogSessionId;
 		deleteDialogOpen = false;
+		dialogSessionId = undefined;
 		await agentStore.deleteSession(sessionId);
+	}
+
+	function contextText(kind: 'message' | 'tool', id: string) {
+		for (const message of agentStore.messages) {
+			if (kind === 'message' && message.id === id) return message.content;
+			if (kind === 'tool') {
+				const tool = message.tools.find((candidate) => candidate.id === id);
+				if (tool?.result !== undefined) return formatToolResult(tool.result);
+			}
+		}
 	}
 </script>
 
@@ -183,78 +211,99 @@
 	/></svelte:head
 >
 
-<div
-	data-ui="app-shell"
-	data-left-visible={leftVisible}
-	data-right-visible={rightVisible}
-	style={`--sidebar-width:${leftWidth}px;--inspector-width:${rightWidth}px`}
+<AppContextMenu
+	{leftVisible}
+	{rightVisible}
+	{theme}
+	activeThreadId={agentStore.sessionId}
+	canDeleteThread={agentStore.sessionState !== 'streaming'}
+	canOpenEditor={Boolean(unityView.selectedProject && !unityView.editor)}
+	getContextText={contextText}
+	onNewThread={() => (projectDialogOpen = true)}
+	onOpenThread={(sessionId) => void agentStore.switchSession(sessionId)}
+	onRenameThread={beginRename}
+	onExportTranscript={(sessionId) => void exportTranscript(sessionId)}
+	onDeleteThread={beginDelete}
+	onOpenEditor={() => void agentStore.openSelectedProject()}
+	onRefreshEditor={() => void agentStore.refreshProjectStatus()}
+	onToggleLeft={toggleLeftPanel}
+	onToggleRight={toggleRightPanel}
+	onToggleTheme={() => (theme = theme === 'dark' ? 'light' : 'dark')}
+	onOpenSettings={() => (settingsDialogOpen = true)}
 >
-	<Titlebar
-		{agent}
-		{theme}
-		view={unityView}
-		{leftVisible}
-		{rightVisible}
-		onToggleLeft={toggleLeftPanel}
-		onToggleRight={toggleRightPanel}
-		onToggleTheme={() => (theme = theme === 'dark' ? 'light' : 'dark')}
-		onOpenSettings={() => (settingsDialogOpen = true)}
-	/>
-
-	{#if (leftOverlay && leftDrawerOpen) || (rightOverlay && rightDrawerOpen)}<button
-			data-ui="drawer-scrim"
-			aria-label="Close navigation panels"
-			onclick={closeDrawers}
-		></button>{/if}
-
-	<SessionSidebar
-		store={agentStore}
-		onOpenProjectPicker={() => (projectDialogOpen = true)}
-	/>
-	{#if leftVisible && !leftOverlay}
-		<PanelResizeHandle
-			side="left"
-			size={leftWidth}
-			min={200}
-			max={leftMax}
-			onResize={(size) => (leftWidth = size)}
-			onReset={() => (leftWidth = 248)}
+	<div
+		data-ui="app-shell"
+		data-left-visible={leftVisible}
+		data-right-visible={rightVisible}
+		style={`--sidebar-width:${leftWidth}px;--inspector-width:${rightWidth}px`}
+	>
+		<Titlebar
+			{agent}
+			{theme}
+			view={unityView}
+			{leftVisible}
+			{rightVisible}
+			onToggleLeft={toggleLeftPanel}
+			onToggleRight={toggleRightPanel}
+			onToggleTheme={() => (theme = theme === 'dark' ? 'light' : 'dark')}
+			onOpenSettings={() => (settingsDialogOpen = true)}
 		/>
-	{/if}
-	<Conversation
-		store={agentStore}
-		agentName={agent.name}
-		{currentSession}
-		onRename={beginRename}
-		onExport={exportTranscript}
-		onDelete={() => (deleteDialogOpen = true)}
-	/>
-	<UnityInspector
-		view={unityView}
-		projectError={agentStore.projectError}
-		projectOpening={agentStore.projectOpening}
-		onOpenProject={() => agentStore.openSelectedProject()}
-	/>
-	{#if rightVisible && !rightOverlay}
-		<PanelResizeHandle
-			side="right"
-			size={rightWidth}
-			min={240}
-			max={rightMax}
-			onResize={(size) => (rightWidth = size)}
-			onReset={() => (rightWidth = 288)}
-		/>
-	{/if}
 
-	<AppDialogs
-		store={agentStore}
-		bind:projectOpen={projectDialogOpen}
-		bind:settingsOpen={settingsDialogOpen}
-		bind:renameOpen={renameDialogOpen}
-		bind:deleteOpen={deleteDialogOpen}
-		bind:renameDraft
-		onStartThread={startThread}
-		onRename={renameSession}
-		onDelete={deleteSession}
-	/>
-</div>
+		{#if (leftOverlay && leftDrawerOpen) || (rightOverlay && rightDrawerOpen)}<button
+				data-ui="drawer-scrim"
+				aria-label="Close navigation panels"
+				onclick={closeDrawers}
+			></button>{/if}
+
+		<SessionSidebar
+			store={agentStore}
+			onOpenProjectPicker={() => (projectDialogOpen = true)}
+		/>
+		{#if leftVisible && !leftOverlay}
+			<PanelResizeHandle
+				side="left"
+				size={leftWidth}
+				min={200}
+				max={leftMax}
+				onResize={(size) => (leftWidth = size)}
+				onReset={() => (leftWidth = 248)}
+			/>
+		{/if}
+		<Conversation
+			store={agentStore}
+			agentName={agent.name}
+			{currentSession}
+			onRename={() => beginRename()}
+			onExport={() => void exportTranscript()}
+			onDelete={() => beginDelete()}
+		/>
+		<UnityInspector
+			view={unityView}
+			projectError={agentStore.projectError}
+			projectOpening={agentStore.projectOpening}
+			onOpenProject={() => agentStore.openSelectedProject()}
+		/>
+		{#if rightVisible && !rightOverlay}
+			<PanelResizeHandle
+				side="right"
+				size={rightWidth}
+				min={240}
+				max={rightMax}
+				onResize={(size) => (rightWidth = size)}
+				onReset={() => (rightWidth = 288)}
+			/>
+		{/if}
+
+		<AppDialogs
+			store={agentStore}
+			bind:projectOpen={projectDialogOpen}
+			bind:settingsOpen={settingsDialogOpen}
+			bind:renameOpen={renameDialogOpen}
+			bind:deleteOpen={deleteDialogOpen}
+			bind:renameDraft
+			onStartThread={startThread}
+			onRename={renameSession}
+			onDelete={deleteSession}
+		/>
+	</div>
+</AppContextMenu>

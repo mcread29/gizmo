@@ -5,6 +5,7 @@ import {
 	type AgentEvent,
 	type AgentSessionSummary,
 	type ConversationMessage,
+	type SessionSnapshot,
 	type SessionState,
 	type ToolCallView,
 	type UnityProject,
@@ -241,6 +242,17 @@ export class AgentStore {
 			this.selectedProjectPath = previousProjectPath;
 			this.projectStatus = previousProjectStatus;
 			this.error = errorMessage(error);
+		}
+	}
+
+	async readSession(sessionId: string): Promise<SessionSnapshot> {
+		const activeSessionId = this.sessionId;
+		try {
+			return await this.#client.resumeSession(sessionId);
+		} finally {
+			if (activeSessionId && activeSessionId !== sessionId) {
+				await this.#client.resumeSession(activeSessionId);
+			}
 		}
 	}
 

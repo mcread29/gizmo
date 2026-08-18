@@ -191,3 +191,18 @@ seven supported thinking levels.
 - Preserved the existing overlay drawer behavior on narrower layouts.
 - Added focused coverage for composer overflow, sidebar collapsing, and
   keyboard resizing.
+
+## 2026-08-17 — Reliable tool output and app context menu
+
+- Normalized live and restored Pi tool results so missing `details` falls back
+  to text and genuinely empty results display an explicit label.
+- Made failed Unity results render as errors when their structured output
+  reports `ok: false`, even when Pi's outer tool call completed normally.
+- Added a Bits UI context menu across the application shell with target-aware
+  thread, message, tool-output, composer, Unity Editor, sidebar, theme, and
+  settings actions.
+- Bound rename, export, and delete to the right-clicked thread while preserving
+  the currently active thread during background transcript reads.
+- Added contextual copy, paste, and select-all actions for selected or editable
+  content.
+- Added focused tool-result and context-menu coverage.

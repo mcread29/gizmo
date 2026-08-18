@@ -28,7 +28,13 @@
 	}
 </script>
 
-<article data-ui="message" data-role={message.role}>
+<article
+	data-ui="message"
+	data-role={message.role}
+	data-context-kind="message"
+	data-context-id={message.id}
+	data-context-label={message.role === 'assistant' ? 'response' : 'message'}
+>
 	<div data-ui="avatar">
 		{#if message.role === 'user'}<User size={15} />{:else}<Bot size={15} />{/if}
 	</div>

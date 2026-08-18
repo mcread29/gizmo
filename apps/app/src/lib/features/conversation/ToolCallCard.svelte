@@ -79,6 +79,8 @@
 	data-ui="tool-call"
 	data-tool={tool.name}
 	data-state={tool.status}
+	data-context-kind="tool"
+	data-context-id={tool.id}
 	bind:open
 >
 	<summary data-ui="tool-header">

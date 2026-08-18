@@ -148,6 +148,16 @@
 	box-shadow: var(--shadow-md);
 }
 
+[data-ui='context-menu-region'] {
+	display: contents;
+}
+
+[data-ui='menu-separator'] {
+	height: 1px;
+	margin: 5px 7px;
+	background: var(--color-border);
+}
+
 [data-ui='menu-item'],
 [data-ui='select-item'] {
 	display: flex;

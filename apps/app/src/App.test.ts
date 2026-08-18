@@ -64,6 +64,65 @@ describe('application shell', () => {
 		expect(rightToggle).toHaveAttribute('aria-expanded', 'false');
 	});
 
+	it('opens app actions from the global context menu', async () => {
+		const { container, findByRole, getByRole } = renderApp();
+		const shell = container.querySelector('[data-ui="app-shell"]');
+		expect(shell).not.toBeNull();
+
+		await fireEvent.contextMenu(shell!, { clientX: 300, clientY: 240 });
+		expect(
+			await findByRole('menuitem', { name: 'New thread' }),
+		).toBeInTheDocument();
+		await fireEvent.click(getByRole('menuitem', { name: 'Hide threads' }));
+
+		expect(
+			getByRole('button', { name: 'Toggle thread sidebar' }),
+		).toHaveAttribute('aria-expanded', 'false');
+	});
+
+	it('applies thread context actions to the right-clicked thread', async () => {
+		const { container, findByRole, getByRole } = renderApp();
+		await findByRole('button', { name: 'New thread' });
+		await fireEvent.click(getByRole('button', { name: 'New thread' }));
+		await fireEvent.click(
+			await findByRole('button', { name: /RenderingPlayground/ }),
+		);
+
+		await waitFor(() =>
+			expect(
+				container.querySelectorAll('[data-ui="session-item"]'),
+			).toHaveLength(2),
+		);
+		const active = container.querySelector<HTMLElement>(
+			'[data-ui="session-item"][data-active="true"]',
+		)!;
+		const target = [
+			...container.querySelectorAll<HTMLElement>('[data-ui="session-item"]'),
+		].find((item) => item !== active)!;
+		const activeId = active.dataset.contextId;
+		const targetId = target.dataset.contextId;
+
+		await fireEvent.contextMenu(target, { clientX: 180, clientY: 220 });
+		expect(
+			await findByRole('menuitem', { name: 'Open thread' }),
+		).toBeInTheDocument();
+		await fireEvent.click(getByRole('menuitem', { name: 'Delete thread' }));
+		await fireEvent.click(
+			await findByRole('button', { name: 'Delete thread' }),
+		);
+
+		await waitFor(() => {
+			expect(
+				container.querySelector(`[data-context-id="${targetId}"]`),
+			).not.toBeInTheDocument();
+			expect(
+				container.querySelector(
+					`[data-context-id="${activeId}"][data-active="true"]`,
+				),
+			).toBeInTheDocument();
+		});
+	});
+
 	it('grows the composer before enabling its scrollbar', async () => {
 		const { getByRole } = renderApp();
 		const composer = getByRole('textbox', {

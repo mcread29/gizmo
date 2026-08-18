@@ -52,6 +52,8 @@
 				<button
 					type="button"
 					data-ui="session-item"
+					data-context-kind="thread"
+					data-context-id={session.id}
 					data-active={session.id === store.sessionId || undefined}
 					aria-current={session.id === store.sessionId ? 'page' : undefined}
 					onclick={() => store.switchSession(session.id)}
