@@ -63,6 +63,8 @@
 				return 'Unity commands';
 			case 'unity_command':
 				return 'Unity command';
+			case 'unity_wait_for_command':
+				return 'Reload Unity commands';
 			case 'read':
 				return 'Read file';
 			case 'edit':

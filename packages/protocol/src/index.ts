@@ -11,6 +11,7 @@ export const agentToolPolicy = {
 		'unity_status',
 		'unity_list_commands',
 		'unity_command',
+		'unity_wait_for_command',
 	],
 	approvals: false,
 	extensions: false,

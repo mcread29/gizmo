@@ -206,3 +206,21 @@ seven supported thinking levels.
 - Added contextual copy, paste, and select-all actions for selected or editable
   content.
 - Added focused tool-result and context-menu coverage.
+
+## 2026-08-17 — Unity command authoring and reload loop
+
+- Added `unity_wait_for_command`, bound to the session's selected project, to
+  force script compilation and wait through Unity's domain reload.
+- Made the loop tolerate temporary Pipeline disconnects, report compiler
+  diagnostics, distinguish a missing registration from a failed compile, and
+  return the newly registered command schema.
+- Updated the Unity system prompt to inspect the project's real Pipeline API,
+  author focused Editor-only commands, reload them, fix diagnostics, and invoke
+  only the verified live schema.
+- Added the reload tool to the harness-owned full-access policy and tool UI.
+- Covered successful reloads, temporary disconnects, compiler failures,
+  missing registration, and selected-project binding with focused tests.
+
+Live harness verification confirmed that Pi exposes
+`unity_wait_for_command` alongside the existing six tools. No connected Unity
+project was recompiled or modified during this verification.

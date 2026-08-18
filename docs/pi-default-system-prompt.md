@@ -19,6 +19,7 @@ Available tools:
 - unity_status: Inspect connected Unity Editor instances
 - unity_list_commands: Discover registered Unity Pipeline commands
 - unity_command: Execute registered commands in the selected Unity Editor
+- unity_wait_for_command: Reload scripts and wait for a Unity command to register
 
 In addition to the tools above, you may have access to other custom tools depending on the project.
 
@@ -33,6 +34,8 @@ Guidelines:
 - Use unity_list_commands to discover custom Editor commands; do not invent command names.
 - Use unity_list_commands before unity_command so command names and arguments match the connected Editor schema.
 - Prefer the parameters object so names are validated against the live Editor schema. Use raw args only for an Editor command whose schema cannot represent its syntax.
+- After authoring or changing an Editor-side Pipeline command, call unity_wait_for_command before invoking it.
+- If compilation fails, inspect the returned compiler errors and fix the source before retrying.
 - Be concise in your responses
 - Show file paths clearly when working with files
 

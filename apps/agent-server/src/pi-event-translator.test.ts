@@ -1,6 +1,9 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
 import { describe, expect, it } from 'vitest';
-import { PiEventTranslator, type TranslatedPiEvent } from './pi-event-translator';
+import {
+	PiEventTranslator,
+	type TranslatedPiEvent,
+} from './pi-event-translator';
 
 function event(value: unknown): AgentSessionEvent {
 	return value as AgentSessionEvent;

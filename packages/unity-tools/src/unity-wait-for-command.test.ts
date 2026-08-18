@@ -1,0 +1,143 @@
+import { describe, expect, it, vi } from 'vitest';
+import { waitForUnityCommand } from './unity-wait-for-command';
+import type { UnityCommandRunner, UnityRunResult } from './unity-runner';
+
+describe('waitForUnityCommand', () => {
+	it('waits through a reload and returns the newly registered schema', async () => {
+		const runner = sequenceRunner(
+			catalog('recompile'),
+			jsonResult('command recompile', { success: true }),
+			disconnected(),
+			catalog('recompile_status'),
+			compileStatus('completed'),
+			catalog('new_project_command'),
+		);
+
+		const result = await waitForUnityCommand(runner, {
+			projectPath: '/projects/game',
+			command: 'new_project_command',
+			pollIntervalMs: 0,
+		});
+
+		expect(result).toMatchObject({
+			ok: true,
+			state: 'ready',
+			expectedCommand: 'new_project_command',
+			attempts: 2,
+			compileStatus: 'completed',
+			registeredCommand: { name: 'new_project_command' },
+		});
+		expect(runner.run).toHaveBeenCalledTimes(6);
+	});
+
+	it('returns compiler diagnostics without checking the final catalog', async () => {
+		const runner = sequenceRunner(
+			catalog('recompile'),
+			jsonResult('command recompile', { success: true }),
+			catalog('recompile_status'),
+			compileStatus('completed', true, [
+				{ code: 'CS1002', message: '; expected at Assets/Editor/Test.cs:12' },
+			]),
+		);
+
+		const result = await waitForUnityCommand(runner, {
+			projectPath: '/projects/game',
+			command: 'broken_command',
+			pollIntervalMs: 0,
+		});
+
+		expect(result).toMatchObject({
+			ok: false,
+			state: 'compile_failed',
+			errors: [{ code: 'CS1002', message: expect.stringContaining('Test.cs') }],
+		});
+		expect(runner.run).toHaveBeenCalledTimes(4);
+	});
+
+	it('distinguishes a successful compile from missing registration', async () => {
+		const runner = sequenceRunner(
+			catalog('recompile'),
+			jsonResult('command recompile', { success: true }),
+			catalog('recompile_status'),
+			compileStatus('up_to_date'),
+			catalog('some_other_command'),
+		);
+
+		const result = await waitForUnityCommand(runner, {
+			projectPath: '/projects/game',
+			command: 'missing_command',
+			pollIntervalMs: 0,
+		});
+
+		expect(result).toMatchObject({
+			ok: false,
+			state: 'command_missing',
+			errors: [{ code: 'UNITY_COMMAND_NOT_REGISTERED_AFTER_RELOAD' }],
+		});
+	});
+});
+
+function sequenceRunner(...results: UnityRunResult[]): UnityCommandRunner & {
+	run: ReturnType<typeof vi.fn>;
+} {
+	return { run: vi.fn(async () => results.shift()!) };
+}
+
+function catalog(...commands: string[]): UnityRunResult {
+	return jsonResult('list', {
+		tools: commands.map((name) => ({ name, parameters: [] })),
+	});
+}
+
+function compileStatus(
+	status: string,
+	failed = false,
+	errors: unknown[] = [],
+): UnityRunResult {
+	return jsonResult('command recompile_status', {
+		result: JSON.stringify({ status, failed, errors }),
+	});
+}
+
+function disconnected(): UnityRunResult {
+	return {
+		...jsonResult('list', null),
+		ok: false,
+		exitCode: 6,
+		stdout: JSON.stringify({
+			success: false,
+			command: 'list',
+			data: null,
+			errors: [
+				{
+					code: 'COMMAND_FAILED',
+					message:
+						'No Unity Editor instances found with reachable Pipeline servers.',
+				},
+			],
+			warnings: [],
+		}),
+	};
+}
+
+function jsonResult(command: string, data: unknown): UnityRunResult {
+	return {
+		ok: true,
+		executable: 'unity',
+		args: [],
+		exitCode: 0,
+		signal: null,
+		stdout: JSON.stringify({
+			success: true,
+			command,
+			data,
+			errors: [],
+			warnings: [],
+		}),
+		stderr: '',
+		durationMs: 1,
+		aborted: false,
+		timedOut: false,
+		outputLimitExceeded: false,
+	};
+}

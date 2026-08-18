@@ -26,10 +26,13 @@ Browser WebSockets are restricted to the local Vite origin by default. Set a
 comma-separated `UNITY_AGENT_ORIGINS` value when intentionally serving the UI
 from another origin.
 
-The Unity tools are `unity_status`, `unity_list_commands`, and `unity_command`.
-Command discovery returns the live Editor schemas, supports text filtering, and
-is refreshed before every execution. `unity_command` accepts validated named
-parameters or raw argument arrays for unusual custom command syntax.
+The Unity tools are `unity_status`, `unity_list_commands`, `unity_command`, and
+`unity_wait_for_command`. Command discovery returns the live Editor schemas,
+supports text filtering, and is refreshed before every execution.
+`unity_command` accepts validated named parameters or raw argument arrays for
+unusual custom command syntax. After the agent authors an Editor-side command,
+`unity_wait_for_command` forces compilation, waits through the domain reload,
+reports compiler errors, and verifies the command's live registration.
 
 ## Desktop
 
@@ -54,7 +57,7 @@ unity --non-interactive --no-banner --format json list --project-path <path>
 
 Their connected Editor state and discovered Pipeline commands are shown in the
 inspector after the agent invokes them. The harness intentionally grants its
-six active tools full access without approval prompts and disables ambient Pi
+seven active tools full access without approval prompts and disables ambient Pi
 extensions.
 
 ```sh
