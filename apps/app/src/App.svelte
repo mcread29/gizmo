@@ -8,6 +8,7 @@
 		type AgentClient,
 	} from './lib/agent-client';
 	import { saveAppSettings } from './lib/app-settings';
+	import { AppRouter } from './lib/router.svelte';
 	import { Toast } from './lib/components';
 	import { toasts } from './lib/toasts.svelte';
 	import Conversation from './lib/features/conversation/Conversation.svelte';
@@ -17,6 +18,8 @@
 	import { SessionActions } from './lib/features/sessions/session-actions.svelte';
 	import AppDialogs from './lib/features/shell/AppDialogs.svelte';
 	import AppContextMenu from './lib/features/shell/AppContextMenu.svelte';
+	import SettingsScreen from './lib/features/settings/SettingsScreen.svelte';
+	import SessionTreeScreen from './lib/features/tree/SessionTreeScreen.svelte';
 	import PanelResizeHandle from './lib/features/shell/PanelResizeHandle.svelte';
 	import Titlebar from './lib/features/shell/Titlebar.svelte';
 	import { handleShortcut } from './lib/features/shell/shortcuts';
@@ -48,8 +51,9 @@
 	const sessions = new SessionActions(store, agent.name, toasts);
 	const drafts = new DraftStore();
 
-	let settingsOpen = $state(false);
+	const router = new AppRouter();
 	let focusComposer = $state<() => void>();
+	let findInThread = $state<() => void>();
 	let focusThreadSearch = $state<() => void>();
 
 	let currentSession = $derived(
@@ -69,9 +73,11 @@
 		const measure = () => layout.measure();
 		measure();
 		window.addEventListener('resize', measure);
+		const stopRouting = router.start();
 		void store.connect();
 		return () => {
 			window.removeEventListener('resize', measure);
+			stopRouting();
 			void store.disconnect();
 		};
 	});
@@ -79,20 +85,30 @@
 	$effect(() => {
 		document.documentElement.dataset.theme = layout.theme;
 		saveAppSettings(layout.settings);
+		store.compactionPolicy = {
+			enabled: layout.autoCompact,
+			fillPercent: layout.autoCompactFillPercent,
+			retainPercent: layout.compactionRetainPercent,
+		};
 	});
 
 	function onKeydown(event: KeyboardEvent) {
 		handleShortcut(event, {
 			newThread: () => (sessions.projectPickerOpen = true),
-			openSettings: () => (settingsOpen = true),
+			openSettings: () => router.go('settings'),
+			openTree: () => router.go('tree'),
 			focusComposer: () => focusComposer?.(),
+			findInThread: () => findInThread?.(),
 			searchThreads: () => {
 				if (!layout.leftVisible) layout.toggleLeft();
 				focusThreadSearch?.();
 			},
 			toggleLeft: () => layout.toggleLeft(),
 			toggleRight: () => layout.toggleRight(),
-			dismiss: () => layout.closeDrawers(),
+			dismiss: () => {
+				if (router.current === 'workspace') layout.closeDrawers();
+				else router.close();
+			},
 		});
 	}
 
@@ -132,7 +148,7 @@
 		onDeleteThread={(sessionId) => sessions.beginDelete(sessionId)}
 		onOpenEditor={() => void store.openSelectedProject()}
 		onRefreshEditor={() => void store.refreshProjectStatus()}
-		onOpenSettings={() => (settingsOpen = true)}
+		onOpenSettings={() => router.go('settings')}
 	>
 		<div
 			data-ui="app-shell"
@@ -140,6 +156,7 @@
 			data-right-mode={layout.rightMode}
 			data-left-visible={layout.leftVisible}
 			data-right-visible={layout.rightVisible}
+			inert={router.current !== 'workspace' || undefined}
 			style={`--sidebar-width:${layout.sidebarWidth}px;--inspector-width:${layout.inspectorWidth}px`}
 		>
 			<Titlebar
@@ -147,7 +164,8 @@
 				{layout}
 				{store}
 				view={unityView}
-				onOpenSettings={() => (settingsOpen = true)}
+				onOpenSettings={() => router.go('settings')}
+				onOpenTree={() => router.go('tree')}
 			/>
 
 			{#if layout.drawerOpen}<button
@@ -179,6 +197,7 @@
 				agentName={agent.name}
 				{currentSession}
 				bind:focusComposer
+				bind:findInThread
 				onRename={() => sessions.beginRename()}
 				onCopy={() => void sessions.copyTranscript()}
 				onExport={() => void sessions.exportTranscript()}
@@ -201,9 +220,22 @@
 				/>
 			{/if}
 
-			<AppDialogs {store} {layout} {sessions} bind:settingsOpen />
+			<AppDialogs {store} {sessions} />
 		</div>
 	</AppContextMenu>
+
+	<SettingsScreen
+		open={router.current === 'settings'}
+		{layout}
+		{store}
+		onClose={() => router.close()}
+	/>
+
+	<SessionTreeScreen
+		open={router.current === 'tree'}
+		{store}
+		onClose={() => router.close()}
+	/>
 
 	<Toast queue={toasts} />
 </Tooltip.Provider>

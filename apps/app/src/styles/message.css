@@ -29,6 +29,54 @@
 	padding-top: 5px;
 }
 
+[data-ui='message-part'] {
+	display: grid;
+	gap: var(--space-2);
+	min-width: 0;
+}
+
+/* Consecutive tool-only parts sit closer than parts carrying prose. */
+[data-ui='message-part']:has(> [data-ui='tool-call']:first-child:last-child) {
+	gap: 0;
+}
+
+[data-ui='message-part'][data-matched],
+[data-ui='tool-call'][data-matched] {
+	position: relative;
+}
+
+[data-ui='message-part'][data-matched]::before,
+[data-ui='tool-call'][data-matched]::before {
+	position: absolute;
+	top: -4px;
+	bottom: -4px;
+	left: calc(var(--space-3) * -1);
+	width: 2px;
+	border-radius: var(--radius-full);
+	background: var(--color-accent);
+	content: '';
+}
+
+[data-ui='day-separator'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	margin-bottom: var(--space-6);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+[data-ui='day-separator']::before,
+[data-ui='day-separator']::after {
+	flex: 1;
+	height: 1px;
+	background: var(--color-border);
+	content: '';
+}
+
 [data-ui='message-meta'] {
 	display: flex;
 	align-items: center;
@@ -88,4 +136,39 @@
 	to {
 		opacity: 0.25;
 	}
+}
+
+/*
+ * Reasoning is frequently longer than the reply it precedes, so collapsed it
+ * is one muted line and open it is set apart by a rule rather than a card.
+ */
+[data-ui='reasoning'] summary,
+[data-ui='reasoning-withheld'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	list-style: none;
+}
+
+[data-ui='reasoning'] summary {
+	width: fit-content;
+	cursor: pointer;
+}
+
+[data-ui='reasoning'] summary::-webkit-details-marker {
+	display: none;
+}
+
+[data-ui='reasoning'] summary:hover {
+	color: var(--color-text);
+}
+
+[data-ui='reasoning-content'] {
+	margin-top: var(--space-2);
+	padding-left: var(--space-3);
+	border-left: 2px solid var(--color-border);
+	color: var(--color-text-muted);
+	font-size: var(--text-sm);
 }

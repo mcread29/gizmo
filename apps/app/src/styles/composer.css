@@ -93,6 +93,12 @@
 	white-space: nowrap;
 }
 
+[data-ui='compaction-status'] {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	white-space: nowrap;
+}
+
 [data-left-mode='overlay'] [data-ui='composer-hint'] {
 	display: none;
 }
@@ -110,4 +116,48 @@ kbd {
 	color: var(--color-text-muted);
 	font-size: var(--text-2xs);
 	text-align: center;
+}
+
+/*
+ * The context meter sits beside the model controls: it is about the cost of
+ * the next message, which is what the composer is for.
+ */
+[data-ui='usage-meter'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--color-text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+[data-ui='usage-meter'] small {
+	font-size: var(--text-2xs);
+}
+
+[data-ui='usage-bar'] {
+	display: block;
+	overflow: hidden;
+	width: 44px;
+	height: 4px;
+	border-radius: var(--radius-full);
+	background: var(--color-border);
+}
+
+[data-ui='usage-fill'] {
+	display: block;
+	height: 100%;
+	background: var(--color-text-faint);
+	transition: width 200ms ease;
+}
+
+[data-ui='usage-meter'][data-level='warn'] [data-ui='usage-fill'] {
+	background: var(--color-warning);
+}
+
+[data-ui='usage-meter'][data-level='full'] {
+	color: var(--color-danger);
+}
+
+[data-ui='usage-meter'][data-level='full'] [data-ui='usage-fill'] {
+	background: var(--color-danger);
 }

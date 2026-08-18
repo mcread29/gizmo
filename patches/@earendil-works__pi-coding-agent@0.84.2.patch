@@ -1,0 +1,120 @@
+diff --git a/dist/core/compaction/compaction.d.ts b/dist/core/compaction/compaction.d.ts
+index bf40e20fd7d26f38a17d9df790a7acbad42c3d4f..c15d3e17f6f4bce3006b8414bd21ea31d53f32d1 100644
+--- a/dist/core/compaction/compaction.d.ts
++++ b/dist/core/compaction/compaction.d.ts
+@@ -29,6 +29,7 @@ export interface CompactionSettings {
+     enabled: boolean;
+     reserveTokens: number;
+     keepRecentTokens: number;
++    fullTurnBoundaries: boolean;
+ }
+ export declare const DEFAULT_COMPACTION_SETTINGS: CompactionSettings;
+ /**
+@@ -89,7 +90,7 @@ export interface CutPointResult {
+  *
+  * Only considers entries between `startIndex` and `endIndex` (exclusive).
+  */
+-export declare function findCutPoint(entries: SessionEntry[], startIndex: number, endIndex: number, keepRecentTokens: number): CutPointResult;
++export declare function findCutPoint(entries: SessionEntry[], startIndex: number, endIndex: number, keepRecentTokens: number, fullTurnBoundaries?: boolean): CutPointResult;
+ /**
+  * Shared choke point for every compaction/branch-summary summarization call. Wraps the
+  * single LLM call in {@link retryAssistantCall} so transient stream drops (e.g.
+diff --git a/dist/core/compaction/compaction.js b/dist/core/compaction/compaction.js
+index e7ffee7a8566a7556f75e3f3edd228af3d93b141..3c419e1a5bd2b4e7c1b675bc2a62533fc91930f2 100644
+--- a/dist/core/compaction/compaction.js
++++ b/dist/core/compaction/compaction.js
+@@ -75,6 +75,7 @@ export const DEFAULT_COMPACTION_SETTINGS = {
+     enabled: true,
+     reserveTokens: 16384,
+     keepRecentTokens: 20000,
++    fullTurnBoundaries: false,
+ };
+ // ============================================================================
+ // Token calculation
+@@ -264,14 +265,15 @@ function isTurnStartEntry(entry) {
+  * When we cut at an assistant message with tool calls, its tool results follow it
+  * and will be kept.
+  */
+-function findValidCutPoints(entries, startIndex, endIndex) {
++function findValidCutPoints(entries, startIndex, endIndex, fullTurnBoundaries = false) {
+     const cutPoints = [];
+     for (let i = startIndex; i < endIndex; i++) {
+         const entry = entries[i];
+         if (entry.type === "compaction") {
+             continue;
+         }
+-        if (sessionEntryToContextMessages(entry).some(isCutPointMessage)) {
++        const messages = sessionEntryToContextMessages(entry);
++        if (messages.some(fullTurnBoundaries ? isTurnStartMessage : isCutPointMessage)) {
+             cutPoints.push(i);
+         }
+     }
+@@ -305,8 +307,8 @@ export function findTurnStartIndex(entries, entryIndex, startIndex) {
+  *
+  * Only considers entries between `startIndex` and `endIndex` (exclusive).
+  */
+-export function findCutPoint(entries, startIndex, endIndex, keepRecentTokens) {
+-    const cutPoints = findValidCutPoints(entries, startIndex, endIndex);
++export function findCutPoint(entries, startIndex, endIndex, keepRecentTokens, fullTurnBoundaries = false) {
++    const cutPoints = findValidCutPoints(entries, startIndex, endIndex, fullTurnBoundaries);
+     if (cutPoints.length === 0) {
+         return { firstKeptEntryIndex: startIndex, turnStartIndex: -1, isSplitTurn: false };
+     }
+@@ -321,6 +323,16 @@ export function findCutPoint(entries, startIndex, endIndex, keepRecentTokens) {
+         accumulatedTokens += messageTokens;
+         // Check if we've exceeded the budget
+         if (accumulatedTokens >= keepRecentTokens) {
++            if (fullTurnBoundaries) {
++                // A target inside a response retains that response's complete turn.
++                for (let c = cutPoints.length - 1; c >= 0; c--) {
++                    if (cutPoints[c] <= i) {
++                        cutIndex = cutPoints[c];
++                        break;
++                    }
++                }
++                break;
++            }
+             // Find the closest valid cut point at or after this entry
+             for (let c = 0; c < cutPoints.length; c++) {
+                 if (cutPoints[c] >= i) {
+@@ -510,7 +522,7 @@ export function prepareCompaction(pathEntries, settings) {
+     }
+     const boundaryEnd = pathEntries.length;
+     const tokensBefore = estimateContextTokens(buildSessionContext(pathEntries).messages).tokens;
+-    const cutPoint = findCutPoint(pathEntries, boundaryStart, boundaryEnd, settings.keepRecentTokens);
++    const cutPoint = findCutPoint(pathEntries, boundaryStart, boundaryEnd, settings.keepRecentTokens, settings.fullTurnBoundaries);
+     // Get UUID of first kept entry
+     const firstKeptEntry = pathEntries[cutPoint.firstKeptEntryIndex];
+     if (!firstKeptEntry?.id) {
+diff --git a/dist/core/settings-manager.d.ts b/dist/core/settings-manager.d.ts
+index 494157a038b5fd6b4d9ccf30d331983d84755d2a..8066473689249aeba3808dad21d8a5881ecd8c0a 100644
+--- a/dist/core/settings-manager.d.ts
++++ b/dist/core/settings-manager.d.ts
+@@ -5,6 +5,7 @@ export interface CompactionSettings {
+     enabled?: boolean;
+     reserveTokens?: number;
+     keepRecentTokens?: number;
++    fullTurnBoundaries?: boolean;
+ }
+ export interface BranchSummarySettings {
+     reserveTokens?: number;
+@@ -211,6 +212,7 @@ export declare class SettingsManager {
+         enabled: boolean;
+         reserveTokens: number;
+         keepRecentTokens: number;
++        fullTurnBoundaries: boolean;
+     };
+     getBranchSummarySettings(): {
+         reserveTokens: number;
+diff --git a/dist/core/settings-manager.js b/dist/core/settings-manager.js
+index d7fc89cb0560694e74c4f37eaf6733f36a9079f5..60d7d9b1f232bfa63c6b198a65e172c0fe01f2a8 100644
+--- a/dist/core/settings-manager.js
++++ b/dist/core/settings-manager.js
+@@ -525,6 +525,7 @@ export class SettingsManager {
+             enabled: this.getCompactionEnabled(),
+             reserveTokens: this.getCompactionReserveTokens(),
+             keepRecentTokens: this.getCompactionKeepRecentTokens(),
++            fullTurnBoundaries: this.settings.compaction?.fullTurnBoundaries ?? false,
+         };
+     }
+     getBranchSummarySettings() {

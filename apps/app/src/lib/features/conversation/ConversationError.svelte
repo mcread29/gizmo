@@ -27,7 +27,13 @@
 	<div data-ui="error-banner" role="alert">
 		<CircleX size={17} />
 		<span>{store.error.message}</span>
-		{#if reconnect}
+		{#if store.retryCountdown !== undefined}
+			<!-- An automatic retry that says nothing looks the same as a hang. -->
+			<span data-ui="error-countdown">Retrying in {store.retryCountdown}s</span>
+			<Button variant="ghost" size="sm" onclick={() => store.cancelRetry()}
+				>Cancel</Button
+			>
+		{:else if reconnect}
 			<Button
 				variant="ghost"
 				size="sm"

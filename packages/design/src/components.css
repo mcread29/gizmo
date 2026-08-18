@@ -277,6 +277,11 @@ summary:focus-visible,
 	box-shadow: var(--shadow-sm);
 }
 
+[data-ui='tabs-badge'][data-tone='danger'] {
+	background: var(--color-danger-soft);
+	color: var(--color-danger);
+}
+
 [data-ui='tabs-badge'] {
 	display: inline-grid;
 	min-width: 16px;

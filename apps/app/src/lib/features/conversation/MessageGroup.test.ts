@@ -1,9 +1,10 @@
 import type { ConversationMessage } from '@unity-agent/protocol';
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import ConversationMessageView from './ConversationMessage.svelte';
+import MessageGroupView from './MessageGroup.svelte';
+import { groupMessages } from './message-groups';
 
-describe('ConversationMessage', () => {
+describe('MessageGroup', () => {
 	it('renders Markdown, code controls, and a collapsed file diff', async () => {
 		const message: ConversationMessage = {
 			id: 'message-1',
@@ -21,10 +22,10 @@ describe('ConversationMessage', () => {
 				},
 			],
 		};
-		const { container, getByRole, getByText } = render(
-			ConversationMessageView,
-			{ message, agentName: 'Unity Agent' },
-		);
+		const { container, getByRole, getByText } = render(MessageGroupView, {
+			group: groupMessages([message])[0]!,
+			agentName: 'Unity Agent',
+		});
 
 		expect(getByRole('heading', { name: 'Result' })).toBeInTheDocument();
 		expect(getByRole('button', { name: 'Copy response' })).toBeInTheDocument();

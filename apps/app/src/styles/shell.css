@@ -254,3 +254,254 @@ body[data-resizing='sidebar'] {
 	background: var(--color-danger);
 	color: var(--color-on-accent);
 }
+
+/*
+ * Settings is a screen, not a dialog: it covers the workspace entirely and
+ * leaves only the titlebar, so window controls and dragging keep working.
+ */
+[data-ui='settings-screen'] {
+	position: fixed;
+	inset: var(--titlebar-height) 0 0;
+	z-index: 40;
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	background: var(--color-canvas);
+}
+
+[data-ui='settings-screen-header'] {
+	display: grid;
+	gap: var(--space-1);
+	padding: var(--space-5) var(--space-6) var(--space-4);
+	border-bottom: 1px solid var(--color-border);
+}
+
+[data-ui='settings-screen-header'] h1 {
+	margin: 0;
+	font-size: var(--text-xl);
+}
+
+[data-ui='settings-screen-header'] > span {
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}
+
+[data-ui='settings-back'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: fit-content;
+	margin-bottom: var(--space-2);
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	cursor: pointer;
+}
+
+[data-ui='settings-back']:hover {
+	color: var(--color-text);
+}
+
+[data-ui='settings-screen'] [data-ui='settings-form'] {
+	width: min(720px, 100%);
+	margin: 0 auto;
+	padding: var(--space-6);
+}
+
+/* The session tree is a screen for the same reason Settings is. */
+[data-ui='tree-screen'] {
+	position: fixed;
+	inset: var(--titlebar-height) 0 0;
+	z-index: 40;
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	background: var(--color-canvas);
+}
+
+[data-ui='tree-header'] {
+	display: grid;
+	gap: var(--space-1);
+	padding: var(--space-5) var(--space-6) var(--space-4);
+	border-bottom: 1px solid var(--color-border);
+}
+
+[data-ui='tree-header'] h1 {
+	margin: 0;
+	font-size: var(--text-xl);
+}
+
+[data-ui='tree-header'] > span {
+	max-width: 68ch;
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+}
+
+[data-ui='tree-controls'] {
+	display: flex;
+	align-items: end;
+	gap: var(--space-3);
+	margin-top: var(--space-3);
+}
+
+[data-ui='tree-controls'] input {
+	flex: 1;
+	max-width: 420px;
+}
+
+[data-ui='tree-body'] {
+	padding: var(--space-4) var(--space-6);
+}
+
+[data-ui='tree-empty'] {
+	margin: var(--space-6) 0;
+	color: var(--color-text-muted);
+	font-size: var(--text-sm);
+}
+
+[data-ui='tree-list'] {
+	display: grid;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+[data-ui='tree-row'] {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr);
+	align-items: center;
+	margin-left: calc(var(--depth) * var(--space-5));
+	border-left: 1px solid transparent;
+}
+
+/*
+ * The active path is the transcript you are looking at; everything else is a
+ * branch the thread walked away from.
+ */
+[data-ui='tree-row'][data-active] {
+	border-left-color: var(--color-accent);
+}
+
+[data-ui='tree-row']:not([data-active]) [data-ui='tree-summary'] {
+	color: var(--color-text-muted);
+}
+
+[data-ui='tree-fold'] {
+	display: grid;
+	place-items: center;
+	height: 24px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-text-faint);
+	cursor: pointer;
+}
+
+[data-ui='tree-fold']:disabled {
+	cursor: default;
+}
+
+[data-ui='tree-entry'] {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-2);
+	min-width: 0;
+	padding: 5px var(--space-2);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='tree-entry']:hover {
+	background: var(--color-surface);
+}
+
+[data-ui='tree-row'][data-selected] [data-ui='tree-entry'] {
+	background: var(--color-surface-raised);
+	outline: 1px solid var(--color-border);
+}
+
+[data-ui='tree-kind'] {
+	flex: none;
+	width: 68px;
+	color: var(--color-text-faint);
+	font-size: var(--text-2xs);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+[data-ui='tree-summary'] {
+	overflow: hidden;
+	font-size: var(--text-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='tree-label'],
+[data-ui='tree-branch'],
+[data-ui='tree-here'] {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 3px;
+	padding: 1px 6px;
+	border-radius: var(--radius-full);
+	background: var(--color-surface-soft);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='tree-here'] {
+	background: var(--color-accent);
+	color: var(--color-on-accent);
+}
+
+[data-ui='tree-actions'] {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-6);
+	border-top: 1px solid var(--color-border);
+}
+
+[data-ui='tree-count'] {
+	margin-right: auto;
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}
+
+[data-ui='tree-editor'] {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	display: grid;
+	gap: var(--space-2);
+	padding: var(--space-4) var(--space-6);
+	border-top: 1px solid var(--color-border);
+	background: var(--color-surface);
+	box-shadow: var(--shadow-md);
+}
+
+[data-ui='tree-editor'] label {
+	font-size: var(--text-sm);
+	font-weight: 600;
+}
+
+[data-ui='tree-editor'] p {
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='tree-editor'] > div {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-2);
+}

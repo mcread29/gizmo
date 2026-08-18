@@ -192,16 +192,19 @@ describe('application shell', () => {
 		await fireEvent.click(getByRole('button', { name: 'Settings' }));
 
 		expect(
-			await findByRole('dialog', { name: 'Settings' }),
+			await findByRole('region', { name: 'Settings' }),
 		).toBeInTheDocument();
 		const sendOnEnter = getByRole('switch', { name: 'Send with Enter' });
 		const showInspector = getByRole('switch', { name: 'Unity inspector' });
 		const scheme = getByRole('button', { name: 'Color scheme' });
 		expect(scheme).toHaveTextContent('Default');
 
+		const expandReasoning = getByRole('switch', { name: 'Expand reasoning' });
+
 		await fireEvent.click(getByRole('switch', { name: 'Dark appearance' }));
 		await fireEvent.click(sendOnEnter);
 		await fireEvent.click(showInspector);
+		await fireEvent.click(expandReasoning);
 
 		expect(document.documentElement).toHaveAttribute('data-theme', 'light');
 		expect(getByText('⌘/Ctrl Enter')).toBeInTheDocument();
@@ -214,12 +217,14 @@ describe('application shell', () => {
 			);
 			expect(saved.sendOnEnter).toBe(false);
 			expect(saved.showUnityInspector).toBe(false);
+			expect(saved.expandReasoning).toBe(true);
 			expect(saved.theme).toBe('light');
 		});
 
 		await fireEvent.click(getByRole('button', { name: 'Restore defaults' }));
 		expect(sendOnEnter).toHaveAttribute('aria-checked', 'true');
 		expect(showInspector).toHaveAttribute('aria-checked', 'true');
+		expect(expandReasoning).toHaveAttribute('aria-checked', 'false');
 	});
 
 	it('starts a thread from a workspace and exposes model controls', async () => {
@@ -407,5 +412,59 @@ describe('application shell', () => {
 		);
 
 		expect(composer.value).toBe('');
+	});
+
+	it('gives a run of agent messages one header instead of one each', async () => {
+		const { container, findByText, getByRole } = renderApp();
+		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+		await fireEvent.input(composer, {
+			target: { value: 'Inspect the Editor' },
+		});
+		await waitFor(() =>
+			expect(getByRole('button', { name: 'Send message' })).toBeEnabled(),
+		);
+		await fireEvent.click(getByRole('button', { name: 'Send message' }));
+		await findByText(/connected and ready for commands/);
+
+		// One block for the prompt and one for the whole reply, however many
+		// tool calls and message parts the reply is made of.
+		expect(container.querySelectorAll('[data-ui="message"]')).toHaveLength(2);
+		expect(
+			container.querySelectorAll('[data-ui="tool-call"]').length,
+		).toBeGreaterThan(1);
+	});
+
+	it('finds messages and tool arguments within the open thread', async () => {
+		const { container, findByRole, getByRole } = renderApp();
+		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+		await fireEvent.input(composer, {
+			target: { value: 'Inspect the Editor' },
+		});
+		await waitFor(() =>
+			expect(getByRole('button', { name: 'Send message' })).toBeEnabled(),
+		);
+		await fireEvent.click(getByRole('button', { name: 'Send message' }));
+		await waitFor(() =>
+			expect(
+				container.querySelectorAll('[data-ui="tool-call"]').length,
+			).toBeGreaterThan(1),
+		);
+
+		await fireEvent.keyDown(window, { key: 'f', ctrlKey: true });
+		const search = await findByRole('searchbox', {
+			name: 'Search this thread',
+		});
+
+		// Matches the argument of a tool call, not just the prose, and marks the
+		// individual call rather than the message that contains it.
+		await fireEvent.input(search, { target: { value: 'PlayerController' } });
+		await waitFor(() =>
+			expect(
+				container.querySelectorAll('[data-ui="tool-call"][data-matched]'),
+			).toHaveLength(1),
+		);
+
+		await fireEvent.input(search, { target: { value: 'nothing-here' } });
+		await waitFor(() => expect(container.textContent).toContain('No matches'));
 	});
 });

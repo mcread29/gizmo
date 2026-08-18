@@ -42,3 +42,41 @@ describe('parseDiff', () => {
 		expect(diffStat(lines)).toEqual({ added: 2, removed: 1 });
 	});
 });
+
+describe('word-level marking', () => {
+	it('marks only the part of a replaced line that changed', () => {
+		const lines = parseDiff(
+			['@@ -1,1 +1,1 @@', '-    int speed = 1;', '+    int speed = 2;'].join(
+				'\n',
+			),
+		);
+
+		expect(lines[1]?.segments).toEqual([
+			{ text: '    int speed = ', changed: false },
+			{ text: '1', changed: true },
+			{ text: ';', changed: false },
+		]);
+		expect(lines[2]?.segments?.[1]).toEqual({ text: '2', changed: true });
+	});
+
+	it('leaves wholly different lines to the line colour', () => {
+		const lines = parseDiff(['@@ -1,1 +1,1 @@', '-alpha', '+beta'].join('\n'));
+
+		expect(lines[1]?.segments).toBeUndefined();
+	});
+
+	it('pairs runs of removals with the additions that replaced them', () => {
+		const lines = parseDiff(
+			[
+				'@@ -1,2 +1,2 @@',
+				'-int a = 1;',
+				'-int b = 1;',
+				'+int a = 2;',
+				'+int b = 2;',
+			].join('\n'),
+		);
+
+		expect(lines[2]?.segments?.[1]?.text).toBe('1');
+		expect(lines[4]?.segments?.[1]?.text).toBe('2');
+	});
+});

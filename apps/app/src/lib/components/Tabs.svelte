@@ -7,6 +7,7 @@
 		label: string;
 		/** Rendered as a pill beside the label; omitted when zero. */
 		badge?: number;
+		badgeTone?: 'accent' | 'danger';
 	}
 
 	let {
@@ -24,8 +25,9 @@
 	<Tabs.List data-ui="tabs-list">
 		{#each items as item}
 			<Tabs.Trigger data-ui="tabs-trigger" value={item.value}>
-				{item.label}{#if item.badge}<span data-ui="tabs-badge"
-						>{item.badge}</span
+				{item.label}{#if item.badge}<span
+						data-ui="tabs-badge"
+						data-tone={item.badgeTone ?? 'accent'}>{item.badge}</span
 					>{/if}
 			</Tabs.Trigger>
 		{/each}

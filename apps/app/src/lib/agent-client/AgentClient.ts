@@ -1,9 +1,11 @@
 import type {
 	AgentModelCatalog,
+	CompactionPolicy,
 	FileRevertResult,
 	SessionCatalog,
 	SessionOptions,
 	SessionSnapshot,
+	SessionTree,
 	UnityConsoleUpdate,
 	UnityOpenProjectResult,
 	UnityProject,
@@ -20,10 +22,25 @@ export interface AgentClient {
 	createSession(options?: SessionOptions): Promise<string>;
 	resumeSession(sessionId: string): Promise<SessionSnapshot>;
 	renameSession(sessionId: string, title: string): Promise<void>;
-	prompt(sessionId: string, text: string): Promise<void>;
+	prompt(
+		sessionId: string,
+		text: string,
+		compaction?: CompactionPolicy,
+	): Promise<void>;
+	compact(sessionId: string, compaction: CompactionPolicy): Promise<void>;
 	steer(sessionId: string, text: string): Promise<void>;
 	abort(sessionId: string): Promise<void>;
 	deleteSession(sessionId: string): Promise<void>;
+	getSessionTree(sessionId: string): Promise<SessionTree>;
+	branchSession(
+		sessionId: string,
+		entryId: string | null,
+	): Promise<SessionSnapshot>;
+	labelEntry(
+		sessionId: string,
+		entryId: string,
+		label?: string,
+	): Promise<SessionTree>;
 	getModelCatalog(sessionId: string): Promise<AgentModelCatalog>;
 	selectModel(
 		sessionId: string,

@@ -58,7 +58,11 @@
 				{:else}
 					<span data-ui="diff-gutter">{line.newLine ?? ''}</span>
 				{/if}
-				<span data-ui="diff-text">{line.text || ' '}</span>
+				<span data-ui="diff-text"
+					>{#if line.segments}{#each line.segments as segment, part (part)}<span
+								data-changed={segment.changed || undefined}>{segment.text}</span
+							>{/each}{:else}{line.text || ' '}{/if}</span
+				>
 			</div>
 		{/each}
 	</div>

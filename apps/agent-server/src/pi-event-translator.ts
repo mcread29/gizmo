@@ -7,13 +7,37 @@ export type TranslatedPiEvent =
 			state: 'idle' | 'streaming' | 'error';
 	  }
 	| {
+			type: 'session.compaction';
+			active: boolean;
+			reason: 'manual' | 'threshold' | 'overflow';
+	  }
+	| {
 			type: 'message.started';
 			messageId: string;
 			role: 'user' | 'assistant';
 			createdAt: number;
 	  }
 	| { type: 'message.delta'; messageId: string; delta: string }
+	| {
+			type: 'message.reasoning';
+			messageId: string;
+			delta: string;
+			redacted?: boolean;
+	  }
 	| { type: 'message.completed'; messageId: string }
+	| {
+			type: 'session.usage';
+			usage: {
+				input: number;
+				output: number;
+				cacheRead: number;
+				cacheWrite: number;
+				contextUsed: number;
+				cost: number;
+				/** Filled in by the service, which knows the model. */
+				contextWindow?: number;
+			};
+	  }
 	| {
 			type: 'tool.started';
 			messageId: string;
@@ -37,6 +61,8 @@ export class PiEventTranslator {
 	#messageId = 0;
 	#activeMessageIds = new Map<'user' | 'assistant', string>();
 	#lastAssistantMessageId?: string;
+	/** Whether the current assistant message has already emitted reasoning. */
+	#reasoningOpen = false;
 
 	constructor(emit: Emit) {
 		this.#emit = emit;
@@ -44,6 +70,27 @@ export class PiEventTranslator {
 
 	receive(event: AgentSessionEvent): void {
 		switch (event.type) {
+			case 'compaction_start':
+				this.#emit({
+					type: 'session.compaction',
+					active: true,
+					reason: event.reason,
+				});
+				break;
+			case 'compaction_end':
+				this.#emit({
+					type: 'session.compaction',
+					active: false,
+					reason: event.reason,
+				});
+				if (event.errorMessage) {
+					this.#emit({
+						type: 'error',
+						code: 'compaction_failed',
+						message: event.errorMessage,
+					});
+				}
+				break;
 			case 'agent_start':
 				this.#emit({ type: 'session.state', state: 'streaming' });
 				break;
@@ -57,8 +104,10 @@ export class PiEventTranslator {
 				) {
 					const messageId = `message-${++this.#messageId}`;
 					this.#activeMessageIds.set(event.message.role, messageId);
-					if (event.message.role === 'assistant')
+					if (event.message.role === 'assistant') {
 						this.#lastAssistantMessageId = messageId;
+						this.#reasoningOpen = false;
+					}
 					this.#emit({
 						type: 'message.started',
 						messageId,
@@ -72,18 +121,37 @@ export class PiEventTranslator {
 					}
 				}
 				break;
-			case 'message_update':
-				if (event.assistantMessageEvent.type === 'text_delta') {
-					const messageId = this.#activeMessageIds.get('assistant');
-					if (messageId) {
-						this.#emit({
-							type: 'message.delta',
-							messageId,
-							delta: event.assistantMessageEvent.delta,
-						});
-					}
+			case 'message_update': {
+				const messageId = this.#activeMessageIds.get('assistant');
+				const update = event.assistantMessageEvent;
+				if (!messageId) break;
+				if (update.type === 'text_delta') {
+					this.#emit({ type: 'message.delta', messageId, delta: update.delta });
+				} else if (update.type === 'thinking_delta') {
+					this.#emit({
+						type: 'message.reasoning',
+						messageId,
+						delta: update.delta,
+					});
+					this.#reasoningOpen = true;
+				} else if (update.type === 'thinking_start' && this.#reasoningOpen) {
+					// Consecutive thinking blocks read as separate paragraphs.
+					this.#emit({ type: 'message.reasoning', messageId, delta: '\n\n' });
+				} else if (
+					update.type === 'thinking_end' &&
+					isRedactedThinking(update.partial, update.contentIndex)
+				) {
+					// Nothing readable to show, but the model did think: say so
+					// rather than rendering an empty block that looks like a bug.
+					this.#emit({
+						type: 'message.reasoning',
+						messageId,
+						delta: '',
+						redacted: true,
+					});
 				}
 				break;
+			}
 			case 'message_end':
 				if (
 					event.message.role === 'user' ||
@@ -92,6 +160,10 @@ export class PiEventTranslator {
 					const messageId = this.#activeMessageIds.get(event.message.role);
 					if (messageId) this.#emit({ type: 'message.completed', messageId });
 					this.#activeMessageIds.delete(event.message.role);
+					if (event.message.role === 'assistant') {
+						const usage = readUsage(event.message.usage);
+						if (usage) this.#emit({ type: 'session.usage', usage });
+					}
 					if (
 						event.message.role === 'assistant' &&
 						event.message.errorMessage
@@ -132,6 +204,50 @@ export class PiEventTranslator {
 				break;
 		}
 	}
+}
+
+/**
+ * Context used is what the next request has to re-send: everything the model
+ * read this turn plus what it wrote. Cached tokens still occupy the window, so
+ * they count even though they are cheap.
+ */
+function readUsage(value: unknown): TranslatedUsage | undefined {
+	if (!value || typeof value !== 'object') return undefined;
+	const usage = value as Record<string, unknown>;
+	const input = count(usage.input);
+	const output = count(usage.output);
+	const cacheRead = count(usage.cacheRead);
+	const cacheWrite = count(usage.cacheWrite);
+	const cost = usage.cost as { total?: unknown } | undefined;
+	return {
+		input,
+		output,
+		cacheRead,
+		cacheWrite,
+		contextUsed: input + cacheRead + cacheWrite + output,
+		cost: count(cost?.total),
+	};
+}
+
+type TranslatedUsage = Extract<
+	TranslatedPiEvent,
+	{ type: 'session.usage' }
+>['usage'];
+
+function count(value: unknown): number {
+	return typeof value === 'number' && Number.isFinite(value) && value > 0
+		? Math.round(value)
+		: 0;
+}
+
+function isRedactedThinking(partial: unknown, index: number): boolean {
+	if (!partial || typeof partial !== 'object' || !('content' in partial))
+		return false;
+	const content = (partial as { content: unknown }).content;
+	if (!Array.isArray(content)) return false;
+	const block = content[index] as
+		{ type?: string; redacted?: boolean } | undefined;
+	return block?.type === 'thinking' && block.redacted === true;
 }
 
 function getMessageText(content: unknown): string {

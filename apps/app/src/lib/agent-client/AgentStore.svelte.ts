@@ -5,8 +5,11 @@ import {
 	type AgentEvent,
 	type AgentSessionSummary,
 	type ConversationMessage,
+	type CompactionPolicy,
 	type SessionSnapshot,
 	type SessionState,
+	type SessionTree,
+	type SessionUsage,
 	type ToolCallView,
 	type UnityConsoleEntry,
 	type UnityProject,
@@ -41,7 +44,29 @@ export type ConnectionState =
 /** Backoff between automatic reconnects; the last entry repeats forever. */
 const reconnectDelays = [500, 1_000, 2_000, 5_000, 10_000, 15_000];
 
+/**
+ * Backoff for a model that is merely busy. Overload clears in seconds to
+ * minutes, so retrying beyond this is worse than telling the user.
+ */
+const promptRetryDelays = [5_000, 15_000, 40_000];
+
+/**
+ * Server-side capacity failures, which say nothing about the request and are
+ * worth repeating verbatim. Anything else is the caller's problem to fix.
+ */
+export function isTransientModelError(message: string): boolean {
+	return /\b(429|500|502|503|529)\b|overloaded|rate.?limit|capacity|temporarily unavailable|try again/i.test(
+		message,
+	);
+}
+
 export class AgentStore {
+	compactionPolicy: CompactionPolicy = {
+		enabled: true,
+		fillPercent: 25,
+		retainPercent: 10,
+	};
+	compacting = $state(false);
 	connection = $state<ConnectionState>('disconnected');
 	reconnectAttempt = $state(0);
 	sessionId = $state<string>();
@@ -64,6 +89,9 @@ export class AgentStore {
 	error = $state<AgentError>();
 	consoleEntries = $state<UnityConsoleEntry[]>([]);
 	consoleLoading = $state(false);
+	usage = $state<SessionUsage>();
+	/** Seconds until an automatic prompt retry, while one is pending. */
+	retryCountdown = $state<number>();
 
 	readonly #client: AgentClient;
 	#unsubscribe?: () => void;
@@ -71,6 +99,8 @@ export class AgentStore {
 	#statusRequest?: { projectPath: string; promise: Promise<void> };
 	#reconnectTimer?: ReturnType<typeof setTimeout>;
 	#autoReconnect = true;
+	#retryTimer?: ReturnType<typeof setInterval>;
+	#retryAttempt = 0;
 
 	constructor(client: AgentClient) {
 		this.#client = client;
@@ -294,6 +324,8 @@ export class AgentStore {
 		this.messages = [];
 		this.messagesLoading = true;
 		this.sessionState = 'idle';
+		this.usage = undefined;
+		this.cancelRetry();
 		try {
 			const snapshot = await this.#client.resumeSession(sessionId);
 			this.messages = snapshot.messages;
@@ -454,6 +486,7 @@ export class AgentStore {
 		const prompt = text.trim();
 		this.error = undefined;
 		this.lastPrompt = prompt;
+		this.cancelRetry();
 		const session = this.sessions.find(
 			(candidate) => candidate.id === this.sessionId,
 		);
@@ -462,9 +495,24 @@ export class AgentStore {
 			session.lastActiveAt = Date.now();
 		}
 		try {
-			await this.#client.prompt(this.sessionId, prompt);
+			await this.#client.prompt(this.sessionId, prompt, this.compactionPolicy);
 		} catch (error) {
 			this.#fail('prompt', error);
+		}
+	}
+
+	async compact(): Promise<void> {
+		if (!this.sessionId || this.compacting || this.sessionState === 'streaming')
+			return;
+		this.error = undefined;
+		this.compacting = true;
+		try {
+			await this.#client.compact(this.sessionId, this.compactionPolicy);
+			this.usage = undefined;
+		} catch (error) {
+			this.#fail('agent', error);
+		} finally {
+			this.compacting = false;
 		}
 	}
 
@@ -489,6 +537,11 @@ export class AgentStore {
 		await this.#client.revertFile(this.selectedProjectPath, file, patch);
 	}
 
+	/** Clears the local tail only; the Editor console is untouched. */
+	clearConsole(): void {
+		this.consoleEntries = [];
+	}
+
 	async loadConsole(): Promise<void> {
 		if (this.connection !== 'connected' || !this.selectedProjectPath) return;
 		this.consoleLoading = true;
@@ -505,7 +558,87 @@ export class AgentStore {
 	/** Resends the last prompt, for when a send failed rather than answered. */
 	async retryPrompt(): Promise<void> {
 		if (!this.lastPrompt || this.sessionState === 'streaming') return;
+		this.cancelRetry();
 		await this.prompt(this.lastPrompt);
+	}
+
+	/** Stops a pending automatic retry, leaving the error banner in place. */
+	cancelRetry(): void {
+		clearInterval(this.#retryTimer);
+		this.#retryTimer = undefined;
+		this.retryCountdown = undefined;
+		this.#retryAttempt = 0;
+	}
+
+	/**
+	 * Counts down in public so an automatic retry never looks like a hang, and
+	 * gives up rather than hammering a server that is not coming back.
+	 */
+	#scheduleRetry(): void {
+		if (!this.lastPrompt || this.#retryTimer) return;
+		const delay = promptRetryDelays[this.#retryAttempt];
+		if (delay === undefined) return;
+		this.#retryAttempt++;
+		this.retryCountdown = Math.round(delay / 1_000);
+		this.#retryTimer = setInterval(() => {
+			this.retryCountdown = (this.retryCountdown ?? 1) - 1;
+			if ((this.retryCountdown ?? 0) > 0) return;
+			clearInterval(this.#retryTimer);
+			this.#retryTimer = undefined;
+			this.retryCountdown = undefined;
+			const attempt = this.#retryAttempt;
+			void this.prompt(this.lastPrompt!).then(() => {
+				this.#retryAttempt = attempt;
+			});
+		}, 1_000);
+	}
+
+	/** The session as a tree, including branches this transcript does not walk. */
+	async loadTree(): Promise<SessionTree | undefined> {
+		if (!this.sessionId) return undefined;
+		try {
+			return await this.#client.getSessionTree(this.sessionId);
+		} catch (error) {
+			this.#fail('session', error);
+			return undefined;
+		}
+	}
+
+	/**
+	 * Moves the thread back to an earlier entry. Nothing is deleted: the
+	 * abandoned replies stay in the tree and can be returned to.
+	 */
+	async branchTo(entryId: string | null): Promise<boolean> {
+		if (!this.sessionId || this.sessionState === 'streaming') return false;
+		try {
+			const snapshot = await this.#client.branchSession(
+				this.sessionId,
+				entryId,
+			);
+			this.messages = snapshot.messages;
+			const session = this.sessions.find(
+				(candidate) => candidate.id === snapshot.session.id,
+			);
+			if (session) session.messageCount = snapshot.session.messageCount;
+			this.error = undefined;
+			return true;
+		} catch (error) {
+			this.#fail('session', error);
+			return false;
+		}
+	}
+
+	async labelEntry(
+		entryId: string,
+		label?: string,
+	): Promise<SessionTree | undefined> {
+		if (!this.sessionId) return undefined;
+		try {
+			return await this.#client.labelEntry(this.sessionId, entryId, label);
+		} catch (error) {
+			this.#fail('session', error);
+			return undefined;
+		}
 	}
 
 	async abort(): Promise<void> {
@@ -531,7 +664,13 @@ export class AgentStore {
 			case 'session.state':
 				this.sessionState = event.state;
 				break;
+			case 'session.compaction':
+				this.compacting = event.active;
+				if (!event.active) this.usage = undefined;
+				break;
 			case 'message.started':
+				// The model answered, so the next failure starts its backoff over.
+				if (event.role === 'assistant') this.#retryAttempt = 0;
 				this.messages.push({
 					id: event.messageId,
 					role: event.role,
@@ -548,6 +687,18 @@ export class AgentStore {
 			case 'message.delta': {
 				const message = this.#message(event.messageId);
 				if (message) message.content += event.delta;
+				break;
+			}
+			case 'session.usage':
+				this.usage = event.usage;
+				break;
+			case 'message.reasoning': {
+				const message = this.#message(event.messageId);
+				if (message) {
+					if (event.delta)
+						message.reasoning = (message.reasoning ?? '') + event.delta;
+					if (event.redacted) message.reasoningRedacted = true;
+				}
 				break;
 			}
 			case 'message.completed': {
@@ -595,6 +746,7 @@ export class AgentStore {
 			case 'error':
 				this.error = { kind: 'agent', message: event.message };
 				this.sessionState = 'error';
+				if (isTransientModelError(event.message)) this.#scheduleRetry();
 				break;
 		}
 	}

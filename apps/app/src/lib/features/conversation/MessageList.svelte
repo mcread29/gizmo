@@ -5,8 +5,9 @@
 	import type { AgentStore } from '../../agent-client';
 	import { ArrowDown } from '@lucide/svelte';
 	import { Button, ScrollPanel } from '../../components';
-	import ConversationMessage from './ConversationMessage.svelte';
-	import { isAtBottom } from './follow';
+	import MessageGroupView from './MessageGroup.svelte';
+	import { isAtBottom, scrollIntoEnd } from './follow';
+	import { dayKey, formatDay, groupMessages } from './message-groups';
 	import { streamingActivity } from './streaming';
 
 	interface Props {
@@ -14,19 +15,43 @@
 		agentName: string;
 		currentSession?: AgentSessionSummary;
 		autoFollowOutput: boolean;
+		/** Whether reasoning blocks start expanded. */
+		expandReasoning: boolean;
+		collapseToken?: number;
+		matched?: ReadonlySet<string>;
 	}
 
-	let { store, agentName, currentSession, autoFollowOutput }: Props = $props();
+	let {
+		store,
+		agentName,
+		currentSession,
+		autoFollowOutput,
+		expandReasoning,
+		collapseToken,
+		matched,
+	}: Props = $props();
 
 	let scrollAnchor = $state<HTMLDivElement>();
 	let followOutput = $state(false);
 	let knownCount = 0;
+	let knownSession: string | undefined;
 	let activity = $derived(
 		streamingActivity(store.messages, store.sessionState),
 	);
+	let groups = $derived(groupMessages(store.messages));
+	let lastMessageId = $derived(store.messages.at(-1)?.id);
 
 	$effect(() => {
 		if (autoFollowOutput) followOutput = true;
+	});
+
+	// A thread opens at its newest message, not wherever the previous one sat.
+	$effect(() => {
+		const sessionId = store.sessionId;
+		if (sessionId === knownSession) return;
+		knownSession = sessionId;
+		followOutput = true;
+		void tick().then(() => scrollIntoEnd(scrollAnchor));
 	});
 
 	// Sending re-engages following even if the user had scrolled up to read.
@@ -49,16 +74,14 @@
 		if (!autoFollowOutput || !followOutput) return;
 		let cancelled = false;
 		void tick().then(() => {
-			if (!cancelled && typeof scrollAnchor?.scrollIntoView === 'function') {
-				scrollAnchor.scrollIntoView({ block: 'end' });
-			}
+			if (!cancelled) scrollIntoEnd(scrollAnchor);
 		});
 		return () => (cancelled = true);
 	});
 
 	function jumpToLatest() {
 		// The scroll listener re-engages following once the anchor is in view.
-		scrollAnchor?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+		scrollIntoEnd(scrollAnchor, 'smooth');
 	}
 
 	/** Stops following as soon as the user scrolls away from the bottom. */
@@ -96,15 +119,24 @@
 				</p>
 			</div>
 		{/if}
-		{#each store.messages as message (message.id)}
-			<ConversationMessage
-				{message}
+		{#each groups as group, index (group.id)}
+			{#if index === 0 || dayKey(groups[index - 1]!.createdAt) !== dayKey(group.createdAt)}
+				<div data-ui="day-separator">
+					<span>{formatDay(group.createdAt)}</span>
+				</div>
+			{/if}
+			<MessageGroupView
+				{group}
 				{agentName}
+				{expandReasoning}
+				{collapseToken}
+				{matched}
 				projectPath={currentSession?.projectPath}
-				onRetry={message.role === 'user'
+				onRetry={group.role === 'user'
 					? () => void store.retryPrompt()
 					: undefined}
-				activity={activity.streaming && message.id === store.messages.at(-1)?.id
+				activity={activity.streaming &&
+				group.messages.at(-1)?.id === lastMessageId
 					? activity
 					: undefined}
 			/>

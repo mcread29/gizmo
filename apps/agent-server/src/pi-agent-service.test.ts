@@ -3,6 +3,7 @@ import {
 	parseAgentEvent,
 	type AgentEvent,
 	type AgentModelCatalog,
+	type CompactionPolicy,
 } from '@unity-agent/protocol';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -20,6 +21,8 @@ class FakePiSession implements PiSessionLike {
 	readonly prompt = vi.fn(async () => {});
 	readonly steer = vi.fn(async () => {});
 	readonly abort = vi.fn(async () => {});
+	readonly compact = vi.fn(async () => ({}));
+	readonly configureCompaction = vi.fn((_policy: CompactionPolicy) => {});
 	readonly setSessionName = vi.fn((name: string) => (this.sessionName = name));
 	readonly dispose = vi.fn();
 	readonly getModelCatalog = vi.fn(async (): Promise<AgentModelCatalog> => ({
@@ -93,6 +96,38 @@ describe('PiAgentService', () => {
 		expect(pi.steer).toHaveBeenCalledWith('Focus on the player');
 		expect(pi.abort).toHaveBeenCalledOnce();
 		expect(pi.dispose).toHaveBeenCalledOnce();
+	});
+
+	it('configures automatic compaction and routes manual compaction', async () => {
+		const pi = new FakePiSession();
+		const service = await createTestService(pi);
+		const sessionId = await service.createSession();
+		const policy: CompactionPolicy = {
+			enabled: true,
+			fillPercent: 25,
+			retainPercent: 10,
+		};
+
+		await service.prompt(sessionId, 'Long task', policy);
+		await service.compact(sessionId, policy);
+
+		expect(pi.configureCompaction).toHaveBeenCalledTimes(2);
+		expect(pi.configureCompaction).toHaveBeenLastCalledWith(policy);
+		expect(pi.compact).toHaveBeenCalledOnce();
+	});
+
+	it('rejects retention at or above the compaction threshold', async () => {
+		const pi = new FakePiSession();
+		const service = await createTestService(pi);
+		const sessionId = await service.createSession();
+
+		await expect(
+			service.compact(sessionId, {
+				enabled: true,
+				fillPercent: 25,
+				retainPercent: 25,
+			}),
+		).rejects.toThrow('Retained context must be below');
 	});
 
 	it('disposes a deleted session immediately', async () => {
@@ -217,6 +252,7 @@ describe('PiAgentService', () => {
 			'message.started',
 			'message.delta',
 			'message.completed',
+			'session.usage',
 			'tool.started',
 			'tool.completed',
 			'session.state',

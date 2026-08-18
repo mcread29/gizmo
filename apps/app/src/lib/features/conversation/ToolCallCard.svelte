@@ -20,9 +20,13 @@
 	interface Props {
 		tool: ToolCallView;
 		projectPath?: string;
+		/** Changes when the thread asks every tool call to collapse. */
+		collapseToken?: number;
+		/** Marks this call as a search hit. */
+		matched?: boolean;
 	}
 
-	let { tool, projectPath }: Props = $props();
+	let { tool, projectPath, collapseToken, matched }: Props = $props();
 	let open = $state(false);
 	let copied = $state(false);
 	/** Once the user has expressed a preference, status changes stop overriding it. */
@@ -48,6 +52,20 @@
 		open = status === 'running' || status === 'error';
 	});
 
+	// An explicit collapse overrides whatever the user had pinned open. The
+	// first run only records the token, so mounting does not pin every card.
+	let seenToken: number | undefined;
+	$effect(() => {
+		const token = collapseToken;
+		if (token === undefined || seenToken === undefined || token === seenToken) {
+			seenToken = token;
+			return;
+		}
+		seenToken = token;
+		open = false;
+		pinned = true;
+	});
+
 	async function copyResult() {
 		if (!resultText || !navigator.clipboard) return;
 		await navigator.clipboard.writeText(resultText);
@@ -67,6 +85,7 @@
 	data-state={tool.status}
 	data-context-kind="tool"
 	data-context-id={tool.id}
+	data-matched={matched || undefined}
 	bind:open
 >
 	<summary data-ui="tool-header" onclick={() => (pinned = true)}>

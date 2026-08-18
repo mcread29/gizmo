@@ -5,6 +5,7 @@
 	import DiffView from './DiffView.svelte';
 	import { patchFileName } from '../changes/thread-changes';
 	import { formatToolResult, recordValue, stringValue } from './format';
+	import { highlightCode } from './highlight';
 	import { toolParameters } from './tool-summary';
 
 	interface Props {
@@ -26,6 +27,13 @@
 			(diff ? patchFileName(diff) : undefined),
 	);
 	let parameters = $derived(toolParameters(tool.input));
+	// Structured results are JSON; the code blocks beside them are highlighted,
+	// so these should be too. highlight.js escapes its own output.
+	let highlighted = $derived(
+		typeof tool.result === 'string'
+			? undefined
+			: highlightCode(resultText, 'json'),
+	);
 	let instances = $derived(readArray(tool.result, 'instances'));
 	let commands = $derived(
 		readArray(tool.result, 'commands')
@@ -110,7 +118,9 @@
 {:else if diff}
 	<DiffView {diff} file={diffFile} {projectPath} />
 {:else if resultText}
-	<pre data-ui="structured-result"><code>{resultText}</code></pre>
+	<pre data-ui="structured-result"><code class="hljs language-json"
+			>{#if highlighted}{@html highlighted}{:else}{resultText}{/if}</code
+		></pre>
 {:else}
 	<p data-ui="tool-empty">The tool completed without additional output.</p>
 {/if}

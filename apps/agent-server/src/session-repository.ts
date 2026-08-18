@@ -1,5 +1,6 @@
 import {
 	SessionManager,
+	type SessionEntry,
 	type SessionInfo,
 	type SessionMessageEntry,
 } from '@earendil-works/pi-coding-agent';
@@ -8,6 +9,8 @@ import type {
 	ConversationMessage,
 	SessionCatalog,
 	SessionSnapshot,
+	SessionTree,
+	SessionTreeEntry,
 	ToolCallView,
 } from '@unity-agent/protocol';
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
@@ -20,6 +23,10 @@ export interface SessionRepository {
 	open(sessionId: string): Promise<SessionManager>;
 	list(): Promise<SessionCatalog>;
 	snapshot(sessionId: string): Promise<SessionSnapshot>;
+	snapshotOf(
+		manager: SessionManager,
+		sessionId: string,
+	): Promise<SessionSnapshot>;
 	rename(sessionId: string, title: string): Promise<void>;
 	delete(sessionId: string): Promise<void>;
 	setLastSession(sessionId?: string): Promise<void>;
@@ -80,6 +87,18 @@ export class PiSessionRepository implements SessionRepository {
 		};
 	}
 
+	/**
+	 * Snapshot of a manager the caller already holds. Branching moves the leaf
+	 * on the live manager, so re-opening the file would read the old position.
+	 */
+	async snapshotOf(
+		manager: SessionManager,
+		sessionId: string,
+	): Promise<SessionSnapshot> {
+		const info = await this.#find(sessionId);
+		return { session: toSummary(info), messages: transcript(manager) };
+	}
+
 	async rename(sessionId: string, title: string): Promise<void> {
 		const manager = await this.open(sessionId);
 		manager.appendSessionInfo(title);
@@ -123,6 +142,78 @@ export class PiSessionRepository implements SessionRepository {
 			throw error;
 		}
 	}
+}
+
+/**
+ * The session as pi records it: every entry, including the branches the
+ * current transcript does not walk.
+ */
+export function sessionTree(manager: SessionManager): SessionTree {
+	const entries: SessionTreeEntry[] = [];
+	for (const entry of manager.getEntries()) {
+		const view = treeEntry(entry, manager.getLabel(entry.id));
+		if (view) entries.push(view);
+	}
+	return { entries, leafId: manager.getLeafId() };
+}
+
+function treeEntry(
+	entry: SessionEntry,
+	label: string | undefined,
+): SessionTreeEntry | undefined {
+	const base = {
+		id: entry.id,
+		parentId: entry.parentId,
+		createdAt: Date.parse(entry.timestamp) || 0,
+		...(label ? { label } : {}),
+	};
+	if (entry.type === 'message') {
+		const message = (entry as SessionMessageEntry).message;
+		if (message.role === 'toolResult') return undefined;
+		if (message.role === 'user') {
+			const text = textContent(message.content);
+			return { ...base, kind: 'user', summary: oneLine(text), detail: text };
+		}
+		if (message.role === 'assistant') {
+			const text = textContent(message.content);
+			const tools = message.content
+				.filter((content) => content.type === 'toolCall')
+				.map((toolCall) => toolCall.name);
+			return {
+				...base,
+				kind: tools.length && !text ? 'tool' : 'assistant',
+				summary: oneLine(text) || tools.join(', ') || 'No output',
+				...(text ? { detail: text } : {}),
+			};
+		}
+		return undefined;
+	}
+	if (entry.type === 'compaction') {
+		return { ...base, kind: 'compaction', summary: 'Compacted' };
+	}
+	if (entry.type === 'branch_summary') {
+		return { ...base, kind: 'branch-summary', summary: 'Branch summary' };
+	}
+	if (entry.type === 'model_change') {
+		return {
+			...base,
+			kind: 'model-change',
+			summary: `Model: ${entry.provider}/${entry.modelId}`,
+		};
+	}
+	if (entry.type === 'thinking_level_change') {
+		return {
+			...base,
+			kind: 'thinking-change',
+			summary: `Thinking: ${entry.thinkingLevel}`,
+		};
+	}
+	return undefined;
+}
+
+function oneLine(text: string): string {
+	const line = text.replace(/\s+/g, ' ').trim();
+	return line.length > 120 ? `${line.slice(0, 119)}…` : line;
 }
 
 export function defaultDataDir(): string {
@@ -193,10 +284,13 @@ function transcript(manager: SessionManager): ConversationMessage[] {
 					tools.set(tool.id, tool);
 					return tool;
 				});
+			const reasoning = reasoningContent(message.content);
 			messages.push({
 				id: entry.id,
 				role: 'assistant',
 				content: textContent(message.content),
+				...(reasoning.text ? { reasoning: reasoning.text } : {}),
+				...(reasoning.redacted ? { reasoningRedacted: true } : {}),
 				createdAt: message.timestamp,
 				complete: true,
 				tools: messageTools,
@@ -236,6 +330,36 @@ function textContent(content: unknown): string {
 		)
 		.map((item) => item.text)
 		.join('');
+}
+
+/**
+ * Reasoning recorded alongside the reply. Providers that withhold their
+ * reasoning still record a block, so the redacted flag is reported separately
+ * from the text and either can be present on its own.
+ */
+function reasoningContent(content: unknown): {
+	text: string;
+	redacted: boolean;
+} {
+	if (!Array.isArray(content)) return { text: '', redacted: false };
+	const blocks = content.filter(
+		(item): item is { thinking?: unknown; redacted?: unknown } =>
+			Boolean(
+				item &&
+				typeof item === 'object' &&
+				'type' in item &&
+				item.type === 'thinking',
+			),
+	);
+	return {
+		text: blocks
+			.map((block) =>
+				typeof block.thinking === 'string' ? block.thinking : '',
+			)
+			.filter(Boolean)
+			.join('\n\n'),
+		redacted: blocks.some((block) => block.redacted === true),
+	};
 }
 
 function isMissingFile(error: unknown): boolean {

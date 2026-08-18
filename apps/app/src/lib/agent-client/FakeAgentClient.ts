@@ -5,9 +5,11 @@ import {
 	type AgentSessionSummary,
 	type AgentEvent,
 	type ConversationMessage,
+	type CompactionPolicy,
 	type SessionCatalog,
 	type SessionOptions,
 	type SessionSnapshot,
+	type SessionTree,
 	type UnityConsoleEntry,
 	type UnityOpenProjectResult,
 	type UnityProject,
@@ -26,6 +28,7 @@ interface FakeSession {
 	thinkingLevel: string;
 	summary: AgentSessionSummary;
 	messages: ConversationMessage[];
+	labels: Map<string, string>;
 }
 
 type WithoutEventEnvelope<T> = T extends AgentEvent
@@ -106,6 +109,7 @@ export class FakeAgentClient implements AgentClient {
 				messageCount: 0,
 			},
 			messages: [],
+			labels: new Map(),
 		});
 		this.#lastSessionId = sessionId;
 		this.#emitCreated(this.#getSession(sessionId));
@@ -122,11 +126,65 @@ export class FakeAgentClient implements AgentClient {
 		};
 	}
 
+	/** The fake has no branches: one straight line of messages, newest last. */
+	async getSessionTree(sessionId: string): Promise<SessionTree> {
+		const session = this.#getSession(sessionId);
+		return {
+			entries: session.messages.map((message, index) => ({
+				id: message.id,
+				parentId: session.messages[index - 1]?.id ?? null,
+				kind: message.role,
+				summary: message.content.slice(0, 120),
+				detail: message.content,
+				...(session.labels.has(message.id)
+					? { label: session.labels.get(message.id)! }
+					: {}),
+				createdAt: message.createdAt,
+			})),
+			leafId: session.messages.at(-1)?.id ?? null,
+		};
+	}
+
+	async branchSession(
+		sessionId: string,
+		entryId: string | null,
+	): Promise<SessionSnapshot> {
+		const session = this.#getSession(sessionId);
+		const index =
+			entryId === null
+				? -1
+				: session.messages.findIndex((message) => message.id === entryId);
+		if (entryId !== null && index < 0) {
+			throw new Error(`Unknown entry: ${entryId}`);
+		}
+		session.messages = session.messages.slice(0, index + 1);
+		session.summary.messageCount = session.messages.length;
+		return {
+			session: { ...session.summary },
+			messages: structuredClone(session.messages),
+		};
+	}
+
+	async labelEntry(
+		sessionId: string,
+		entryId: string,
+		label?: string,
+	): Promise<SessionTree> {
+		const session = this.#getSession(sessionId);
+		if (label?.trim()) session.labels.set(entryId, label.trim());
+		else session.labels.delete(entryId);
+		return this.getSessionTree(sessionId);
+	}
+
 	async renameSession(sessionId: string, title: string): Promise<void> {
 		this.#getSession(sessionId).summary.title = title.trim();
 	}
 
-	async prompt(sessionId: string, text: string): Promise<void> {
+	async prompt(
+		sessionId: string,
+		text: string,
+		_compaction?: CompactionPolicy,
+	): Promise<void> {
 		const session = this.#getSession(sessionId);
 		if (session.running) throw new Error('Session is already streaming');
 
@@ -349,6 +407,13 @@ export class FakeAgentClient implements AgentClient {
 			session.abortController = undefined;
 			session.running = false;
 		}
+	}
+
+	async compact(
+		sessionId: string,
+		_compaction: CompactionPolicy,
+	): Promise<void> {
+		this.#getSession(sessionId);
 	}
 
 	async steer(sessionId: string, text: string): Promise<void> {

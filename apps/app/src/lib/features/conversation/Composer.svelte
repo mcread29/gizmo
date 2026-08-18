@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { CornerDownLeft, Send, Square } from '@lucide/svelte';
+	import { CornerDownLeft, Minimize2, Send, Square } from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Tooltip } from '../../components';
 	import { shortcutHint } from '../shell/shortcuts';
 	import ComposerModelControls from './ComposerModelControls.svelte';
+	import UsageMeter from './UsageMeter.svelte';
 	import { autoGrow, isSendKey, resizeComposer } from './composer-actions';
 	import type { DraftStore } from './drafts.svelte';
 
@@ -68,6 +69,12 @@
 		oninput={(event) => edit(event.currentTarget.value)}
 		use:autoGrow
 		onkeydown={(event) => {
+			// An empty composer recalls the last prompt, for fixing a typo in it.
+			if (event.key === 'ArrowUp' && !draft && store.lastPrompt) {
+				event.preventDefault();
+				edit(store.lastPrompt);
+				return;
+			}
 			if (!isSendKey(event, sendOnEnter)) return;
 			event.preventDefault();
 			send();
@@ -78,6 +85,28 @@
 			: 'Ask about your Unity project…'}></textarea>
 	<div data-ui="composer-toolbar">
 		<ComposerModelControls {store} />
+		{#if store.usage}<UsageMeter usage={store.usage} />{/if}
+		{#if store.compacting}<span data-ui="compaction-status"
+				>Compacting context…</span
+			>{/if}
+		<Tooltip text="Compact context now">
+			{#snippet children(props)}
+				<Button
+					{...props}
+					type="button"
+					variant="ghost"
+					size="icon"
+					aria-label="Compact context"
+					disabled={streaming ||
+						store.compacting ||
+						store.connection !== 'connected' ||
+						!store.sessionId}
+					onclick={() => void store.compact()}
+				>
+					<Minimize2 size={14} />
+				</Button>
+			{/snippet}
+		</Tooltip>
 		<span data-ui="composer-hint">
 			{#if streaming}
 				Steering

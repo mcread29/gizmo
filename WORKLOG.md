@@ -1,5 +1,36 @@
 # Work log
 
+## 2026-08-18 — Making a long agent run readable
+
+A thread of 23 tool calls was mostly chrome: 23 avatars, 23 repeated
+timestamps, and a bordered card around each single line of information.
+
+- Consecutive same-role messages now share one header, and a finished,
+  collapsed tool call is a compact row rather than a card. The same thread went
+  from a block per message to four blocks and 16% less scroll height.
+- Find in thread (Ctrl/⌘ F) over message text and tool arguments, with match
+  counting per tool call rather than per message — a reply containing twenty
+  matching calls is twenty results, not one.
+- Unity console gained a text filter, copy, clear and timestamps, plus an error
+  count badge on its tab so a new Editor error is visible without navigating.
+- Structured tool results are highlighted as JSON, matching the code blocks
+  beside them.
+- Diffs mark the span that actually changed within a replaced line, but only
+  when most of the line is genuinely shared; otherwise the line colour says it.
+- Threads open pinned to their newest message, day separators break up long
+  transcripts, the thread menu can collapse every tool call, an empty composer
+  recalls the last prompt with the up arrow, and streaming text sits in a live
+  region so it is announced as it is written.
+
+Verification completed successfully:
+
+```text
+pnpm format:check
+pnpm check
+pnpm test
+pnpm build
+```
+
 ## 2026-08-18 — Tool calls name their arguments
 
 Protocol version 8. Eight consecutive `unity_list_commands` cards all read

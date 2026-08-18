@@ -5,6 +5,34 @@
 	background: var(--color-surface);
 }
 
+/*
+ * A finished, collapsed call is one line of information; giving it a card
+ * costs more vertical space than it carries. The card returns the moment it
+ * is running, has failed, or is opened.
+ */
+[data-ui='tool-call'][data-state='complete']:not([open]) {
+	border-color: transparent;
+	border-radius: var(--radius-sm);
+	background: transparent;
+}
+
+[data-ui='tool-call'][data-state='complete']:not([open]):hover {
+	background: var(--color-surface);
+}
+
+[data-ui='tool-call'][data-state='complete']:not([open])
+	[data-ui='tool-header'] {
+	padding: 4px 8px;
+}
+
+[data-ui='tool-call'][data-state='complete']:not([open])
+	[data-ui='tool-header']
+	> span {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-2);
+}
+
 [data-ui='tool-call'][open] {
 	background: var(--color-surface-raised);
 }
@@ -266,4 +294,11 @@
 [data-ui='tool-actions'] {
 	display: flex;
 	justify-content: flex-end;
+}
+
+/* The span that actually differs inside a replaced line. */
+[data-ui='diff-text'] span[data-changed] {
+	border-radius: 3px;
+	background: color-mix(in srgb, currentcolor 22%, transparent);
+	font-weight: 600;
 }

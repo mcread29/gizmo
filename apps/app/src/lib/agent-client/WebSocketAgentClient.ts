@@ -5,6 +5,7 @@ import {
 	parseUnityConsoleUpdate,
 	parseSessionCatalog,
 	parseSessionSnapshot,
+	parseSessionTree,
 	parseUnityOpenProjectResult,
 	parseUnityProjects,
 	parseUnityStatus,
@@ -12,10 +13,12 @@ import {
 	type AgentRequest,
 	type AgentResponse,
 	type AgentModelCatalog,
+	type CompactionPolicy,
 	type FileRevertResult,
 	type SessionCatalog,
 	type SessionOptions,
 	type SessionSnapshot,
+	type SessionTree,
 	type UnityConsoleUpdate,
 	type UnityOpenProjectResult,
 	type UnityProject,
@@ -130,8 +133,24 @@ export class WebSocketAgentClient implements AgentClient {
 		await this.#request({ type: 'session.rename', sessionId, title });
 	}
 
-	async prompt(sessionId: string, text: string): Promise<void> {
-		await this.#request({ type: 'session.prompt', sessionId, text });
+	async prompt(
+		sessionId: string,
+		text: string,
+		compaction?: CompactionPolicy,
+	): Promise<void> {
+		await this.#request({
+			type: 'session.prompt',
+			sessionId,
+			text,
+			compaction,
+		});
+	}
+
+	async compact(
+		sessionId: string,
+		compaction: CompactionPolicy,
+	): Promise<void> {
+		await this.#request({ type: 'session.compact', sessionId, compaction });
 	}
 
 	async steer(sessionId: string, text: string): Promise<void> {
@@ -144,6 +163,37 @@ export class WebSocketAgentClient implements AgentClient {
 
 	async deleteSession(sessionId: string): Promise<void> {
 		await this.#request({ type: 'session.delete', sessionId });
+	}
+
+	async getSessionTree(sessionId: string): Promise<SessionTree> {
+		const response = await this.#request({ type: 'session.tree', sessionId });
+		return parseSessionTree(response.result);
+	}
+
+	async branchSession(
+		sessionId: string,
+		entryId: string | null,
+	): Promise<SessionSnapshot> {
+		const response = await this.#request({
+			type: 'session.branch',
+			sessionId,
+			entryId,
+		});
+		return parseSessionSnapshot(response.result);
+	}
+
+	async labelEntry(
+		sessionId: string,
+		entryId: string,
+		label?: string,
+	): Promise<SessionTree> {
+		const response = await this.#request({
+			type: 'session.label',
+			sessionId,
+			entryId,
+			...(label === undefined ? {} : { label }),
+		});
+		return parseSessionTree(response.result);
 	}
 
 	async getModelCatalog(sessionId: string): Promise<AgentModelCatalog> {

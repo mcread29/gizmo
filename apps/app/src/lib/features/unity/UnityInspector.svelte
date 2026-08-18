@@ -5,6 +5,7 @@
 	import { threadChanges } from '../changes/thread-changes';
 	import ActivityPanel from './ActivityPanel.svelte';
 	import ConsolePanel from './ConsolePanel.svelte';
+	import { consoleErrorCount } from './console-log';
 	import EditorPanel from './EditorPanel.svelte';
 	import type { UnityView } from './unity-view';
 
@@ -18,6 +19,7 @@
 	let { store, view, hidden, onOpenProject }: Props = $props();
 	let inspectorTab = $state('editor');
 	let changeCount = $derived(threadChanges(store.messages).length);
+	let errorCount = $derived(consoleErrorCount(store.consoleEntries));
 </script>
 
 <aside
@@ -41,7 +43,12 @@
 		items={[
 			{ value: 'editor', label: 'Editor' },
 			{ value: 'changes', label: 'Changes', badge: changeCount },
-			{ value: 'console', label: 'Console' },
+			{
+				value: 'console',
+				label: 'Console',
+				badge: errorCount,
+				badgeTone: 'danger',
+			},
 			{ value: 'activity', label: 'Activity' },
 		]}
 		bind:value={inspectorTab}

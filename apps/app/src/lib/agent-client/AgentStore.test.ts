@@ -3,6 +3,7 @@ import type {
 	SessionCatalog,
 	SessionOptions,
 	SessionSnapshot,
+	SessionTree,
 	UnityOpenProjectResult,
 	UnityStatus,
 } from '@unity-agent/protocol';
@@ -26,8 +27,18 @@ class InvalidEventClient implements AgentClient {
 	async resumeSession(_sessionId: string): Promise<SessionSnapshot> {
 		throw new Error('No session');
 	}
+	async getSessionTree(_sessionId: string): Promise<SessionTree> {
+		return { entries: [], leafId: null };
+	}
+	async branchSession(): Promise<SessionSnapshot> {
+		throw new Error('No session');
+	}
+	async labelEntry(): Promise<SessionTree> {
+		return { entries: [], leafId: null };
+	}
 	async renameSession() {}
 	async prompt() {}
+	async compact() {}
 	async steer() {}
 	async abort() {}
 	async deleteSession() {}

@@ -45,6 +45,35 @@ describe('agent protocol validation', () => {
 		expect(request.type).toBe('session.prompt');
 	});
 
+	it('validates compaction policies', () => {
+		expect(
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'request-compact',
+				type: 'session.compact',
+				sessionId: 'session-1',
+				compaction: {
+					enabled: true,
+					fillPercent: 25,
+					retainPercent: 10,
+				},
+			}),
+		).toMatchObject({ type: 'session.compact' });
+		expect(() =>
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'request-compact-invalid',
+				type: 'session.compact',
+				sessionId: 'session-1',
+				compaction: {
+					enabled: true,
+					fillPercent: 5,
+					retainPercent: 0,
+				},
+			}),
+		).toThrow(ProtocolValidationError);
+	});
+
 	it('validates project status subscriptions and change events', () => {
 		expect(
 			parseAgentRequest({

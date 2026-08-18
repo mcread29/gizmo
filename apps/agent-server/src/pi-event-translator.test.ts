@@ -67,3 +67,88 @@ describe('PiEventTranslator tool results', () => {
 		});
 	});
 });
+
+function reasoningOf(updates: unknown[]): TranslatedPiEvent[] {
+	const events: TranslatedPiEvent[] = [];
+	const translator = new PiEventTranslator((translated) =>
+		events.push(translated),
+	);
+	translator.receive(
+		event({
+			type: 'message_start',
+			message: { role: 'assistant', content: [], timestamp: 1 },
+		}),
+	);
+	for (const assistantMessageEvent of updates) {
+		translator.receive(
+			event({ type: 'message_update', assistantMessageEvent }),
+		);
+	}
+	return events.filter((item) => item.type === 'message.reasoning');
+}
+
+describe('PiEventTranslator reasoning', () => {
+	it('forwards thinking deltas and separates consecutive blocks', () => {
+		expect(
+			reasoningOf([
+				{ type: 'thinking_start', contentIndex: 0 },
+				{ type: 'thinking_delta', contentIndex: 0, delta: 'first' },
+				{ type: 'thinking_start', contentIndex: 1 },
+				{ type: 'thinking_delta', contentIndex: 1, delta: 'second' },
+			]),
+		).toEqual([
+			{ type: 'message.reasoning', messageId: 'message-1', delta: 'first' },
+			{ type: 'message.reasoning', messageId: 'message-1', delta: '\n\n' },
+			{ type: 'message.reasoning', messageId: 'message-1', delta: 'second' },
+		]);
+	});
+
+	it('reports a redacted block so the empty result is not read as a bug', () => {
+		expect(
+			reasoningOf([
+				{
+					type: 'thinking_end',
+					contentIndex: 0,
+					content: '',
+					partial: {
+						content: [{ type: 'thinking', thinking: '', redacted: true }],
+					},
+				},
+			]),
+		).toEqual([
+			{
+				type: 'message.reasoning',
+				messageId: 'message-1',
+				delta: '',
+				redacted: true,
+			},
+		]);
+	});
+});
+
+describe('PiEventTranslator compaction', () => {
+	it('exposes automatic compaction progress', () => {
+		const events: TranslatedPiEvent[] = [];
+		const translator = new PiEventTranslator((translated) =>
+			events.push(translated),
+		);
+
+		translator.receive(
+			event({ type: 'compaction_start', reason: 'threshold' }),
+		);
+		translator.receive(
+			event({
+				type: 'compaction_end',
+				reason: 'threshold',
+				result: {},
+				aborted: false,
+				willRetry: false,
+			}),
+		);
+
+		expect(events).toEqual([
+			{ type: 'session.compaction', active: true, reason: 'threshold' },
+			{ type: 'session.compaction', active: false, reason: 'threshold' },
+		]);
+	});
+});

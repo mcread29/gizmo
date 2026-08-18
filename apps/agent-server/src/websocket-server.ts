@@ -199,7 +199,10 @@ async function dispatch(
 			await service.renameSession(request.sessionId, request.title);
 			return {};
 		case 'session.prompt':
-			await service.prompt(request.sessionId, request.text);
+			await service.prompt(request.sessionId, request.text, request.compaction);
+			return {};
+		case 'session.compact':
+			await service.compact(request.sessionId, request.compaction);
 			return {};
 		case 'session.steer':
 			await service.steer(request.sessionId, request.text);
@@ -207,6 +210,21 @@ async function dispatch(
 		case 'session.abort':
 			await service.abort(request.sessionId);
 			return {};
+		case 'session.tree':
+			return { result: await service.getTree(request.sessionId) };
+		case 'session.branch':
+			return {
+				sessionId: request.sessionId,
+				result: await service.branchSession(request.sessionId, request.entryId),
+			};
+		case 'session.label':
+			return {
+				result: await service.labelEntry(
+					request.sessionId,
+					request.entryId,
+					request.label,
+				),
+			};
 		case 'session.delete':
 			await service.deleteSession(request.sessionId);
 			return {};

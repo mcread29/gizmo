@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 8 as const;
+export const protocolVersion = 10 as const;
 
 export const agentToolPolicy = {
 	tools: [
@@ -76,6 +76,13 @@ export const conversationMessageSchema = Type.Object(
 		id: Type.String({ minLength: 1 }),
 		role: Type.Union([Type.Literal('user'), Type.Literal('assistant')]),
 		content: Type.String(),
+		/** Model reasoning, when the provider exposes it in readable form. */
+		reasoning: Type.Optional(Type.String()),
+		/**
+		 * The provider withheld the reasoning and returned only an opaque
+		 * payload, so there is nothing to show even though the model did think.
+		 */
+		reasoningRedacted: Type.Optional(Type.Boolean()),
 		createdAt: Type.Integer({ minimum: 0 }),
 		complete: Type.Boolean(),
 		tools: Type.Array(toolCallViewSchema),
@@ -84,6 +91,72 @@ export const conversationMessageSchema = Type.Object(
 );
 
 export type ConversationMessage = Static<typeof conversationMessageSchema>;
+
+export const sessionUsageSchema = Type.Object(
+	{
+		input: Type.Integer({ minimum: 0 }),
+		output: Type.Integer({ minimum: 0 }),
+		cacheRead: Type.Integer({ minimum: 0 }),
+		cacheWrite: Type.Integer({ minimum: 0 }),
+		/** Everything the next request has to re-send, in tokens. */
+		contextUsed: Type.Integer({ minimum: 0 }),
+		/** The model's limit, when it reports one. */
+		contextWindow: Type.Optional(Type.Integer({ minimum: 1 })),
+		/** Cost of the thread so far, in US dollars. */
+		cost: Type.Number({ minimum: 0 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type SessionUsage = Static<typeof sessionUsageSchema>;
+
+export const compactionPolicySchema = Type.Object(
+	{
+		enabled: Type.Boolean(),
+		fillPercent: Type.Integer({ minimum: 10, maximum: 95 }),
+		retainPercent: Type.Integer({ minimum: 5, maximum: 90 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type CompactionPolicy = Static<typeof compactionPolicySchema>;
+
+export const sessionTreeEntrySchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1 }),
+		parentId: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+		kind: Type.Union([
+			Type.Literal('user'),
+			Type.Literal('assistant'),
+			Type.Literal('tool'),
+			Type.Literal('compaction'),
+			Type.Literal('branch-summary'),
+			Type.Literal('model-change'),
+			Type.Literal('thinking-change'),
+			Type.Literal('other'),
+		]),
+		/** One line for the row. */
+		summary: Type.String(),
+		/** Full text, for copying. */
+		detail: Type.Optional(Type.String()),
+		label: Type.Optional(Type.String()),
+		createdAt: Type.Integer({ minimum: 0 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type SessionTreeEntry = Static<typeof sessionTreeEntrySchema>;
+
+export const sessionTreeSchema = Type.Object(
+	{
+		entries: Type.Array(sessionTreeEntrySchema),
+		/** Where the next message will be appended. Null before any entry. */
+		leafId: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+	},
+	{ additionalProperties: false },
+);
+
+export type SessionTree = Static<typeof sessionTreeSchema>;
 
 export const agentSessionSummarySchema = Type.Object(
 	{
@@ -304,6 +377,16 @@ export const agentRequestSchema = Type.Union([
 			type: Type.Literal('session.prompt'),
 			sessionId: Type.String({ minLength: 1 }),
 			text: Type.String({ minLength: 1 }),
+			compaction: Type.Optional(compactionPolicySchema),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.compact'),
+			sessionId: Type.String({ minLength: 1 }),
+			compaction: compactionPolicySchema,
 		},
 		{ additionalProperties: false },
 	),
@@ -321,6 +404,35 @@ export const agentRequestSchema = Type.Union([
 			...envelope,
 			type: Type.Literal('session.abort'),
 			sessionId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.tree'),
+			sessionId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.branch'),
+			sessionId: Type.String({ minLength: 1 }),
+			/** Null rewinds past the first entry, to re-run the opening prompt. */
+			entryId: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.label'),
+			sessionId: Type.String({ minLength: 1 }),
+			entryId: Type.String({ minLength: 1 }),
+			/** Omitted clears the label. */
+			label: Type.Optional(Type.String({ maxLength: 120 })),
 		},
 		{ additionalProperties: false },
 	),
@@ -476,6 +588,19 @@ export const agentEventSchema = Type.Union([
 	Type.Object(
 		{
 			...eventEnvelope,
+			type: Type.Literal('session.compaction'),
+			active: Type.Boolean(),
+			reason: Type.Union([
+				Type.Literal('manual'),
+				Type.Literal('threshold'),
+				Type.Literal('overflow'),
+			]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...eventEnvelope,
 			type: Type.Literal('project.status.changed'),
 			projectPath: Type.String({ minLength: 1 }),
 			status: unityStatusSchema,
@@ -507,6 +632,24 @@ export const agentEventSchema = Type.Union([
 			type: Type.Literal('message.delta'),
 			messageId: Type.String({ minLength: 1 }),
 			delta: Type.String(),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('session.usage'),
+			usage: sessionUsageSchema,
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('message.reasoning'),
+			messageId: Type.String({ minLength: 1 }),
+			delta: Type.String(),
+			redacted: Type.Optional(Type.Boolean()),
 		},
 		{ additionalProperties: false },
 	),
@@ -601,6 +744,13 @@ export function parseUnityProjects(input: unknown): UnityProject[] {
 
 export function parseSessionCatalog(input: unknown): SessionCatalog {
 	if (!Value.Check(sessionCatalogSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseSessionTree(input: unknown): SessionTree {
+	if (!Value.Check(sessionTreeSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

@@ -61,4 +61,20 @@ describe('app settings', () => {
 
 		expect(loadAppSettings()).toEqual(defaultAppSettings);
 	});
+
+	it('clamps persisted compaction settings', () => {
+		localStorage.setItem(
+			'unity-agent.settings.v1',
+			JSON.stringify({
+				...defaultAppSettings,
+				autoCompactFillPercent: 100,
+				compactionRetainPercent: 100,
+			}),
+		);
+
+		expect(loadAppSettings()).toMatchObject({
+			autoCompactFillPercent: 95,
+			compactionRetainPercent: 90,
+		});
+	});
 });

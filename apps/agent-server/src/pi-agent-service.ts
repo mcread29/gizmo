@@ -1,13 +1,17 @@
-import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
-import type { SessionManager } from '@earendil-works/pi-coding-agent';
+import type {
+	AgentSessionEvent,
+	SessionManager,
+} from '@earendil-works/pi-coding-agent';
 import {
 	agentToolPolicy,
 	protocolVersion,
 	type AgentModelCatalog,
+	type CompactionPolicy,
 	type AgentEvent,
 	type SessionCatalog,
 	type SessionOptions,
 	type SessionSnapshot,
+	type SessionTree,
 } from '@unity-agent/protocol';
 import { createUnityTools } from '@unity-agent/unity-tools';
 import {
@@ -16,6 +20,7 @@ import {
 } from './pi-event-translator';
 import {
 	PiSessionRepository,
+	sessionTree,
 	type SessionRepository,
 } from './session-repository';
 import { unitySystemPrompt } from './unity-system-prompt';
@@ -23,13 +28,19 @@ import { unitySystemPrompt } from './unity-system-prompt';
 export interface PiSessionLike {
 	readonly sessionId: string;
 	readonly sessionName?: string;
-	readonly model?: { readonly provider: string; readonly id: string };
+	readonly model?: {
+		readonly provider: string;
+		readonly id: string;
+		readonly contextWindow?: number;
+	};
 	readonly thinkingLevel?: string;
 	readonly isStreaming?: boolean;
 	getActiveToolNames?(): string[];
 	getModelCatalog?(): Promise<AgentModelCatalog>;
 	selectModel?(provider: string, modelId: string): Promise<void>;
 	selectThinkingLevel?(level: string): void;
+	configureCompaction?(policy: CompactionPolicy): void;
+	compact?(): Promise<unknown>;
 	subscribe(listener: (event: AgentSessionEvent) => void): () => void;
 	prompt(text: string): Promise<void>;
 	steer(text: string): Promise<void>;
@@ -46,6 +57,8 @@ export type AgentEventListener = (event: AgentEvent) => void;
 
 interface ActiveSession {
 	session: PiSessionLike;
+	/** Held so branching moves the leaf the live session reads from. */
+	manager: SessionManager;
 	unsubscribe: () => void;
 }
 
@@ -74,7 +87,7 @@ export class PiAgentService {
 		const sessionManager = await this.#repository.create(cwd);
 		try {
 			const session = await this.#factory({ cwd }, sessionManager);
-			this.#activate(session, 'New session');
+			this.#activate(session, sessionManager, 'New session');
 			await this.#repository.setLastSession(session.sessionId);
 			return session.sessionId;
 		} catch (error) {
@@ -95,7 +108,7 @@ export class PiAgentService {
 				{ cwd: snapshot.session.projectPath },
 				sessionManager,
 			);
-			this.#activate(session, snapshot.session.title);
+			this.#activate(session, sessionManager, snapshot.session.title);
 		}
 		await this.#repository.setLastSession(sessionId);
 		return snapshot;
@@ -109,21 +122,44 @@ export class PiAgentService {
 		else await this.#repository.rename(sessionId, name);
 	}
 
-	async prompt(sessionId: string, text: string): Promise<void> {
+	async prompt(
+		sessionId: string,
+		text: string,
+		compaction?: CompactionPolicy,
+	): Promise<void> {
 		const session = this.#session(sessionId);
+		if (compaction) {
+			validateCompactionPolicy(compaction);
+			session.configureCompaction?.(compaction);
+		}
 		if (!session.sessionName || session.sessionName === 'New session') {
 			await this.renameSession(sessionId, sessionTitle(text));
 		}
 		await session.prompt(text);
 	}
 
-	#activate(session: PiSessionLike, title: string): void {
+	async compact(sessionId: string, policy: CompactionPolicy): Promise<void> {
+		const session = this.#session(sessionId);
+		validateCompactionPolicy(policy);
+		if (session.isStreaming)
+			throw new Error('Cannot compact while the agent is responding');
+		if (!session.compact)
+			throw new Error('Compaction is unavailable for this session');
+		session.configureCompaction?.(policy);
+		await session.compact();
+	}
+
+	#activate(
+		session: PiSessionLike,
+		manager: SessionManager,
+		title: string,
+	): void {
 		const sessionId = session.sessionId;
 		const translator = new PiEventTranslator((event) =>
-			this.#emit(sessionId, event),
+			this.#emit(sessionId, this.#withContextWindow(session, event)),
 		);
 		const unsubscribe = session.subscribe((event) => translator.receive(event));
-		this.#sessions.set(sessionId, { session, unsubscribe });
+		this.#sessions.set(sessionId, { session, manager, unsubscribe });
 		this.#emit(sessionId, {
 			type: 'session.created',
 			title,
@@ -141,6 +177,49 @@ export class PiAgentService {
 				: {}),
 		});
 		this.#emit(sessionId, { type: 'session.state', state: 'idle' });
+	}
+
+	/**
+	 * The session tree, including branches the current transcript does not walk.
+	 * Resumes the session first so the tree reflects the live leaf.
+	 */
+	async getTree(sessionId: string): Promise<SessionTree> {
+		await this.resumeSession(sessionId);
+		return sessionTree(this.#active(sessionId).manager);
+	}
+
+	/**
+	 * Moves the leaf so the next prompt continues from an earlier entry. A null
+	 * entry rewinds past the first message, for re-running the opening prompt.
+	 */
+	async branchSession(
+		sessionId: string,
+		entryId: string | null,
+	): Promise<SessionSnapshot> {
+		await this.resumeSession(sessionId);
+		const { session, manager } = this.#active(sessionId);
+		if (session.isStreaming) {
+			throw new Error('Cannot change branch while the agent is responding');
+		}
+		if (entryId === null) manager.resetLeaf();
+		else if (!manager.getEntry(entryId)) {
+			throw new Error(`Unknown entry: ${entryId}`);
+		} else manager.branch(entryId);
+		return this.#repository.snapshotOf(manager, sessionId);
+	}
+
+	async labelEntry(
+		sessionId: string,
+		entryId: string,
+		label?: string,
+	): Promise<SessionTree> {
+		await this.resumeSession(sessionId);
+		const { manager } = this.#active(sessionId);
+		if (!manager.getEntry(entryId)) {
+			throw new Error(`Unknown entry: ${entryId}`);
+		}
+		manager.appendLabelChange(entryId, label?.trim() || undefined);
+		return sessionTree(manager);
 	}
 
 	steer(sessionId: string, text: string): Promise<void> {
@@ -219,9 +298,30 @@ export class PiAgentService {
 	}
 
 	#session(sessionId: string): PiSessionLike {
+		return this.#active(sessionId).session;
+	}
+
+	#active(sessionId: string): ActiveSession {
 		const active = this.#sessions.get(sessionId);
 		if (!active) throw new Error(`Unknown session: ${sessionId}`);
-		return active.session;
+		return active;
+	}
+
+	/** Only the session knows the model, and only the model knows the limit. */
+	#withContextWindow(
+		session: PiSessionLike,
+		event: TranslatedPiEvent,
+	): TranslatedPiEvent {
+		if (event.type !== 'session.usage' || !session.model?.contextWindow) {
+			return event;
+		}
+		return {
+			...event,
+			usage: {
+				...event.usage,
+				contextWindow: session.model.contextWindow,
+			},
+		};
 	}
 
 	#emit(sessionId: string, event: ServiceEvent | TranslatedPiEvent): void {
@@ -265,6 +365,21 @@ const createDefaultPiSession: PiSessionFactory = async (
 		settingsManager,
 	});
 	return Object.assign(session, {
+		configureCompaction(policy: CompactionPolicy): void {
+			const contextWindow = session.model?.contextWindow ?? 128_000;
+			settingsManager.applyOverrides({
+				compaction: {
+					enabled: policy.enabled,
+					reserveTokens: Math.round(
+						contextWindow * (1 - policy.fillPercent / 100),
+					),
+					keepRecentTokens: Math.round(
+						contextWindow * (policy.retainPercent / 100),
+					),
+					fullTurnBoundaries: true,
+				},
+			});
+		},
 		async getModelCatalog(): Promise<AgentModelCatalog> {
 			const models = await session.modelRuntime.getAvailable();
 			return {
@@ -312,4 +427,10 @@ const createDefaultPiSession: PiSessionFactory = async (
 function sessionTitle(prompt: string): string {
 	const title = prompt.trim();
 	return title.length > 48 ? `${title.slice(0, 47)}…` : title;
+}
+
+function validateCompactionPolicy(policy: CompactionPolicy): void {
+	if (policy.retainPercent >= policy.fillPercent) {
+		throw new Error('Retained context must be below the compaction threshold');
+	}
 }

@@ -1,10 +1,12 @@
 export interface ShortcutActions {
 	newThread: () => void;
 	openSettings: () => void;
+	openTree: () => void;
 	focusComposer: () => void;
 	toggleLeft: () => void;
 	toggleRight: () => void;
 	searchThreads: () => void;
+	findInThread: () => void;
 	dismiss: () => void;
 }
 
@@ -43,7 +45,9 @@ function shortcutFor(
 ): keyof ShortcutActions | undefined {
 	if (key === 'n' && !shift) return 'newThread';
 	if (key === ',' && !shift) return 'openSettings';
+	if (key === 't' && shift) return 'openTree';
 	if (key === 'k' && !shift) return 'searchThreads';
+	if (key === 'f' && !shift) return 'findInThread';
 	if (key === 'l' && shift) return 'focusComposer';
 	if (key === 'b' && !shift) return 'toggleLeft';
 	if (key === 'b' && shift) return 'toggleRight';

@@ -53,6 +53,11 @@ export interface AppSettings {
 	theme: AppTheme;
 	sendOnEnter: boolean;
 	autoFollowOutput: boolean;
+	/** Whether model reasoning starts expanded rather than folded away. */
+	expandReasoning: boolean;
+	autoCompact: boolean;
+	autoCompactFillPercent: number;
+	compactionRetainPercent: number;
 	showThreadSidebar: boolean;
 	showUnityInspector: boolean;
 	sidebarWidth: number;
@@ -78,6 +83,10 @@ export const defaultAppSettings: AppSettings = {
 	theme: 'dark',
 	sendOnEnter: true,
 	autoFollowOutput: true,
+	expandReasoning: false,
+	autoCompact: true,
+	autoCompactFillPercent: 25,
+	compactionRetainPercent: 10,
 	showThreadSidebar: true,
 	showUnityInspector: true,
 	sidebarWidth: panelWidthLimits.sidebar.default,
@@ -105,6 +114,21 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 		const value = JSON.parse(storage.getItem(settingsKey) ?? 'null') as unknown;
 		if (!value || typeof value !== 'object') return fallback;
 		const settings = value as Partial<Record<keyof AppSettings, unknown>>;
+		const fillPercent = integer(
+			settings.autoCompactFillPercent,
+			10,
+			95,
+			defaultAppSettings.autoCompactFillPercent,
+		);
+		const retainPercent = Math.min(
+			fillPercent - 5,
+			integer(
+				settings.compactionRetainPercent,
+				5,
+				90,
+				defaultAppSettings.compactionRetainPercent,
+			),
+		);
 		return {
 			theme: parseAppTheme(settings.theme) ?? fallback.theme,
 			sendOnEnter: boolean(
@@ -115,6 +139,16 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 				settings.autoFollowOutput,
 				defaultAppSettings.autoFollowOutput,
 			),
+			expandReasoning: boolean(
+				settings.expandReasoning,
+				defaultAppSettings.expandReasoning,
+			),
+			autoCompact: boolean(
+				settings.autoCompact,
+				defaultAppSettings.autoCompact,
+			),
+			autoCompactFillPercent: fillPercent,
+			compactionRetainPercent: retainPercent,
 			showThreadSidebar: boolean(
 				settings.showThreadSidebar,
 				defaultAppSettings.showThreadSidebar,
@@ -184,6 +218,12 @@ function browserStorage(): Storage | undefined {
 
 function boolean(value: unknown, fallback: boolean): boolean {
 	return typeof value === 'boolean' ? value : fallback;
+}
+
+function integer(value: unknown, min: number, max: number, fallback: number) {
+	return typeof value === 'number' && Number.isInteger(value)
+		? Math.min(max, Math.max(min, value))
+		: fallback;
 }
 
 function parseAppTheme(value: unknown): AppTheme | undefined {
