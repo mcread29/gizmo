@@ -11,6 +11,7 @@
 	import { Toast } from './lib/components';
 	import { toasts } from './lib/toasts.svelte';
 	import Conversation from './lib/features/conversation/Conversation.svelte';
+	import { DraftStore } from './lib/features/conversation/drafts.svelte';
 	import { formatToolResult } from './lib/features/conversation/format';
 	import SessionSidebar from './lib/features/sessions/SessionSidebar.svelte';
 	import { SessionActions } from './lib/features/sessions/session-actions.svelte';
@@ -27,16 +28,25 @@
 		client?: AgentClient;
 	}
 
-	let { client = new WebSocketAgentClient() }: Props = $props();
+	let { client }: Props = $props();
 
 	const agent: AgentIdentity = {
 		name: 'Unity Agent',
 		version: '0.0.0',
 		capabilities: ['editor-status', 'pipeline-commands'],
 	};
-	const store = new AgentStore(untrack(() => client));
 	const layout = new WorkspaceLayout();
+	const store = new AgentStore(
+		untrack(
+			() =>
+				client ??
+				new WebSocketAgentClient(
+					layout.agentUrl ? { url: layout.agentUrl } : {},
+				),
+		),
+	);
 	const sessions = new SessionActions(store, agent.name, toasts);
+	const drafts = new DraftStore();
 
 	let settingsOpen = $state(false);
 	let focusComposer = $state<() => void>();
@@ -116,6 +126,7 @@
 		onNewThread={() => (sessions.projectPickerOpen = true)}
 		onOpenThread={(sessionId) => void store.switchSession(sessionId)}
 		onRenameThread={(sessionId) => sessions.beginRename(sessionId)}
+		onCopyTranscript={(sessionId) => void sessions.copyTranscript(sessionId)}
 		onExportTranscript={(sessionId) =>
 			void sessions.exportTranscript(sessionId)}
 		onDeleteThread={(sessionId) => sessions.beginDelete(sessionId)}
@@ -134,6 +145,7 @@
 			<Titlebar
 				{agent}
 				{layout}
+				{store}
 				view={unityView}
 				onOpenSettings={() => (settingsOpen = true)}
 			/>
@@ -163,10 +175,12 @@
 			<Conversation
 				{store}
 				{layout}
+				{drafts}
 				agentName={agent.name}
 				{currentSession}
 				bind:focusComposer
 				onRename={() => sessions.beginRename()}
+				onCopy={() => void sessions.copyTranscript()}
 				onExport={() => void sessions.exportTranscript()}
 				onDelete={() => sessions.beginDelete()}
 			/>

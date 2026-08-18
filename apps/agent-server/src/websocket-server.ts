@@ -4,7 +4,10 @@ import {
 	type AgentRequest,
 	type AgentResponse,
 } from '@unity-agent/protocol';
-import type { UnityStatusDetails } from '@unity-agent/unity-tools';
+import type {
+	UnityConsoleDetails,
+	UnityStatusDetails,
+} from '@unity-agent/unity-tools';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { PiAgentService } from './pi-agent-service';
 import { UnityProjectService } from './unity-project-service';
@@ -50,26 +53,37 @@ export async function createAgentWebSocketServer(
 		const unsubscribe = service.subscribe((event) =>
 			send(socket, { ...event, eventId: ++eventId }),
 		);
-		const emitProjectStatus = (
-			sessionId: string,
-			projectPath: string,
-			status: UnityStatusDetails,
-		) =>
-			send(socket, {
-				protocolVersion,
-				eventId: ++eventId,
-				sessionId,
-				type: 'project.status.changed',
-				projectPath,
-				status: { ...status, command: [...status.command] },
-			});
+		const emit: ProjectEmitters = {
+			status: (sessionId, projectPath, status) =>
+				send(socket, {
+					protocolVersion,
+					eventId: ++eventId,
+					sessionId,
+					type: 'project.status.changed',
+					projectPath,
+					status: { ...status, command: [...status.command] },
+				}),
+			console: (sessionId, projectPath, update) =>
+				send(socket, {
+					protocolVersion,
+					eventId: ++eventId,
+					sessionId,
+					type: 'project.console.appended',
+					projectPath,
+					update: {
+						entries: update.entries.map((entry) => ({ ...entry })),
+						...(update.cursor === undefined ? {} : { cursor: update.cursor }),
+						dropped: update.dropped,
+					},
+				}),
+		};
 
 		socket.on('message', (data, isBinary) => {
 			void handleMessage(
 				socket,
 				service,
 				projectService,
-				emitProjectStatus,
+				emit,
 				isBinary ? undefined : data.toString(),
 			);
 		});
@@ -107,15 +121,32 @@ const defaultAllowedOrigins = [
 	'http://tauri.localhost',
 ];
 
+interface ProjectEmitters {
+	status(
+		sessionId: string,
+		projectPath: string,
+		status: UnityStatusDetails,
+	): void;
+	console(
+		sessionId: string,
+		projectPath: string,
+		update: UnityConsoleDetails,
+	): void;
+}
+
+function consoleUpdate(details: UnityConsoleDetails) {
+	return {
+		entries: details.entries.map((entry) => ({ ...entry })),
+		...(details.cursor === undefined ? {} : { cursor: details.cursor }),
+		dropped: details.dropped,
+	};
+}
+
 async function handleMessage(
 	socket: WebSocket,
 	service: PiAgentService,
 	projectService: UnityProjectService,
-	emitProjectStatus: (
-		sessionId: string,
-		projectPath: string,
-		status: UnityStatusDetails,
-	) => void,
+	emit: ProjectEmitters,
 	text: string | undefined,
 ): Promise<void> {
 	let input: unknown;
@@ -136,12 +167,7 @@ async function handleMessage(
 	}
 
 	try {
-		const result = await dispatch(
-			service,
-			projectService,
-			emitProjectStatus,
-			request,
-		);
+		const result = await dispatch(service, projectService, emit, request);
 		send(socket, {
 			protocolVersion,
 			requestId: request.requestId,
@@ -156,11 +182,7 @@ async function handleMessage(
 async function dispatch(
 	service: PiAgentService,
 	projectService: UnityProjectService,
-	emitProjectStatus: (
-		sessionId: string,
-		projectPath: string,
-		status: UnityStatusDetails,
-	) => void,
+	emit: ProjectEmitters,
 	request: AgentRequest,
 ): Promise<{ sessionId?: string; result?: unknown }> {
 	switch (request.type) {
@@ -211,14 +233,28 @@ async function dispatch(
 			return { result: await projectService.getStatus(request.projectPath) };
 		case 'project.watch':
 			return {
-				result: await projectService.watchStatus(
-					request.projectPath,
-					(status) =>
-						emitProjectStatus(request.sessionId, request.projectPath, status),
-				),
+				result: await projectService.watchStatus(request.projectPath, {
+					status: (status) =>
+						emit.status(request.sessionId, request.projectPath, status),
+					console: (update) =>
+						emit.console(request.sessionId, request.projectPath, update),
+				}),
 			};
 		case 'project.open':
 			return { result: await projectService.openProject(request.projectPath) };
+		case 'project.console':
+			return {
+				result: consoleUpdate(
+					await projectService.readConsole(request.projectPath, request.tail),
+				),
+			};
+		case 'file.revert':
+			await projectService.revertFile(
+				request.projectPath,
+				request.file,
+				request.patch,
+			);
+			return { result: { file: request.file, reverted: true } };
 	}
 }
 

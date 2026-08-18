@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 6 as const;
+export const protocolVersion = 8 as const;
 
 export const agentToolPolicy = {
 	tools: [
@@ -62,6 +62,8 @@ export const toolCallViewSchema = Type.Object(
 			Type.Literal('error'),
 		]),
 		statusText: Type.String(),
+		/** Arguments the agent called the tool with. */
+		input: Type.Optional(Type.Unknown()),
 		result: Type.Optional(Type.Unknown()),
 	},
 	{ additionalProperties: false },
@@ -196,6 +198,48 @@ export const unityStatusSchema = Type.Object(
 );
 
 export type UnityStatus = Static<typeof unityStatusSchema>;
+
+export const unityConsoleEntrySchema = Type.Object(
+	{
+		seq: Type.Optional(Type.Integer({ minimum: 0 })),
+		timestamp: Type.Optional(Type.String()),
+		level: Type.Union([
+			Type.Literal('log'),
+			Type.Literal('warn'),
+			Type.Literal('error'),
+		]),
+		message: Type.String(),
+		stackTrace: Type.Optional(Type.String()),
+		file: Type.Optional(Type.String()),
+		line: Type.Optional(Type.Integer({ minimum: 0 })),
+		column: Type.Optional(Type.Integer({ minimum: 0 })),
+	},
+	{ additionalProperties: false },
+);
+
+export type UnityConsoleEntry = Static<typeof unityConsoleEntrySchema>;
+
+export const unityConsoleUpdateSchema = Type.Object(
+	{
+		entries: Type.Array(unityConsoleEntrySchema),
+		cursor: Type.Optional(Type.Integer({ minimum: 0 })),
+		dropped: Type.Boolean(),
+	},
+	{ additionalProperties: false },
+);
+
+export type UnityConsoleUpdate = Static<typeof unityConsoleUpdateSchema>;
+
+export const fileRevertResultSchema = Type.Object(
+	{
+		file: Type.String({ minLength: 1 }),
+		reverted: Type.Boolean(),
+		reason: Type.Optional(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+
+export type FileRevertResult = Static<typeof fileRevertResultSchema>;
 
 export const unityOpenProjectResultSchema = Type.Object(
 	{
@@ -347,6 +391,25 @@ export const agentRequestSchema = Type.Union([
 		},
 		{ additionalProperties: false },
 	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.console'),
+			projectPath: Type.String({ minLength: 1 }),
+			tail: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('file.revert'),
+			projectPath: Type.String({ minLength: 1 }),
+			file: Type.String({ minLength: 1 }),
+			patch: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
 ]);
 
 export type AgentRequest = Static<typeof agentRequestSchema>;
@@ -416,6 +479,15 @@ export const agentEventSchema = Type.Union([
 			type: Type.Literal('project.status.changed'),
 			projectPath: Type.String({ minLength: 1 }),
 			status: unityStatusSchema,
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('project.console.appended'),
+			projectPath: Type.String({ minLength: 1 }),
+			update: unityConsoleUpdateSchema,
 		},
 		{ additionalProperties: false },
 	),
@@ -559,6 +631,20 @@ export function parseUnityOpenProjectResult(
 	input: unknown,
 ): UnityOpenProjectResult {
 	if (!Value.Check(unityOpenProjectResultSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseUnityConsoleUpdate(input: unknown): UnityConsoleUpdate {
+	if (!Value.Check(unityConsoleUpdateSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseFileRevertResult(input: unknown): FileRevertResult {
+	if (!Value.Check(fileRevertResultSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

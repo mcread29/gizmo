@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { AgentStore } from '../../agent-client';
 	import { Tabs } from '../../components';
+	import ChangesPanel from '../changes/ChangesPanel.svelte';
+	import { threadChanges } from '../changes/thread-changes';
 	import ActivityPanel from './ActivityPanel.svelte';
+	import ConsolePanel from './ConsolePanel.svelte';
 	import EditorPanel from './EditorPanel.svelte';
 	import type { UnityView } from './unity-view';
 
@@ -14,6 +17,7 @@
 
 	let { store, view, hidden, onOpenProject }: Props = $props();
 	let inspectorTab = $state('editor');
+	let changeCount = $derived(threadChanges(store.messages).length);
 </script>
 
 <aside
@@ -36,6 +40,8 @@
 	<Tabs
 		items={[
 			{ value: 'editor', label: 'Editor' },
+			{ value: 'changes', label: 'Changes', badge: changeCount },
+			{ value: 'console', label: 'Console' },
 			{ value: 'activity', label: 'Activity' },
 		]}
 		bind:value={inspectorTab}
@@ -43,6 +49,10 @@
 		{#snippet children(value)}
 			{#if value === 'editor'}
 				<EditorPanel {view} {store} {onOpenProject} />
+			{:else if value === 'changes'}
+				<ChangesPanel {store} projectPath={view.projectPath} />
+			{:else if value === 'console'}
+				<ConsolePanel {store} projectPath={view.projectPath} />
 			{:else}
 				<ActivityPanel {view} {store} />
 			{/if}

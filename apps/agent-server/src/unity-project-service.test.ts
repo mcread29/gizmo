@@ -82,13 +82,27 @@ describe('UnityProjectService', () => {
 		);
 		const service = new UnityProjectService(runner, 1);
 		const changed = new Promise<string>((resolve) => {
-			void service.watchStatus('/projects/game', (status) =>
-				resolve(status.state),
-			);
+			void service.watchStatus('/projects/game', {
+				status: (status) => resolve(status.state),
+				console: () => {},
+			});
 		});
 
 		await expect(changed).resolves.toBe('disconnected');
 		service.dispose();
+	});
+
+	it('refuses to revert a file outside the project', async () => {
+		const service = new UnityProjectService(runnerReturning(projectsResult()));
+		await service.listProjects();
+
+		await expect(
+			service.revertFile(
+				'/projects/game',
+				'../../etc/hosts',
+				'@@ -1 +1 @@\n-a\n+b',
+			),
+		).rejects.toThrow('outside the selected project');
 	});
 });
 

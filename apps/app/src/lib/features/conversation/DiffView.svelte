@@ -1,27 +1,64 @@
 <script lang="ts">
+	import { sourceHref } from '../unity/compiler-diagnostics';
 	import { diffStat, parseDiff } from './diff';
 
-	let { diff }: { diff: string } = $props();
+	interface Props {
+		diff: string;
+		/** Enables per-line jumps into the editor. */
+		file?: string;
+		projectPath?: string;
+		/** Off where the surrounding UI already names the file. */
+		showFileName?: boolean;
+		/** Wraps long lines instead of scrolling, for narrow panels. */
+		wrap?: boolean;
+	}
 
-	let lines = $derived(parseDiff(diff));
+	let {
+		diff,
+		file,
+		projectPath,
+		showFileName = true,
+		wrap = false,
+	}: Props = $props();
+
+	// The `--- a/x +++ b/x` preamble is noise wherever the file is named already.
+	let lines = $derived(
+		parseDiff(diff).filter((line) => showFileName || line.kind !== 'file'),
+	);
 	let stat = $derived(diffStat(lines));
+	let fileHref = $derived(sourceHref(file, projectPath));
 </script>
 
-<div data-ui="diff">
-	<div data-ui="diff-summary">
-		<span data-kind="added">+{stat.added}</span>
-		<span data-kind="removed">−{stat.removed}</span>
-	</div>
-	<div data-ui="diff-body" role="table" aria-label="File changes">
+<div data-ui="diff" data-wrap={wrap}>
+	{#if showFileName}
+		<div data-ui="diff-summary">
+			{#if file}
+				{#if fileHref}
+					<a data-ui="diff-file" href={fileHref} title={`Open ${file}`}
+						>{file}</a
+					>
+				{:else}
+					<span data-ui="diff-file" title={file}>{file}</span>
+				{/if}
+			{/if}
+			<span data-kind="added">+{stat.added}</span>
+			<span data-kind="removed">−{stat.removed}</span>
+		</div>
+	{/if}
+	<div data-ui="diff-body">
 		{#each lines as line, index (index)}
-			<div data-ui="diff-line" data-kind={line.kind} role="row">
-				<span data-ui="diff-gutter" aria-hidden="true"
-					>{line.oldLine ?? ''}</span
-				>
-				<span data-ui="diff-gutter" aria-hidden="true"
-					>{line.newLine ?? ''}</span
-				>
-				<span data-ui="diff-text" role="cell">{line.text || ' '}</span>
+			<div data-ui="diff-line" data-kind={line.kind}>
+				<span data-ui="diff-gutter">{line.oldLine ?? ''}</span>
+				{#if file && line.newLine}
+					<a
+						data-ui="diff-gutter"
+						href={sourceHref(file, projectPath, line.newLine)}
+						title={`Open at line ${line.newLine}`}>{line.newLine}</a
+					>
+				{:else}
+					<span data-ui="diff-gutter">{line.newLine ?? ''}</span>
+				{/if}
+				<span data-ui="diff-text">{line.text || ' '}</span>
 			</div>
 		{/each}
 	</div>

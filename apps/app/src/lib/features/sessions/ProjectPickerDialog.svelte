@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { FolderOpen } from '@lucide/svelte';
+	import { FolderOpen, RotateCw } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
-	import { Dialog } from '../../components';
+	import { Button, Dialog } from '../../components';
 
 	interface Props {
 		open?: boolean;
@@ -29,9 +29,26 @@
 				<div data-ui="skeleton" data-shape="project"></div>
 			{/each}
 		{:else if store.projects.length === 0}
-			<p data-ui="inspector-message">
-				{store.projectError ?? 'No registered Unity projects found.'}
-			</p>
+			<!-- The first screen a new install can land on, so it explains where
+			     the list comes from instead of only reporting that it is empty. -->
+			<div data-ui="onboarding">
+				<strong>No Unity projects yet</strong>
+				<p>
+					Projects come from the <code>unity</code> command line tool, which
+					Unity Agent runs as <code>unity projects list</code>. Once that
+					reports your projects they appear here.
+				</p>
+				{#if store.projectError}
+					<p data-ui="onboarding-error">{store.projectError}</p>
+				{/if}
+				<Button
+					variant="secondary"
+					size="sm"
+					disabled={store.connection !== 'connected'}
+					onclick={() => void store.refreshProjects()}
+					><RotateCw size={13} /> Reload projects</Button
+				>
+			</div>
 		{:else}
 			{#each store.projects as project (project.path)}
 				<button data-ui="project-option" onclick={() => onSelect(project.path)}

@@ -6,16 +6,19 @@
 	import { threadTitle } from '../sessions/session-groups';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import Composer from './Composer.svelte';
+	import type { DraftStore } from './drafts.svelte';
 	import ConversationError from './ConversationError.svelte';
 	import MessageList from './MessageList.svelte';
 
 	interface Props {
 		store: AgentStore;
 		layout: WorkspaceLayout;
+		drafts: DraftStore;
 		agentName: string;
 		currentSession?: AgentSessionSummary;
 		focusComposer?: () => void;
 		onRename: () => void;
+		onCopy: () => void;
 		onExport: () => void;
 		onDelete: () => void;
 	}
@@ -23,10 +26,12 @@
 	let {
 		store,
 		layout,
+		drafts,
 		agentName,
 		currentSession,
 		focusComposer = $bindable(),
 		onRename,
+		onCopy,
 		onExport,
 		onDelete,
 	}: Props = $props();
@@ -48,6 +53,7 @@
 		<Menu
 			items={[
 				{ label: 'Rename', onSelect: onRename },
+				{ label: 'Copy transcript', onSelect: onCopy },
 				{ label: 'Export transcript', onSelect: onExport },
 				{
 					label: 'Delete',
@@ -80,6 +86,7 @@
 	<div data-ui="composer-wrap">
 		<Composer
 			{store}
+			{drafts}
 			sendOnEnter={layout.sendOnEnter}
 			bind:focus={focusComposer}
 		/>

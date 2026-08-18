@@ -5,6 +5,8 @@
 	export interface TabItem {
 		value: string;
 		label: string;
+		/** Rendered as a pill beside the label; omitted when zero. */
+		badge?: number;
 	}
 
 	let {
@@ -21,9 +23,11 @@
 <Tabs.Root bind:value>
 	<Tabs.List data-ui="tabs-list">
 		{#each items as item}
-			<Tabs.Trigger data-ui="tabs-trigger" value={item.value}
-				>{item.label}</Tabs.Trigger
-			>
+			<Tabs.Trigger data-ui="tabs-trigger" value={item.value}>
+				{item.label}{#if item.badge}<span data-ui="tabs-badge"
+						>{item.badge}</span
+					>{/if}
+			</Tabs.Trigger>
 		{/each}
 	</Tabs.List>
 	{#each items as item}

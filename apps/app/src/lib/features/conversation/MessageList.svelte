@@ -3,8 +3,11 @@
 	import type { AgentSessionSummary } from '@unity-agent/protocol';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
-	import { ScrollPanel } from '../../components';
+	import { ArrowDown } from '@lucide/svelte';
+	import { Button, ScrollPanel } from '../../components';
 	import ConversationMessage from './ConversationMessage.svelte';
+	import { isAtBottom } from './follow';
+	import { streamingActivity } from './streaming';
 
 	interface Props {
 		store: AgentStore;
@@ -16,8 +19,11 @@
 	let { store, agentName, currentSession, autoFollowOutput }: Props = $props();
 
 	let scrollAnchor = $state<HTMLDivElement>();
-	let followOutput = false;
+	let followOutput = $state(false);
 	let knownCount = 0;
+	let activity = $derived(
+		streamingActivity(store.messages, store.sessionState),
+	);
 
 	$effect(() => {
 		if (autoFollowOutput) followOutput = true;
@@ -50,15 +56,16 @@
 		return () => (cancelled = true);
 	});
 
+	function jumpToLatest() {
+		// The scroll listener re-engages following once the anchor is in view.
+		scrollAnchor?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+	}
+
 	/** Stops following as soon as the user scrolls away from the bottom. */
 	function monitorScroll(node: HTMLElement) {
 		const viewport = node.closest<HTMLElement>('[data-ui="scroll-viewport"]');
 		if (!viewport) return;
-		const update = () => {
-			followOutput =
-				autoFollowOutput &&
-				viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 72;
-		};
+		const update = () => (followOutput = isAtBottom(viewport));
 		viewport.addEventListener('scroll', update, { passive: true });
 		update();
 		return {
@@ -97,8 +104,20 @@
 				onRetry={message.role === 'user'
 					? () => void store.retryPrompt()
 					: undefined}
+				activity={activity.streaming && message.id === store.messages.at(-1)?.id
+					? activity
+					: undefined}
 			/>
 		{/each}
 		<div data-ui="scroll-anchor" bind:this={scrollAnchor}></div>
 	</div>
 </ScrollPanel>
+
+<!-- Only offered once the user has actually scrolled away from the newest text. -->
+{#if !followOutput && store.messages.length > 0}
+	<div data-ui="jump-to-latest">
+		<Button variant="secondary" size="sm" onclick={jumpToLatest}
+			><ArrowDown size={13} /> Jump to latest</Button
+		>
+	</div>
+{/if}

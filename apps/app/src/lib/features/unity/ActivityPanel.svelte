@@ -2,6 +2,7 @@
 	import { CircleCheck, Terminal } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { toolLabel } from '../conversation/tool-labels';
+	import { toolSummary } from '../conversation/tool-summary';
 	import type { UnityView } from './unity-view';
 
 	let { view, store }: { view: UnityView; store: AgentStore } = $props();
@@ -17,9 +18,10 @@
 	<div data-ui="activity-list">
 		{#each view.toolActivity as tool (tool.id)}
 			<div data-ui="activity-item" data-state={tool.status}>
-				<Terminal size={14} /><span
-					><strong>{tool.name}</strong><small>{tool.statusText}</small></span
-				>
+				<Terminal size={14} /><span>
+					<strong>{tool.name}</strong>
+					<small>{toolSummary(tool.input) ?? tool.statusText}</small>
+				</span>
 			</div>
 		{/each}
 	</div>

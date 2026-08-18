@@ -1,13 +1,23 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { isAbsolute, relative, resolve } from 'node:path';
 import {
 	getUnityStatus,
 	listUnityProjects,
 	openUnityProject,
+	readUnityConsole,
 	UnityRunner,
 	type UnityCommandRunner,
+	type UnityConsoleDetails,
 	type UnityOpenProjectDetails,
 	type UnityProject,
 	type UnityStatusDetails,
 } from '@unity-agent/unity-tools';
+import { revertPatch } from './patch';
+
+export interface ProjectWatchListeners {
+	status: (status: UnityStatusDetails) => void;
+	console: (update: UnityConsoleDetails) => void;
+}
 
 export class UnityProjectService {
 	readonly #runner: UnityCommandRunner;
@@ -44,6 +54,38 @@ export class UnityProjectService {
 		);
 	}
 
+	async readConsole(
+		projectPath: string,
+		tail = 200,
+	): Promise<UnityConsoleDetails> {
+		await this.#requireProject(projectPath);
+		return this.#run((signal) =>
+			readUnityConsole(this.#runner, { projectPath, tail, signal }),
+		);
+	}
+
+	/**
+	 * Undoes one recorded edit. Refuses paths outside the project and patches
+	 * that no longer describe the file, so a stale change cannot corrupt work
+	 * done after it.
+	 */
+	async revertFile(
+		projectPath: string,
+		file: string,
+		patch: string,
+	): Promise<void> {
+		await this.#requireProject(projectPath);
+		const target = isAbsolute(file)
+			? resolve(file)
+			: resolve(projectPath, file);
+		const within = relative(resolve(projectPath), target);
+		if (within.startsWith('..') || isAbsolute(within)) {
+			throw new Error('That file is outside the selected project');
+		}
+		const content = await readFile(target, 'utf8');
+		await writeFile(target, revertPatch(content, patch), 'utf8');
+	}
+
 	async openProject(projectPath: string): Promise<UnityOpenProjectDetails> {
 		await this.#requireProject(projectPath);
 		return this.#run((signal) =>
@@ -51,9 +93,14 @@ export class UnityProjectService {
 		);
 	}
 
+	/**
+	 * Polls Editor status and the Unity console on one timer. Status is reported
+	 * only when it changes; console entries are reported as they arrive, using
+	 * the console cursor so nothing is replayed.
+	 */
 	async watchStatus(
 		projectPath: string,
-		listener: (status: UnityStatusDetails) => void,
+		listeners: ProjectWatchListeners,
 	): Promise<UnityStatusDetails> {
 		await this.#requireProject(projectPath);
 		this.#stopWatching();
@@ -64,6 +111,7 @@ export class UnityProjectService {
 		};
 		this.#watch = watch;
 		let fingerprint = statusFingerprint(initial);
+		let cursor: number | undefined;
 
 		const poll = async () => {
 			if (controller.signal.aborted) return;
@@ -75,7 +123,16 @@ export class UnityProjectService {
 				const nextFingerprint = statusFingerprint(status);
 				if (nextFingerprint !== fingerprint) {
 					fingerprint = nextFingerprint;
-					listener(status);
+					listeners.status(status);
+				}
+				if (status.state === 'connected') {
+					const console = await readUnityConsole(this.#runner, {
+						projectPath,
+						signal: controller.signal,
+						...(cursor === undefined ? { tail: 1 } : { since: cursor }),
+					});
+					if (console.cursor !== undefined) cursor = console.cursor;
+					if (console.entries.length > 0) listeners.console(console);
 				}
 			} catch {
 				// The next observation retries transient runner failures.

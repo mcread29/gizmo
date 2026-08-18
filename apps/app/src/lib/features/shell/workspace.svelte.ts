@@ -31,6 +31,7 @@ export class WorkspaceLayout {
 	showUnityInspector = $state(true);
 	sidebarWidth = $state(panelWidthLimits.sidebar.default);
 	inspectorWidth = $state(panelWidthLimits.inspector.default);
+	agentUrl = $state('');
 
 	viewportWidth = $state(currentViewportWidth());
 	leftDrawerOpen = $state(false);
@@ -66,6 +67,7 @@ export class WorkspaceLayout {
 		this.showUnityInspector = settings.showUnityInspector;
 		this.sidebarWidth = settings.sidebarWidth;
 		this.inspectorWidth = settings.inspectorWidth;
+		this.agentUrl = settings.agentUrl;
 	}
 
 	get settings(): AppSettings {
@@ -77,6 +79,7 @@ export class WorkspaceLayout {
 			showUnityInspector: this.showUnityInspector,
 			sidebarWidth: this.sidebarWidth,
 			inspectorWidth: this.inspectorWidth,
+			agentUrl: this.agentUrl,
 		};
 	}
 

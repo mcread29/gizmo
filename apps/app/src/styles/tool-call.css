@@ -44,9 +44,38 @@
 [data-ui='tool-header'] small {
 	overflow: hidden;
 	color: var(--color-text-muted);
-	font-size: var(--text-2xs);
+	font: var(--text-2xs) / 1.3 var(--font-mono);
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+[data-ui='tool-parameters'] {
+	display: grid;
+	gap: 6px;
+	margin: 0;
+	padding: 10px;
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+}
+
+[data-ui='tool-parameters'] > div {
+	display: grid;
+	grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+	gap: var(--space-3);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='tool-parameters'] dt {
+	overflow: hidden;
+	color: var(--color-text-muted);
+	font-family: var(--font-mono);
+	text-overflow: ellipsis;
+}
+
+[data-ui='tool-parameters'] dd {
+	margin: 0;
+	font-family: var(--font-mono);
+	overflow-wrap: anywhere;
 }
 
 [data-ui='tool-call'][data-state='complete']
@@ -185,6 +214,16 @@
 
 [data-ui='diff-text'] {
 	white-space: pre;
+}
+
+/* Narrow panels read better wrapped than scrolled sideways. */
+[data-ui='diff'][data-wrap='true'] [data-ui='diff-line'] {
+	min-width: 0;
+}
+
+[data-ui='diff'][data-wrap='true'] [data-ui='diff-text'] {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 
 [data-ui='diff-line'][data-kind='added'] {

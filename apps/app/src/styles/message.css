@@ -66,6 +66,15 @@
 	font-size: var(--text-xs);
 }
 
+[data-ui='streaming-indicator'][data-compact='true'] {
+	font-size: var(--text-xs);
+}
+
+[data-ui='streaming-elapsed'] {
+	color: var(--color-text-faint);
+	font-variant-numeric: tabular-nums;
+}
+
 [data-ui='streaming-cursor'] {
 	display: inline-block;
 	width: 7px;

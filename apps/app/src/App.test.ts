@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { axe } from 'vitest-axe';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App.svelte';
 import { FakeAgentClient } from './lib/agent-client';
 
@@ -330,5 +330,82 @@ describe('application shell', () => {
 
 		expect(await findByRole('button', { name: 'Retry' })).toBeInTheDocument();
 		expect(getByText('Local agent offline')).toBeInTheDocument();
+	});
+
+	it('steers the run in flight instead of queueing another turn', async () => {
+		const client = new FakeAgentClient({ latencyMs: 20 });
+		const steer = vi.spyOn(client, 'steer');
+		const { findByRole, getByRole } = render(App, { client });
+		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+
+		await fireEvent.input(composer, {
+			target: { value: 'Inspect the Editor' },
+		});
+		await waitFor(() =>
+			expect(getByRole('button', { name: 'Send message' })).toBeEnabled(),
+		);
+		await fireEvent.click(getByRole('button', { name: 'Send message' }));
+
+		// While streaming the same control steers, and Stop stays available.
+		const steerButton = await findByRole('button', { name: 'Steer response' });
+		expect(getByRole('button', { name: 'Stop response' })).toBeInTheDocument();
+
+		await fireEvent.input(composer, {
+			target: { value: 'Use the LTS branch' },
+		});
+		await waitFor(() => expect(steerButton).toBeEnabled());
+		await fireEvent.click(steerButton);
+
+		await waitFor(() =>
+			expect(steer).toHaveBeenCalledWith(
+				expect.any(String),
+				'Use the LTS branch',
+			),
+		);
+	});
+
+	it('collects the files the agent edited into the Changes tab', async () => {
+		const { findByRole, getByRole } = renderApp();
+		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+		await fireEvent.input(composer, {
+			target: { value: 'Speed the player up' },
+		});
+		await waitFor(() =>
+			expect(getByRole('button', { name: 'Send message' })).toBeEnabled(),
+		);
+		await fireEvent.click(getByRole('button', { name: 'Send message' }));
+
+		const changesTab = await findByRole('tab', { name: /Changes/ });
+		await waitFor(() =>
+			expect(
+				changesTab.querySelector('[data-ui="tabs-badge"]'),
+			).toHaveTextContent('1'),
+		);
+		await fireEvent.click(changesTab);
+
+		expect(
+			await findByRole('button', { name: /PlayerController\.cs/ }),
+		).toBeInTheDocument();
+	});
+
+	it('keeps a separate composer draft for each thread', async () => {
+		const { container, findByRole, getByRole } = renderApp();
+		const composer = getByRole('textbox', {
+			name: 'Message Unity Agent',
+		}) as HTMLTextAreaElement;
+		await findByRole('button', { name: 'New thread' });
+		await fireEvent.input(composer, { target: { value: 'First thread note' } });
+
+		await fireEvent.click(getByRole('button', { name: 'New thread' }));
+		await fireEvent.click(
+			await findByRole('button', { name: /RenderingPlayground/ }),
+		);
+		await waitFor(() =>
+			expect(
+				container.querySelectorAll('[data-ui="session-item"]'),
+			).toHaveLength(2),
+		);
+
+		expect(composer.value).toBe('');
 	});
 });

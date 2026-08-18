@@ -37,6 +37,12 @@ class InvalidEventClient implements AgentClient {
 	async selectModel(): Promise<AgentModelCatalog> {
 		return { models: [], thinkingLevels: [] };
 	}
+	async readConsole() {
+		return { entries: [], dropped: false };
+	}
+	async revertFile(_projectPath: string, file: string) {
+		return { file, reverted: true };
+	}
 	async selectThinkingLevel(): Promise<AgentModelCatalog> {
 		return { models: [], thinkingLevels: [] };
 	}
@@ -67,7 +73,10 @@ describe('AgentStore', () => {
 		await store.connect();
 
 		expect(store.connection).toBe('connected');
-		expect(store.error).toBe('Invalid agent protocol event');
+		expect(store.error).toEqual({
+			kind: 'agent',
+			message: 'Invalid agent protocol event',
+		});
 	});
 
 	it('discovers projects and keeps per-session transcripts', async () => {
@@ -165,7 +174,10 @@ describe('AgentStore', () => {
 
 			client.dropConnection();
 			expect(store.connection).toBe('disconnected');
-			expect(store.error).toBe('Agent connection closed');
+			expect(store.error).toEqual({
+				kind: 'connection',
+				message: 'Agent connection closed',
+			});
 
 			await vi.advanceTimersByTimeAsync(600);
 			expect(store.connection).toBe('connected');

@@ -1,8 +1,10 @@
 import type {
 	AgentModelCatalog,
+	FileRevertResult,
 	SessionCatalog,
 	SessionOptions,
 	SessionSnapshot,
+	UnityConsoleUpdate,
 	UnityOpenProjectResult,
 	UnityProject,
 	UnityStatus,
@@ -39,6 +41,14 @@ export interface AgentClient {
 		projectPath: string,
 	): Promise<UnityStatus>;
 	openProject(projectPath: string): Promise<UnityOpenProjectResult>;
+	readConsole(projectPath: string, tail?: number): Promise<UnityConsoleUpdate>;
+	revertFile(
+		projectPath: string,
+		file: string,
+		patch: string,
+	): Promise<FileRevertResult>;
+	/** Optional: transports with a configurable address implement this. */
+	setEndpoint?(url: string): void;
 	subscribe(listener: AgentEventListener): () => void;
 	subscribeDisconnect(listener: AgentDisconnectListener): () => void;
 }

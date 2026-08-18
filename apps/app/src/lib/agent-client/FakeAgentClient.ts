@@ -8,6 +8,7 @@ import {
 	type SessionCatalog,
 	type SessionOptions,
 	type SessionSnapshot,
+	type UnityConsoleEntry,
 	type UnityOpenProjectResult,
 	type UnityProject,
 	type UnityStatus,
@@ -48,6 +49,7 @@ export class FakeAgentClient implements AgentClient {
 	#lastSessionId?: string;
 	#editorOpen = true;
 	#watchedProject?: { sessionId: string; projectPath: string };
+	#consoleTimer?: ReturnType<typeof setInterval>;
 
 	constructor(options: FakeAgentClientOptions = {}) {
 		this.#latencyMs = options.latencyMs ?? 90;
@@ -59,6 +61,8 @@ export class FakeAgentClient implements AgentClient {
 	}
 
 	async disconnect(): Promise<void> {
+		clearInterval(this.#consoleTimer);
+		this.#consoleTimer = undefined;
 		for (const session of this.#sessions.values())
 			session.abortController?.abort();
 		this.#connected = false;
@@ -214,7 +218,7 @@ export class FakeAgentClient implements AgentClient {
 				messageId: assistantMessageId,
 				toolCallId,
 				toolName: 'unity_status',
-				input: {},
+				input: { projectPath: '/projects/ThirdPersonSandbox' },
 			});
 			if (!(await this.#wait(abortController.signal))) return;
 			Object.assign(assistantMessage.tools[0]!, {
@@ -271,8 +275,41 @@ export class FakeAgentClient implements AgentClient {
 				messageId: assistantMessageId,
 				toolCallId: listToolCallId,
 				toolName: 'unity_list_commands',
-				input: {},
+				input: { category: 'build', includeHidden: false },
 			});
+			const editToolCallId = `tool-${++this.#id}`;
+			assistantMessage.tools.push({
+				id: editToolCallId,
+				name: 'edit',
+				status: 'running',
+				statusText: 'Starting',
+			});
+			this.#emit({
+				type: 'tool.started',
+				sessionId,
+				messageId: assistantMessageId,
+				toolCallId: editToolCallId,
+				toolName: 'edit',
+				input: {
+					file: fakeEditFile,
+					oldText: 'private float moveSpeed = 4f;',
+					newText: 'private float moveSpeed = 6f;',
+				},
+			});
+			if (!(await this.#wait(abortController.signal))) return;
+			Object.assign(assistantMessage.tools[2]!, {
+				status: 'complete',
+				statusText: 'Completed',
+				result: fakeEditResult,
+			});
+			this.#emit({
+				type: 'tool.completed',
+				sessionId,
+				toolCallId: editToolCallId,
+				result: fakeEditResult,
+				isError: false,
+			});
+
 			if (!(await this.#wait(abortController.signal))) return;
 			assistantMessage.content +=
 				' The Editor is connected and ready for commands.';
@@ -317,6 +354,28 @@ export class FakeAgentClient implements AgentClient {
 	async steer(sessionId: string, text: string): Promise<void> {
 		await this.abort(sessionId);
 		await this.prompt(sessionId, text);
+	}
+
+	async readConsole(
+		_projectPath: string,
+		tail = 200,
+	): Promise<{
+		entries: UnityConsoleEntry[];
+		cursor?: number;
+		dropped: boolean;
+	}> {
+		return {
+			entries: fakeConsoleEntries.slice(-tail),
+			cursor: fakeConsoleEntries.length,
+			dropped: false,
+		};
+	}
+
+	async revertFile(
+		_projectPath: string,
+		file: string,
+	): Promise<{ file: string; reverted: boolean }> {
+		return { file, reverted: true };
 	}
 
 	async abort(sessionId: string): Promise<void> {
@@ -384,7 +443,30 @@ export class FakeAgentClient implements AgentClient {
 		this.#getSession(sessionId);
 		this.#assertProject(projectPath);
 		this.#watchedProject = { sessionId, projectPath };
+		this.#streamConsole(sessionId, projectPath);
 		return fakeStatus(projectPath, this.#editorOpen);
+	}
+
+	/** Trickles console entries out so the live tail has something to show. */
+	#streamConsole(sessionId: string, projectPath: string): void {
+		clearInterval(this.#consoleTimer);
+		let index = 0;
+		this.#consoleTimer = setInterval(() => {
+			const entry = fakeConsoleEntries[index % fakeConsoleEntries.length];
+			index++;
+			if (!entry || this.#watchedProject?.sessionId !== sessionId) return;
+			this.#emit({
+				type: 'project.console.appended',
+				sessionId,
+				projectPath,
+				update: {
+					entries: [{ ...entry, seq: index }],
+					cursor: index,
+					dropped: false,
+				},
+			});
+		}, 2_500);
+		this.#consoleTimer.unref?.();
 	}
 
 	async openProject(projectPath: string): Promise<UnityOpenProjectResult> {
@@ -556,3 +638,46 @@ function fakeStatus(projectPath: string, open: boolean): UnityStatus {
 function sessionTitle(prompt: string): string {
 	return prompt.length > 48 ? `${prompt.slice(0, 47)}…` : prompt;
 }
+
+const fakeEditFile = 'Assets/Scripts/PlayerController.cs';
+
+const fakeEditResult = {
+	ok: true,
+	file: fakeEditFile,
+	compilationPending: true,
+	compilationPaths: [fakeEditFile],
+	patch: [
+		`--- a/${fakeEditFile}`,
+		`+++ b/${fakeEditFile}`,
+		'@@ -12,6 +12,7 @@',
+		' public class PlayerController : MonoBehaviour',
+		' {',
+		'-    [SerializeField] private float moveSpeed = 4f;',
+		'+    [SerializeField] private float moveSpeed = 6f;',
+		'+    [SerializeField] private float sprintMultiplier = 1.6f;',
+		' ',
+		'     private CharacterController controller;',
+		' }',
+	].join('\n'),
+	errors: [],
+	warnings: [],
+};
+
+const fakeConsoleEntries: UnityConsoleEntry[] = [
+	{ level: 'log', message: 'Reloading assemblies for play mode' },
+	{
+		level: 'warn',
+		message: 'Shader "Custom/Water" has no fallback for OpenGL ES 2.0',
+		file: 'Assets/Shaders/Water.shader',
+		line: 42,
+	},
+	{ level: 'log', message: 'PlayerController awake on ThirdPerson prefab' },
+	{
+		level: 'error',
+		message:
+			'NullReferenceException: Object reference not set to an instance of an object',
+		file: fakeEditFile,
+		line: 58,
+		column: 13,
+	},
+];

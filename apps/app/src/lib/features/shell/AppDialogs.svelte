@@ -26,5 +26,5 @@
 	{store}
 	onSelect={(projectPath) => void sessions.startThread(projectPath)}
 />
-<SettingsDialog bind:open={settingsOpen} {layout} />
+<SettingsDialog bind:open={settingsOpen} {layout} {store} />
 <ThreadDialogs {sessions} />

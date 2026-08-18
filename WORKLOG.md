@@ -1,5 +1,58 @@
 # Work log
 
+## 2026-08-18 — Tool calls name their arguments
+
+Protocol version 8. Eight consecutive `unity_list_commands` cards all read
+"Unity commands / Completed", which is unreadable: the arguments are the only
+thing that distinguishes them.
+
+- `ToolCallView` now carries the tool input. The live `tool.started` event
+  already had it and the store was discarding it; resumed threads read it back
+  out of the persisted transcript, accepting every key the format has used so
+  older sessions keep their arguments.
+- The card header shows a one-line summary of the arguments — a lone
+  identifying value bare, several as `key=value` — and falls back to the status
+  text only while a tool is running or when there is nothing to say. The
+  expanded card lists every argument, and the inspector's Activity list uses
+  the same summary.
+
+## 2026-08-18 — Staying in control of a running agent
+
+Followed the UI audit with the workflow gaps it exposed. Protocol version 7.
+
+- Steering: the composer now sends `session.steer` while a response is
+  streaming instead of disabling itself, so redirecting the agent no longer
+  means aborting the run. Stop remains available alongside it.
+- Changes: every `edit`/`write` in a thread is collected per file in a new
+  inspector tab with cumulative counts, a wrapped diff, open-in-editor,
+  copy-patch, and per-change revert. Revert is applied server-side by a
+  reverse-patch applier that refuses when the file has moved on.
+- Progress legibility: the streaming indicator names the running tool and
+  counts elapsed time, the titlebar mirrors it, and a Jump to latest control
+  appears once the transcript is scrolled away from the newest reply.
+- Live Unity console: `project.watch` now polls the console alongside Editor
+  status and pushes `project.console.appended`, rendered as a filterable tail.
+- Smaller gaps: per-thread composer drafts that survive a restart and adopt
+  text typed before the thread existed, diff hunks that link into the editor,
+  an onboarding state for a machine with no registered projects, a configurable
+  agent server address, an error taxonomy so the banner offers the action that
+  fits the failure, and copy-transcript alongside a native save dialog.
+- Window chrome: decorations are off and the app header is the drag region,
+  with its own minimise, maximise and close controls.
+
+Approvals were deliberately left off: the Changes tab is the review surface
+instead, chosen over pausing the agent before every write.
+
+Verification completed successfully:
+
+```text
+pnpm format:check
+pnpm check
+pnpm test
+pnpm build
+cargo check
+```
+
 ## 2026-08-17 — UI audit remediation and frontend refactor
 
 Acted on a critical audit of the Svelte frontend, and split the files that had

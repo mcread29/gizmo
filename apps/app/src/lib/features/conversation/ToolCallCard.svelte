@@ -15,6 +15,7 @@
 	import ToolResult from './ToolResult.svelte';
 	import { formatToolResult, recordValue } from './format';
 	import { toolIcon, toolLabel } from './tool-labels';
+	import { toolSummary } from './tool-summary';
 
 	interface Props {
 		tool: ToolCallView;
@@ -28,6 +29,12 @@
 	let pinned = $state(false);
 
 	let resultText = $derived(formatToolResult(tool.result));
+	// Progress text is the useful subtitle while a tool runs; once it has
+	// finished, "Completed" says nothing the status icon has not already said.
+	let summary = $derived(toolSummary(tool.input));
+	let subtitle = $derived(
+		tool.status === 'running' ? tool.statusText : (summary ?? tool.statusText),
+	);
 	let errors = $derived(readArray(tool.result, 'errors'));
 	let consoleEntries = $derived(
 		tool.name === 'unity_console'
@@ -70,10 +77,10 @@
 		{:else}
 			<Terminal size={15} />
 		{/if}
-		<span
-			><strong>{toolLabel(tool.name)}</strong><small>{tool.statusText}</small
-			></span
-		>
+		<span>
+			<strong>{toolLabel(tool.name)}</strong>
+			<small title={summary}>{subtitle}</small>
+		</span>
 		{#if tool.status === 'running'}
 			<CircleDashed data-ui="spinner" size={15} />
 		{:else if tool.status === 'complete'}

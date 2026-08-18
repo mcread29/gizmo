@@ -1,4 +1,5 @@
 import type { AgentStore } from '../../agent-client';
+import { isDesktop, saveTextFile } from '../../desktop';
 import type { ToastQueue } from '../../toasts.svelte';
 import {
 	downloadTranscript,
@@ -68,26 +69,48 @@ export class SessionActions {
 		this.deleteOpen = false;
 		this.targetId = undefined;
 		await this.#store.deleteSession(sessionId);
-		if (this.#store.error) this.#toasts.show(this.#store.error, 'danger');
-		else this.#toasts.show(`Deleted “${title}”`);
+		if (this.#store.error) {
+			this.#toasts.show(this.#store.error.message, 'danger');
+		} else this.#toasts.show(`Deleted “${title}”`);
 	}
 
+	/** Native save dialog on the desktop, browser download everywhere else. */
 	async exportTranscript(sessionId = this.#store.sessionId): Promise<void> {
 		if (!sessionId) return;
 		try {
 			const snapshot = await this.#snapshot(sessionId);
 			const fileName = transcriptFileName(snapshot.session.title);
-			downloadTranscript(
-				transcriptMarkdown(snapshot, this.#agentName),
-				fileName,
-			);
+			const markdown = transcriptMarkdown(snapshot, this.#agentName);
+			if (isDesktop()) {
+				const path = await saveTextFile(fileName, markdown);
+				if (path) this.#toasts.show(`Saved ${fileName}`);
+				return;
+			}
+			downloadTranscript(markdown, fileName);
 			this.#toasts.show(`Exported ${fileName}`);
 		} catch (error) {
-			this.#toasts.show(
-				error instanceof Error ? error.message : String(error),
-				'danger',
-			);
+			this.#report(error);
 		}
+	}
+
+	async copyTranscript(sessionId = this.#store.sessionId): Promise<void> {
+		if (!sessionId || !navigator.clipboard) return;
+		try {
+			const snapshot = await this.#snapshot(sessionId);
+			await navigator.clipboard.writeText(
+				transcriptMarkdown(snapshot, this.#agentName),
+			);
+			this.#toasts.show('Transcript copied as Markdown');
+		} catch (error) {
+			this.#report(error);
+		}
+	}
+
+	#report(error: unknown): void {
+		this.#toasts.show(
+			error instanceof Error ? error.message : String(error),
+			'danger',
+		);
 	}
 
 	async #snapshot(sessionId: string) {

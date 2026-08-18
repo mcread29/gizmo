@@ -3,6 +3,8 @@
 	import { Bot, Check, Copy, RotateCw, User } from '@lucide/svelte';
 	import { Button } from '../../components';
 	import MarkdownContent from './MarkdownContent.svelte';
+	import StreamingIndicator from './StreamingIndicator.svelte';
+	import type { StreamingActivity } from './streaming';
 	import ToolCallCard from './ToolCallCard.svelte';
 	import { formatMessageTime } from './format';
 
@@ -11,9 +13,11 @@
 		agentName: string;
 		projectPath?: string;
 		onRetry?: () => void;
+		/** Present only on the message the agent is currently writing. */
+		activity?: StreamingActivity;
 	}
 
-	let { message, agentName, projectPath, onRetry }: Props = $props();
+	let { message, agentName, projectPath, onRetry, activity }: Props = $props();
 	let copied = $state(false);
 
 	async function copyMessage() {
@@ -65,11 +69,6 @@
 		{#each message.tools as tool (tool.id)}
 			<ToolCallCard {tool} {projectPath} />
 		{/each}
-		{#if !message.complete && message.role === 'assistant'}
-			<p data-ui="streaming-indicator" role="status">
-				<span data-ui="streaming-cursor" aria-hidden="true"></span>
-				{message.content || message.tools.length ? 'Responding' : 'Thinking'}…
-			</p>
-		{/if}
+		{#if activity}<StreamingIndicator {activity} />{/if}
 	</div>
 </article>

@@ -16,6 +16,8 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.31.0",
+		"@tauri-apps/api": "^2.11.1",
+		"@tauri-apps/plugin-dialog": "^2.7.2",
 		"@unity-agent/design": "workspace:*",
 		"@unity-agent/protocol": "workspace:*",
 		"bits-ui": "latest",

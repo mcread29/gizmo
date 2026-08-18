@@ -1,38 +1,54 @@
 <script lang="ts">
-	import { Send, Square } from '@lucide/svelte';
+	import { CornerDownLeft, Send, Square } from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Tooltip } from '../../components';
 	import { shortcutHint } from '../shell/shortcuts';
 	import ComposerModelControls from './ComposerModelControls.svelte';
 	import { autoGrow, isSendKey, resizeComposer } from './composer-actions';
+	import type { DraftStore } from './drafts.svelte';
 
 	interface Props {
 		store: AgentStore;
+		drafts: DraftStore;
 		sendOnEnter: boolean;
 		focus?: () => void;
 	}
 
-	let { store, sendOnEnter, focus = $bindable() }: Props = $props();
+	let { store, drafts, sendOnEnter, focus = $bindable() }: Props = $props();
 
-	let draft = $state('');
 	let element = $state<HTMLTextAreaElement>();
+
+	let draft = $derived(drafts.get(store.sessionId));
+
+	$effect(() => {
+		if (store.sessionId) drafts.adopt(store.sessionId);
+	});
+
+	function edit(value: string) {
+		drafts.set(store.sessionId, value);
+	}
 
 	focus = () => element?.focus();
 
+	let streaming = $derived(store.sessionState === 'streaming');
 	let canSend = $derived(
 		Boolean(draft.trim()) &&
 			store.connection === 'connected' &&
-			Boolean(store.sessionId) &&
-			store.sessionState !== 'streaming',
+			Boolean(store.sessionId),
 	);
 
+	/*
+	 * While a response is streaming the same control steers the run in flight
+	 * rather than queueing a new turn, so redirecting the agent does not mean
+	 * throwing away the work it has already done.
+	 */
 	function send() {
 		if (!canSend) return;
-		const prompt = draft;
-		draft = '';
+		const text = draft;
+		drafts.clear(store.sessionId);
 		void tick().then(() => resizeComposer(element));
-		void store.prompt(prompt);
+		void (streaming ? store.steer(text) : store.prompt(text));
 	}
 </script>
 
@@ -48,7 +64,8 @@
 	<textarea
 		id="prompt"
 		bind:this={element}
-		bind:value={draft}
+		value={draft}
+		oninput={(event) => edit(event.currentTarget.value)}
 		use:autoGrow
 		onkeydown={(event) => {
 			if (!isSendKey(event, sendOnEnter)) return;
@@ -56,18 +73,22 @@
 			send();
 		}}
 		rows="1"
-		placeholder="Ask about your Unity project…"></textarea>
+		placeholder={streaming
+			? 'Steer the response while it runs…'
+			: 'Ask about your Unity project…'}></textarea>
 	<div data-ui="composer-toolbar">
 		<ComposerModelControls {store} />
 		<span data-ui="composer-hint">
-			{#if sendOnEnter}
+			{#if streaming}
+				Steering
+			{:else if sendOnEnter}
 				<kbd>Enter</kbd> send · <kbd>Shift Enter</kbd> newline
 			{:else}
 				<kbd>⌘/Ctrl Enter</kbd> send · <kbd>Enter</kbd> newline
 			{/if}
 		</span>
-		{#if store.sessionState === 'streaming'}
-			<Tooltip text="Stop response">
+		{#if streaming}
+			<Tooltip text="Stop the response and keep what has been written">
 				{#snippet children(props)}
 					<Button
 						{...props}
@@ -78,6 +99,20 @@
 						onclick={() => store.abort()}
 					>
 						<Square size={14} />
+					</Button>
+				{/snippet}
+			</Tooltip>
+			<Tooltip text="Add direction without interrupting the run">
+				{#snippet children(props)}
+					<Button
+						{...props}
+						type="submit"
+						variant="primary"
+						size="icon"
+						aria-label="Steer response"
+						disabled={!canSend}
+					>
+						<CornerDownLeft size={16} />
 					</Button>
 				{/snippet}
 			</Tooltip>

@@ -8,6 +8,7 @@ import {
 	type SessionSnapshot,
 	type SessionState,
 	type ToolCallView,
+	type UnityConsoleEntry,
 	type UnityProject,
 	type UnityStatus,
 } from '@unity-agent/protocol';
@@ -18,6 +19,21 @@ export interface AgentModel {
 	id: string;
 	thinkingLevel: string;
 }
+
+/**
+ * What went wrong, so the interface can offer the action that would actually
+ * help. A failed prompt is worth retrying; a failed rename is not.
+ */
+export type AgentErrorKind =
+	'connection' | 'prompt' | 'session' | 'project' | 'agent';
+
+export interface AgentError {
+	kind: AgentErrorKind;
+	message: string;
+}
+
+/** How many console lines the live tail keeps before dropping the oldest. */
+const consoleLimit = 500;
 
 export type ConnectionState =
 	'disconnected' | 'connecting' | 'reconnecting' | 'connected';
@@ -45,7 +61,9 @@ export class AgentStore {
 	projectsLoading = $state(false);
 	projectOpening = $state(false);
 	projectError = $state<string>();
-	error = $state<string>();
+	error = $state<AgentError>();
+	consoleEntries = $state<UnityConsoleEntry[]>([]);
+	consoleLoading = $state(false);
 
 	readonly #client: AgentClient;
 	#unsubscribe?: () => void;
@@ -71,7 +89,7 @@ export class AgentStore {
 		this.#unsubscribeDisconnect = this.#client.subscribeDisconnect((error) => {
 			if (this.connection !== 'connected') return;
 			this.connection = 'disconnected';
-			this.error = error.message;
+			this.error = { kind: 'connection', message: error.message };
 			this.#cleanupSubscriptions();
 			this.#scheduleReconnect();
 		});
@@ -94,12 +112,20 @@ export class AgentStore {
 			if (session) await this.switchSession(session.id);
 			else await this.newSession();
 		} catch (error) {
-			this.error = error instanceof Error ? error.message : String(error);
+			this.#fail('connection', error);
 			this.sessionId = resumeId;
 			this.connection = 'disconnected';
 			this.#cleanupSubscriptions();
 			this.#scheduleReconnect();
 		}
+	}
+
+	/** Points the client at a different agent server and reconnects. */
+	async reconnectTo(url: string): Promise<void> {
+		if (!this.#client.setEndpoint) return;
+		await this.disconnect();
+		this.#client.setEndpoint(url);
+		await this.retryConnection();
 	}
 
 	/** Abandons the backoff and tries immediately, for an explicit user retry. */
@@ -246,7 +272,7 @@ export class AgentStore {
 			this.thinkingLevels = previousThinkingLevels;
 			this.selectedProjectPath = previousProjectPath;
 			this.projectStatus = previousProjectStatus;
-			this.error = errorMessage(error);
+			this.#fail('session', error);
 		}
 	}
 
@@ -287,7 +313,7 @@ export class AgentStore {
 			this.thinkingLevels = previousThinkingLevels;
 			this.selectedProjectPath = previousProjectPath;
 			this.projectStatus = previousProjectStatus;
-			this.error = errorMessage(error);
+			this.#fail('session', error);
 		} finally {
 			if (this.sessionId === sessionId) this.messagesLoading = false;
 		}
@@ -312,7 +338,7 @@ export class AgentStore {
 			const catalog = await this.#client.getModelCatalog(sessionId);
 			if (this.sessionId === sessionId) this.#applyModelCatalog(catalog);
 		} catch (error) {
-			if (this.sessionId === sessionId) this.error = errorMessage(error);
+			if (this.sessionId === sessionId) this.#fail('session', error);
 		} finally {
 			if (this.sessionId === sessionId) this.modelLoading = false;
 		}
@@ -338,7 +364,7 @@ export class AgentStore {
 			);
 			if (this.sessionId === sessionId) this.#applyModelCatalog(catalog);
 		} catch (error) {
-			this.error = errorMessage(error);
+			this.#fail('session', error);
 		} finally {
 			this.modelLoading = false;
 		}
@@ -360,7 +386,7 @@ export class AgentStore {
 			const catalog = await this.#client.selectThinkingLevel(sessionId, level);
 			if (this.sessionId === sessionId) this.#applyModelCatalog(catalog);
 		} catch (error) {
-			this.error = errorMessage(error);
+			this.#fail('session', error);
 		} finally {
 			this.modelLoading = false;
 		}
@@ -378,7 +404,7 @@ export class AgentStore {
 			await this.#client.renameSession(sessionId, name);
 		} catch (error) {
 			session.title = previousTitle;
-			this.error = errorMessage(error);
+			this.#fail('session', error);
 		}
 	}
 
@@ -392,7 +418,7 @@ export class AgentStore {
 		try {
 			await this.#client.deleteSession(sessionId);
 		} catch (error) {
-			this.error = errorMessage(error);
+			this.#fail('session', error);
 			return;
 		}
 		this.sessions = this.sessions.filter((session) => session.id !== sessionId);
@@ -438,7 +464,41 @@ export class AgentStore {
 		try {
 			await this.#client.prompt(this.sessionId, prompt);
 		} catch (error) {
-			this.error = error instanceof Error ? error.message : String(error);
+			this.#fail('prompt', error);
+		}
+	}
+
+	/**
+	 * Adds direction to the run already in flight. Unlike a prompt this does not
+	 * wait for the agent to finish, which is the entire point of it.
+	 */
+	async steer(text: string): Promise<void> {
+		if (!this.sessionId || !text.trim()) return;
+		this.error = undefined;
+		try {
+			await this.#client.steer(this.sessionId, text.trim());
+		} catch (error) {
+			this.#fail('prompt', error);
+		}
+	}
+
+	async revertFile(file: string, patch: string): Promise<void> {
+		if (!this.selectedProjectPath) {
+			throw new Error('No Unity project is selected');
+		}
+		await this.#client.revertFile(this.selectedProjectPath, file, patch);
+	}
+
+	async loadConsole(): Promise<void> {
+		if (this.connection !== 'connected' || !this.selectedProjectPath) return;
+		this.consoleLoading = true;
+		try {
+			const update = await this.#client.readConsole(this.selectedProjectPath);
+			this.consoleEntries = update.entries.slice(-consoleLimit);
+		} catch (error) {
+			this.#fail('project', error);
+		} finally {
+			this.consoleLoading = false;
 		}
 	}
 
@@ -457,7 +517,7 @@ export class AgentStore {
 		try {
 			event = parseAgentEvent(input);
 		} catch (error) {
-			this.error = error instanceof Error ? error.message : String(error);
+			this.#fail('agent', error);
 			return;
 		}
 
@@ -501,6 +561,7 @@ export class AgentStore {
 					name: event.toolName,
 					status: 'running',
 					statusText: 'Starting',
+					...(event.input === undefined ? {} : { input: event.input }),
 				});
 				break;
 			case 'tool.updated': {
@@ -517,6 +578,14 @@ export class AgentStore {
 				}
 				break;
 			}
+			case 'project.console.appended':
+				if (event.projectPath === this.selectedProjectPath) {
+					this.consoleEntries = [
+						...this.consoleEntries,
+						...event.update.entries,
+					].slice(-consoleLimit);
+				}
+				break;
 			case 'project.status.changed':
 				if (event.projectPath === this.selectedProjectPath) {
 					this.projectStatus = event.status;
@@ -524,7 +593,7 @@ export class AgentStore {
 				}
 				break;
 			case 'error':
-				this.error = event.message;
+				this.error = { kind: 'agent', message: event.message };
 				this.sessionState = 'error';
 				break;
 		}
@@ -560,6 +629,10 @@ export class AgentStore {
 				this.projectError = errorMessage(error);
 			}
 		}
+	}
+
+	#fail(kind: AgentErrorKind, error: unknown): void {
+		this.error = { kind, message: errorMessage(error) };
 	}
 
 	#message(messageId: string): ConversationMessage | undefined {

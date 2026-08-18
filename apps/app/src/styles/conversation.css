@@ -3,6 +3,7 @@
  * that changes with it is a layout that breaks the first time it appears.
  */
 [data-ui='conversation'] {
+	position: relative;
 	grid-area: conversation;
 	display: flex;
 	flex-direction: column;
@@ -34,11 +35,16 @@
 [data-ui='message-list'] {
 	width: min(var(--content-max), 100%);
 	margin: 0 auto;
-	padding: 42px var(--space-8) 80px;
+	padding: 42px var(--space-8) 0;
 }
 
+/*
+ * Breathing room under the transcript is this element rather than padding on
+ * the list: the scroll viewport will not scroll into trailing padding, which
+ * leaves a gap that makes "am I at the bottom?" permanently false.
+ */
 [data-ui='scroll-anchor'] {
-	height: 1px;
+	height: 80px;
 }
 
 [data-ui='conversation-empty'] {
@@ -99,5 +105,23 @@
 }
 
 [data-left-mode='overlay'] [data-ui='message-list'] {
-	padding: 28px var(--space-4) 68px;
+	padding: 28px var(--space-4) 0;
+}
+
+/* Floats over the transcript, above the composer's gradient. */
+[data-ui='jump-to-latest'] {
+	position: absolute;
+	right: 0;
+	bottom: 128px;
+	left: 0;
+	z-index: 5;
+	display: flex;
+	justify-content: center;
+	pointer-events: none;
+}
+
+[data-ui='jump-to-latest'] [data-ui='button'] {
+	border-radius: var(--radius-full);
+	box-shadow: var(--shadow-panel);
+	pointer-events: auto;
 }

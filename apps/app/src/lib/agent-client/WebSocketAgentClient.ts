@@ -1,6 +1,8 @@
 import {
 	parseAgentModelCatalog,
 	parseAgentResponse,
+	parseFileRevertResult,
+	parseUnityConsoleUpdate,
 	parseSessionCatalog,
 	parseSessionSnapshot,
 	parseUnityOpenProjectResult,
@@ -10,9 +12,11 @@ import {
 	type AgentRequest,
 	type AgentResponse,
 	type AgentModelCatalog,
+	type FileRevertResult,
 	type SessionCatalog,
 	type SessionOptions,
 	type SessionSnapshot,
+	type UnityConsoleUpdate,
 	type UnityOpenProjectResult,
 	type UnityProject,
 	type UnityStatus,
@@ -43,7 +47,7 @@ type AgentRequestBody = AgentRequest extends infer Request
 	: never;
 
 export class WebSocketAgentClient implements AgentClient {
-	readonly #url: string;
+	#url: string;
 	readonly #createSocket: (url: string) => WebSocket;
 	readonly #listeners = new Set<AgentEventListener>();
 	readonly #disconnectListeners = new Set<AgentDisconnectListener>();
@@ -84,6 +88,11 @@ export class WebSocketAgentClient implements AgentClient {
 			socket.addEventListener('error', failed, { once: true });
 			socket.addEventListener('close', failed, { once: true });
 		});
+	}
+
+	/** Takes effect on the next connect; the current socket is left alone. */
+	setEndpoint(url: string): void {
+		this.#url = url || defaultAgentUrl();
 	}
 
 	async disconnect(): Promise<void> {
@@ -199,6 +208,32 @@ export class WebSocketAgentClient implements AgentClient {
 			projectPath,
 		});
 		return parseUnityOpenProjectResult(response.result);
+	}
+
+	async readConsole(
+		projectPath: string,
+		tail?: number,
+	): Promise<UnityConsoleUpdate> {
+		const response = await this.#request({
+			type: 'project.console',
+			projectPath,
+			...(tail === undefined ? {} : { tail }),
+		});
+		return parseUnityConsoleUpdate(response.result);
+	}
+
+	async revertFile(
+		projectPath: string,
+		file: string,
+		patch: string,
+	): Promise<FileRevertResult> {
+		const response = await this.#request({
+			type: 'file.revert',
+			projectPath,
+			file,
+			patch,
+		});
+		return parseFileRevertResult(response.result);
 	}
 
 	subscribe(listener: AgentEventListener): () => void {

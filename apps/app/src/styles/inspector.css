@@ -13,11 +13,25 @@
 	margin-bottom: var(--space-5);
 }
 
+[data-ui='inspector-header'] > div {
+	min-width: 0;
+}
+
+[data-ui='inspector-header'] h2 {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 [data-ui='status-pill'] {
 	display: inline-flex;
 	align-items: center;
+	flex: 0 1 auto;
+	min-width: 0;
 	gap: 6px;
+	overflow: hidden;
 	padding: 5px 8px;
+	text-overflow: ellipsis;
 	border-radius: var(--radius-full);
 	background: var(--color-success-soft);
 	color: var(--color-success);

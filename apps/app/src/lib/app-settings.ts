@@ -57,6 +57,8 @@ export interface AppSettings {
 	showUnityInspector: boolean;
 	sidebarWidth: number;
 	inspectorWidth: number;
+	/** Empty means "use the built-in address for this platform". */
+	agentUrl: string;
 }
 
 export type PanelName = 'sidebar' | 'inspector';
@@ -80,6 +82,7 @@ export const defaultAppSettings: AppSettings = {
 	showUnityInspector: true,
 	sidebarWidth: panelWidthLimits.sidebar.default,
 	inspectorWidth: panelWidthLimits.inspector.default,
+	agentUrl: '',
 };
 
 /**
@@ -122,6 +125,8 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 			),
 			sidebarWidth: panelWidth(settings.sidebarWidth, 'sidebar'),
 			inspectorWidth: panelWidth(settings.inspectorWidth, 'inspector'),
+			agentUrl:
+				typeof settings.agentUrl === 'string' ? settings.agentUrl.trim() : '',
 		};
 	} catch {
 		return fallback;

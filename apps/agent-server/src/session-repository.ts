@@ -140,6 +140,20 @@ function toSummary(info: SessionInfo): AgentSessionSummary {
 	};
 }
 
+/**
+ * Recorded arguments for a tool call. The key has varied across transcript
+ * formats, so every spelling that has been used is accepted rather than
+ * dropping the arguments of older threads.
+ */
+function toolCallInput(toolCall: unknown): unknown {
+	if (!toolCall || typeof toolCall !== 'object') return undefined;
+	const record = toolCall as Record<string, unknown>;
+	for (const key of ['args', 'arguments', 'input', 'parameters']) {
+		if (record[key] !== undefined) return record[key];
+	}
+	return undefined;
+}
+
 function titleFromFirstMessage(message: string): string {
 	const title = message.trim();
 	if (!title) return 'New session';
@@ -168,11 +182,13 @@ function transcript(manager: SessionManager): ConversationMessage[] {
 			const messageTools = message.content
 				.filter((content) => content.type === 'toolCall')
 				.map((toolCall) => {
+					const input = toolCallInput(toolCall);
 					const tool: ToolCallView = {
 						id: toolCall.id,
 						name: toolCall.name,
 						status: 'running',
 						statusText: 'Starting',
+						...(input === undefined ? {} : { input }),
 					};
 					tools.set(tool.id, tool);
 					return tool;

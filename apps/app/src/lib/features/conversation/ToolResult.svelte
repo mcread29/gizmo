@@ -3,7 +3,9 @@
 	import { commandName } from '../unity/unity-view';
 	import UnityTestResults from '../unity/UnityTestResults.svelte';
 	import DiffView from './DiffView.svelte';
+	import { patchFileName } from '../changes/thread-changes';
 	import { formatToolResult, recordValue, stringValue } from './format';
+	import { toolParameters } from './tool-summary';
 
 	interface Props {
 		tool: ToolCallView;
@@ -19,6 +21,11 @@
 		stringValue(recordValue(tool.result, 'patch')) ??
 			stringValue(recordValue(tool.result, 'diff')),
 	);
+	let diffFile = $derived(
+		stringValue(recordValue(tool.result, 'file')) ??
+			(diff ? patchFileName(diff) : undefined),
+	);
+	let parameters = $derived(toolParameters(tool.input));
 	let instances = $derived(readArray(tool.result, 'instances'));
 	let commands = $derived(
 		readArray(tool.result, 'commands')
@@ -31,6 +38,17 @@
 		return Array.isArray(candidate) ? candidate : [];
 	}
 </script>
+
+{#if parameters.length}
+	<dl data-ui="tool-parameters">
+		{#each parameters as [name, value] (name)}
+			<div>
+				<dt>{name}</dt>
+				<dd>{value}</dd>
+			</div>
+		{/each}
+	</dl>
+{/if}
 
 {#if tool.status === 'running' && !resultText}
 	<p data-ui="tool-empty">Waiting for the tool to finish…</p>
@@ -90,7 +108,7 @@
 {:else if tool.name === 'unity_test'}
 	<UnityTestResults result={tool.result} {projectPath} />
 {:else if diff}
-	<DiffView {diff} />
+	<DiffView {diff} file={diffFile} {projectPath} />
 {:else if resultText}
 	<pre data-ui="structured-result"><code>{resultText}</code></pre>
 {:else}

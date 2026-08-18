@@ -9,15 +9,42 @@
 		type ColorScheme,
 		type ThemeMode,
 	} from '../../app-settings';
+	import type { AgentStore } from '../../agent-client';
 	import { Button, Dialog, SelectField, SwitchField } from '../../components';
+	import { toasts } from '../../toasts.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 
 	interface Props {
 		open?: boolean;
 		layout: WorkspaceLayout;
+		store: AgentStore;
 	}
 
-	let { open = $bindable(false), layout }: Props = $props();
+	let { open = $bindable(false), layout, store }: Props = $props();
+
+	let endpointDraft = $state('');
+	let applying = $state(false);
+
+	// Re-seeded each time the dialog opens so it reflects the saved address.
+	$effect(() => {
+		if (open) endpointDraft = layout.agentUrl;
+	});
+
+	async function applyEndpoint() {
+		applying = true;
+		layout.agentUrl = endpointDraft.trim();
+		try {
+			await store.reconnectTo(layout.agentUrl);
+			toasts.show(
+				store.connection === 'connected'
+					? 'Connected to the agent server'
+					: 'Could not reach that address',
+				store.connection === 'connected' ? 'success' : 'danger',
+			);
+		} finally {
+			applying = false;
+		}
+	}
 
 	let colorScheme = $derived(getColorScheme(layout.theme));
 	let themeMode = $derived(getThemeMode(layout.theme));
@@ -117,6 +144,32 @@
 				label="Unity inspector"
 				description="Show Editor status, diagnostics, and activity."
 			/>
+		</section>
+
+		<section data-ui="settings-section">
+			<div data-ui="settings-section-header">
+				<strong>Agent server</strong>
+				<span
+					>Leave empty to use the local sidecar. Changing this reconnects.</span
+				>
+			</div>
+			<div data-ui="endpoint-field">
+				<label for="agent-url" data-ui="sr-only">Agent server address</label>
+				<input
+					id="agent-url"
+					bind:value={endpointDraft}
+					placeholder="ws://127.0.0.1:8787/agent"
+					autocomplete="off"
+					spellcheck="false"
+				/>
+				<Button
+					variant="secondary"
+					size="sm"
+					disabled={applying || endpointDraft.trim() === layout.agentUrl}
+					onclick={() => void applyEndpoint()}
+					>{applying ? 'Connecting…' : 'Apply'}</Button
+				>
+			</div>
 		</section>
 
 		<section data-ui="settings-section">

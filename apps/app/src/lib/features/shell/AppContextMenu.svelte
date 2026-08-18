@@ -22,6 +22,7 @@
 		onNewThread: () => void;
 		onOpenThread: (sessionId: string) => void;
 		onRenameThread: (sessionId: string) => void;
+		onCopyTranscript: (sessionId: string) => void;
 		onExportTranscript: (sessionId: string) => void;
 		onDeleteThread: (sessionId: string) => void;
 		onOpenEditor: () => void;
@@ -39,6 +40,7 @@
 		onNewThread,
 		onOpenThread,
 		onRenameThread,
+		onCopyTranscript,
 		onExportTranscript,
 		onDeleteThread,
 		onOpenEditor,
@@ -97,6 +99,11 @@
 					data-ui="menu-item"
 					onSelect={() => onRenameThread(target.id!)}
 					>Rename thread</ContextMenu.Item
+				>
+				<ContextMenu.Item
+					data-ui="menu-item"
+					onSelect={() => onCopyTranscript(target.id!)}
+					>Copy transcript</ContextMenu.Item
 				>
 				<ContextMenu.Item
 					data-ui="menu-item"

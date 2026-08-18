@@ -44,16 +44,29 @@ export function compilerDiagnostic(
 	};
 }
 
+/** Deep link that opens a project file in the user's editor at a position. */
+export function sourceHref(
+	file: string | undefined,
+	projectPath?: string,
+	line?: number,
+	column?: number,
+): string | undefined {
+	if (!file) return;
+	const path = absolutePath(file, projectPath);
+	const location = line ? `:${line}${column ? `:${column}` : ''}` : '';
+	return `vscode://file${encodeURI(path)}${location}`;
+}
+
 export function editorFileHref(
 	diagnostic: CompilerDiagnostic,
 	projectPath?: string,
 ): string | undefined {
-	if (!diagnostic.file) return;
-	const path = absolutePath(diagnostic.file, projectPath);
-	const location = diagnostic.line
-		? `:${diagnostic.line}${diagnostic.column ? `:${diagnostic.column}` : ''}`
-		: '';
-	return `vscode://file${encodeURI(path)}${location}`;
+	return sourceHref(
+		diagnostic.file,
+		projectPath,
+		diagnostic.line,
+		diagnostic.column,
+	);
 }
 
 function fromMessage(
