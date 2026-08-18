@@ -5,6 +5,7 @@ import type {
 import {
 	agentToolPolicy,
 	protocolVersion,
+	type AgentAttachment,
 	type AgentModelCatalog,
 	type CompactionPolicy,
 	type AgentEvent,
@@ -14,6 +15,9 @@ import {
 	type SessionTree,
 } from '@unity-agent/protocol';
 import { createUnityTools } from '@unity-agent/unity-tools';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
 import {
 	PiEventTranslator,
 	type TranslatedPiEvent,
@@ -42,12 +46,25 @@ export interface PiSessionLike {
 	configureCompaction?(policy: CompactionPolicy): void;
 	compact?(): Promise<unknown>;
 	subscribe(listener: (event: AgentSessionEvent) => void): () => void;
-	prompt(text: string): Promise<void>;
-	steer(text: string): Promise<void>;
+	prompt(text: string, options?: { images?: PiImage[] }): Promise<void>;
+	steer(text: string, images?: PiImage[]): Promise<void>;
 	abort(): Promise<void>;
 	setSessionName?(name: string): void;
 	dispose(): void;
 }
+
+interface PiImage {
+	type: 'image';
+	data: string;
+	mimeType: string;
+}
+
+const modelImageMimeTypes = new Set([
+	'image/png',
+	'image/jpeg',
+	'image/webp',
+	'image/gif',
+]);
 
 export type PiSessionFactory = (
 	options: SessionOptions,
@@ -126,8 +143,10 @@ export class PiAgentService {
 		sessionId: string,
 		text: string,
 		compaction?: CompactionPolicy,
+		attachments: AgentAttachment[] = [],
 	): Promise<void> {
-		const session = this.#session(sessionId);
+		const active = this.#active(sessionId);
+		const { session } = active;
 		if (compaction) {
 			validateCompactionPolicy(compaction);
 			session.configureCompaction?.(compaction);
@@ -135,7 +154,11 @@ export class PiAgentService {
 		if (!session.sessionName || session.sessionName === 'New session') {
 			await this.renameSession(sessionId, sessionTitle(text));
 		}
-		await session.prompt(text);
+		const prepared = await prepareAttachments(active.manager, attachments);
+		const prompt = attachedPrompt(text, prepared.files);
+		if (prepared.images.length) {
+			await session.prompt(prompt, { images: prepared.images });
+		} else await session.prompt(prompt);
 	}
 
 	async compact(sessionId: string, policy: CompactionPolicy): Promise<void> {
@@ -222,8 +245,17 @@ export class PiAgentService {
 		return sessionTree(manager);
 	}
 
-	steer(sessionId: string, text: string): Promise<void> {
-		return this.#session(sessionId).steer(text);
+	async steer(
+		sessionId: string,
+		text: string,
+		attachments: AgentAttachment[] = [],
+	): Promise<void> {
+		const active = this.#active(sessionId);
+		const prepared = await prepareAttachments(active.manager, attachments);
+		const prompt = attachedPrompt(text, prepared.files);
+		if (prepared.images.length) {
+			await active.session.steer(prompt, prepared.images);
+		} else await active.session.steer(prompt);
 	}
 
 	abort(sessionId: string): Promise<void> {
@@ -433,4 +465,70 @@ function validateCompactionPolicy(policy: CompactionPolicy): void {
 	if (policy.retainPercent >= policy.fillPercent) {
 		throw new Error('Retained context must be below the compaction threshold');
 	}
+}
+
+interface StoredAttachment {
+	name: string;
+	mimeType: string;
+	path: string;
+}
+
+async function prepareAttachments(
+	manager: SessionManager,
+	attachments: AgentAttachment[],
+): Promise<{ files: StoredAttachment[]; images: PiImage[] }> {
+	if (!attachments.length) return { files: [], images: [] };
+	const directory = join(
+		manager.getSessionDir(),
+		'attachments',
+		manager.getSessionId(),
+	);
+	await mkdir(directory, { recursive: true });
+	const files: StoredAttachment[] = [];
+	const images: PiImage[] = [];
+	let totalBytes = 0;
+	for (const attachment of attachments) {
+		if (!validBase64(attachment.data)) {
+			throw new Error(`Invalid attachment data: ${attachment.name}`);
+		}
+		const bytes = Buffer.from(attachment.data, 'base64');
+		totalBytes += bytes.byteLength;
+		if (bytes.byteLength > 10 * 1024 * 1024 || totalBytes > 20 * 1024 * 1024) {
+			throw new Error(
+				'Attachments exceed the 10 MB per-file or 20 MB total limit',
+			);
+		}
+		const name = safeFileName(attachment.name);
+		const path = join(directory, `${randomUUID()}-${name}`);
+		await writeFile(path, bytes, { flag: 'wx' });
+		files.push({ name: attachment.name, mimeType: attachment.mimeType, path });
+		if (modelImageMimeTypes.has(attachment.mimeType)) {
+			images.push({
+				type: 'image',
+				data: attachment.data,
+				mimeType: attachment.mimeType,
+			});
+		}
+	}
+	return { files, images };
+}
+
+function attachedPrompt(text: string, files: StoredAttachment[]): string {
+	if (!files.length) return text;
+	const inventory = files
+		.map(
+			(file) =>
+				`- ${JSON.stringify(file.name)} (${file.mimeType}) saved at ${JSON.stringify(file.path)}`,
+		)
+		.join('\n');
+	return `${text}\n\nAttached files:\n${inventory}`;
+}
+
+function safeFileName(name: string): string {
+	const safe = name.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^\.+/, '');
+	return safe || 'attachment';
+}
+
+function validBase64(value: string): boolean {
+	return value.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(value);
 }

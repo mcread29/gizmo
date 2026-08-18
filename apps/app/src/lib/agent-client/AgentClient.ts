@@ -1,4 +1,5 @@
 import type {
+	AgentAttachment,
 	AgentModelCatalog,
 	CompactionPolicy,
 	FileRevertResult,
@@ -26,9 +27,14 @@ export interface AgentClient {
 		sessionId: string,
 		text: string,
 		compaction?: CompactionPolicy,
+		attachments?: AgentAttachment[],
 	): Promise<void>;
 	compact(sessionId: string, compaction: CompactionPolicy): Promise<void>;
-	steer(sessionId: string, text: string): Promise<void>;
+	steer(
+		sessionId: string,
+		text: string,
+		attachments?: AgentAttachment[],
+	): Promise<void>;
 	abort(sessionId: string): Promise<void>;
 	deleteSession(sessionId: string): Promise<void>;
 	getSessionTree(sessionId: string): Promise<SessionTree>;

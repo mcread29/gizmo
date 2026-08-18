@@ -1,5 +1,6 @@
 import {
 	parseAgentEvent,
+	type AgentAttachment,
 	type AgentModelCatalog,
 	type AgentModelOption,
 	type AgentEvent,
@@ -481,9 +482,12 @@ export class AgentStore {
 		this.#unsubscribeDisconnect = undefined;
 	}
 
-	async prompt(text: string): Promise<void> {
-		if (!this.sessionId || !text.trim()) return;
-		const prompt = text.trim();
+	async prompt(
+		text: string,
+		attachments: AgentAttachment[] = [],
+	): Promise<void> {
+		if (!this.sessionId || (!text.trim() && attachments.length === 0)) return;
+		const prompt = text.trim() || attachmentPrompt(attachments.length);
 		this.error = undefined;
 		this.lastPrompt = prompt;
 		this.cancelRetry();
@@ -495,7 +499,20 @@ export class AgentStore {
 			session.lastActiveAt = Date.now();
 		}
 		try {
-			await this.#client.prompt(this.sessionId, prompt, this.compactionPolicy);
+			if (attachments.length) {
+				await this.#client.prompt(
+					this.sessionId,
+					prompt,
+					this.compactionPolicy,
+					attachments,
+				);
+			} else {
+				await this.#client.prompt(
+					this.sessionId,
+					prompt,
+					this.compactionPolicy,
+				);
+			}
 		} catch (error) {
 			this.#fail('prompt', error);
 		}
@@ -520,11 +537,17 @@ export class AgentStore {
 	 * Adds direction to the run already in flight. Unlike a prompt this does not
 	 * wait for the agent to finish, which is the entire point of it.
 	 */
-	async steer(text: string): Promise<void> {
-		if (!this.sessionId || !text.trim()) return;
+	async steer(
+		text: string,
+		attachments: AgentAttachment[] = [],
+	): Promise<void> {
+		if (!this.sessionId || (!text.trim() && attachments.length === 0)) return;
 		this.error = undefined;
 		try {
-			await this.#client.steer(this.sessionId, text.trim());
+			const prompt = text.trim() || attachmentPrompt(attachments.length);
+			if (attachments.length) {
+				await this.#client.steer(this.sessionId, prompt, attachments);
+			} else await this.#client.steer(this.sessionId, prompt);
 		} catch (error) {
 			this.#fail('prompt', error);
 		}
@@ -818,4 +841,8 @@ function errorMessage(error: unknown): string {
 
 function sessionTitle(prompt: string): string {
 	return prompt.length > 48 ? `${prompt.slice(0, 47)}…` : prompt;
+}
+
+function attachmentPrompt(count: number): string {
+	return `Please inspect the attached ${count === 1 ? 'file' : 'files'}.`;
 }

@@ -5,7 +5,7 @@ import {
 	type AgentModelCatalog,
 	type CompactionPolicy,
 } from '@unity-agent/protocol';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -114,6 +114,38 @@ describe('PiAgentService', () => {
 		expect(pi.configureCompaction).toHaveBeenCalledTimes(2);
 		expect(pi.configureCompaction).toHaveBeenLastCalledWith(policy);
 		expect(pi.compact).toHaveBeenCalledOnce();
+	});
+
+	it('stores attachments with the session and sends images to Pi', async () => {
+		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+		temporaryDirectories.push(dataDir);
+		const pi = new FakePiSession();
+		let sessionDir = dataDir;
+		const service = new PiAgentService(async (_options, manager) => {
+			pi.sessionId = manager.getSessionId();
+			sessionDir = manager.getSessionDir();
+			return pi;
+		}, new PiSessionRepository(dataDir));
+		const sessionId = await service.createSession();
+		const data = Buffer.from('image bytes').toString('base64');
+
+		await service.prompt(sessionId, 'Inspect this', undefined, [
+			{ name: '../reference.png', mimeType: 'image/png', data },
+		]);
+
+		const directory = join(sessionDir, 'attachments', sessionId);
+		const names = await readdir(directory);
+		expect(names).toHaveLength(1);
+		expect(names[0]).not.toContain('..');
+		expect(await readFile(join(directory, names[0]!))).toEqual(
+			Buffer.from('image bytes'),
+		);
+		expect(pi.prompt).toHaveBeenCalledWith(
+			expect.stringContaining('Attached files:'),
+			{
+				images: [{ type: 'image', mimeType: 'image/png', data }],
+			},
+		);
 	});
 
 	it('rejects retention at or above the compaction threshold', async () => {

@@ -45,6 +45,25 @@ describe('agent protocol validation', () => {
 		expect(request.type).toBe('session.prompt');
 	});
 
+	it('accepts base64 file attachments on prompts', () => {
+		expect(
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'request-attachment',
+				type: 'session.prompt',
+				sessionId: 'session-1',
+				text: 'Inspect this',
+				attachments: [
+					{
+						name: 'reference.png',
+						mimeType: 'image/png',
+						data: 'aGVsbG8=',
+					},
+				],
+			}),
+		).toMatchObject({ type: 'session.prompt' });
+	});
+
 	it('validates compaction policies', () => {
 		expect(
 			parseAgentRequest({

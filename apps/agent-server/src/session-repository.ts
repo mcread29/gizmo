@@ -13,7 +13,14 @@ import type {
 	SessionTreeEntry,
 	ToolCallView,
 } from '@unity-agent/protocol';
-import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import {
+	mkdir,
+	readFile,
+	rename,
+	rm,
+	unlink,
+	writeFile,
+} from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { normalizeToolResult, toolResultIsError } from './tool-result';
@@ -107,6 +114,10 @@ export class PiSessionRepository implements SessionRepository {
 	async delete(sessionId: string): Promise<void> {
 		const info = await this.#find(sessionId);
 		await unlink(info.path);
+		await rm(join(this.#sessionDir, 'attachments', sessionId), {
+			recursive: true,
+			force: true,
+		});
 		const current = await this.#readLastSessionId();
 		if (current === sessionId) await this.setLastSession();
 	}

@@ -86,6 +86,32 @@ describe('WebSocketAgentClient', () => {
 		await expect(prompt).rejects.toThrow('Unknown session');
 	});
 
+	it('sends attachments with prompts', async () => {
+		const socket = new TestSocket();
+		const client = new WebSocketAgentClient({
+			url: 'ws://agent.test/agent',
+			createSocket: () => socket as unknown as WebSocket,
+		});
+		const connecting = client.connect();
+		socket.open();
+		await connecting;
+
+		const prompt = client.prompt('session-1', 'Inspect', undefined, [
+			{ name: 'notes.txt', mimeType: 'text/plain', data: 'aGVsbG8=' },
+		]);
+		expect(socket.sent[0]).toMatchObject({
+			type: 'session.prompt',
+			attachments: [{ name: 'notes.txt', data: 'aGVsbG8=' }],
+		});
+		socket.receive({
+			protocolVersion,
+			requestId: 'request-1',
+			type: 'response.success',
+		});
+
+		await expect(prompt).resolves.toBeUndefined();
+	});
+
 	it('validates project data returned by the server', async () => {
 		const socket = new TestSocket();
 		const client = new WebSocketAgentClient({

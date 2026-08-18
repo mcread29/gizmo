@@ -121,6 +121,18 @@ export const compactionPolicySchema = Type.Object(
 
 export type CompactionPolicy = Static<typeof compactionPolicySchema>;
 
+export const agentAttachmentSchema = Type.Object(
+	{
+		name: Type.String({ minLength: 1, maxLength: 255 }),
+		mimeType: Type.String({ minLength: 1, maxLength: 127 }),
+		/** Base64-encoded file bytes. */
+		data: Type.String({ minLength: 1, maxLength: 14_000_000 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type AgentAttachment = Static<typeof agentAttachmentSchema>;
+
 export const sessionTreeEntrySchema = Type.Object(
 	{
 		id: Type.String({ minLength: 1 }),
@@ -378,6 +390,9 @@ export const agentRequestSchema = Type.Union([
 			sessionId: Type.String({ minLength: 1 }),
 			text: Type.String({ minLength: 1 }),
 			compaction: Type.Optional(compactionPolicySchema),
+			attachments: Type.Optional(
+				Type.Array(agentAttachmentSchema, { maxItems: 8 }),
+			),
 		},
 		{ additionalProperties: false },
 	),
@@ -396,6 +411,9 @@ export const agentRequestSchema = Type.Union([
 			type: Type.Literal('session.steer'),
 			sessionId: Type.String({ minLength: 1 }),
 			text: Type.String({ minLength: 1 }),
+			attachments: Type.Optional(
+				Type.Array(agentAttachmentSchema, { maxItems: 8 }),
+			),
 		},
 		{ additionalProperties: false },
 	),

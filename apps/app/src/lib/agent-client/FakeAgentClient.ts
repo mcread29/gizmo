@@ -1,6 +1,7 @@
 import {
 	agentToolPolicy,
 	protocolVersion,
+	type AgentAttachment,
 	type AgentModelCatalog,
 	type AgentSessionSummary,
 	type AgentEvent,
@@ -184,6 +185,7 @@ export class FakeAgentClient implements AgentClient {
 		sessionId: string,
 		text: string,
 		_compaction?: CompactionPolicy,
+		_attachments?: AgentAttachment[],
 	): Promise<void> {
 		const session = this.#getSession(sessionId);
 		if (session.running) throw new Error('Session is already streaming');
@@ -416,9 +418,13 @@ export class FakeAgentClient implements AgentClient {
 		this.#getSession(sessionId);
 	}
 
-	async steer(sessionId: string, text: string): Promise<void> {
+	async steer(
+		sessionId: string,
+		text: string,
+		attachments?: AgentAttachment[],
+	): Promise<void> {
 		await this.abort(sessionId);
-		await this.prompt(sessionId, text);
+		await this.prompt(sessionId, text, undefined, attachments);
 	}
 
 	async readConsole(

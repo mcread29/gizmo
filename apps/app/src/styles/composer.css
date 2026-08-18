@@ -22,6 +22,90 @@
 	box-shadow: var(--focus-ring), var(--shadow-panel);
 }
 
+[data-ui='composer'][data-dragging] {
+	border-color: var(--color-accent);
+	background: color-mix(
+		in srgb,
+		var(--color-accent-soft) 45%,
+		var(--color-surface-raised)
+	);
+	box-shadow: var(--focus-ring), var(--shadow-panel);
+}
+
+[data-ui='attachment-picker'] {
+	display: none;
+}
+
+[data-ui='attachment-list'] {
+	display: flex;
+	gap: var(--space-2);
+	padding: 7px 7px 0;
+	overflow-x: auto;
+}
+
+[data-ui='attachment-chip'] {
+	display: grid;
+	grid-template-columns: 34px minmax(70px, 150px) 22px;
+	align-items: center;
+	flex: 0 0 auto;
+	gap: 7px;
+	min-width: 150px;
+	padding: 5px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text-muted);
+}
+
+[data-ui='attachment-chip'] > img {
+	width: 34px;
+	height: 34px;
+	border-radius: var(--radius-xs);
+	object-fit: cover;
+}
+
+[data-ui='attachment-chip'] > svg {
+	justify-self: center;
+}
+
+[data-ui='attachment-chip'] > span {
+	display: grid;
+	min-width: 0;
+}
+
+[data-ui='attachment-chip'] strong,
+[data-ui='attachment-chip'] small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='attachment-chip'] strong {
+	color: var(--color-text);
+	font-size: var(--text-2xs);
+	font-weight: 550;
+}
+
+[data-ui='attachment-chip'] small {
+	font-size: 10px;
+}
+
+[data-ui='attachment-chip'] button {
+	display: grid;
+	width: 22px;
+	height: 22px;
+	place-items: center;
+	border: 0;
+	border-radius: var(--radius-xs);
+	background: transparent;
+	color: var(--color-text-muted);
+}
+
+[data-ui='attachment-chip'] button:hover {
+	background: var(--color-surface-raised);
+	color: var(--color-text);
+}
+
 [data-ui='composer'] textarea {
 	width: 100%;
 	min-height: 55px;

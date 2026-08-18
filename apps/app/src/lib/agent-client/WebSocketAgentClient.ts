@@ -11,6 +11,7 @@ import {
 	parseUnityStatus,
 	protocolVersion,
 	type AgentRequest,
+	type AgentAttachment,
 	type AgentResponse,
 	type AgentModelCatalog,
 	type CompactionPolicy,
@@ -137,12 +138,14 @@ export class WebSocketAgentClient implements AgentClient {
 		sessionId: string,
 		text: string,
 		compaction?: CompactionPolicy,
+		attachments?: AgentAttachment[],
 	): Promise<void> {
 		await this.#request({
 			type: 'session.prompt',
 			sessionId,
 			text,
 			compaction,
+			attachments,
 		});
 	}
 
@@ -153,8 +156,17 @@ export class WebSocketAgentClient implements AgentClient {
 		await this.#request({ type: 'session.compact', sessionId, compaction });
 	}
 
-	async steer(sessionId: string, text: string): Promise<void> {
-		await this.#request({ type: 'session.steer', sessionId, text });
+	async steer(
+		sessionId: string,
+		text: string,
+		attachments?: AgentAttachment[],
+	): Promise<void> {
+		await this.#request({
+			type: 'session.steer',
+			sessionId,
+			text,
+			attachments,
+		});
 	}
 
 	async abort(sessionId: string): Promise<void> {

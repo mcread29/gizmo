@@ -369,6 +369,44 @@ describe('application shell', () => {
 		);
 	});
 
+	it('attaches files from the composer and sends them with the prompt', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const prompt = vi.spyOn(client, 'prompt');
+		const { findByRole, getByLabelText, getByRole } = render(App, { client });
+		await findByRole('button', { name: 'Attach files' });
+		const file = {
+			name: 'reference.png',
+			type: 'image/png',
+			size: 5,
+			arrayBuffer: async () => new TextEncoder().encode('image').buffer,
+		} as File;
+
+		await fireEvent.change(getByLabelText('Choose attachments'), {
+			target: { files: [file] },
+		});
+		expect(
+			await findByRole('button', { name: 'Remove reference.png' }),
+		).toBeInTheDocument();
+		const send = getByRole('button', { name: 'Send message' });
+		await waitFor(() => expect(send).toBeEnabled());
+		await fireEvent.click(send);
+
+		await waitFor(() =>
+			expect(prompt).toHaveBeenCalledWith(
+				expect.any(String),
+				'Please inspect the attached file.',
+				expect.any(Object),
+				[
+					{
+						name: 'reference.png',
+						mimeType: 'image/png',
+						data: 'aW1hZ2U=',
+					},
+				],
+			),
+		);
+	});
+
 	it('collects the files the agent edited into the Changes tab', async () => {
 		const { findByRole, getByRole } = renderApp();
 		const composer = getByRole('textbox', { name: 'Message Unity Agent' });

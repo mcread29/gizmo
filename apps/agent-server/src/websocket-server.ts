@@ -36,7 +36,7 @@ export async function createAgentWebSocketServer(
 		host: options.host ?? '127.0.0.1',
 		port: options.port ?? 8787,
 		path: options.path ?? '/agent',
-		maxPayload: 1024 * 1024,
+		maxPayload: 32 * 1024 * 1024,
 		verifyClient,
 	});
 	const services = new Map<
@@ -199,13 +199,18 @@ async function dispatch(
 			await service.renameSession(request.sessionId, request.title);
 			return {};
 		case 'session.prompt':
-			await service.prompt(request.sessionId, request.text, request.compaction);
+			await service.prompt(
+				request.sessionId,
+				request.text,
+				request.compaction,
+				request.attachments,
+			);
 			return {};
 		case 'session.compact':
 			await service.compact(request.sessionId, request.compaction);
 			return {};
 		case 'session.steer':
-			await service.steer(request.sessionId, request.text);
+			await service.steer(request.sessionId, request.text, request.attachments);
 			return {};
 		case 'session.abort':
 			await service.abort(request.sessionId);
