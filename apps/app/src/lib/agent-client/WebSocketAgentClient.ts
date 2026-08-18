@@ -27,6 +27,7 @@ import {
 } from '@unity-agent/protocol';
 import type {
 	AgentClient,
+	AttachmentContent,
 	AgentDisconnectListener,
 	AgentEventListener,
 } from './AgentClient';
@@ -175,6 +176,38 @@ export class WebSocketAgentClient implements AgentClient {
 
 	async deleteSession(sessionId: string): Promise<void> {
 		await this.#request({ type: 'session.delete', sessionId });
+	}
+
+	async readAttachment(
+		sessionId: string,
+		attachmentId: string,
+	): Promise<AttachmentContent> {
+		const response = await this.#request({
+			type: 'attachment.read',
+			sessionId,
+			attachmentId,
+		});
+		const result = response.result as Partial<AttachmentContent> | undefined;
+		if (
+			!result ||
+			typeof result.name !== 'string' ||
+			typeof result.mimeType !== 'string' ||
+			typeof result.data !== 'string'
+		) {
+			throw new Error('Agent server returned invalid attachment data');
+		}
+		return result as AttachmentContent;
+	}
+
+	async revealAttachment(
+		sessionId: string,
+		attachmentId: string,
+	): Promise<void> {
+		await this.#request({
+			type: 'attachment.reveal',
+			sessionId,
+			attachmentId,
+		});
 	}
 
 	async getSessionTree(sessionId: string): Promise<SessionTree> {

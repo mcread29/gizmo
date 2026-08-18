@@ -16,6 +16,12 @@ import type {
 export type AgentEventListener = (event: unknown) => void;
 export type AgentDisconnectListener = (error: Error) => void;
 
+export interface AttachmentContent {
+	name: string;
+	mimeType: string;
+	data: string;
+}
+
 export interface AgentClient {
 	connect(): Promise<void>;
 	disconnect(): Promise<void>;
@@ -37,6 +43,11 @@ export interface AgentClient {
 	): Promise<void>;
 	abort(sessionId: string): Promise<void>;
 	deleteSession(sessionId: string): Promise<void>;
+	readAttachment(
+		sessionId: string,
+		attachmentId: string,
+	): Promise<AttachmentContent>;
+	revealAttachment(sessionId: string, attachmentId: string): Promise<void>;
 	getSessionTree(sessionId: string): Promise<SessionTree>;
 	branchSession(
 		sessionId: string,

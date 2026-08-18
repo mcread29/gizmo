@@ -131,6 +131,8 @@
 				{expandReasoning}
 				{collapseToken}
 				{matched}
+				onReadAttachment={(id) => store.readAttachment(id)}
+				onRevealAttachment={(id) => store.revealAttachment(id)}
 				projectPath={currentSession?.projectPath}
 				onRetry={group.role === 'user'
 					? () => void store.retryPrompt()

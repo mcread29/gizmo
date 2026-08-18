@@ -24,6 +24,7 @@ import {
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { normalizeToolResult, toolResultIsError } from './tool-result';
+import { displayedUserMessage } from './attachment-message';
 
 export interface SessionRepository {
 	create(projectPath: string): Promise<SessionManager>;
@@ -270,10 +271,14 @@ function transcript(manager: SessionManager): ConversationMessage[] {
 		if (entry.type !== 'message') continue;
 		const message = (entry as SessionMessageEntry).message;
 		if (message.role === 'user') {
+			const displayed = displayedUserMessage(message.content);
 			messages.push({
 				id: entry.id,
 				role: 'user',
-				content: textContent(message.content),
+				content: displayed.text,
+				...(displayed.attachments.length
+					? { attachments: displayed.attachments }
+					: {}),
 				createdAt: message.timestamp,
 				complete: true,
 				tools: [],

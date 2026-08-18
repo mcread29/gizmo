@@ -141,7 +141,7 @@ describe('PiAgentService', () => {
 			Buffer.from('image bytes'),
 		);
 		expect(pi.prompt).toHaveBeenCalledWith(
-			expect.stringContaining('Attached files:'),
+			expect.stringContaining('<unity-agent-attachments>'),
 			{
 				images: [{ type: 'image', mimeType: 'image/png', data }],
 			},

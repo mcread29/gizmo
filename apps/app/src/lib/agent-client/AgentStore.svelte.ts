@@ -668,6 +668,16 @@ export class AgentStore {
 		if (this.sessionId) await this.#client.abort(this.sessionId);
 	}
 
+	async readAttachment(attachmentId: string) {
+		if (!this.sessionId) throw new Error('No active session');
+		return await this.#client.readAttachment(this.sessionId, attachmentId);
+	}
+
+	async revealAttachment(attachmentId: string): Promise<void> {
+		if (!this.sessionId) throw new Error('No active session');
+		await this.#client.revealAttachment(this.sessionId, attachmentId);
+	}
+
 	#receive(input: unknown): void {
 		let event: AgentEvent;
 		try {
@@ -701,6 +711,7 @@ export class AgentStore {
 					createdAt: event.createdAt,
 					complete: false,
 					tools: [],
+					...(event.attachments ? { attachments: event.attachments } : {}),
 				});
 				{
 					const session = this.#currentSession();

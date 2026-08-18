@@ -112,6 +112,36 @@ describe('WebSocketAgentClient', () => {
 		await expect(prompt).resolves.toBeUndefined();
 	});
 
+	it('reads attachments through their session-scoped id', async () => {
+		const socket = new TestSocket();
+		const client = new WebSocketAgentClient({
+			url: 'ws://agent.test/agent',
+			createSocket: () => socket as unknown as WebSocket,
+		});
+		const connecting = client.connect();
+		socket.open();
+		await connecting;
+
+		const reading = client.readAttachment('session-1', 'attachment-1');
+		expect(socket.sent[0]).toMatchObject({
+			type: 'attachment.read',
+			sessionId: 'session-1',
+			attachmentId: 'attachment-1',
+		});
+		socket.receive({
+			protocolVersion,
+			requestId: 'request-1',
+			type: 'response.success',
+			result: {
+				name: 'notes.txt',
+				mimeType: 'text/plain',
+				data: 'aGVsbG8=',
+			},
+		});
+
+		await expect(reading).resolves.toMatchObject({ name: 'notes.txt' });
+	});
+
 	it('validates project data returned by the server', async () => {
 		const socket = new TestSocket();
 		const client = new WebSocketAgentClient({

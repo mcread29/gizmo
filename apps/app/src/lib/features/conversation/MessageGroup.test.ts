@@ -5,6 +5,40 @@ import MessageGroupView from './MessageGroup.svelte';
 import { groupMessages } from './message-groups';
 
 describe('MessageGroup', () => {
+	it('renders attachment cards with image previews', () => {
+		const message: ConversationMessage = {
+			id: 'message-attachment',
+			role: 'user',
+			content: 'Inspect this',
+			createdAt: 1,
+			complete: true,
+			tools: [],
+			attachments: [
+				{
+					id: 'reference-id',
+					name: 'reference.png',
+					mimeType: 'image/png',
+					size: 3,
+					data: 'YWJj',
+				},
+			],
+		};
+		const { getByRole, getByText } = render(MessageGroupView, {
+			group: {
+				id: 'group-1',
+				role: 'user',
+				createdAt: 1,
+				messages: [message],
+			},
+			agentName: 'Agent',
+		});
+
+		expect(getByText('reference.png')).toBeInTheDocument();
+		expect(
+			getByRole('button', { name: 'Preview reference.png' }),
+		).toBeVisible();
+	});
+
 	it('renders Markdown, code controls, and a collapsed file diff', async () => {
 		const message: ConversationMessage = {
 			id: 'message-1',

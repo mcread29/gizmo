@@ -71,6 +71,22 @@ export const toolCallViewSchema = Type.Object(
 
 export type ToolCallView = Static<typeof toolCallViewSchema>;
 
+export const conversationAttachmentSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1 }),
+		name: Type.String({ minLength: 1, maxLength: 255 }),
+		mimeType: Type.String({ minLength: 1, maxLength: 127 }),
+		size: Type.Integer({ minimum: 0 }),
+		/** Base64 image bytes, present when the attachment can be previewed. */
+		data: Type.Optional(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+
+export type ConversationAttachment = Static<
+	typeof conversationAttachmentSchema
+>;
+
 export const conversationMessageSchema = Type.Object(
 	{
 		id: Type.String({ minLength: 1 }),
@@ -86,6 +102,7 @@ export const conversationMessageSchema = Type.Object(
 		createdAt: Type.Integer({ minimum: 0 }),
 		complete: Type.Boolean(),
 		tools: Type.Array(toolCallViewSchema),
+		attachments: Type.Optional(Type.Array(conversationAttachmentSchema)),
 	},
 	{ additionalProperties: false },
 );
@@ -351,6 +368,24 @@ export type UnityOpenProjectResult = Static<
 >;
 
 export const agentRequestSchema = Type.Union([
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('attachment.read'),
+			sessionId: Type.String({ minLength: 1 }),
+			attachmentId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('attachment.reveal'),
+			sessionId: Type.String({ minLength: 1 }),
+			attachmentId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
 	Type.Object(
 		{
 			...envelope,
@@ -641,6 +676,7 @@ export const agentEventSchema = Type.Union([
 			messageId: Type.String({ minLength: 1 }),
 			role: Type.Union([Type.Literal('user'), Type.Literal('assistant')]),
 			createdAt: Type.Integer({ minimum: 0 }),
+			attachments: Type.Optional(Type.Array(conversationAttachmentSchema)),
 		},
 		{ additionalProperties: false },
 	),

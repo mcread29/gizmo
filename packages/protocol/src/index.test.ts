@@ -64,6 +64,20 @@ describe('agent protocol validation', () => {
 		).toMatchObject({ type: 'session.prompt' });
 	});
 
+	it('accepts session-scoped attachment operations', () => {
+		for (const type of ['attachment.read', 'attachment.reveal'] as const) {
+			expect(
+				parseAgentRequest({
+					protocolVersion,
+					requestId: `request-${type}`,
+					type,
+					sessionId: 'session-1',
+					attachmentId: 'attachment-1',
+				}),
+			).toMatchObject({ type, attachmentId: 'attachment-1' });
+		}
+	});
+
 	it('validates compaction policies', () => {
 		expect(
 			parseAgentRequest({

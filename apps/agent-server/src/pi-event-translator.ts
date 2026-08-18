@@ -1,5 +1,6 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
 import { normalizeToolResult, toolResultIsError } from './tool-result';
+import { displayedUserMessage } from './attachment-message';
 
 export type TranslatedPiEvent =
 	| {
@@ -16,6 +17,7 @@ export type TranslatedPiEvent =
 			messageId: string;
 			role: 'user' | 'assistant';
 			createdAt: number;
+			attachments?: ReturnType<typeof displayedUserMessage>['attachments'];
 	  }
 	| { type: 'message.delta'; messageId: string; delta: string }
 	| {
@@ -108,14 +110,21 @@ export class PiEventTranslator {
 						this.#lastAssistantMessageId = messageId;
 						this.#reasoningOpen = false;
 					}
+					const displayed =
+						event.message.role === 'user'
+							? displayedUserMessage(event.message.content)
+							: undefined;
 					this.#emit({
 						type: 'message.started',
 						messageId,
 						role: event.message.role,
 						createdAt: event.message.timestamp,
+						...(displayed?.attachments.length
+							? { attachments: displayed.attachments }
+							: {}),
 					});
 					if (event.message.role === 'user') {
-						const text = getMessageText(event.message.content);
+						const text = displayed?.text ?? '';
 						if (text)
 							this.#emit({ type: 'message.delta', messageId, delta: text });
 					}

@@ -460,6 +460,16 @@ export class FakeAgentClient implements AgentClient {
 		if (this.#lastSessionId === sessionId) this.#lastSessionId = undefined;
 	}
 
+	async readAttachment(): Promise<{
+		name: string;
+		mimeType: string;
+		data: string;
+	}> {
+		throw new Error('Attachment data is unavailable in the demo client');
+	}
+
+	async revealAttachment(): Promise<void> {}
+
 	async getModelCatalog(sessionId: string): Promise<AgentModelCatalog> {
 		return this.#modelCatalog(this.#getSession(sessionId));
 	}

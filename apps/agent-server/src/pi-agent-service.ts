@@ -15,9 +15,11 @@ import {
 	type SessionTree,
 } from '@unity-agent/protocol';
 import { createUnityTools } from '@unity-agent/unity-tools';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { platform } from 'node:os';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import {
 	PiEventTranslator,
 	type TranslatedPiEvent,
@@ -28,6 +30,12 @@ import {
 	type SessionRepository,
 } from './session-repository';
 import { unitySystemPrompt } from './unity-system-prompt';
+import {
+	attachmentPrompt,
+	storedAttachmentId,
+	storedAttachments,
+	type StoredAttachment,
+} from './attachment-message';
 
 export interface PiSessionLike {
 	readonly sessionId: string;
@@ -155,7 +163,7 @@ export class PiAgentService {
 			await this.renameSession(sessionId, sessionTitle(text));
 		}
 		const prepared = await prepareAttachments(active.manager, attachments);
-		const prompt = attachedPrompt(text, prepared.files);
+		const prompt = attachmentPrompt(text, prepared.files);
 		if (prepared.images.length) {
 			await session.prompt(prompt, { images: prepared.images });
 		} else await session.prompt(prompt);
@@ -252,10 +260,61 @@ export class PiAgentService {
 	): Promise<void> {
 		const active = this.#active(sessionId);
 		const prepared = await prepareAttachments(active.manager, attachments);
-		const prompt = attachedPrompt(text, prepared.files);
+		const prompt = attachmentPrompt(text, prepared.files);
 		if (prepared.images.length) {
 			await active.session.steer(prompt, prepared.images);
 		} else await active.session.steer(prompt);
+	}
+
+	async readAttachment(
+		sessionId: string,
+		attachmentId: string,
+	): Promise<{ name: string; mimeType: string; data: string }> {
+		const attachment = await this.#attachment(sessionId, attachmentId);
+		return {
+			name: attachment.name,
+			mimeType: attachment.mimeType,
+			data: (await readFile(attachment.path)).toString('base64'),
+		};
+	}
+
+	async revealAttachment(
+		sessionId: string,
+		attachmentId: string,
+	): Promise<void> {
+		const attachment = await this.#attachment(sessionId, attachmentId);
+		await revealFile(attachment.path);
+	}
+
+	async #attachment(
+		sessionId: string,
+		attachmentId: string,
+	): Promise<StoredAttachment> {
+		await this.resumeSession(sessionId);
+		const manager = this.#active(sessionId).manager;
+		const directory = resolve(
+			manager.getSessionDir(),
+			'attachments',
+			manager.getSessionId(),
+		);
+		for (const entry of manager.getBranch()) {
+			if (entry.type !== 'message') continue;
+			const message = (
+				entry as { message?: { role?: string; content?: unknown } }
+			).message;
+			if (message?.role !== 'user') continue;
+			const attachment = storedAttachments(message.content).find(
+				(item) => storedAttachmentId(item) === attachmentId,
+			);
+			if (!attachment) continue;
+			const filePath = resolve(attachment.path);
+			const childPath = relative(directory, filePath);
+			if (childPath && !childPath.startsWith('..') && !isAbsolute(childPath)) {
+				return attachment;
+			}
+			break;
+		}
+		throw new Error('Attachment not found in this session');
 	}
 
 	abort(sessionId: string): Promise<void> {
@@ -467,12 +526,6 @@ function validateCompactionPolicy(policy: CompactionPolicy): void {
 	}
 }
 
-interface StoredAttachment {
-	name: string;
-	mimeType: string;
-	path: string;
-}
-
 async function prepareAttachments(
 	manager: SessionManager,
 	attachments: AgentAttachment[],
@@ -499,9 +552,16 @@ async function prepareAttachments(
 			);
 		}
 		const name = safeFileName(attachment.name);
-		const path = join(directory, `${randomUUID()}-${name}`);
+		const id = randomUUID();
+		const path = join(directory, `${id}-${name}`);
 		await writeFile(path, bytes, { flag: 'wx' });
-		files.push({ name: attachment.name, mimeType: attachment.mimeType, path });
+		files.push({
+			id,
+			name: attachment.name,
+			mimeType: attachment.mimeType,
+			size: bytes.byteLength,
+			path,
+		});
 		if (modelImageMimeTypes.has(attachment.mimeType)) {
 			images.push({
 				type: 'image',
@@ -513,15 +573,24 @@ async function prepareAttachments(
 	return { files, images };
 }
 
-function attachedPrompt(text: string, files: StoredAttachment[]): string {
-	if (!files.length) return text;
-	const inventory = files
-		.map(
-			(file) =>
-				`- ${JSON.stringify(file.name)} (${file.mimeType}) saved at ${JSON.stringify(file.path)}`,
-		)
-		.join('\n');
-	return `${text}\n\nAttached files:\n${inventory}`;
+function revealFile(filePath: string): Promise<void> {
+	const command =
+		platform() === 'darwin'
+			? (['open', ['-R', filePath]] as const)
+			: platform() === 'win32'
+				? (['explorer.exe', ['/select,', filePath]] as const)
+				: (['xdg-open', [dirname(filePath)]] as const);
+	return new Promise((resolvePromise, reject) => {
+		const child = spawn(command[0], command[1], {
+			detached: true,
+			stdio: 'ignore',
+		});
+		child.once('error', reject);
+		child.once('spawn', () => {
+			child.unref();
+			resolvePromise();
+		});
+	});
 }
 
 function safeFileName(name: string): string {

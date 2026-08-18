@@ -2,12 +2,14 @@
 	import { Bot, Check, Copy, RotateCw, User } from '@lucide/svelte';
 	import { Button } from '../../components';
 	import MarkdownContent from './MarkdownContent.svelte';
+	import MessageAttachments from './MessageAttachments.svelte';
 	import ReasoningBlock from './ReasoningBlock.svelte';
 	import StreamingIndicator from './StreamingIndicator.svelte';
 	import ToolCallCard from './ToolCallCard.svelte';
 	import { formatMessageTime } from './format';
 	import { groupContent, type MessageGroup } from './message-groups';
 	import type { StreamingActivity } from './streaming';
+	import type { AttachmentContent } from '../../agent-client/AgentClient';
 
 	interface Props {
 		group: MessageGroup;
@@ -22,6 +24,8 @@
 		collapseToken?: number;
 		/** Ids of messages and tool calls to mark as search hits. */
 		matched?: ReadonlySet<string>;
+		onReadAttachment?: (id: string) => Promise<AttachmentContent>;
+		onRevealAttachment?: (id: string) => Promise<void>;
 	}
 
 	let {
@@ -33,6 +37,10 @@
 		expandReasoning,
 		collapseToken,
 		matched,
+		onReadAttachment = async () => {
+			throw new Error('Attachment is unavailable');
+		},
+		onRevealAttachment = async () => {},
 	}: Props = $props();
 
 	let copied = $state(false);
@@ -86,6 +94,13 @@
 				data-context-label={group.role === 'assistant' ? 'response' : 'message'}
 				data-matched={matched?.has(message.id) || undefined}
 			>
+				{#if message.attachments?.length}
+					<MessageAttachments
+						attachments={message.attachments}
+						onRead={onReadAttachment}
+						onReveal={onRevealAttachment}
+					/>
+				{/if}
 				<ReasoningBlock
 					reasoning={message.reasoning}
 					redacted={message.reasoningRedacted}

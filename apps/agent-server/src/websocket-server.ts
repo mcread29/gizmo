@@ -186,6 +186,16 @@ async function dispatch(
 	request: AgentRequest,
 ): Promise<{ sessionId?: string; result?: unknown }> {
 	switch (request.type) {
+		case 'attachment.read':
+			return {
+				result: await service.readAttachment(
+					request.sessionId,
+					request.attachmentId,
+				),
+			};
+		case 'attachment.reveal':
+			await service.revealAttachment(request.sessionId, request.attachmentId);
+			return {};
 		case 'session.list':
 			return { result: await service.listSessions() };
 		case 'session.create':

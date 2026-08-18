@@ -42,6 +42,14 @@ class InvalidEventClient implements AgentClient {
 	async steer() {}
 	async abort() {}
 	async deleteSession() {}
+	async readAttachment(): Promise<{
+		name: string;
+		mimeType: string;
+		data: string;
+	}> {
+		throw new Error('No attachment');
+	}
+	async revealAttachment() {}
 	async getModelCatalog(): Promise<AgentModelCatalog> {
 		return { models: [], thinkingLevels: [] };
 	}
