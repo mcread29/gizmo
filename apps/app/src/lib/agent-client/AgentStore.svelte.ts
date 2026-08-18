@@ -194,6 +194,7 @@ export class AgentStore {
 				messageCount: 0,
 			});
 			await this.refreshModelCatalog();
+			await this.#watchSelectedProject();
 		} catch (error) {
 			this.sessionId = previousId;
 			this.messages = previousMessages;
@@ -233,6 +234,7 @@ export class AgentStore {
 				await this.refreshProjectStatus();
 			}
 			await this.refreshModelCatalog();
+			await this.#watchSelectedProject();
 		} catch (error) {
 			this.sessionId = previousId;
 			this.messages = previousMessages;
@@ -458,10 +460,48 @@ export class AgentStore {
 				}
 				break;
 			}
+			case 'project.status.changed':
+				if (event.projectPath === this.selectedProjectPath) {
+					this.projectStatus = event.status;
+					this.projectError = undefined;
+				}
+				break;
 			case 'error':
 				this.error = event.message;
 				this.sessionState = 'error';
 				break;
+		}
+	}
+
+	async #watchSelectedProject(): Promise<void> {
+		if (
+			this.connection !== 'connected' ||
+			!this.sessionId ||
+			!this.selectedProjectPath
+		) {
+			return;
+		}
+		const sessionId = this.sessionId;
+		const projectPath = this.selectedProjectPath;
+		try {
+			const status = await this.#client.watchProjectStatus(
+				sessionId,
+				projectPath,
+			);
+			if (
+				this.sessionId === sessionId &&
+				this.selectedProjectPath === projectPath
+			) {
+				this.projectStatus = status;
+				this.projectError = undefined;
+			}
+		} catch (error) {
+			if (
+				this.sessionId === sessionId &&
+				this.selectedProjectPath === projectPath
+			) {
+				this.projectError = errorMessage(error);
+			}
 		}
 	}
 

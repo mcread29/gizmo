@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 4 as const;
+export const protocolVersion = 5 as const;
 
 export const agentToolPolicy = {
 	tools: [
@@ -12,6 +12,7 @@ export const agentToolPolicy = {
 		'unity_list_commands',
 		'unity_command',
 		'unity_wait_for_command',
+		'unity_command_template',
 	],
 	approvals: false,
 	extensions: false,
@@ -149,6 +150,9 @@ const unityCliMessageSchema = Type.Object(
 	{
 		code: Type.String(),
 		message: Type.String(),
+		file: Type.Optional(Type.String()),
+		line: Type.Optional(Type.Integer({ minimum: 1 })),
+		column: Type.Optional(Type.Integer({ minimum: 1 })),
 	},
 	{ additionalProperties: false },
 );
@@ -326,6 +330,15 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('project.watch'),
+			sessionId: Type.String({ minLength: 1 }),
+			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('project.open'),
 			projectPath: Type.String({ minLength: 1 }),
 		},
@@ -391,6 +404,15 @@ export const agentEventSchema = Type.Union([
 			...eventEnvelope,
 			type: Type.Literal('session.state'),
 			state: sessionStateSchema,
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('project.status.changed'),
+			projectPath: Type.String({ minLength: 1 }),
+			status: unityStatusSchema,
 		},
 		{ additionalProperties: false },
 	),

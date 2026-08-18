@@ -22,6 +22,7 @@ describe('agent protocol validation', () => {
 				'unity_list_commands',
 				'unity_command',
 				'unity_wait_for_command',
+				'unity_command_template',
 			],
 			approvals: false,
 			extensions: false,
@@ -39,6 +40,37 @@ describe('agent protocol validation', () => {
 		});
 
 		expect(request.type).toBe('session.prompt');
+	});
+
+	it('validates project status subscriptions and change events', () => {
+		expect(
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'request-watch',
+				type: 'project.watch',
+				sessionId: 'session-1',
+				projectPath: '/projects/game',
+			}),
+		).toMatchObject({ type: 'project.watch' });
+		expect(
+			parseAgentEvent({
+				protocolVersion,
+				eventId: 1,
+				sessionId: 'session-1',
+				type: 'project.status.changed',
+				projectPath: '/projects/game',
+				status: {
+					state: 'disconnected',
+					ok: true,
+					command: ['unity', 'status'],
+					exitCode: 0,
+					durationMs: 1,
+					instances: [],
+					errors: [],
+					warnings: [],
+				},
+			}),
+		).toMatchObject({ type: 'project.status.changed' });
 	});
 
 	it('validates model catalogs and model-selection requests', () => {

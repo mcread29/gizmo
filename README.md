@@ -26,13 +26,15 @@ Browser WebSockets are restricted to the local Vite origin by default. Set a
 comma-separated `UNITY_AGENT_ORIGINS` value when intentionally serving the UI
 from another origin.
 
-The Unity tools are `unity_status`, `unity_list_commands`, `unity_command`, and
-`unity_wait_for_command`. Command discovery returns the live Editor schemas,
+The Unity tools are `unity_status`, `unity_list_commands`, `unity_command`,
+`unity_wait_for_command`, and `unity_command_template`. Command discovery returns the live Editor schemas,
 supports text filtering, and is refreshed before every execution.
 `unity_command` accepts validated named parameters or raw argument arrays for
 unusual custom command syntax. After the agent authors an Editor-side command,
 `unity_wait_for_command` forces compilation, waits through the domain reload,
 reports compiler errors, and verifies the command's live registration.
+`unity_command_template` supplies a reusable starter matching the current
+Pipeline command API before project-specific Editor code is written.
 
 ## Desktop
 

@@ -73,7 +73,63 @@ describe('UnityProjectService', () => {
 			{ signal: expect.any(AbortSignal) },
 		);
 	});
+
+	it('emits only changed project status while watching', async () => {
+		const runner = runnerReturning(
+			projectsResult(),
+			statusResult([{ projectPath: '/projects/game', state: 'ready' }]),
+			statusResult([]),
+		);
+		const service = new UnityProjectService(runner, 1);
+		const changed = new Promise<string>((resolve) => {
+			void service.watchStatus('/projects/game', (status) =>
+				resolve(status.state),
+			);
+		});
+
+		await expect(changed).resolves.toBe('disconnected');
+		service.dispose();
+	});
 });
+
+function projectsResult(): UnityRunResult {
+	return runResult({
+		stdout: JSON.stringify({
+			success: true,
+			command: 'projects list',
+			data: [
+				{
+					title: 'Game',
+					path: '/projects/game',
+					isFavorite: false,
+				},
+			],
+			errors: [],
+			warnings: [],
+		}),
+	});
+}
+
+function statusResult(instances: Record<string, unknown>[]): UnityRunResult {
+	return runResult({
+		ok: instances.length > 0,
+		exitCode: instances.length > 0 ? 0 : 6,
+		stdout: JSON.stringify({
+			success: instances.length > 0,
+			command: 'status',
+			data: { count: instances.length, instances },
+			errors: instances.length
+				? []
+				: [
+						{
+							code: 'STATUS_NO_INSTANCES',
+							message: 'No Unity Editor instances found.',
+						},
+					],
+			warnings: [],
+		}),
+	});
+}
 
 function runnerReturning(...results: UnityRunResult[]): UnityCommandRunner & {
 	run: ReturnType<typeof vi.fn>;

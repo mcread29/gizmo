@@ -34,6 +34,10 @@ export interface AgentClient {
 	): Promise<AgentModelCatalog>;
 	listProjects(): Promise<UnityProject[]>;
 	getProjectStatus(projectPath: string): Promise<UnityStatus>;
+	watchProjectStatus(
+		sessionId: string,
+		projectPath: string,
+	): Promise<UnityStatus>;
 	openProject(projectPath: string): Promise<UnityOpenProjectResult>;
 	subscribe(listener: AgentEventListener): () => void;
 	subscribeDisconnect(listener: AgentDisconnectListener): () => void;

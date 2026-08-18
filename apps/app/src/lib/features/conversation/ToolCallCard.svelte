@@ -12,14 +12,16 @@
 	} from '@lucide/svelte';
 	import { Button } from '../../components';
 	import { commandName } from '../unity/unity-view';
+	import CompilerDiagnosticList from '../unity/CompilerDiagnosticList.svelte';
 	import DiffView from './DiffView.svelte';
 	import { formatToolResult, recordValue, stringValue } from './format';
 
 	interface Props {
 		tool: ToolCallView;
+		projectPath?: string;
 	}
 
-	let { tool }: Props = $props();
+	let { tool, projectPath }: Props = $props();
 	let open = $state(false);
 	let copied = $state(false);
 	let previousStatus: ToolCallView['status'] | undefined;
@@ -65,6 +67,8 @@
 				return 'Unity command';
 			case 'unity_wait_for_command':
 				return 'Reload Unity commands';
+			case 'unity_command_template':
+				return 'Unity command template';
 			case 'read':
 				return 'Read file';
 			case 'edit':
@@ -151,10 +155,7 @@
 
 		{#if errors.length}
 			<div data-ui="tool-errors">
-				{#each errors as error}<p>
-						{stringValue(recordValue(error, 'message')) ??
-							formatToolResult(error)}
-					</p>{/each}
+				<CompilerDiagnosticList {errors} {projectPath} />
 			</div>
 		{/if}
 

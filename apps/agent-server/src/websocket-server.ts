@@ -4,6 +4,7 @@ import {
 	type AgentRequest,
 	type AgentResponse,
 } from '@unity-agent/protocol';
+import type { UnityStatusDetails } from '@unity-agent/unity-tools';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { PiAgentService } from './pi-agent-service';
 import { UnityProjectService } from './unity-project-service';
@@ -41,17 +42,34 @@ export async function createAgentWebSocketServer(
 	>();
 
 	server.on('connection', (socket) => {
+		let eventId = 0;
 		const service = options.createService?.() ?? new PiAgentService();
 		const projectService =
 			options.createProjectService?.() ?? new UnityProjectService();
 		services.set(socket, { agent: service, projects: projectService });
-		const unsubscribe = service.subscribe((event) => send(socket, event));
+		const unsubscribe = service.subscribe((event) =>
+			send(socket, { ...event, eventId: ++eventId }),
+		);
+		const emitProjectStatus = (
+			sessionId: string,
+			projectPath: string,
+			status: UnityStatusDetails,
+		) =>
+			send(socket, {
+				protocolVersion,
+				eventId: ++eventId,
+				sessionId,
+				type: 'project.status.changed',
+				projectPath,
+				status: { ...status, command: [...status.command] },
+			});
 
 		socket.on('message', (data, isBinary) => {
 			void handleMessage(
 				socket,
 				service,
 				projectService,
+				emitProjectStatus,
 				isBinary ? undefined : data.toString(),
 			);
 		});
@@ -93,6 +111,11 @@ async function handleMessage(
 	socket: WebSocket,
 	service: PiAgentService,
 	projectService: UnityProjectService,
+	emitProjectStatus: (
+		sessionId: string,
+		projectPath: string,
+		status: UnityStatusDetails,
+	) => void,
 	text: string | undefined,
 ): Promise<void> {
 	let input: unknown;
@@ -113,7 +136,12 @@ async function handleMessage(
 	}
 
 	try {
-		const result = await dispatch(service, projectService, request);
+		const result = await dispatch(
+			service,
+			projectService,
+			emitProjectStatus,
+			request,
+		);
 		send(socket, {
 			protocolVersion,
 			requestId: request.requestId,
@@ -128,6 +156,11 @@ async function handleMessage(
 async function dispatch(
 	service: PiAgentService,
 	projectService: UnityProjectService,
+	emitProjectStatus: (
+		sessionId: string,
+		projectPath: string,
+		status: UnityStatusDetails,
+	) => void,
 	request: AgentRequest,
 ): Promise<{ sessionId?: string; result?: unknown }> {
 	switch (request.type) {
@@ -176,6 +209,14 @@ async function dispatch(
 			return { result: await projectService.listProjects() };
 		case 'project.status':
 			return { result: await projectService.getStatus(request.projectPath) };
+		case 'project.watch':
+			return {
+				result: await projectService.watchStatus(
+					request.projectPath,
+					(status) =>
+						emitProjectStatus(request.sessionId, request.projectPath, status),
+				),
+			};
 		case 'project.open':
 			return { result: await projectService.openProject(request.projectPath) };
 	}

@@ -46,6 +46,9 @@ class InvalidEventClient implements AgentClient {
 	async getProjectStatus(): Promise<UnityStatus> {
 		throw new Error('No selected project');
 	}
+	async watchProjectStatus(): Promise<UnityStatus> {
+		throw new Error('No selected project');
+	}
 	async openProject(): Promise<UnityOpenProjectResult> {
 		throw new Error('No selected project');
 	}

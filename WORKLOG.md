@@ -224,3 +224,17 @@ seven supported thinking levels.
 Live harness verification confirmed that Pi exposes
 `unity_wait_for_command` alongside the existing six tools. No connected Unity
 project was recompiled or modified during this verification.
+
+## 2026-08-17 — Live Editor lifecycle and command templates
+
+- Replaced the browser's five-second status poll with a project subscription;
+  the local server observes the Unity CLI, deduplicates status changes, and
+  pushes them over the existing session event stream.
+- Added compiling, domain-reload, command-verification, and failed lifecycle
+  states to the Unity inspector using live reload-tool progress.
+- Preserved structured compiler locations and made C# diagnostics link directly
+  to their project files from both tool output and the inspector.
+- Added `unity_command_template`, a reusable current Pipeline API starter that
+  the agent adapts to a project's conventions before writing and reloading it.
+- Versioned the protocol and added focused coverage for subscriptions,
+  lifecycle derivation, diagnostic parsing, and template generation.

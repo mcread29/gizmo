@@ -203,16 +203,43 @@ function finish(
 
 function normalizeError(value: unknown): UnityCliMessage | undefined {
 	if (typeof value === 'string') {
-		return { code: 'UNITY_COMPILE_ERROR', message: value };
+		return compileError(value);
 	}
 	const error = record(value);
 	if (!error) return;
 	const message =
 		typeof error.message === 'string' ? error.message : JSON.stringify(value);
+	const parsed = compileError(message);
 	return {
-		code: typeof error.code === 'string' ? error.code : 'UNITY_COMPILE_ERROR',
-		message,
+		...parsed,
+		code: typeof error.code === 'string' ? error.code : parsed.code,
+		...(typeof error.file === 'string' ? { file: error.file } : {}),
+		...(positiveInteger(error.line) ? { line: error.line as number } : {}),
+		...(positiveInteger(error.column)
+			? { column: error.column as number }
+			: {}),
 	};
+}
+
+function compileError(message: string): UnityCliMessage {
+	const location = message.match(
+		/^(.+?\.cs)(?:\((\d+),(\d+)\)|:(\d+)(?::(\d+))?)\s*:\s*/,
+	);
+	return {
+		code: message.match(/\b(CS\d+)\b/)?.[1] ?? 'UNITY_COMPILE_ERROR',
+		message,
+		...(location?.[1] ? { file: location[1] } : {}),
+		...(location?.[2] || location?.[4]
+			? { line: Number(location[2] ?? location[4]) }
+			: {}),
+		...(location?.[3] || location?.[5]
+			? { column: Number(location[3] ?? location[5]) }
+			: {}),
+	};
+}
+
+function positiveInteger(value: unknown): value is number {
+	return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {

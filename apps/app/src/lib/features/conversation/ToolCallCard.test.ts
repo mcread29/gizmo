@@ -31,4 +31,36 @@ describe('ToolCallCard', () => {
 		expect(getByText('/projects/ThirdPersonSandbox')).toBeInTheDocument();
 		expect(getByText('Editors')).toBeInTheDocument();
 	});
+
+	it('links structured compiler diagnostics to the project file', () => {
+		const tool: ToolCallView = {
+			id: 'tool-2',
+			name: 'unity_wait_for_command',
+			status: 'error',
+			statusText: 'Failed',
+			result: {
+				state: 'compile_failed',
+				errors: [
+					{
+						code: 'CS1002',
+						message: '; expected',
+						file: 'Assets/Editor/Test.cs',
+						line: 12,
+						column: 4,
+					},
+				],
+			},
+		};
+		const { getByRole } = render(ToolCallCard, {
+			tool,
+			projectPath: '/projects/game',
+		});
+
+		expect(
+			getByRole('link', { name: 'Assets/Editor/Test.cs:12:4' }),
+		).toHaveAttribute(
+			'href',
+			'vscode://file/projects/game/Assets/Editor/Test.cs:12:4',
+		);
+	});
 });

@@ -181,6 +181,18 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseUnityStatus(response.result);
 	}
 
+	async watchProjectStatus(
+		sessionId: string,
+		projectPath: string,
+	): Promise<UnityStatus> {
+		const response = await this.#request({
+			type: 'project.watch',
+			sessionId,
+			projectPath,
+		});
+		return parseUnityStatus(response.result);
+	}
+
 	async openProject(projectPath: string): Promise<UnityOpenProjectResult> {
 		const response = await this.#request({
 			type: 'project.open',

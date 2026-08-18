@@ -36,7 +36,7 @@ describe('waitForUnityCommand', () => {
 			jsonResult('command recompile', { success: true }),
 			catalog('recompile_status'),
 			compileStatus('completed', true, [
-				{ code: 'CS1002', message: '; expected at Assets/Editor/Test.cs:12' },
+				'Assets/Editor/Test.cs(12,4): error CS1002: ; expected',
 			]),
 		);
 
@@ -49,7 +49,15 @@ describe('waitForUnityCommand', () => {
 		expect(result).toMatchObject({
 			ok: false,
 			state: 'compile_failed',
-			errors: [{ code: 'CS1002', message: expect.stringContaining('Test.cs') }],
+			errors: [
+				{
+					code: 'CS1002',
+					message: expect.stringContaining('Test.cs'),
+					file: 'Assets/Editor/Test.cs',
+					line: 12,
+					column: 4,
+				},
+			],
 		});
 		expect(runner.run).toHaveBeenCalledTimes(4);
 	});

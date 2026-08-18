@@ -45,9 +45,16 @@ export type {
 } from './unity-wait-for-command';
 export { createUnityWaitForCommandTool } from './unity-wait-for-command-tool';
 export type { UnityWaitForCommandToolOptions } from './unity-wait-for-command-tool';
+export { unityCommandTemplate } from './unity-command-template';
+export type {
+	UnityCommandTemplate,
+	UnityCommandTemplateOptions,
+} from './unity-command-template';
+export { createUnityCommandTemplateTool } from './unity-command-template-tool';
 
 import { createUnityListCommandsTool } from './unity-list-commands-tool';
 import { createUnityCommandTool } from './unity-command-tool';
+import { createUnityCommandTemplateTool } from './unity-command-template-tool';
 import { createUnityWaitForCommandTool } from './unity-wait-for-command-tool';
 import {
 	createUnityStatusTool,
@@ -66,6 +73,7 @@ export function createUnityTools(options: UnityToolOptions = {}) {
 			...options,
 			projectPath: options.projectPath ?? process.cwd(),
 		}),
+		createUnityCommandTemplateTool(),
 	];
 }
 
@@ -74,4 +82,5 @@ export const unityToolNames = [
 	'unity_list_commands',
 	'unity_command',
 	'unity_wait_for_command',
+	'unity_command_template',
 ] as const;

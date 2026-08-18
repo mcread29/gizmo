@@ -4,6 +4,25 @@ import type {
 	UnityProject,
 	UnityStatus,
 } from '@unity-agent/protocol';
+import {
+	compilerDiagnostics,
+	type CompilerDiagnostic,
+} from './compiler-diagnostics';
+
+export type UnityLifecycleState =
+	| 'ready'
+	| 'compiling'
+	| 'reloading'
+	| 'verifying'
+	| 'failed'
+	| 'disconnected'
+	| 'unknown';
+
+export interface UnityLifecycle {
+	state: UnityLifecycleState;
+	label: string;
+	errors: CompilerDiagnostic[];
+}
 
 export interface UnityView {
 	selectedProject?: UnityProject;
@@ -13,6 +32,7 @@ export interface UnityView {
 	projectName: string;
 	version?: string;
 	state: string;
+	lifecycle: UnityLifecycle;
 	toolActivity: ToolCallView[];
 }
 
@@ -45,6 +65,7 @@ export function createUnityView(input: UnityViewInput): UnityView {
 	const state =
 		readEditorValue(editor, ['state', 'connectionState']) ??
 		statusLabel(status?.state);
+	const lifecycle = lifecycleFrom(toolActivity, status);
 
 	return {
 		...(selectedProject ? { selectedProject } : {}),
@@ -54,8 +75,63 @@ export function createUnityView(input: UnityViewInput): UnityView {
 		projectName: projectNameValue,
 		...(version ? { version } : {}),
 		state,
+		lifecycle,
 		toolActivity,
 	};
+}
+
+function lifecycleFrom(
+	tools: ToolCallView[],
+	status: UnityStatus | undefined,
+): UnityLifecycle {
+	for (let index = tools.length - 1; index >= 0; index--) {
+		const tool = tools[index];
+		if (tool.name !== 'unity_wait_for_command') continue;
+		if (tool.status === 'running') {
+			const text = tool.statusText.toLowerCase();
+			if (text.includes('verif'))
+				return lifecycle('verifying', 'Verifying command');
+			if (text.includes('compil'))
+				return lifecycle('compiling', 'Compiling scripts');
+			return lifecycle('reloading', 'Reloading scripts');
+		}
+		const result = record(tool.result);
+		const resultState = typeof result?.state === 'string' ? result.state : '';
+		if (tool.status === 'complete' && resultState === 'ready') {
+			return lifecycle('ready', 'Ready');
+		}
+		if (
+			tool.status === 'error' ||
+			['compile_failed', 'command_missing', 'timeout', 'error'].includes(
+				resultState,
+			)
+		) {
+			return lifecycle(
+				'failed',
+				'Compilation failed',
+				compilerDiagnostics(result?.errors),
+			);
+		}
+	}
+
+	if (status?.state === 'connected') return lifecycle('ready', 'Ready');
+	if (status?.state === 'disconnected')
+		return lifecycle('disconnected', 'Disconnected');
+	return lifecycle('unknown', statusLabel(status?.state));
+}
+
+function lifecycle(
+	state: UnityLifecycleState,
+	label: string,
+	errors: CompilerDiagnostic[] = [],
+): UnityLifecycle {
+	return { state, label, errors };
+}
+
+function record(value: unknown): Record<string, unknown> | undefined {
+	return value !== null && typeof value === 'object'
+		? (value as Record<string, unknown>)
+		: undefined;
 }
 
 export function readEditorValue(

@@ -8,9 +8,10 @@
 	interface Props {
 		message: ConversationMessage;
 		agentName: string;
+		projectPath?: string;
 	}
 
-	let { message, agentName }: Props = $props();
+	let { message, agentName, projectPath }: Props = $props();
 	let copied = $state(false);
 
 	function formatTime(timestamp: number) {
@@ -57,7 +58,7 @@
 		</div>
 		{#if message.content}<MarkdownContent content={message.content} />{/if}
 		{#each message.tools as tool (tool.id)}
-			<ToolCallCard {tool} />
+			<ToolCallCard {tool} {projectPath} />
 		{/each}
 		{#if !message.complete && message.role === 'assistant'}
 			<span data-ui="streaming-cursor" aria-label="Response streaming"></span>

@@ -33,13 +33,17 @@
 }
 
 [data-ui='status-pill'][data-state='disconnected'],
-[data-ui='status-pill'][data-state='unchecked'] {
+[data-ui='status-pill'][data-state='unknown'],
+[data-ui='status-pill'][data-state='compiling'],
+[data-ui='status-pill'][data-state='reloading'],
+[data-ui='status-pill'][data-state='verifying'] {
 	background: var(--color-warning-soft);
 	color: var(--color-warning);
 }
 
 [data-ui='status-pill'][data-state='unavailable'],
-[data-ui='status-pill'][data-state='error'] {
+[data-ui='status-pill'][data-state='error'],
+[data-ui='status-pill'][data-state='failed'] {
 	background: var(--color-danger-soft);
 	color: var(--color-danger);
 }
@@ -87,6 +91,41 @@
 	font-weight: 550;
 	text-align: right;
 	overflow-wrap: anywhere;
+}
+
+[data-ui='compiler-errors'] {
+	display: grid;
+	gap: var(--space-3);
+}
+
+[data-ui='compiler-error'] {
+	min-width: 0;
+}
+
+[data-ui='compiler-error'] p {
+	margin: 4px 0 0;
+	color: var(--color-danger);
+	font-size: 0.6875rem;
+	line-height: 1.45;
+	overflow-wrap: anywhere;
+}
+
+[data-ui='compiler-error'] code {
+	font-size: 0.625rem;
+}
+
+[data-ui='compiler-location'] {
+	display: block;
+	overflow: hidden;
+	color: var(--color-accent);
+	font: 0.625rem/1.4 var(--font-mono);
+	text-decoration: none;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='compiler-location']:hover {
+	text-decoration: underline;
 }
 
 [data-ui='inspector-message'] {

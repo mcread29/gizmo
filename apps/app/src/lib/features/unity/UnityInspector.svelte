@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { CircleCheck, FolderOpen, Terminal } from '@lucide/svelte';
 	import { Button, Tabs } from '../../components';
+	import CompilerDiagnosticList from './CompilerDiagnosticList.svelte';
 	import type { UnityView } from './unity-view';
-	import { readEditorValue, statusLabel } from './unity-view';
+	import { readEditorValue } from './unity-view';
 
 	interface Props {
 		view: UnityView;
@@ -26,8 +27,8 @@
 			<span data-ui="eyebrow">Unity Editor</span>
 			<h2>{view.projectName}</h2>
 		</div>
-		<span data-ui="status-pill" data-state={view.status?.state ?? 'unchecked'}
-			><span></span>{statusLabel(view.status?.state)}</span
+		<span data-ui="status-pill" data-state={view.lifecycle.state}
+			><span></span>{view.lifecycle.label}</span
 		>
 	</div>
 
@@ -65,8 +66,21 @@
 									{view.status?.state === 'connected' ? 'Connected' : '—'}
 								</dd>
 							</div>
+							<div>
+								<dt>Lifecycle</dt>
+								<dd>{view.lifecycle.label}</dd>
+							</div>
 						</dl>
 					</section>
+					{#if view.lifecycle.errors.length}
+						<section data-ui="inspector-card" data-state="error">
+							<div data-ui="card-label">Compiler errors</div>
+							<CompilerDiagnosticList
+								errors={view.lifecycle.errors}
+								projectPath={view.projectPath}
+							/>
+						</section>
+					{/if}
 					<section data-ui="inspector-card">
 						<div data-ui="card-label">Connection</div>
 						{#if view.editor}

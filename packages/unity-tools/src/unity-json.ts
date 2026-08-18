@@ -28,6 +28,9 @@ const unityJsonEnvelopeSchema = Type.Object(
 export interface UnityCliMessage {
 	code: string;
 	message: string;
+	file?: string;
+	line?: number;
+	column?: number;
 }
 
 export interface UnityJsonDetails {

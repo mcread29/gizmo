@@ -86,13 +86,8 @@
 		updateViewport();
 		window.addEventListener('resize', updateViewport);
 		void agentStore.connect();
-		const statusInterval = window.setInterval(
-			() => void agentStore.refreshProjectStatus(),
-			5_000,
-		);
 		return () => {
 			window.removeEventListener('resize', updateViewport);
-			window.clearInterval(statusInterval);
 			void agentStore.disconnect();
 		};
 	});

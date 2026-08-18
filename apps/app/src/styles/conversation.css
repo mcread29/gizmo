@@ -444,8 +444,7 @@
 	color: var(--color-accent);
 }
 
-[data-ui='tool-empty'],
-[data-ui='tool-errors'] p {
+[data-ui='tool-empty'] {
 	color: var(--color-text-muted);
 	font-size: 0.75rem;
 	line-height: 1.5;
@@ -455,10 +454,6 @@
 	padding: 10px;
 	border-radius: var(--radius-sm);
 	background: var(--color-danger-soft);
-}
-
-[data-ui='tool-errors'] p {
-	color: var(--color-danger);
 }
 
 [data-ui='tool-actions'] {

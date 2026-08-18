@@ -116,6 +116,41 @@ describe('WebSocketAgentClient', () => {
 		]);
 	});
 
+	it('subscribes the active session to project status changes', async () => {
+		const socket = new TestSocket();
+		const client = new WebSocketAgentClient({
+			url: 'ws://agent.test/agent',
+			createSocket: () => socket as unknown as WebSocket,
+		});
+		const connecting = client.connect();
+		socket.open();
+		await connecting;
+
+		const watching = client.watchProjectStatus('session-1', '/projects/game');
+		expect(socket.sent[0]).toMatchObject({
+			type: 'project.watch',
+			sessionId: 'session-1',
+			projectPath: '/projects/game',
+		});
+		socket.receive({
+			protocolVersion,
+			requestId: 'request-1',
+			type: 'response.success',
+			result: {
+				state: 'connected',
+				ok: true,
+				command: ['unity', 'status'],
+				exitCode: 0,
+				durationMs: 1,
+				instances: [{ projectPath: '/projects/game' }],
+				errors: [],
+				warnings: [],
+			},
+		});
+
+		await expect(watching).resolves.toMatchObject({ state: 'connected' });
+	});
+
 	it('validates persisted session catalogs and hydrated resumes', async () => {
 		const socket = new TestSocket();
 		const client = new WebSocketAgentClient({

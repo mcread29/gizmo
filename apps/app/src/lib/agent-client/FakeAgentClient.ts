@@ -47,6 +47,7 @@ export class FakeAgentClient implements AgentClient {
 	#id = 0;
 	#lastSessionId?: string;
 	#editorOpen = true;
+	#watchedProject?: { sessionId: string; projectPath: string };
 
 	constructor(options: FakeAgentClientOptions = {}) {
 		this.#latencyMs = options.latencyMs ?? 90;
@@ -368,10 +369,28 @@ export class FakeAgentClient implements AgentClient {
 		return fakeStatus(projectPath, this.#editorOpen);
 	}
 
+	async watchProjectStatus(
+		sessionId: string,
+		projectPath: string,
+	): Promise<UnityStatus> {
+		this.#getSession(sessionId);
+		this.#assertProject(projectPath);
+		this.#watchedProject = { sessionId, projectPath };
+		return fakeStatus(projectPath, this.#editorOpen);
+	}
+
 	async openProject(projectPath: string): Promise<UnityOpenProjectResult> {
 		this.#assertProject(projectPath);
 		const alreadyOpen = this.#editorOpen;
 		this.#editorOpen = true;
+		if (this.#watchedProject?.projectPath === projectPath) {
+			this.#emit({
+				type: 'project.status.changed',
+				sessionId: this.#watchedProject.sessionId,
+				projectPath,
+				status: fakeStatus(projectPath, true),
+			});
+		}
 		return {
 			state: alreadyOpen ? 'already_open' : 'opened',
 			ok: true,

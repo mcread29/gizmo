@@ -9,5 +9,6 @@ describe('Unity harness tools', () => {
 
 		expect(names).toEqual([...unityToolNames]);
 		expect(names).toContain('unity_wait_for_command');
+		expect(names).toContain('unity_command_template');
 	});
 });

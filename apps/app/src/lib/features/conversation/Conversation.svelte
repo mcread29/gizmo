@@ -167,7 +167,11 @@
 				</div>
 			{/if}
 			{#each store.messages as message (message.id)}
-				<ConversationMessage {message} {agentName} />
+				<ConversationMessage
+					{message}
+					{agentName}
+					projectPath={currentSession?.projectPath}
+				/>
 			{/each}
 			<div data-ui="scroll-anchor" bind:this={scrollAnchor}></div>
 		</div>
