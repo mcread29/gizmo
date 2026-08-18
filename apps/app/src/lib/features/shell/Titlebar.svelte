@@ -9,44 +9,33 @@
 		Sun,
 	} from '@lucide/svelte';
 	import { Button, Tooltip } from '../../components';
+	import { shortcutHint } from './shortcuts';
+	import type { WorkspaceLayout } from './workspace.svelte';
 	import type { UnityView } from '../unity/unity-view';
 
 	interface Props {
 		agent: AgentIdentity;
-		darkTheme: boolean;
+		layout: WorkspaceLayout;
 		view: UnityView;
-		leftVisible: boolean;
-		rightVisible: boolean;
-		onToggleLeft: () => void;
-		onToggleRight: () => void;
-		onToggleTheme: () => void;
 		onOpenSettings: () => void;
 	}
 
-	let {
-		agent,
-		darkTheme,
-		view,
-		leftVisible,
-		rightVisible,
-		onToggleLeft,
-		onToggleRight,
-		onToggleTheme,
-		onOpenSettings,
-	}: Props = $props();
+	let { agent, layout, view, onOpenSettings }: Props = $props();
 </script>
 
 <header data-ui="titlebar">
 	<div data-ui="titlebar-start">
-		<Tooltip text={`${leftVisible ? 'Hide' : 'Show'} thread sidebar`}>
+		<Tooltip
+			text={`${layout.leftVisible ? 'Hide' : 'Show'} thread sidebar · ${shortcutHint('B')}`}
+		>
 			{#snippet children(props)}
 				<Button
 					{...props}
 					variant="ghost"
 					size="icon"
 					aria-label="Toggle thread sidebar"
-					aria-expanded={leftVisible}
-					onclick={onToggleLeft}
+					aria-expanded={layout.leftVisible}
+					onclick={() => layout.toggleLeft()}
 				>
 					<PanelLeft size={17} />
 				</Button>
@@ -64,34 +53,41 @@
 		>
 	</div>
 	<div data-ui="titlebar-end">
-		<Tooltip text={darkTheme ? 'Use light theme' : 'Use dark theme'}>
+		<Tooltip text={layout.darkTheme ? 'Use light theme' : 'Use dark theme'}>
 			{#snippet children(props)}
 				<Button
 					{...props}
 					variant="ghost"
 					size="icon"
 					aria-label="Toggle color theme"
-					onclick={onToggleTheme}
+					onclick={() => layout.toggleTheme()}
 				>
-					{#if darkTheme}<Sun size={17} />{:else}<Moon size={17} />{/if}
+					{#if layout.darkTheme}<Sun size={17} />{:else}<Moon size={17} />{/if}
 				</Button>
 			{/snippet}
 		</Tooltip>
-		<Button
-			variant="ghost"
-			size="icon"
-			aria-label="Settings"
-			onclick={onOpenSettings}><Settings size={17} /></Button
+		<Tooltip text={`Settings · ${shortcutHint(',')}`}>
+			{#snippet children(props)}
+				<Button
+					{...props}
+					variant="ghost"
+					size="icon"
+					aria-label="Settings"
+					onclick={onOpenSettings}><Settings size={17} /></Button
+				>
+			{/snippet}
+		</Tooltip>
+		<Tooltip
+			text={`${layout.rightVisible ? 'Hide' : 'Show'} editor inspector · ${shortcutHint('⇧B')}`}
 		>
-		<Tooltip text={`${rightVisible ? 'Hide' : 'Show'} editor inspector`}>
 			{#snippet children(props)}
 				<Button
 					{...props}
 					variant="ghost"
 					size="icon"
 					aria-label="Toggle editor inspector"
-					aria-expanded={rightVisible}
-					onclick={onToggleRight}
+					aria-expanded={layout.rightVisible}
+					onclick={() => layout.toggleRight()}
 				>
 					<PanelRight size={17} />
 				</Button>

@@ -1,5 +1,42 @@
 # Work log
 
+## 2026-08-17 — UI audit remediation and frontend refactor
+
+Acted on a critical audit of the Svelte frontend, and split the files that had
+grown past the point of being readable:
+
+- Added automatic reconnection with backoff to `AgentStore`, a manual retry in
+  the sidebar, and session restoration so a dropped connection no longer leaves
+  the app inert until it is relaunched.
+- Made layout breakpoints a single source of truth in `lib/layout.ts`, published
+  as `data-left-mode` / `data-right-mode`; the stylesheets no longer restate any
+  width, and the first paint no longer flashes the desktop layout.
+- Gave every focusable element a visible focus ring, marked undocked panels
+  `inert`, and moved the toast live region so it is always mounted.
+- Filled in the default dark theme's missing `--color-on-accent` and
+  `--focus-ring`, added a type scale with an 11px floor, and moved the base font
+  size to `rem` so OS text-size preferences scale the interface.
+- Wired the toast queue into thread deletion and transcript export, moved the
+  error banner out of the scrolling transcript and gave it dismiss and retry,
+  added loading skeletons and empty states, and gave destructive confirmation a
+  Cancel path that names what is about to be lost.
+- Added syntax highlighting driven by the existing palette, a unified diff view
+  with line numbers and position-based classification, thread search and
+  recency grouping, message retry, and a desktop keyboard map.
+- Split `App.svelte`, `AppDialogs`, `Conversation`, `ToolCallCard`,
+  `UnityInspector`, and the two largest stylesheets into focused units, moving
+  layout, thread actions, transcript export, and context-menu resolution into
+  testable modules.
+
+Verification completed successfully:
+
+```text
+pnpm format:check
+pnpm check
+pnpm test
+pnpm build
+```
+
 ## 2026-08-17 — Milestones 1–3
 
 Established the project foundation and initial interface:

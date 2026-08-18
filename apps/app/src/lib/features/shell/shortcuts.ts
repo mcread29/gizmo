@@ -1,0 +1,51 @@
+export interface ShortcutActions {
+	newThread: () => void;
+	openSettings: () => void;
+	focusComposer: () => void;
+	toggleLeft: () => void;
+	toggleRight: () => void;
+	searchThreads: () => void;
+	dismiss: () => void;
+}
+
+/**
+ * Desktop keyboard map. Modifier is Command on macOS and Control elsewhere;
+ * shortcuts that would shadow text editing are skipped while a field has focus.
+ */
+export function handleShortcut(
+	event: KeyboardEvent,
+	actions: ShortcutActions,
+): boolean {
+	if (event.key === 'Escape') {
+		actions.dismiss();
+		return false;
+	}
+
+	const modifier = event.metaKey || event.ctrlKey;
+	if (!modifier || event.altKey) return false;
+
+	const action = shortcutFor(event.key.toLowerCase(), event.shiftKey);
+	if (!action) return false;
+	event.preventDefault();
+	actions[action]();
+	return true;
+}
+
+export function shortcutHint(key: string): string {
+	const mac =
+		typeof navigator !== 'undefined' && /mac/i.test(navigator.platform ?? '');
+	return `${mac ? '⌘' : 'Ctrl'}${key}`;
+}
+
+function shortcutFor(
+	key: string,
+	shift: boolean,
+): keyof ShortcutActions | undefined {
+	if (key === 'n' && !shift) return 'newThread';
+	if (key === ',' && !shift) return 'openSettings';
+	if (key === 'k' && !shift) return 'searchThreads';
+	if (key === 'l' && shift) return 'focusComposer';
+	if (key === 'b' && !shift) return 'toggleLeft';
+	if (key === 'b' && shift) return 'toggleRight';
+	return undefined;
+}

@@ -11,7 +11,6 @@ describe('PanelResizeHandle', () => {
 		const { getByRole } = render(PanelResizeHandle, {
 			side: 'left',
 			size: 248,
-			min: 200,
 			max: 420,
 			onResize,
 			onReset,
@@ -34,7 +33,6 @@ describe('PanelResizeHandle', () => {
 		const { getByRole } = render(PanelResizeHandle, {
 			side: 'right',
 			size: 288,
-			min: 240,
 			max: 480,
 			onResize,
 			onReset: () => {},

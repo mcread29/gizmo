@@ -67,6 +67,14 @@ export class FakeAgentClient implements AgentClient {
 		}
 	}
 
+	/** Simulates the server going away, as opposed to the client leaving. */
+	dropConnection(): void {
+		this.#connected = false;
+		for (const listener of this.#disconnectListeners) {
+			listener(new Error('Agent connection closed'));
+		}
+	}
+
 	async listSessions(): Promise<SessionCatalog> {
 		this.#assertConnected();
 		return {

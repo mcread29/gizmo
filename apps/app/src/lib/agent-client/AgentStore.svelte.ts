@@ -19,10 +19,15 @@ export interface AgentModel {
 	thinkingLevel: string;
 }
 
+export type ConnectionState =
+	'disconnected' | 'connecting' | 'reconnecting' | 'connected';
+
+/** Backoff between automatic reconnects; the last entry repeats forever. */
+const reconnectDelays = [500, 1_000, 2_000, 5_000, 10_000, 15_000];
+
 export class AgentStore {
-	connection = $state<'disconnected' | 'connecting' | 'connected'>(
-		'disconnected',
-	);
+	connection = $state<ConnectionState>('disconnected');
+	reconnectAttempt = $state(0);
 	sessionId = $state<string>();
 	sessionState = $state<SessionState>('idle');
 	model = $state<AgentModel>();
@@ -31,6 +36,8 @@ export class AgentStore {
 	modelLoading = $state(false);
 	activeTools = $state<string[]>([]);
 	messages = $state<ConversationMessage[]>([]);
+	messagesLoading = $state(false);
+	lastPrompt = $state<string>();
 	sessions = $state<AgentSessionSummary[]>([]);
 	projects = $state<UnityProject[]>([]);
 	selectedProjectPath = $state<string>();
@@ -44,14 +51,21 @@ export class AgentStore {
 	#unsubscribe?: () => void;
 	#unsubscribeDisconnect?: () => void;
 	#statusRequest?: { projectPath: string; promise: Promise<void> };
+	#reconnectTimer?: ReturnType<typeof setTimeout>;
+	#autoReconnect = true;
 
 	constructor(client: AgentClient) {
 		this.#client = client;
 	}
 
 	async connect(): Promise<void> {
-		if (this.connection !== 'disconnected') return;
-		this.connection = 'connecting';
+		if (this.connection === 'connecting' || this.connection === 'connected') {
+			return;
+		}
+		this.#autoReconnect = true;
+		clearTimeout(this.#reconnectTimer);
+		this.#reconnectTimer = undefined;
+		this.connection = this.reconnectAttempt > 0 ? 'reconnecting' : 'connecting';
 		this.error = undefined;
 		this.#unsubscribe = this.#client.subscribe((input) => this.#receive(input));
 		this.#unsubscribeDisconnect = this.#client.subscribeDisconnect((error) => {
@@ -59,25 +73,54 @@ export class AgentStore {
 			this.connection = 'disconnected';
 			this.error = error.message;
 			this.#cleanupSubscriptions();
+			this.#scheduleReconnect();
 		});
+		// Remembered so a reconnect lands the user back where they were rather
+		// than on whichever thread the server happens to consider most recent.
+		const resumeId = this.sessionId;
 		try {
 			await this.#client.connect();
 			this.connection = 'connected';
+			this.reconnectAttempt = 0;
 			this.sessionId = undefined;
 			this.messages = [];
 			await this.refreshProjects();
 			const catalog = await this.#client.listSessions();
 			this.sessions = catalog.sessions;
 			const session =
+				this.sessions.find(({ id }) => id === resumeId) ??
 				this.sessions.find(({ id }) => id === catalog.lastSessionId) ??
 				this.sessions[0];
 			if (session) await this.switchSession(session.id);
 			else await this.newSession();
 		} catch (error) {
 			this.error = error instanceof Error ? error.message : String(error);
+			this.sessionId = resumeId;
 			this.connection = 'disconnected';
 			this.#cleanupSubscriptions();
+			this.#scheduleReconnect();
 		}
+	}
+
+	/** Abandons the backoff and tries immediately, for an explicit user retry. */
+	async retryConnection(): Promise<void> {
+		clearTimeout(this.#reconnectTimer);
+		this.#reconnectTimer = undefined;
+		this.reconnectAttempt = 0;
+		if (this.connection === 'disconnected') await this.connect();
+	}
+
+	#scheduleReconnect(): void {
+		if (!this.#autoReconnect || this.#reconnectTimer !== undefined) return;
+		const delay =
+			reconnectDelays[
+				Math.min(this.reconnectAttempt, reconnectDelays.length - 1)
+			]!;
+		this.reconnectAttempt++;
+		this.#reconnectTimer = setTimeout(() => {
+			this.#reconnectTimer = undefined;
+			void this.connect();
+		}, delay);
 	}
 
 	async refreshProjects(): Promise<void> {
@@ -223,6 +266,7 @@ export class AgentStore {
 		const previousProjectStatus = this.projectStatus;
 		this.sessionId = sessionId;
 		this.messages = [];
+		this.messagesLoading = true;
 		this.sessionState = 'idle';
 		try {
 			const snapshot = await this.#client.resumeSession(sessionId);
@@ -244,6 +288,8 @@ export class AgentStore {
 			this.selectedProjectPath = previousProjectPath;
 			this.projectStatus = previousProjectStatus;
 			this.error = errorMessage(error);
+		} finally {
+			if (this.sessionId === sessionId) this.messagesLoading = false;
 		}
 	}
 
@@ -361,6 +407,10 @@ export class AgentStore {
 	}
 
 	async disconnect(): Promise<void> {
+		this.#autoReconnect = false;
+		clearTimeout(this.#reconnectTimer);
+		this.#reconnectTimer = undefined;
+		this.reconnectAttempt = 0;
 		this.#cleanupSubscriptions();
 		await this.#client.disconnect();
 		this.connection = 'disconnected';
@@ -377,6 +427,7 @@ export class AgentStore {
 		if (!this.sessionId || !text.trim()) return;
 		const prompt = text.trim();
 		this.error = undefined;
+		this.lastPrompt = prompt;
 		const session = this.sessions.find(
 			(candidate) => candidate.id === this.sessionId,
 		);
@@ -389,6 +440,12 @@ export class AgentStore {
 		} catch (error) {
 			this.error = error instanceof Error ? error.message : String(error);
 		}
+	}
+
+	/** Resends the last prompt, for when a send failed rather than answered. */
+	async retryPrompt(): Promise<void> {
+		if (!this.lastPrompt || this.sessionState === 'streaming') return;
+		await this.prompt(this.lastPrompt);
 	}
 
 	async abort(): Promise<void> {

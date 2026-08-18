@@ -1,0 +1,113 @@
+[data-ui='composer-wrap'] {
+	padding: 0 var(--space-6) var(--space-4);
+	background: linear-gradient(transparent, var(--color-surface-raised) 24%);
+}
+
+[data-left-mode='overlay'] [data-ui='composer-wrap'] {
+	padding-inline: var(--space-3);
+}
+
+[data-ui='composer'] {
+	width: min(var(--content-max), 100%);
+	margin: 0 auto;
+	padding: 5px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: 13px;
+	background: var(--color-surface-raised);
+	box-shadow: var(--shadow-panel);
+}
+
+[data-ui='composer']:focus-within {
+	border-color: var(--color-accent);
+	box-shadow: var(--focus-ring), var(--shadow-panel);
+}
+
+[data-ui='composer'] textarea {
+	width: 100%;
+	min-height: 55px;
+	max-height: min(240px, 40vh);
+	padding: 12px;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	resize: none;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	color: var(--color-text);
+	line-height: 1.5;
+	box-shadow: none;
+}
+
+[data-ui='composer'] textarea::placeholder {
+	color: var(--color-text-muted);
+}
+
+[data-ui='composer-toolbar'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+[data-ui='composer-model-controls'] {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	gap: 5px;
+}
+
+/*
+ * The model name is the part that disambiguates; the provider is a suffix that
+ * may be dropped. Both stay on one line and truncation eats the provider first.
+ */
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact'] {
+	min-width: 0;
+	max-width: 18rem;
+	height: 28px;
+	gap: var(--space-2);
+	padding: 0 8px;
+	border-color: transparent;
+	background: transparent;
+	color: var(--color-text-muted);
+	font: 500 var(--text-2xs)/1 var(--font-sans);
+}
+
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact']:hover,
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact'][data-state='open'] {
+	border-color: var(--color-border);
+	background: var(--color-surface-soft);
+}
+
+[data-ui='composer-model-controls'] [data-ui='select-trigger'] > span {
+	display: flex;
+	min-width: 0;
+	gap: 5px;
+}
+
+[data-ui='composer-hint'] {
+	margin-left: auto;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	white-space: nowrap;
+}
+
+[data-left-mode='overlay'] [data-ui='composer-hint'] {
+	display: none;
+}
+
+kbd {
+	padding: 2px 4px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-xs);
+	background: var(--color-surface-soft);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='disclaimer'] {
+	margin-top: var(--space-2);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	text-align: center;
+}

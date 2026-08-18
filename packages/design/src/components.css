@@ -6,7 +6,7 @@
 	min-width: 0;
 	border: 1px solid transparent;
 	border-radius: var(--radius-sm);
-	font: 600 0.8125rem/1 var(--font-sans);
+	font: 600 var(--text-sm)/1 var(--font-sans);
 	white-space: nowrap;
 	cursor: pointer;
 	transition:
@@ -17,12 +17,12 @@
 }
 
 [data-ui='button'][data-size='sm'] {
-	height: 30px;
+	height: var(--control-height-sm);
 	padding: 0 10px;
 }
 
 [data-ui='button'][data-size='md'] {
-	height: 36px;
+	height: var(--control-height-md);
 	padding: 0 14px;
 }
 
@@ -66,13 +66,28 @@
 	transform: translateY(1px);
 }
 
-[data-ui='button']:focus-visible,
-[data-ui='select-trigger']:focus-visible,
-[data-ui='tabs-trigger']:focus-visible,
+/*
+ * Focus is opt-out, not opt-in: everything focusable gets a visible ring unless
+ * it opts out. Menu and select items take :focus rather than :focus-visible
+ * because bits-ui moves focus to them during keyboard navigation.
+ */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible,
 [data-ui='menu-item']:focus,
-[data-ui='icon-action']:focus-visible {
+[data-ui='select-item']:focus {
 	outline: none;
 	box-shadow: var(--focus-ring);
+}
+
+/* Rings must never be clipped by an overflow ancestor. */
+:focus-visible {
+	position: relative;
+	z-index: 1;
 }
 
 [data-ui='button'][data-disabled],
@@ -85,7 +100,7 @@
 	position: fixed;
 	inset: 0;
 	z-index: 40;
-	background: rgb(12 14 11 / 0.58);
+	background: var(--color-overlay);
 	backdrop-filter: blur(4px);
 }
 
@@ -118,14 +133,14 @@
 }
 
 [data-dialog-title] {
-	font-size: 1rem;
+	font-size: var(--text-lg);
 	font-weight: 650;
 }
 
 [data-dialog-description] {
-	margin-top: 5px;
+	margin-top: var(--space-1);
 	color: var(--color-text-muted);
-	font-size: 0.8125rem;
+	font-size: var(--text-sm);
 }
 
 [data-ui='dialog-body'] {
@@ -167,7 +182,7 @@
 	padding: 0 10px;
 	border-radius: var(--radius-sm);
 	color: var(--color-text);
-	font-size: 0.8125rem;
+	font-size: var(--text-sm);
 	cursor: default;
 	outline: none;
 }
@@ -187,13 +202,34 @@
 	justify-content: space-between;
 	gap: var(--space-4);
 	min-width: 168px;
-	height: 36px;
+	height: var(--control-height-md);
 	padding: 0 11px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);
 	background: var(--color-surface-raised);
 	color: var(--color-text);
-	font: 500 0.8125rem/1 var(--font-sans);
+	font: 500 var(--text-sm)/1 var(--font-sans);
+}
+
+/* Label wins the space; the hint truncates first. */
+[data-ui='select-trigger'] [data-ui='select-label'] {
+	overflow: hidden;
+	color: var(--color-text);
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='select-trigger'] [data-ui='select-hint'] {
+	overflow: hidden;
+	flex: 0 1 auto;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='select-item'] [data-ui='select-hint'] {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
 }
 
 [data-ui='select-indicator'] {
@@ -210,13 +246,13 @@
 }
 
 [data-ui='tabs-trigger'] {
-	min-height: 30px;
+	min-height: var(--control-height-sm);
 	padding: 0 11px;
 	border: 0;
 	border-radius: 6px;
 	background: transparent;
 	color: var(--color-text-muted);
-	font: 600 0.75rem/1 var(--font-sans);
+	font: 600 var(--text-xs)/1 var(--font-sans);
 }
 
 [data-ui='tabs-trigger'][data-state='active'] {
@@ -236,7 +272,7 @@
 	border-radius: var(--radius-sm);
 	background: var(--color-text);
 	color: var(--color-surface-raised);
-	font-size: 0.75rem;
+	font-size: var(--text-xs);
 	box-shadow: var(--shadow-md);
 }
 
@@ -261,10 +297,14 @@
 [data-ui='scroll-thumb'] {
 	position: relative;
 	flex: 1;
-	border-radius: 999px;
+	border-radius: var(--radius-full);
 	background: var(--color-border-strong);
 }
 
+/*
+ * The live region is always mounted and only its children come and go, so
+ * assistive tech announces additions instead of missing the region entirely.
+ */
 [data-ui='toast-region'] {
 	position: fixed;
 	right: var(--space-5);
@@ -273,10 +313,13 @@
 	display: grid;
 	width: min(360px, calc(100vw - 32px));
 	gap: var(--space-2);
+	pointer-events: none;
 }
 
 [data-ui='toast'] {
 	display: grid;
+	pointer-events: auto;
+	animation: toast-in 160ms ease;
 	grid-template-columns: auto 1fr auto;
 	align-items: center;
 	gap: var(--space-3);
@@ -293,4 +336,17 @@
 
 [data-ui='toast'][data-tone='danger'] [data-ui='toast-icon'] {
 	color: var(--color-danger);
+}
+
+[data-ui='toast'] > span:nth-child(2) {
+	font-size: var(--text-sm);
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+}
+
+@keyframes toast-in {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
 }

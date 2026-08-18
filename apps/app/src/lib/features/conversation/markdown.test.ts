@@ -20,4 +20,19 @@ describe('renderMarkdown', () => {
 		expect(html).not.toContain('<script');
 		expect(html).not.toContain('href="javascript:');
 	});
+
+	it('highlights C# and leaves unknown languages as plain escaped text', () => {
+		const highlighted = renderMarkdown('```csharp\nvar speed = 1;\n```');
+		expect(highlighted).toContain('hljs-keyword');
+		expect(highlighted).toContain('language-csharp');
+
+		const plain = renderMarkdown('```shaderlab\nProperties { }\n```');
+		expect(plain).toContain('language-shaderlab');
+		expect(plain).not.toContain('hljs-');
+	});
+
+	it('maps common aliases onto the languages it can highlight', () => {
+		expect(renderMarkdown('```cs\nint x;\n```')).toContain('language-csharp');
+		expect(renderMarkdown('```sh\nls -al\n```')).toContain('language-bash');
+	});
 });

@@ -1,20 +1,28 @@
 <script lang="ts">
-	interface Props {
-		diff: string;
-	}
+	import { diffStat, parseDiff } from './diff';
 
-	let { diff }: Props = $props();
-	let lines = $derived(diff.split('\n'));
+	let { diff }: { diff: string } = $props();
 
-	function lineKind(line: string) {
-		if (line.startsWith('+++') || line.startsWith('---')) return 'header';
-		if (line.startsWith('+')) return 'added';
-		if (line.startsWith('-')) return 'removed';
-		if (line.startsWith('@@')) return 'range';
-		return 'context';
-	}
+	let lines = $derived(parseDiff(diff));
+	let stat = $derived(diffStat(lines));
 </script>
 
-<pre data-ui="diff">{#each lines as line}<span data-kind={lineKind(line)}
-			>{line || ' '}</span
-		>{/each}</pre>
+<div data-ui="diff">
+	<div data-ui="diff-summary">
+		<span data-kind="added">+{stat.added}</span>
+		<span data-kind="removed">−{stat.removed}</span>
+	</div>
+	<div data-ui="diff-body" role="table" aria-label="File changes">
+		{#each lines as line, index (index)}
+			<div data-ui="diff-line" data-kind={line.kind} role="row">
+				<span data-ui="diff-gutter" aria-hidden="true"
+					>{line.oldLine ?? ''}</span
+				>
+				<span data-ui="diff-gutter" aria-hidden="true"
+					>{line.newLine ?? ''}</span
+				>
+				<span data-ui="diff-text" role="cell">{line.text || ' '}</span>
+			</div>
+		{/each}
+	</div>
+</div>

@@ -1,0 +1,112 @@
+[data-ui='compiler-errors'] {
+	display: grid;
+	gap: var(--space-3);
+}
+
+[data-ui='compiler-error'] {
+	min-width: 0;
+}
+
+[data-ui='compiler-error'] p {
+	margin: 4px 0 0;
+	color: var(--color-danger);
+	font-size: var(--text-2xs);
+	line-height: 1.45;
+	overflow-wrap: anywhere;
+}
+
+[data-ui='compiler-error'][data-severity='warning'] p {
+	color: var(--color-warning);
+}
+
+[data-ui='compiler-error'][data-severity='log'] p {
+	color: var(--color-text-muted);
+}
+
+[data-ui='compiler-error'] code {
+	font-size: var(--text-2xs);
+}
+
+[data-ui='compiler-location'] {
+	display: block;
+	overflow: hidden;
+	color: var(--color-accent);
+	font: var(--text-2xs) / 1.4 var(--font-mono);
+	text-decoration: none;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='compiler-location']:hover {
+	text-decoration: underline;
+}
+
+[data-ui='test-report'] {
+	display: grid;
+	gap: var(--space-3);
+}
+
+[data-ui='test-summary'] {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 6px;
+}
+
+[data-ui='test-summary'] > div {
+	display: grid;
+	gap: 2px;
+	padding: 8px;
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+}
+
+[data-ui='test-summary'] span {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	text-transform: uppercase;
+}
+
+[data-ui='test-summary'] strong {
+	font-size: var(--text-xs);
+}
+
+[data-ui='test-results'] {
+	display: grid;
+	max-height: 20rem;
+	overflow: auto;
+}
+
+[data-ui='test-result'] {
+	display: grid;
+	gap: 4px;
+	padding: 8px 0;
+	border-top: 1px solid var(--color-border);
+}
+
+[data-ui='test-result'] > div {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--space-2);
+}
+
+[data-ui='test-result'] strong {
+	font-size: var(--text-2xs);
+	overflow-wrap: anywhere;
+}
+
+[data-ui='test-result'] span {
+	color: var(--color-success);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='test-result'][data-state='failed'] span,
+[data-ui='test-result'][data-state='failure'] span {
+	color: var(--color-danger);
+}
+
+[data-ui='test-result'] p {
+	margin: 0;
+	color: var(--color-danger);
+	font-size: var(--text-2xs);
+	line-height: 1.4;
+}

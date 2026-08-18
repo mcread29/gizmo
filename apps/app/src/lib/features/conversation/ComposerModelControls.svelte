@@ -7,7 +7,8 @@
 	let modelOptions = $derived.by(() => {
 		const options: SelectOption[] = store.availableModels.map((model) => ({
 			value: modelKey(model.provider, model.id),
-			label: `${model.name} · ${model.provider}`,
+			label: model.name,
+			hint: model.provider,
 		}));
 		if (
 			store.model &&
@@ -19,7 +20,8 @@
 		) {
 			options.unshift({
 				value: modelKey(store.model.provider, store.model.id),
-				label: `${store.model.id} · ${store.model.provider}`,
+				label: store.model.id,
+				hint: store.model.provider,
 			});
 		}
 		return options;
@@ -46,8 +48,10 @@
 		if (model) void store.selectModel(model.provider, model.id);
 	}
 
+	// Readable in the DOM and unambiguous: providers and ids never contain a
+	// space, so this round-trips without escaping.
 	function modelKey(provider: string, id: string): string {
-		return JSON.stringify([provider, id]);
+		return `${provider} ${id}`;
 	}
 
 	function thinkingLabel(level: string): string {
@@ -65,6 +69,9 @@
 		placeholder="Pi default model"
 		disabled={controlsDisabled || modelOptions.length === 0}
 		compact
+		title={store.sessionState === 'streaming'
+			? 'The model cannot change while a response is streaming'
+			: undefined}
 		onValueChange={selectModel}
 	/>
 	{#if store.model && thinkingOptions.length > 0}

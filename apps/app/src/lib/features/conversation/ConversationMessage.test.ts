@@ -34,8 +34,12 @@ describe('ConversationMessage', () => {
 
 		await fireEvent.click(getByText('Edit file'));
 		expect(details).toHaveAttribute('open');
-		expect(container.querySelector('[data-kind="added"]')).toHaveTextContent(
-			'+new',
+		const added = container.querySelector(
+			'[data-ui="diff-line"][data-kind="added"]',
 		);
+		expect(added).toHaveTextContent('new');
+		expect(
+			container.querySelector('[data-ui="diff-summary"]'),
+		).toHaveTextContent('+1');
 	});
 });

@@ -1,6 +1,8 @@
 export { default as Button } from './Button.svelte';
+export { default as ConfirmDialog } from './ConfirmDialog.svelte';
 export { default as Dialog } from './Dialog.svelte';
 export { default as Menu } from './Menu.svelte';
+export type { MenuItem } from './Menu.svelte';
 export { default as ScrollPanel } from './ScrollPanel.svelte';
 export { default as SelectField } from './SelectField.svelte';
 export type { SelectOption } from './SelectField.svelte';

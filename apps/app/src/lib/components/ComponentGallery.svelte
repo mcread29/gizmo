@@ -1,26 +1,36 @@
 <script lang="ts">
 	import { MoreHorizontal, Palette, Trash2 } from '@lucide/svelte';
+	import { ToastQueue } from '../toasts.svelte';
 	import {
 		Button,
+		ConfirmDialog,
 		Dialog,
 		Menu,
 		ScrollPanel,
 		SelectField,
+		SwitchField,
 		Tabs,
 		Toast,
 		Tooltip,
 	} from './index';
 
 	let open = $state(false);
-	let toastOpen = $state(false);
+	let confirmOpen = $state(false);
+	let switchOn = $state(true);
 	let selectValue = $state('sonnet');
 	let tabValue = $state('controls');
 
+	// A queue of its own so gallery noise never lands in the real workspace.
+	const galleryToasts = new ToastQueue();
+
 	const selectOptions = [
-		{ value: 'sonnet', label: 'Claude Sonnet' },
-		{ value: 'gpt', label: 'GPT' },
-		{ value: 'gemini', label: 'Gemini' },
+		{ value: 'sonnet', label: 'Claude Sonnet', hint: 'anthropic' },
+		{ value: 'gpt', label: 'GPT', hint: 'openai' },
+		{ value: 'gemini', label: 'Gemini', hint: 'google' },
 	];
+	const statuses = ['online', 'connecting', 'reconnecting', 'disconnected'];
+	const pills = ['connected', 'compiling', 'error'];
+	const toolStates = ['running', 'complete', 'error'] as const;
 </script>
 
 <Dialog
@@ -81,6 +91,63 @@
 
 		<section data-ui="gallery-section">
 			<div data-ui="gallery-heading">
+				<span>Status</span><code>data-status · data-state</code>
+			</div>
+			<div data-ui="gallery-row">
+				{#each statuses as status (status)}
+					<span data-ui="connection-row"
+						><span data-ui="status-dot" data-status={status}
+						></span>{status}</span
+					>
+				{/each}
+			</div>
+			<div data-ui="gallery-row">
+				{#each pills as state (state)}
+					<span data-ui="status-pill" data-state={state}
+						><span></span>{state}</span
+					>
+				{/each}
+			</div>
+		</section>
+
+		<section data-ui="gallery-section">
+			<div data-ui="gallery-heading">
+				<span>Loading and empty</span><code>data-ui="skeleton"</code>
+			</div>
+			<div data-ui="message-skeleton">
+				<div data-ui="skeleton" data-shape="avatar"></div>
+				<div>
+					<div data-ui="skeleton" data-shape="line"></div>
+					<div data-ui="skeleton" data-shape="line" data-width="short"></div>
+				</div>
+			</div>
+			<div data-ui="empty-state">
+				<strong>Nothing here yet</strong><span
+					>Empty states explain what would appear.</span
+				>
+			</div>
+		</section>
+
+		<section data-ui="gallery-section" data-span="full">
+			<div data-ui="gallery-heading">
+				<span>Tool call states</span><code>data-state</code>
+			</div>
+			<div data-ui="inspector-stack">
+				{#each toolStates as state (state)}
+					<details data-ui="tool-call" data-state={state}>
+						<summary data-ui="tool-header">
+							<span><strong>Unity command</strong><small>{state}</small></span>
+						</summary>
+						<div data-ui="tool-content">
+							<p data-ui="tool-empty">Result body for the {state} state.</p>
+						</div>
+					</details>
+				{/each}
+			</div>
+		</section>
+
+		<section data-ui="gallery-section">
+			<div data-ui="gallery-heading">
 				<span>Tabs and scrolling</span><code>data-state="active"</code>
 			</div>
 			<Tabs
@@ -91,7 +158,7 @@
 				bind:value={tabValue}
 			>
 				{#snippet children(value)}
-					<ScrollPanel data-ui="gallery-scroll">
+					<ScrollPanel name="gallery">
 						<p>
 							{value === 'controls'
 								? 'Tabs expose their selected state through data attributes, while focus remains visible for keyboard users.'
@@ -111,11 +178,47 @@
 
 		<section data-ui="gallery-section">
 			<div data-ui="gallery-heading">
+				<span>Fields</span><code>data-ui="switch"</code>
+			</div>
+			<SwitchField
+				bind:checked={switchOn}
+				label="A setting"
+				description="Switch fields pair a label with an explanation of the effect."
+			/>
+		</section>
+
+		<section data-ui="gallery-section">
+			<div data-ui="gallery-heading">
 				<span>Feedback</span><code>aria-live="polite"</code>
 			</div>
-			<Button onclick={() => (toastOpen = true)}>Show toast</Button>
+			<div data-ui="gallery-row">
+				<Button
+					onclick={() => galleryToasts.show('Editor connection refreshed')}
+					>Show toast</Button
+				>
+				<Button
+					variant="danger"
+					onclick={() =>
+						galleryToasts.show('Could not reach the Editor', 'danger')}
+					>Show error toast</Button
+				>
+				<Button variant="secondary" onclick={() => (confirmOpen = true)}
+					>Confirm dialog</Button
+				>
+			</div>
 		</section>
 	</div>
 </Dialog>
 
-<Toast bind:open={toastOpen} message="Editor connection refreshed" />
+<ConfirmDialog
+	bind:open={confirmOpen}
+	title="Destructive action?"
+	confirmLabel="Do it"
+	onConfirm={() => {
+		confirmOpen = false;
+	}}
+>
+	<p>Confirmations lead with Cancel and name what is about to be lost.</p>
+</ConfirmDialog>
+
+<Toast queue={galleryToasts} />

@@ -14,3 +14,17 @@ export function stringValue(value: unknown): string | undefined {
 		return String(value);
 	}
 }
+
+/**
+ * Time only for today, date and time otherwise — a bare "03:05" on a thread
+ * resumed a week later says nothing useful.
+ */
+export function formatMessageTime(timestamp: number, now = Date.now()): string {
+	const sameDay =
+		new Date(timestamp).toDateString() === new Date(now).toDateString();
+	return new Intl.DateTimeFormat([], {
+		hour: '2-digit',
+		minute: '2-digit',
+		...(sameDay ? {} : { month: 'short', day: 'numeric' }),
+	}).format(timestamp);
+}

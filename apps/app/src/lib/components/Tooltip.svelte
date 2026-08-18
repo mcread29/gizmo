@@ -9,13 +9,16 @@
 	}: { text: string; children: Snippet<[HTMLButtonAttributes]> } = $props();
 </script>
 
-<Tooltip.Provider delayDuration={350}>
-	<Tooltip.Root>
-		<Tooltip.Trigger>
-			{#snippet child({ props })}{@render children(props)}{/snippet}
-		</Tooltip.Trigger>
-		<Tooltip.Portal>
-			<Tooltip.Content data-ui="tooltip" sideOffset={6}>{text}</Tooltip.Content>
-		</Tooltip.Portal>
-	</Tooltip.Root>
-</Tooltip.Provider>
+<!--
+	No provider here on purpose: the app mounts a single Tooltip.Provider so that
+	moving between neighbouring controls skips the open delay instead of
+	restarting it for every button.
+-->
+<Tooltip.Root>
+	<Tooltip.Trigger>
+		{#snippet child({ props })}{@render children(props)}{/snippet}
+	</Tooltip.Trigger>
+	<Tooltip.Portal>
+		<Tooltip.Content data-ui="tooltip" sideOffset={6}>{text}</Tooltip.Content>
+	</Tooltip.Portal>
+</Tooltip.Root>

@@ -1,25 +1,20 @@
 <script lang="ts">
 	import type { ConversationMessage } from '@unity-agent/protocol';
-	import { Bot, Check, Copy, User } from '@lucide/svelte';
+	import { Bot, Check, Copy, RotateCw, User } from '@lucide/svelte';
 	import { Button } from '../../components';
 	import MarkdownContent from './MarkdownContent.svelte';
 	import ToolCallCard from './ToolCallCard.svelte';
+	import { formatMessageTime } from './format';
 
 	interface Props {
 		message: ConversationMessage;
 		agentName: string;
 		projectPath?: string;
+		onRetry?: () => void;
 	}
 
-	let { message, agentName, projectPath }: Props = $props();
+	let { message, agentName, projectPath, onRetry }: Props = $props();
 	let copied = $state(false);
-
-	function formatTime(timestamp: number) {
-		return new Intl.DateTimeFormat([], {
-			hour: '2-digit',
-			minute: '2-digit',
-		}).format(timestamp);
-	}
 
 	async function copyMessage() {
 		if (!message.content || !navigator.clipboard) return;
@@ -42,26 +37,39 @@
 	<div data-ui="message-body">
 		<div data-ui="message-meta">
 			<strong>{message.role === 'user' ? 'You' : agentName}</strong>
-			<span>{formatTime(message.createdAt)}</span>
-			{#if message.content}
-				<Button
-					variant="ghost"
-					size="sm"
-					aria-label={message.role === 'assistant'
-						? 'Copy response'
-						: 'Copy message'}
-					onclick={copyMessage}
-				>
-					{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy{/if}
-				</Button>
-			{/if}
+			<span>{formatMessageTime(message.createdAt)}</span>
+			<div data-ui="message-actions">
+				{#if onRetry}
+					<Button
+						variant="ghost"
+						size="sm"
+						aria-label="Send this message again"
+						onclick={onRetry}><RotateCw size={13} /> Retry</Button
+					>
+				{/if}
+				{#if message.content}
+					<Button
+						variant="ghost"
+						size="sm"
+						aria-label={message.role === 'assistant'
+							? 'Copy response'
+							: 'Copy message'}
+						onclick={copyMessage}
+					>
+						{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy{/if}
+					</Button>
+				{/if}
+			</div>
 		</div>
 		{#if message.content}<MarkdownContent content={message.content} />{/if}
 		{#each message.tools as tool (tool.id)}
 			<ToolCallCard {tool} {projectPath} />
 		{/each}
 		{#if !message.complete && message.role === 'assistant'}
-			<span data-ui="streaming-cursor" aria-label="Response streaming"></span>
+			<p data-ui="streaming-indicator" role="status">
+				<span data-ui="streaming-cursor" aria-hidden="true"></span>
+				{message.content || message.tools.length ? 'Responding' : 'Thinking'}…
+			</p>
 		{/if}
 	</div>
 </article>

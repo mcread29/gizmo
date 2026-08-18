@@ -55,7 +55,22 @@ export interface AppSettings {
 	autoFollowOutput: boolean;
 	showThreadSidebar: boolean;
 	showUnityInspector: boolean;
+	sidebarWidth: number;
+	inspectorWidth: number;
 }
+
+export type PanelName = 'sidebar' | 'inspector';
+
+export interface PanelWidthLimit {
+	min: number;
+	max: number;
+	default: number;
+}
+
+export const panelWidthLimits: Record<PanelName, PanelWidthLimit> = {
+	sidebar: { min: 200, max: 420, default: 248 },
+	inspector: { min: 240, max: 480, default: 288 },
+};
 
 export const defaultAppSettings: AppSettings = {
 	theme: 'dark',
@@ -63,18 +78,32 @@ export const defaultAppSettings: AppSettings = {
 	autoFollowOutput: true,
 	showThreadSidebar: true,
 	showUnityInspector: true,
+	sidebarWidth: panelWidthLimits.sidebar.default,
+	inspectorWidth: panelWidthLimits.inspector.default,
 };
+
+/**
+ * Used only when nothing has been stored yet, so a first launch matches the
+ * operating system instead of forcing everyone into dark.
+ */
+export function systemTheme(): AppTheme {
+	const prefersLight =
+		typeof matchMedia === 'function' &&
+		matchMedia('(prefers-color-scheme: light)').matches;
+	return prefersLight ? 'light' : 'dark';
+}
 
 const settingsKey = 'unity-agent.settings.v1';
 
 export function loadAppSettings(storage = browserStorage()): AppSettings {
-	if (!storage) return { ...defaultAppSettings };
+	const fallback: AppSettings = { ...defaultAppSettings, theme: systemTheme() };
+	if (!storage) return fallback;
 	try {
 		const value = JSON.parse(storage.getItem(settingsKey) ?? 'null') as unknown;
-		if (!value || typeof value !== 'object') return { ...defaultAppSettings };
+		if (!value || typeof value !== 'object') return fallback;
 		const settings = value as Partial<Record<keyof AppSettings, unknown>>;
 		return {
-			theme: parseAppTheme(settings.theme) ?? defaultAppSettings.theme,
+			theme: parseAppTheme(settings.theme) ?? fallback.theme,
 			sendOnEnter: boolean(
 				settings.sendOnEnter,
 				defaultAppSettings.sendOnEnter,
@@ -91,10 +120,23 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 				settings.showUnityInspector,
 				defaultAppSettings.showUnityInspector,
 			),
+			sidebarWidth: panelWidth(settings.sidebarWidth, 'sidebar'),
+			inspectorWidth: panelWidth(settings.inspectorWidth, 'inspector'),
 		};
 	} catch {
-		return { ...defaultAppSettings };
+		return fallback;
 	}
+}
+
+export function clampPanelWidth(value: number, panel: PanelName): number {
+	const { min, max } = panelWidthLimits[panel];
+	return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function panelWidth(value: unknown, panel: PanelName): number {
+	return typeof value === 'number' && Number.isFinite(value)
+		? clampPanelWidth(value, panel)
+		: panelWidthLimits[panel].default;
 }
 
 export function isDarkTheme(theme: AppTheme): boolean {

@@ -1,12 +1,15 @@
 import DOMPurify from 'dompurify';
 import { Marked, Renderer } from 'marked';
+import { highlightCode, resolveLanguage } from './highlight';
 
 const renderer = new Renderer();
 
 renderer.html = ({ text }) => escapeHtml(text);
 renderer.code = ({ text, lang }) => {
-	const language = lang?.trim().split(/\s+/)[0] ?? 'text';
-	return `<div data-ui="code-block"><div data-ui="code-toolbar"><span>${escapeHtml(language)}</span><button type="button" data-copy-code>Copy</button></div><pre><code class="language-${escapeHtml(language)}">${escapeHtml(text)}</code></pre></div>`;
+	const language = lang?.trim().split(/\s+/)[0] || 'text';
+	const highlighted = highlightCode(text, language) ?? escapeHtml(text);
+	const label = resolveLanguage(language) ?? language;
+	return `<div data-ui="code-block"><div data-ui="code-toolbar"><span>${escapeHtml(label)}</span><button type="button" data-copy-code>Copy</button></div><pre><code class="hljs language-${escapeHtml(label)}">${highlighted}</code></pre></div>`;
 };
 renderer.link = ({ href, title, tokens }) => {
 	const label = renderer.parser.parseInline(tokens);

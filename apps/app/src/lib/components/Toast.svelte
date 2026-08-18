@@ -1,39 +1,37 @@
 <script lang="ts">
 	import { CheckCircle2, CircleAlert, X } from '@lucide/svelte';
+	import type { ToastQueue } from '../toasts.svelte';
 	import Button from './Button.svelte';
 
-	let {
-		open = $bindable(false),
-		message,
-		tone = 'success',
-	}: {
-		open?: boolean;
-		message: string;
-		tone?: 'success' | 'danger';
-	} = $props();
+	let { queue }: { queue: ToastQueue } = $props();
 </script>
 
-{#if open}
-	<div data-ui="toast-region" aria-live="polite" aria-atomic="true">
+<!--
+	The region stays mounted whether or not it holds anything: screen readers
+	announce nodes added to a live region they are already observing, and miss
+	regions that appear alongside their content.
+-->
+<div data-ui="toast-region" aria-live="polite" aria-atomic="false">
+	{#each queue.items as toast (toast.id)}
 		<div
 			data-ui="toast"
-			data-tone={tone}
-			role={tone === 'danger' ? 'alert' : 'status'}
+			data-tone={toast.tone}
+			role={toast.tone === 'danger' ? 'alert' : 'status'}
 		>
 			<span data-ui="toast-icon">
-				{#if tone === 'success'}<CheckCircle2 size={18} />{:else}<CircleAlert
+				{#if toast.tone === 'success'}<CheckCircle2
 						size={18}
-					/>{/if}
+					/>{:else}<CircleAlert size={18} />{/if}
 			</span>
-			<span>{message}</span>
+			<span>{toast.message}</span>
 			<Button
 				variant="ghost"
 				size="icon"
 				aria-label="Dismiss notification"
-				onclick={() => (open = false)}
+				onclick={() => queue.dismiss(toast.id)}
 			>
 				<X size={15} />
 			</Button>
 		</div>
-	</div>
-{/if}
+	{/each}
+</div>

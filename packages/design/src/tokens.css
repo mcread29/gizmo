@@ -12,7 +12,7 @@
 	--color-border-strong: #c9cec0;
 	--color-text: #20231c;
 	--color-text-muted: #6c7264;
-	--color-text-faint: #929889;
+	--color-text-faint: #7d8375;
 	--color-accent: #d54f35;
 	--color-accent-hover: #bd402a;
 	--color-accent-soft: #f8e4de;
@@ -36,6 +36,24 @@
 	--space-6: 24px;
 	--space-8: 32px;
 	--focus-ring: 0 0 0 3px rgb(213 79 53 / 0.2);
+	--color-overlay: rgb(12 14 11 / 0.58);
+	--shadow-panel: 0 10px 32px rgb(25 30 21 / 0.08);
+
+	/* Type scale. 11px is the floor: nothing in the UI goes smaller. */
+	--text-2xs: 0.6875rem;
+	--text-xs: 0.75rem;
+	--text-sm: 0.8125rem;
+	--text-md: 0.875rem;
+	--text-lg: 1rem;
+	--text-xl: 1.125rem;
+	--text-2xl: 1.375rem;
+
+	--radius-xs: 4px;
+	--radius-full: 999px;
+	--titlebar-height: 48px;
+	--content-max: 780px;
+	--control-height-sm: 30px;
+	--control-height-md: 36px;
 }
 
 :root[data-theme='vesper-light'] {
@@ -88,6 +106,8 @@
 	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
 	--shadow-md: 0 18px 54px rgb(0 0 0 / 0.5);
 	--focus-ring: 0 0 0 3px rgb(255 199 153 / 0.22);
+	--color-overlay: rgb(0 0 0 / 0.62);
+	--shadow-panel: 0 10px 32px rgb(0 0 0 / 0.35);
 }
 
 :root[data-theme='catppuccin-latte'] {
@@ -140,6 +160,8 @@
 	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
 	--shadow-md: 0 18px 54px rgb(0 0 0 / 0.48);
 	--focus-ring: 0 0 0 3px rgb(203 166 247 / 0.22);
+	--color-overlay: rgb(0 0 0 / 0.62);
+	--shadow-panel: 0 10px 32px rgb(0 0 0 / 0.35);
 }
 
 :root[data-theme='rose-pine-dawn'] {
@@ -192,6 +214,8 @@
 	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.28);
 	--shadow-md: 0 18px 54px rgb(0 0 0 / 0.44);
 	--focus-ring: 0 0 0 3px rgb(196 167 231 / 0.22);
+	--color-overlay: rgb(0 0 0 / 0.62);
+	--shadow-panel: 0 10px 32px rgb(0 0 0 / 0.35);
 }
 
 :root[data-theme='solarized-light'] {
@@ -244,6 +268,8 @@
 	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.28);
 	--shadow-md: 0 18px 54px rgb(0 0 0 / 0.46);
 	--focus-ring: 0 0 0 3px rgb(38 139 210 / 0.24);
+	--color-overlay: rgb(0 0 0 / 0.62);
+	--shadow-panel: 0 10px 32px rgb(0 0 0 / 0.35);
 }
 
 :root[data-theme='dark'] {
@@ -256,10 +282,11 @@
 	--color-border-strong: #3c4437;
 	--color-text: #edf0e8;
 	--color-text-muted: #a5ad9d;
-	--color-text-faint: #727a6b;
+	--color-text-faint: #8a9281;
 	--color-accent: #e66a4d;
 	--color-accent-hover: #f07a5d;
 	--color-accent-soft: #3b241e;
+	--color-on-accent: #1a1005;
 	--color-success: #80af84;
 	--color-success-soft: #203324;
 	--color-warning: #d4a04e;
@@ -268,4 +295,7 @@
 	--color-danger-soft: #3b2020;
 	--shadow-sm: 0 1px 2px rgb(0 0 0 / 0.25);
 	--shadow-md: 0 18px 54px rgb(0 0 0 / 0.42);
+	--focus-ring: 0 0 0 3px rgb(230 106 77 / 0.28);
+	--color-overlay: rgb(0 0 0 / 0.62);
+	--shadow-panel: 0 10px 32px rgb(0 0 0 / 0.35);
 }

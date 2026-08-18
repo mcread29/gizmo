@@ -1,3 +1,8 @@
+/*
+ * Panel geometry. Which panels dock and which float is decided in lib/layout.ts
+ * and published as data-left-mode / data-right-mode, so there are no width
+ * numbers in here to fall out of step with the ones in the script.
+ */
 [data-ui='app-shell'] {
 	--left-column: var(--sidebar-width, 248px);
 	--right-column: var(--inspector-width, 288px);
@@ -5,20 +10,66 @@
 	position: relative;
 	display: grid;
 	grid-template:
-		'titlebar titlebar titlebar' 48px
+		'titlebar titlebar titlebar' var(--titlebar-height)
 		'sidebar conversation inspector' minmax(0, 1fr) /
-		var(--left-column) minmax(420px, 1fr) var(--right-column);
+		var(--left-column) minmax(0, 1fr) var(--right-column);
 	width: 100%;
 	height: 100%;
 	background: var(--color-canvas);
 }
 
-[data-ui='app-shell'][data-left-visible='false'] {
+[data-ui='app-shell'][data-left-visible='false'],
+[data-ui='app-shell'][data-left-mode='overlay'] {
 	--left-column: 0px;
 }
 
-[data-ui='app-shell'][data-right-visible='false'] {
+[data-ui='app-shell'][data-right-visible='false'],
+[data-ui='app-shell'][data-right-mode='overlay'] {
 	--right-column: 0px;
+}
+
+[data-ui='app-shell'][data-left-mode='docked'][data-left-visible='false']
+	[data-ui='sidebar'],
+[data-ui='app-shell'][data-right-mode='docked'][data-right-visible='false']
+	[data-ui='inspector'] {
+	display: none;
+}
+
+/* Undocked panels float over the conversation and slide in from their edge. */
+[data-left-mode='overlay'] [data-ui='sidebar'],
+[data-right-mode='overlay'] [data-ui='inspector'] {
+	position: fixed;
+	top: var(--titlebar-height);
+	bottom: 0;
+	z-index: 31;
+	box-shadow: var(--shadow-md);
+	transition: transform 160ms ease;
+}
+
+[data-left-mode='overlay'] [data-ui='sidebar'] {
+	left: 0;
+	width: min(280px, calc(100vw - 48px));
+	transform: translateX(-100%);
+}
+
+[data-right-mode='overlay'] [data-ui='inspector'] {
+	right: 0;
+	width: min(var(--inspector-width, 300px), calc(100vw - 48px));
+	transform: translateX(100%);
+}
+
+[data-left-mode='overlay'][data-left-visible='true'] [data-ui='sidebar'],
+[data-right-mode='overlay'][data-right-visible='true'] [data-ui='inspector'] {
+	transform: translateX(0);
+}
+
+[data-ui='drawer-scrim'] {
+	position: fixed;
+	inset: var(--titlebar-height) 0 0;
+	z-index: 30;
+	display: block;
+	border: 0;
+	background: var(--color-overlay);
 }
 
 [data-ui='titlebar'] {
@@ -51,12 +102,23 @@
 [data-ui='titlebar-center'] {
 	gap: var(--space-2);
 	color: var(--color-text-muted);
-	font-size: 0.75rem;
+	font-size: var(--text-xs);
 }
 
 [data-ui='titlebar-center'] > span:nth-child(2) {
 	color: var(--color-text);
 	font-weight: 600;
+}
+
+/* The window is too narrow for the project readout before it is for the panels. */
+[data-left-mode='overlay'] [data-ui='titlebar'] {
+	grid-template-columns: 1fr auto;
+}
+
+[data-left-mode='overlay'] [data-ui='titlebar-center'],
+[data-left-mode='overlay'] [data-ui='titlebar-start'] > strong,
+[data-left-mode='overlay'] [data-ui='preview-badge'] {
+	display: none;
 }
 
 [data-ui='brand-mark'] {
@@ -71,10 +133,10 @@
 
 [data-ui='preview-badge'] {
 	padding: 3px 6px;
-	border-radius: 999px;
+	border-radius: var(--radius-full);
 	background: var(--color-accent-soft);
 	color: var(--color-accent);
-	font-size: 0.625rem;
+	font-size: var(--text-2xs);
 	font-weight: 700;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
@@ -83,6 +145,7 @@
 [data-ui='project-dot'],
 [data-ui='status-dot'] {
 	display: inline-block;
+	flex: 0 0 auto;
 	width: 7px;
 	height: 7px;
 	border-radius: 50%;
@@ -92,9 +155,15 @@
 
 [data-ui='project-dot'][data-state='disconnected'],
 [data-ui='project-dot']:not([data-state]),
-[data-ui='status-dot'][data-status='connecting'] {
+[data-ui='status-dot'][data-status='connecting'],
+[data-ui='status-dot'][data-status='reconnecting'] {
 	background: var(--color-warning);
 	box-shadow: 0 0 0 3px var(--color-warning-soft);
+}
+
+[data-ui='status-dot'][data-status='connecting'],
+[data-ui='status-dot'][data-status='reconnecting'] {
+	animation: pulse 900ms ease-in-out infinite alternate;
 }
 
 [data-ui='project-dot'][data-state='unavailable'],
@@ -108,135 +177,14 @@
 	color: var(--color-text-faint);
 }
 
-[data-ui='sidebar'],
-[data-ui='inspector'] {
-	min-width: 0;
-	background: var(--color-surface);
-}
-
-[data-ui='sidebar'] {
-	grid-area: sidebar;
-	display: grid;
-	grid-template-rows: auto auto minmax(0, 1fr) auto;
-	border-right: 1px solid var(--color-border);
-}
-
-[data-ui='sidebar-header'] {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: var(--space-4) var(--space-3) var(--space-5);
-}
-
-[data-ui='eyebrow'],
-[data-ui='section-label'],
-[data-ui='card-label'] {
-	color: var(--color-text-faint);
-	font-size: 0.6875rem;
-	font-weight: 700;
-	letter-spacing: 0.065em;
-	text-transform: uppercase;
-}
-
-[data-ui='project-option'] > span,
-[data-ui='session-item'] > span {
-	display: grid;
-	min-width: 0;
-	gap: 4px;
-}
-
-[data-ui='project-option'] strong,
-[data-ui='session-item'] strong {
-	overflow: hidden;
-	font-size: 0.8125rem;
-	font-weight: 600;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-[data-ui='project-option'] small,
-[data-ui='session-item'] small {
-	overflow: hidden;
-	color: var(--color-text-faint);
-	font-size: 0.6875rem;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-[data-ui='section-label'] {
-	display: flex;
-	justify-content: space-between;
-	padding: 0 var(--space-4) var(--space-2);
-}
-
-[data-ui='section-label'] span:last-child {
-	font-variant-numeric: tabular-nums;
-}
-
-[data-ui='session-scroll'] {
-	height: 100%;
-}
-
-[data-ui='session-list'] {
-	display: grid;
-	gap: 2px;
-	padding: 0 var(--space-2);
-}
-
-[data-ui='session-item'] {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr);
-	align-items: center;
-	gap: 10px;
-	width: 100%;
-	padding: 10px;
-	border: 0;
-	border-radius: 7px;
-	background: transparent;
-	color: var(--color-text-muted);
-	font: inherit;
-	text-align: left;
-	text-decoration: none;
-	cursor: pointer;
-}
-
-[data-ui='session-item']:hover {
-	background: var(--color-surface-soft);
-}
-
-[data-ui='session-item'][data-active] {
-	background: var(--color-accent-soft);
-	color: var(--color-accent);
-}
-
-[data-ui='session-item'][data-active] small {
-	color: color-mix(in srgb, var(--color-accent) 65%, var(--color-text-muted));
-}
-
-[data-ui='sidebar-footer'] {
-	display: grid;
-	gap: var(--space-3);
-	padding: var(--space-3);
-	border-top: 1px solid var(--color-border);
-}
-
-[data-ui='connection-row'] {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	color: var(--color-text-muted);
-	font-size: 0.6875rem;
-}
-
 [data-ui='panel-resize-handle'] {
 	position: absolute;
-	top: 48px;
+	top: var(--titlebar-height);
 	bottom: 0;
 	z-index: 18;
 	width: 7px;
 	padding: 0;
 	border: 0;
-	outline: none;
 	background: transparent;
 	cursor: col-resize;
 	touch-action: none;
@@ -270,16 +218,4 @@ body[data-resizing='sidebar'] [data-ui='panel-resize-handle']::after {
 body[data-resizing='sidebar'] {
 	cursor: col-resize;
 	user-select: none;
-}
-
-@media (min-width: 721px) {
-	[data-ui='app-shell'][data-left-visible='false'] [data-ui='sidebar'] {
-		display: none;
-	}
-}
-
-@media (min-width: 1041px) {
-	[data-ui='app-shell'][data-right-visible='false'] [data-ui='inspector'] {
-		display: none;
-	}
 }

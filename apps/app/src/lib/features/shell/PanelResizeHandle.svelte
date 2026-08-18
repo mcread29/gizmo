@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { panelWidthLimits, type PanelName } from '../../app-settings';
 
 	interface Props {
 		side: 'left' | 'right';
 		size: number;
-		min: number;
 		max: number;
 		onResize: (size: number) => void;
 		onReset: () => void;
 	}
 
-	let { side, size, min, max, onResize, onReset }: Props = $props();
+	let { side, size, max, onResize, onReset }: Props = $props();
 	let stopDragging: (() => void) | undefined;
+	let panel: PanelName = $derived(side === 'left' ? 'sidebar' : 'inspector');
+	let min = $derived(panelWidthLimits[panel].min);
+	let label = $derived(side === 'left' ? 'thread sidebar' : 'editor inspector');
 
 	function clamp(value: number) {
 		return Math.min(max, Math.max(min, Math.round(value)));
@@ -67,11 +70,12 @@
 	data-side={side}
 	role="slider"
 	tabindex="0"
-	aria-label={`Resize ${side === 'left' ? 'thread sidebar' : 'editor inspector'}`}
+	aria-label={`Resize ${label}`}
 	aria-orientation="horizontal"
 	aria-valuemin={min}
 	aria-valuemax={max}
 	aria-valuenow={size}
+	aria-valuetext={`${size} pixels`}
 	onpointerdown={beginDrag}
 	onkeydown={handleKeydown}
 	ondblclick={onReset}

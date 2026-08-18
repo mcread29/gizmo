@@ -1,22 +1,17 @@
 <script lang="ts">
 	import { ContextMenu } from 'bits-ui';
 	import type { Snippet } from 'svelte';
-
-	type ContextKind =
-		'shell' | 'thread' | 'message' | 'tool' | 'composer' | 'unity';
-
-	interface ContextTarget {
-		kind: ContextKind;
-		id?: string;
-		value?: string;
-		label?: string;
-	}
+	import {
+		copyText,
+		pasteInto,
+		readContextTarget,
+		type ContextTarget,
+	} from './context-target';
+	import type { WorkspaceLayout } from './workspace.svelte';
 
 	interface Props {
 		children: Snippet;
-		leftVisible: boolean;
-		rightVisible: boolean;
-		darkTheme: boolean;
+		layout: WorkspaceLayout;
 		activeThreadId?: string;
 		canDeleteThread: boolean;
 		canOpenEditor: boolean;
@@ -31,17 +26,12 @@
 		onDeleteThread: (sessionId: string) => void;
 		onOpenEditor: () => void;
 		onRefreshEditor: () => void;
-		onToggleLeft: () => void;
-		onToggleRight: () => void;
-		onToggleTheme: () => void;
 		onOpenSettings: () => void;
 	}
 
 	let {
 		children,
-		leftVisible,
-		rightVisible,
-		darkTheme,
+		layout,
 		activeThreadId,
 		canDeleteThread,
 		canOpenEditor,
@@ -53,118 +43,42 @@
 		onDeleteThread,
 		onOpenEditor,
 		onRefreshEditor,
-		onToggleLeft,
-		onToggleRight,
-		onToggleTheme,
 		onOpenSettings,
 	}: Props = $props();
 
-	let target = $state<ContextTarget>({ kind: 'shell' });
-	let editableTarget = $state<
-		HTMLInputElement | HTMLTextAreaElement | undefined
-	>();
-	let selectedText = $state('');
+	let target = $state<ContextTarget>({ kind: 'shell', selectedText: '' });
 	let contextText = $derived(
 		(target.kind === 'message' || target.kind === 'tool') && target.id
 			? getContextText(target.kind, target.id)
 			: undefined,
 	);
-
-	function captureContext(event: MouseEvent) {
-		const eventTarget = event.target;
-		editableTarget =
-			eventTarget instanceof HTMLInputElement ||
-			eventTarget instanceof HTMLTextAreaElement
-				? eventTarget
-				: undefined;
-		selectedText = editableTarget
-			? editableTarget.value.slice(
-					editableTarget.selectionStart ?? 0,
-					editableTarget.selectionEnd ?? 0,
-				)
-			: (window.getSelection()?.toString() ?? '');
-
-		const contextElement =
-			eventTarget instanceof Element
-				? eventTarget.closest<HTMLElement>('[data-context-kind]')
-				: undefined;
-		const kind = contextKind(contextElement?.dataset.contextKind);
-		target = {
-			kind,
-			...(contextElement?.dataset.contextId
-				? { id: contextElement.dataset.contextId }
-				: {}),
-			...(contextElement?.dataset.contextValue
-				? { value: contextElement.dataset.contextValue }
-				: {}),
-			...(contextElement?.dataset.contextLabel
-				? { label: contextElement.dataset.contextLabel }
-				: {}),
-		};
-	}
-
-	async function copy(text: string | undefined) {
-		if (!text || !navigator.clipboard) return;
-		try {
-			await navigator.clipboard.writeText(text);
-		} catch {
-			// Clipboard permissions can be denied outside a secure browser context.
-		}
-	}
-
-	async function paste() {
-		if (!editableTarget || !navigator.clipboard) return;
-		try {
-			const text = await navigator.clipboard.readText();
-			const start =
-				editableTarget.selectionStart ?? editableTarget.value.length;
-			const end = editableTarget.selectionEnd ?? start;
-			editableTarget.setRangeText(text, start, end, 'end');
-			editableTarget.dispatchEvent(new InputEvent('input', { bubbles: true }));
-		} catch {
-			// Clipboard permissions can be denied outside a secure browser context.
-		}
-	}
-
-	function selectAll() {
-		editableTarget?.select();
-	}
-
-	function contextKind(value: string | undefined): ContextKind {
-		switch (value) {
-			case 'thread':
-			case 'message':
-			case 'tool':
-			case 'composer':
-			case 'unity':
-				return value;
-			default:
-				return 'shell';
-		}
-	}
 </script>
 
 <ContextMenu.Root>
 	<ContextMenu.Trigger
 		data-ui="context-menu-region"
-		oncontextmenu={captureContext}
+		oncontextmenu={(event: MouseEvent) => (target = readContextTarget(event))}
 	>
 		{@render children()}
 	</ContextMenu.Trigger>
 	<ContextMenu.Portal>
 		<ContextMenu.Content data-ui="menu-content" data-menu="app-context">
-			{#if editableTarget || selectedText}
+			{#if target.editable || target.selectedText}
 				<ContextMenu.Item
 					data-ui="menu-item"
-					disabled={!selectedText}
-					onSelect={() => void copy(selectedText)}
+					disabled={!target.selectedText}
+					onSelect={() => void copyText(target.selectedText)}
 					>Copy selection</ContextMenu.Item
 				>
-				{#if editableTarget}
-					<ContextMenu.Item data-ui="menu-item" onSelect={() => void paste()}
+				{#if target.editable}
+					<ContextMenu.Item
+						data-ui="menu-item"
+						onSelect={() => void pasteInto(target.editable)}
 						>Paste</ContextMenu.Item
 					>
-					<ContextMenu.Item data-ui="menu-item" onSelect={selectAll}
+					<ContextMenu.Item
+						data-ui="menu-item"
+						onSelect={() => target.editable?.select()}
 						>Select all</ContextMenu.Item
 					>
 				{/if}
@@ -201,7 +115,7 @@
 				<ContextMenu.Item
 					data-ui="menu-item"
 					disabled={!contextText}
-					onSelect={() => void copy(contextText)}
+					onSelect={() => void copyText(contextText)}
 					>Copy {target.label ?? 'message'}</ContextMenu.Item
 				>
 				<ContextMenu.Separator data-ui="menu-separator" />
@@ -209,7 +123,7 @@
 				<ContextMenu.Item
 					data-ui="menu-item"
 					disabled={!contextText}
-					onSelect={() => void copy(contextText)}
+					onSelect={() => void copyText(contextText)}
 					>Copy tool output</ContextMenu.Item
 				>
 				<ContextMenu.Separator data-ui="menu-separator" />
@@ -225,7 +139,7 @@
 				<ContextMenu.Item
 					data-ui="menu-item"
 					disabled={!target.value}
-					onSelect={() => void copy(target.value)}
+					onSelect={() => void copyText(target.value)}
 					>Copy project path</ContextMenu.Item
 				>
 				<ContextMenu.Separator data-ui="menu-separator" />
@@ -234,14 +148,18 @@
 			<ContextMenu.Item data-ui="menu-item" onSelect={onNewThread}
 				>New thread</ContextMenu.Item
 			>
-			<ContextMenu.Item data-ui="menu-item" onSelect={onToggleLeft}
-				>{leftVisible ? 'Hide' : 'Show'} threads</ContextMenu.Item
+			<ContextMenu.Item data-ui="menu-item" onSelect={() => layout.toggleLeft()}
+				>{layout.leftVisible ? 'Hide' : 'Show'} threads</ContextMenu.Item
 			>
-			<ContextMenu.Item data-ui="menu-item" onSelect={onToggleRight}
-				>{rightVisible ? 'Hide' : 'Show'} inspector</ContextMenu.Item
+			<ContextMenu.Item
+				data-ui="menu-item"
+				onSelect={() => layout.toggleRight()}
+				>{layout.rightVisible ? 'Hide' : 'Show'} inspector</ContextMenu.Item
 			>
-			<ContextMenu.Item data-ui="menu-item" onSelect={onToggleTheme}
-				>Use {darkTheme ? 'light' : 'dark'} theme</ContextMenu.Item
+			<ContextMenu.Item
+				data-ui="menu-item"
+				onSelect={() => layout.toggleTheme()}
+				>Use {layout.darkTheme ? 'light' : 'dark'} theme</ContextMenu.Item
 			>
 
 			<ContextMenu.Separator data-ui="menu-separator" />

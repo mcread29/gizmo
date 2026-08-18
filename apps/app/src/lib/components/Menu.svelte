@@ -13,7 +13,12 @@
 	let {
 		trigger,
 		items,
-	}: { trigger: Snippet<[HTMLButtonAttributes]>; items: MenuItem[] } = $props();
+		align = 'end',
+	}: {
+		trigger: Snippet<[HTMLButtonAttributes]>;
+		items: MenuItem[];
+		align?: 'start' | 'center' | 'end';
+	} = $props();
 </script>
 
 <DropdownMenu.Root>
@@ -21,7 +26,7 @@
 		{#snippet child({ props })}{@render trigger(props)}{/snippet}
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Portal>
-		<DropdownMenu.Content data-ui="menu-content" sideOffset={6} align="end">
+		<DropdownMenu.Content data-ui="menu-content" sideOffset={6} {align}>
 			{#each items as item}
 				<DropdownMenu.Item
 					data-ui="menu-item"

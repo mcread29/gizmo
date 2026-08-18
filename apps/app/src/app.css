@@ -1,6 +1,14 @@
 @import './styles/shell.css';
+@import './styles/sidebar.css';
 @import './styles/conversation.css';
-@import './styles/unity.css';
+@import './styles/message.css';
+@import './styles/markdown.css';
+@import './styles/tool-call.css';
+@import './styles/composer.css';
+@import './styles/inspector.css';
+@import './styles/diagnostics.css';
+@import './styles/dialogs.css';
+@import './styles/feedback.css';
 @import './styles/gallery.css';
 
 * {
@@ -15,16 +23,21 @@ body,
 	margin: 0;
 }
 
+/*
+ * No absolute base size: every size in the app is expressed in rem so the
+ * user's browser or OS text-size preference scales the whole interface.
+ */
 body {
 	overflow: hidden;
 	background: var(--color-canvas);
 	color: var(--color-text);
 	font-family: var(--font-sans);
-	font-size: 14px;
+	font-size: var(--text-md);
 	-webkit-font-smoothing: antialiased;
 }
 
 button,
+input,
 textarea {
 	font: inherit;
 }
@@ -49,10 +62,6 @@ p {
 	margin: 0;
 }
 
-[data-ui='drawer-scrim'] {
-	display: none;
-}
-
 [data-ui='hidden-trigger'] {
 	display: none;
 }
@@ -66,97 +75,6 @@ p {
 	clip: rect(0, 0, 0, 0);
 	white-space: nowrap;
 	border: 0;
-}
-
-@media (max-width: 1040px) {
-	[data-ui='app-shell'] {
-		grid-template-columns: var(--left-column) minmax(400px, 1fr);
-		grid-template-areas: 'titlebar titlebar' 'sidebar conversation';
-	}
-
-	[data-ui='inspector'] {
-		position: fixed;
-		top: 48px;
-		right: 0;
-		bottom: 0;
-		z-index: 31;
-		display: block;
-		width: min(var(--inspector-width, 300px), calc(100vw - 48px));
-		transform: translateX(100%);
-		box-shadow: var(--shadow-md);
-		transition: transform 160ms ease;
-	}
-
-	[data-ui='app-shell'][data-right-visible='true'] [data-ui='inspector'] {
-		transform: translateX(0);
-	}
-}
-
-@media (max-width: 720px) {
-	[data-ui='app-shell'] {
-		grid-template-columns: minmax(0, 1fr);
-		grid-template-areas: 'titlebar' 'conversation';
-	}
-
-	[data-ui='titlebar'] {
-		grid-template-columns: 1fr auto;
-	}
-
-	[data-ui='titlebar-center'],
-	[data-ui='titlebar-start'] > strong,
-	[data-ui='preview-badge'] {
-		display: none;
-	}
-
-	[data-ui='sidebar'] {
-		position: fixed;
-		top: 48px;
-		bottom: 0;
-		left: 0;
-		z-index: 31;
-		display: grid;
-		width: min(280px, calc(100vw - 48px));
-		transform: translateX(-100%);
-		box-shadow: var(--shadow-md);
-		transition: transform 160ms ease;
-	}
-
-	[data-ui='app-shell'][data-left-visible='true'] [data-ui='sidebar'] {
-		transform: translateX(0);
-	}
-
-	[data-ui='drawer-scrim'] {
-		position: fixed;
-		inset: 48px 0 0;
-		z-index: 30;
-		display: block;
-		border: 0;
-		background: rgb(10 12 9 / 0.5);
-	}
-
-	[data-ui='conversation-header'] {
-		padding-inline: var(--space-4);
-	}
-
-	[data-ui='message-list'] {
-		padding: 28px var(--space-4) 68px;
-	}
-
-	[data-ui='composer-wrap'] {
-		padding-inline: var(--space-3);
-	}
-
-	[data-ui='composer-hint'] {
-		display: none;
-	}
-
-	[data-ui='gallery'] {
-		grid-template-columns: 1fr;
-	}
-
-	[data-ui='gallery-section']:nth-child(3) {
-		grid-column: auto;
-	}
 }
 
 @media (prefers-reduced-motion: reduce) {

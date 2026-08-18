@@ -203,10 +203,7 @@ describe('application shell', () => {
 		await fireEvent.click(sendOnEnter);
 		await fireEvent.click(showInspector);
 
-		expect(document.documentElement).toHaveAttribute(
-			'data-theme',
-			'light',
-		);
+		expect(document.documentElement).toHaveAttribute('data-theme', 'light');
 		expect(getByText('⌘/Ctrl Enter')).toBeInTheDocument();
 		expect(
 			getByRole('button', { name: 'Toggle editor inspector' }),
@@ -267,5 +264,71 @@ describe('application shell', () => {
 				queryByRole('button', { name: 'Stop response' }),
 			).not.toBeInTheDocument(),
 		);
+	});
+
+	it('filters threads by title from the sidebar search', async () => {
+		const { container, findByRole, getByRole } = renderApp();
+		await findByRole('button', { name: 'New thread' });
+		await waitFor(() =>
+			expect(
+				container.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
+
+		await fireEvent.input(getByRole('searchbox', { name: 'Search threads' }), {
+			target: { value: 'nothing-matches-this' },
+		});
+
+		expect(container.querySelectorAll('[data-ui="session-item"]')).toHaveLength(
+			0,
+		);
+		expect(
+			getByRole('navigation', { name: 'Recent threads' }),
+		).toHaveTextContent('No threads match');
+	});
+
+	it('confirms thread deletion with a cancel path and reports the result', async () => {
+		const { container, findByRole, getByRole, queryByRole } = renderApp();
+		await findByRole('button', { name: 'New thread' });
+		await fireEvent.click(getByRole('button', { name: 'New thread' }));
+		await fireEvent.click(
+			await findByRole('button', { name: /RenderingPlayground/ }),
+		);
+		await waitFor(() =>
+			expect(
+				container.querySelectorAll('[data-ui="session-item"]'),
+			).toHaveLength(2),
+		);
+
+		await fireEvent.click(getByRole('button', { name: 'Thread actions' }));
+		await fireEvent.click(await findByRole('menuitem', { name: 'Delete' }));
+		await fireEvent.click(await findByRole('button', { name: 'Cancel' }));
+
+		await waitFor(() =>
+			expect(queryByRole('dialog', { name: 'Delete thread?' })).toBeNull(),
+		);
+		expect(container.querySelectorAll('[data-ui="session-item"]')).toHaveLength(
+			2,
+		);
+
+		await fireEvent.click(getByRole('button', { name: 'Thread actions' }));
+		await fireEvent.click(await findByRole('menuitem', { name: 'Delete' }));
+		await fireEvent.click(
+			await findByRole('button', { name: 'Delete thread' }),
+		);
+
+		expect(await findByRole('status')).toHaveTextContent('Deleted');
+	});
+
+	it('offers a manual retry once the agent connection drops', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const { findByRole, getByText, queryByRole } = render(App, { client });
+		await findByRole('button', { name: 'New thread' });
+		expect(queryByRole('button', { name: 'Retry' })).toBeNull();
+
+		client.dropConnection();
+
+		expect(await findByRole('button', { name: 'Retry' })).toBeInTheDocument();
+		expect(getByText('Local agent offline')).toBeInTheDocument();
 	});
 });

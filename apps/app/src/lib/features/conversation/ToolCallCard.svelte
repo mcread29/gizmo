@@ -11,11 +11,10 @@
 		Terminal,
 	} from '@lucide/svelte';
 	import { Button } from '../../components';
-	import { commandName } from '../unity/unity-view';
 	import CompilerDiagnosticList from '../unity/CompilerDiagnosticList.svelte';
-	import UnityTestResults from '../unity/UnityTestResults.svelte';
-	import DiffView from './DiffView.svelte';
-	import { formatToolResult, recordValue, stringValue } from './format';
+	import ToolResult from './ToolResult.svelte';
+	import { formatToolResult, recordValue } from './format';
+	import { toolIcon, toolLabel } from './tool-labels';
 
 	interface Props {
 		tool: ToolCallView;
@@ -25,18 +24,10 @@
 	let { tool, projectPath }: Props = $props();
 	let open = $state(false);
 	let copied = $state(false);
-	let previousStatus: ToolCallView['status'] | undefined;
+	/** Once the user has expressed a preference, status changes stop overriding it. */
+	let pinned = $state(false);
+
 	let resultText = $derived(formatToolResult(tool.result));
-	let diff = $derived(
-		stringValue(recordValue(tool.result, 'patch')) ??
-			stringValue(recordValue(tool.result, 'diff')),
-	);
-	let instances = $derived(readArray(tool.result, 'instances'));
-	let commands = $derived(
-		readArray(tool.result, 'commands')
-			.map(commandName)
-			.filter((name): name is string => name !== undefined),
-	);
 	let errors = $derived(readArray(tool.result, 'errors'));
 	let consoleEntries = $derived(
 		tool.name === 'unity_console'
@@ -46,9 +37,8 @@
 
 	$effect(() => {
 		const status = tool.status;
-		if (status === 'running' || status === 'error') open = true;
-		else if (previousStatus && previousStatus !== 'complete') open = false;
-		previousStatus = status;
+		if (pinned) return;
+		open = status === 'running' || status === 'error';
 	});
 
 	async function copyResult() {
@@ -62,35 +52,6 @@
 		const candidate = recordValue(value, key);
 		return Array.isArray(candidate) ? candidate : [];
 	}
-
-	function toolLabel(name: string) {
-		switch (name) {
-			case 'unity_status':
-				return 'Unity Editor status';
-			case 'unity_list_commands':
-				return 'Unity commands';
-			case 'unity_command':
-				return 'Unity command';
-			case 'unity_console':
-				return 'Unity console';
-			case 'unity_wait_for_compile':
-				return 'Compile Unity project';
-			case 'unity_wait_for_command':
-				return 'Reload Unity commands';
-			case 'unity_test':
-				return 'Unity tests';
-			case 'unity_command_template':
-				return 'Unity command template';
-			case 'read':
-				return 'Read file';
-			case 'edit':
-				return 'Edit file';
-			case 'write':
-				return 'Write file';
-			default:
-				return name;
-		}
-	}
 </script>
 
 <details
@@ -101,10 +62,10 @@
 	data-context-id={tool.id}
 	bind:open
 >
-	<summary data-ui="tool-header">
-		{#if tool.name.startsWith('unity_')}
+	<summary data-ui="tool-header" onclick={() => (pinned = true)}>
+		{#if toolIcon(tool.name) === 'unity'}
 			<PlugZap size={15} />
-		{:else if tool.name === 'read' || tool.name === 'edit' || tool.name === 'write'}
+		{:else if toolIcon(tool.name) === 'file'}
 			<FileCode2 size={15} />
 		{:else}
 			<Terminal size={15} />
@@ -123,72 +84,7 @@
 	</summary>
 
 	<div data-ui="tool-content">
-		{#if tool.status === 'running' && !resultText}
-			<p data-ui="tool-empty">Waiting for the tool to finish…</p>
-		{:else if tool.name === 'unity_status'}
-			<div data-ui="tool-metrics">
-				<div>
-					<span>State</span><strong
-						>{stringValue(recordValue(tool.result, 'state')) ??
-							tool.statusText}</strong
-					>
-				</div>
-				<div><span>Editors</span><strong>{instances.length}</strong></div>
-			</div>
-			{#each instances as instance}
-				<div data-ui="editor-result">
-					<strong
-						>{stringValue(recordValue(instance, 'projectPath')) ??
-							'Connected Editor'}</strong
-					>
-					<span
-						>{stringValue(recordValue(instance, 'version')) ??
-							'Unknown version'} · Port {stringValue(
-							recordValue(instance, 'port'),
-						) ?? '—'}</span
-					>
-				</div>
-			{/each}
-		{:else if tool.name === 'unity_list_commands'}
-			{#if commands.length}
-				<div data-ui="tool-command-list">
-					{#each commands as command}<code>{command}</code>{/each}
-				</div>
-			{:else}
-				<p data-ui="tool-empty">No registered commands were returned.</p>
-			{/if}
-		{:else if tool.name === 'unity_console'}
-			<div data-ui="tool-metrics">
-				<div><span>Entries</span><strong>{consoleEntries.length}</strong></div>
-				<div>
-					<span>Cursor</span><strong
-						>{stringValue(recordValue(tool.result, 'cursor')) ?? '—'}</strong
-					>
-				</div>
-			</div>
-		{:else if tool.name === 'unity_wait_for_compile' || tool.name === 'unity_wait_for_command'}
-			<div data-ui="tool-metrics">
-				<div>
-					<span>State</span><strong
-						>{stringValue(recordValue(tool.result, 'state')) ??
-							tool.statusText}</strong
-					>
-				</div>
-				<div>
-					<span>Diagnostics</span><strong
-						>{consoleEntries.length + errors.length}</strong
-					>
-				</div>
-			</div>
-		{:else if tool.name === 'unity_test'}
-			<UnityTestResults result={tool.result} {projectPath} />
-		{:else if diff}
-			<DiffView {diff} />
-		{:else if resultText}
-			<pre data-ui="structured-result"><code>{resultText}</code></pre>
-		{:else}
-			<p data-ui="tool-empty">The tool completed without additional output.</p>
-		{/if}
+		<ToolResult {tool} {projectPath} {consoleEntries} {errors} />
 
 		{#if errors.length}
 			<div data-ui="tool-errors">
