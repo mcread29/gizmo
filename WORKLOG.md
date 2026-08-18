@@ -238,3 +238,40 @@ project was recompiled or modified during this verification.
   the agent adapts to a project's conventions before writing and reloading it.
 - Versioned the protocol and added focused coverage for subscriptions,
   lifecycle derivation, diagnostic parsing, and template generation.
+
+## 2026-08-17 — Compile, diagnose, and test loop
+
+- Overrode Pi's built-in edit and write definitions with behavior-preserving
+  tracked versions that mark Unity compilation inputs as pending.
+- Added `unity_wait_for_compile` for ordinary script changes, sharing the same
+  domain-reload handling and compiler diagnostics as command authoring.
+- Added cursor-based `unity_console` collection so a compilation reports only
+  the warnings and errors produced after it began.
+- Added `unity_test`, backed by the connected Editor's registered `run_tests`
+  command, with EditMode/PlayMode, name, assembly, and category filtering.
+- Normalized test summaries, individual outcomes, stack traces, and source
+  locations for durable transcript storage and clickable UI results.
+- Extended the inspector with pending paths, console diagnostics, and the latest
+  structured test report; the conversation renders the same persisted data.
+
+## 2026-08-17 — Functional application settings
+
+- Replaced the Pi/session information dialog with persisted application
+  preferences for theme, composer behavior, output following, and panel
+  visibility.
+- Wired Enter-to-send and output-following preferences directly into the
+  conversation, including the matching keyboard hint and Ctrl/Command+Enter
+  fallback.
+- Kept sidebar settings synchronized with the title bar and context-menu panel
+  controls, and added one-click restoration of defaults.
+- Added focused coverage for storage fallback, persistence, and live setting
+  application.
+
+## 2026-08-17 — Paired color schemes
+
+- Added four schemes alongside the default: Vesper, Catppuccin, Rosé Pine, and
+  Solarized, each with a light and dark variant.
+- Used Latte/Mocha for Catppuccin and Dawn/Moon for Rosé Pine, and mapped every
+  variant across surfaces, borders, statuses, focus rings, and accent contrast.
+- Added a compact scheme dropdown and Light/Dark switch while preserving
+  concrete variants locally and migrating the earlier Vesper value.

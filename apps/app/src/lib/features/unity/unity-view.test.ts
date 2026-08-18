@@ -41,6 +41,49 @@ describe('createUnityView lifecycle', () => {
 			column: 3,
 		});
 	});
+
+	it('marks Unity source edits pending until a later compile completes', () => {
+		const pending = viewFor({
+			id: 'tool-edit',
+			name: 'edit',
+			status: 'complete',
+			statusText: 'Completed',
+			result: {
+				compilationPending: true,
+				compilationPaths: ['Assets/Player.cs'],
+			},
+		});
+
+		expect(pending.lifecycle).toMatchObject({
+			state: 'pending',
+			pendingPaths: ['Assets/Player.cs'],
+		});
+	});
+
+	it('surfaces new console diagnostics collected after compilation', () => {
+		const view = viewFor({
+			id: 'tool-compile',
+			name: 'unity_wait_for_compile',
+			status: 'complete',
+			statusText: 'Completed',
+			result: {
+				state: 'ready',
+				consoleEntries: [
+					{
+						level: 'warn',
+						message: 'Assets/Player.cs(8,2): warning CS0414: unused',
+					},
+				],
+			},
+		});
+
+		expect(view.lifecycle.state).toBe('ready');
+		expect(view.consoleDiagnostics[0]).toMatchObject({
+			severity: 'warning',
+			file: 'Assets/Player.cs',
+			line: 8,
+		});
+	});
 });
 
 function viewFor(tool: ToolCallView) {

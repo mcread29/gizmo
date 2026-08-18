@@ -1,11 +1,13 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import { UnityCompilationTracker } from './unity-compilation-tracker';
 import { UnityRunner, type UnityCommandRunner } from './unity-runner';
 import { waitForUnityCommand } from './unity-wait-for-command';
 
 export interface UnityWaitForCommandToolOptions {
 	projectPath: string;
 	runner?: UnityCommandRunner;
+	tracker?: UnityCompilationTracker;
 }
 
 export function createUnityWaitForCommandTool(
@@ -47,6 +49,12 @@ export function createUnityWaitForCommandTool(
 						details: undefined,
 					}),
 			});
+			if (
+				details.compileStatus === 'completed' ||
+				details.compileStatus === 'up_to_date'
+			) {
+				options.tracker?.clear();
+			}
 			return {
 				content: [{ type: 'text', text: summarize(details) }],
 				details,

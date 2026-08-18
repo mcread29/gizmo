@@ -27,7 +27,8 @@ comma-separated `UNITY_AGENT_ORIGINS` value when intentionally serving the UI
 from another origin.
 
 The Unity tools are `unity_status`, `unity_list_commands`, `unity_command`,
-`unity_wait_for_command`, and `unity_command_template`. Command discovery returns the live Editor schemas,
+`unity_console`, `unity_wait_for_compile`, `unity_wait_for_command`,
+`unity_test`, and `unity_command_template`. Command discovery returns the live Editor schemas,
 supports text filtering, and is refreshed before every execution.
 `unity_command` accepts validated named parameters or raw argument arrays for
 unusual custom command syntax. After the agent authors an Editor-side command,
@@ -35,6 +36,12 @@ unusual custom command syntax. After the agent authors an Editor-side command,
 reports compiler errors, and verifies the command's live registration.
 `unity_command_template` supplies a reusable starter matching the current
 Pipeline command API before project-specific Editor code is written.
+
+Successful writes and edits to C#, assembly definitions, compiler response
+files, and `Packages/manifest.json` mark the thread as pending compilation.
+`unity_wait_for_compile` clears that state after compilation and collects only
+new warning/error console entries. `unity_test` runs focused synchronous tests
+in the connected Editor and returns linked per-test results.
 
 ## Desktop
 

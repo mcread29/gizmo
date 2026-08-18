@@ -34,7 +34,7 @@
 
 [data-ui='button'][data-variant='primary'] {
 	background: var(--color-accent);
-	color: white;
+	color: var(--color-on-accent);
 }
 
 [data-ui='button'][data-variant='primary']:hover {

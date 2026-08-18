@@ -5,11 +5,13 @@ import type { UnityCommandRunner, UnityRunResult } from './unity-runner';
 describe('waitForUnityCommand', () => {
 	it('waits through a reload and returns the newly registered schema', async () => {
 		const runner = sequenceRunner(
+			consoleResult(10),
 			catalog('recompile'),
 			jsonResult('command recompile', { success: true }),
 			disconnected(),
 			catalog('recompile_status'),
 			compileStatus('completed'),
+			consoleResult(12),
 			catalog('new_project_command'),
 		);
 
@@ -27,17 +29,19 @@ describe('waitForUnityCommand', () => {
 			compileStatus: 'completed',
 			registeredCommand: { name: 'new_project_command' },
 		});
-		expect(runner.run).toHaveBeenCalledTimes(6);
+		expect(runner.run).toHaveBeenCalledTimes(8);
 	});
 
 	it('returns compiler diagnostics without checking the final catalog', async () => {
 		const runner = sequenceRunner(
+			consoleResult(10),
 			catalog('recompile'),
 			jsonResult('command recompile', { success: true }),
 			catalog('recompile_status'),
 			compileStatus('completed', true, [
 				'Assets/Editor/Test.cs(12,4): error CS1002: ; expected',
 			]),
+			consoleResult(11),
 		);
 
 		const result = await waitForUnityCommand(runner, {
@@ -59,15 +63,17 @@ describe('waitForUnityCommand', () => {
 				},
 			],
 		});
-		expect(runner.run).toHaveBeenCalledTimes(4);
+		expect(runner.run).toHaveBeenCalledTimes(6);
 	});
 
 	it('distinguishes a successful compile from missing registration', async () => {
 		const runner = sequenceRunner(
+			consoleResult(10),
 			catalog('recompile'),
 			jsonResult('command recompile', { success: true }),
 			catalog('recompile_status'),
 			compileStatus('up_to_date'),
+			consoleResult(10),
 			catalog('some_other_command'),
 		);
 
@@ -126,6 +132,12 @@ function disconnected(): UnityRunResult {
 			warnings: [],
 		}),
 	};
+}
+
+function consoleResult(cursor: number): UnityRunResult {
+	return jsonResult('command console', {
+		result: { entries: [], cursor, returned: 0, dropped: false },
+	});
 }
 
 function jsonResult(command: string, data: unknown): UnityRunResult {

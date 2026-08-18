@@ -1,10 +1,12 @@
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { axe } from 'vitest-axe';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from './App.svelte';
 import { FakeAgentClient } from './lib/agent-client';
 
 const initialInnerWidth = window.innerWidth;
+
+beforeEach(() => localStorage.clear());
 
 afterEach(() => {
 	cleanup();
@@ -185,15 +187,42 @@ describe('application shell', () => {
 		);
 	});
 
-	it('shows the model and local auth boundary reported by Pi', async () => {
-		const { findByText, getByRole } = renderApp();
+	it('applies and persists app settings', async () => {
+		const { findByRole, getByRole, getByText } = renderApp();
 		await fireEvent.click(getByRole('button', { name: 'Settings' }));
 
-		expect(await findByText('gpt-5.6-sol')).toBeInTheDocument();
-		expect(await findByText('Managed by Pi')).toBeInTheDocument();
-		expect(await findByText('Full access')).toBeInTheDocument();
-		expect(await findByText('Disabled')).toBeInTheDocument();
-		expect(await findByText(/unity_command/)).toBeInTheDocument();
+		expect(
+			await findByRole('dialog', { name: 'Settings' }),
+		).toBeInTheDocument();
+		const sendOnEnter = getByRole('switch', { name: 'Send with Enter' });
+		const showInspector = getByRole('switch', { name: 'Unity inspector' });
+		const scheme = getByRole('button', { name: 'Color scheme' });
+		expect(scheme).toHaveTextContent('Default');
+
+		await fireEvent.click(getByRole('switch', { name: 'Dark appearance' }));
+		await fireEvent.click(sendOnEnter);
+		await fireEvent.click(showInspector);
+
+		expect(document.documentElement).toHaveAttribute(
+			'data-theme',
+			'light',
+		);
+		expect(getByText('⌘/Ctrl Enter')).toBeInTheDocument();
+		expect(
+			getByRole('button', { name: 'Toggle editor inspector' }),
+		).toHaveAttribute('aria-expanded', 'false');
+		await waitFor(() => {
+			const saved = JSON.parse(
+				localStorage.getItem('unity-agent.settings.v1') ?? '{}',
+			);
+			expect(saved.sendOnEnter).toBe(false);
+			expect(saved.showUnityInspector).toBe(false);
+			expect(saved.theme).toBe('light');
+		});
+
+		await fireEvent.click(getByRole('button', { name: 'Restore defaults' }));
+		expect(sendOnEnter).toHaveAttribute('aria-checked', 'true');
+		expect(showInspector).toHaveAttribute('aria-checked', 'true');
 	});
 
 	it('starts a thread from a workspace and exposes model controls', async () => {

@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 5 as const;
+export const protocolVersion = 6 as const;
 
 export const agentToolPolicy = {
 	tools: [
@@ -11,7 +11,10 @@ export const agentToolPolicy = {
 		'unity_status',
 		'unity_list_commands',
 		'unity_command',
+		'unity_console',
+		'unity_wait_for_compile',
 		'unity_wait_for_command',
+		'unity_test',
 		'unity_command_template',
 	],
 	approvals: false,

@@ -16,7 +16,7 @@
 		children: Snippet;
 		leftVisible: boolean;
 		rightVisible: boolean;
-		theme: 'light' | 'dark';
+		darkTheme: boolean;
 		activeThreadId?: string;
 		canDeleteThread: boolean;
 		canOpenEditor: boolean;
@@ -41,7 +41,7 @@
 		children,
 		leftVisible,
 		rightVisible,
-		theme,
+		darkTheme,
 		activeThreadId,
 		canDeleteThread,
 		canOpenEditor,
@@ -241,7 +241,7 @@
 				>{rightVisible ? 'Hide' : 'Show'} inspector</ContextMenu.Item
 			>
 			<ContextMenu.Item data-ui="menu-item" onSelect={onToggleTheme}
-				>Use {theme === 'dark' ? 'light' : 'dark'} theme</ContextMenu.Item
+				>Use {darkTheme ? 'light' : 'dark'} theme</ContextMenu.Item
 			>
 
 			<ContextMenu.Separator data-ui="menu-separator" />

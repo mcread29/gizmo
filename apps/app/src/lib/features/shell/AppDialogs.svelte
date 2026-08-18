@@ -1,13 +1,28 @@
 <script lang="ts">
-	import { agentToolPolicy } from '@unity-agent/protocol';
 	import { FolderOpen } from '@lucide/svelte';
+	import { Switch } from 'bits-ui';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, Dialog } from '../../components';
+	import {
+		appColorSchemes,
+		defaultAppSettings,
+		getColorScheme,
+		getThemeMode,
+		getThemeVariant,
+		type AppTheme,
+		type ColorScheme,
+		type ThemeMode,
+	} from '../../app-settings';
+	import { Button, Dialog, SelectField, SwitchField } from '../../components';
 
 	interface Props {
 		store: AgentStore;
 		projectOpen?: boolean;
 		settingsOpen?: boolean;
+		theme?: AppTheme;
+		sendOnEnter?: boolean;
+		autoFollowOutput?: boolean;
+		showThreadSidebar?: boolean;
+		showUnityInspector?: boolean;
 		renameOpen?: boolean;
 		deleteOpen?: boolean;
 		renameDraft?: string;
@@ -20,6 +35,11 @@
 		store,
 		projectOpen = $bindable(false),
 		settingsOpen = $bindable(false),
+		theme = $bindable(defaultAppSettings.theme),
+		sendOnEnter = $bindable(defaultAppSettings.sendOnEnter),
+		autoFollowOutput = $bindable(defaultAppSettings.autoFollowOutput),
+		showThreadSidebar = $bindable(defaultAppSettings.showThreadSidebar),
+		showUnityInspector = $bindable(defaultAppSettings.showUnityInspector),
 		renameOpen = $bindable(false),
 		deleteOpen = $bindable(false),
 		renameDraft = $bindable(''),
@@ -27,6 +47,24 @@
 		onRename,
 		onDelete,
 	}: Props = $props();
+	let colorScheme = $derived(getColorScheme(theme));
+	let themeMode = $derived(getThemeMode(theme));
+
+	function selectColorScheme(scheme: ColorScheme) {
+		theme = getThemeVariant(scheme, themeMode);
+	}
+
+	function selectThemeMode(mode: ThemeMode) {
+		theme = getThemeVariant(colorScheme, mode);
+	}
+
+	function restoreDefaults() {
+		theme = defaultAppSettings.theme;
+		sendOnEnter = defaultAppSettings.sendOnEnter;
+		autoFollowOutput = defaultAppSettings.autoFollowOutput;
+		showThreadSidebar = defaultAppSettings.showThreadSidebar;
+		showUnityInspector = defaultAppSettings.showUnityInspector;
+	}
 </script>
 
 <Dialog
@@ -63,46 +101,91 @@
 
 <Dialog
 	bind:open={settingsOpen}
-	title="Agent settings"
-	description="Runtime configuration loaded by the local Pi agent"
+	title="Settings"
+	description="Customize Unity Agent on this device"
 >
 	{#snippet trigger(props)}
 		<button {...props} data-ui="hidden-trigger" hidden tabindex="-1"
 			>Open settings</button
 		>
 	{/snippet}
-	<div data-ui="settings-list">
-		<div>
-			<span>Provider</span><strong
-				>{store.model?.provider ?? 'Pi default'}</strong
+	<div data-ui="settings-form">
+		<section data-ui="settings-section">
+			<div data-ui="settings-section-header">
+				<strong>Theme</strong>
+				<span>Choose a color scheme and appearance.</span>
+			</div>
+			<div data-ui="theme-controls">
+				<SelectField
+					value={colorScheme}
+					label="Color scheme"
+					options={appColorSchemes}
+					onValueChange={(value) => {
+						const option = appColorSchemes.find(
+							(candidate) => candidate.value === value,
+						);
+						if (option) selectColorScheme(option.value);
+					}}
+				/>
+				<div data-ui="theme-mode-toggle">
+					<span data-state={themeMode === 'light' ? 'active' : 'inactive'}
+						>Light</span
+					>
+					<Switch.Root
+						data-ui="switch"
+						checked={themeMode === 'dark'}
+						aria-label="Dark appearance"
+						onCheckedChange={(checked) =>
+							selectThemeMode(checked ? 'dark' : 'light')}
+					>
+						<Switch.Thumb data-ui="switch-thumb" />
+					</Switch.Root>
+					<span data-state={themeMode === 'dark' ? 'active' : 'inactive'}
+						>Dark</span
+					>
+				</div>
+			</div>
+		</section>
+
+		<section data-ui="settings-section">
+			<div data-ui="settings-section-header">
+				<strong>Composer</strong>
+				<span>Control message input and response behavior.</span>
+			</div>
+			<SwitchField
+				bind:checked={sendOnEnter}
+				label="Send with Enter"
+				description="Press Shift+Enter for a new line. When off, use Ctrl or Command+Enter to send."
+			/>
+			<SwitchField
+				bind:checked={autoFollowOutput}
+				label="Follow agent output"
+				description="Keep the newest response content in view while the agent is working."
+			/>
+		</section>
+
+		<section data-ui="settings-section">
+			<div data-ui="settings-section-header">
+				<strong>Layout</strong>
+				<span>Choose which workspace panels stay visible.</span>
+			</div>
+			<SwitchField
+				bind:checked={showThreadSidebar}
+				label="Thread sidebar"
+				description="Show recent threads beside the conversation."
+			/>
+			<SwitchField
+				bind:checked={showUnityInspector}
+				label="Unity inspector"
+				description="Show Editor status, diagnostics, and activity."
+			/>
+		</section>
+
+		<div data-ui="settings-actions">
+			<Button variant="secondary" size="sm" onclick={restoreDefaults}
+				>Restore defaults</Button
 			>
 		</div>
-		<div>
-			<span>Model</span><strong
-				>{store.model?.id ?? 'Resolved on thread start'}</strong
-			>
-		</div>
-		<div>
-			<span>Thinking</span><strong
-				>{store.model?.thinkingLevel ?? 'Default'}</strong
-			>
-		</div>
-		<div><span>Authentication</span><strong>Managed by Pi</strong></div>
-		<div>
-			<span>Tools</span><strong
-				>{(store.activeTools.length
-					? store.activeTools
-					: agentToolPolicy.tools
-				).join(', ')}</strong
-			>
-		</div>
-		<div><span>Approvals</span><strong>Full access</strong></div>
-		<div><span>Installed extensions</span><strong>Disabled</strong></div>
-		<p>
-			Credentials stay in the local Pi configuration and are never sent to the
-			browser. Start <code>pi</code>, then use <code>/login</code> to change accounts.
-			The listed tools execute without approval prompts.
-		</p>
 	</div>
 </Dialog>
 

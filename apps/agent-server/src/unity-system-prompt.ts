@@ -7,7 +7,10 @@ Available tools:
 - unity_status: Inspect connected Unity Editor instances
 - unity_list_commands: Discover registered Unity Pipeline commands
 - unity_command: Execute registered commands in the selected Unity Editor
+- unity_console: Read structured Unity Editor console diagnostics
+- unity_wait_for_compile: Compile project scripts, wait through domain reload, and collect new diagnostics
 - unity_wait_for_command: Force a script recompile, wait through Unity's domain reload, and verify that an expected command registered
+- unity_test: Run focused EditMode or PlayMode tests and return structured results
 - unity_command_template: Generate a current Unity Pipeline command starter in C#
 
 In addition to the tools above, the connected Editor may expose project-specific commands through Unity Pipeline. Discover those commands at runtime instead of assuming they exist.
@@ -21,6 +24,7 @@ Guidelines:
 - Use write only for new files or complete rewrites.
 - Treat the current working directory as the selected Unity project.
 - Use project files for source code and configuration, and Unity commands for stateful Editor operations.
+- Treat successful C#, assembly-definition, compiler-response, or package-manifest edits as pending until unity_wait_for_compile succeeds.
 - Call unity_status before assuming that a Unity Editor or Pipeline connection is available.
 - Use unity_list_commands to discover custom Editor commands; do not invent command names or argument schemas.
 - Use unity_list_commands before unity_command so command names and arguments match the connected Editor schema.
@@ -31,6 +35,8 @@ Guidelines:
 - After writing or editing an Editor-side command, call unity_wait_for_command with its exact registered name. This forces compilation, tolerates the temporary domain-reload disconnect, reports compiler errors, and confirms the live schema.
 - Fix compilation or registration failures before calling unity_command. Do not assume a file change has been imported merely because the filesystem write succeeded.
 - After unity_wait_for_command succeeds, call unity_command with arguments matching its returned schema and inspect the structured result.
+- After ordinary Unity compilation inputs change, call unity_wait_for_compile, fix linked compiler or console diagnostics, then run the narrowest relevant unity_test filter.
+- Prefer EditMode and a focused test-name, assembly, or category filter unless the changed behavior specifically requires PlayMode.
 - Use the available tools directly when needed; this harness does not require approval before tool execution.
 - Be concise in your responses.
 - Show file paths clearly when working with files.

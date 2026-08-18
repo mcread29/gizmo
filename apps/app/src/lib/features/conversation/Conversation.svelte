@@ -17,6 +17,8 @@
 		store: AgentStore;
 		agentName: string;
 		currentSession?: AgentSessionSummary;
+		sendOnEnter: boolean;
+		autoFollowOutput: boolean;
 		onRename: () => void;
 		onExport: () => void;
 		onDelete: () => void;
@@ -26,6 +28,8 @@
 		store,
 		agentName,
 		currentSession,
+		sendOnEnter,
+		autoFollowOutput,
 		onRename,
 		onExport,
 		onDelete,
@@ -33,7 +37,11 @@
 	let draft = $state('');
 	let promptElement: HTMLTextAreaElement;
 	let scrollAnchor: HTMLDivElement;
-	let followOutput = true;
+	let followOutput = false;
+
+	$effect(() => {
+		if (autoFollowOutput) followOutput = true;
+	});
 
 	$effect(() => {
 		store.messages
@@ -42,7 +50,7 @@
 					`${message.id}:${message.content.length}:${message.complete}:${message.tools.map((tool) => `${tool.id}:${tool.status}:${tool.statusText}`).join(',')}`,
 			)
 			.join('|');
-		if (!followOutput) return;
+		if (!autoFollowOutput || !followOutput) return;
 		let cancelled = false;
 		void tick().then(() => {
 			if (!cancelled && typeof scrollAnchor?.scrollIntoView === 'function') {
@@ -57,6 +65,7 @@
 		if (!viewport) return;
 		const update = () => {
 			followOutput =
+				autoFollowOutput &&
 				viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 72;
 		};
 		viewport.addEventListener('scroll', update, { passive: true });
@@ -71,7 +80,7 @@
 		const prompt = draft;
 		draft = '';
 		void tick().then(() => resizeComposer(promptElement));
-		followOutput = true;
+		followOutput = autoFollowOutput;
 		void store.prompt(prompt);
 	}
 
@@ -103,7 +112,11 @@
 	}
 
 	function handleComposerKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' && !event.shiftKey) {
+		if (event.key !== 'Enter') return;
+		const shouldSend = sendOnEnter
+			? !event.shiftKey
+			: event.metaKey || event.ctrlKey;
+		if (shouldSend) {
 			event.preventDefault();
 			sendPrompt();
 		}
@@ -197,9 +210,13 @@
 				placeholder="Ask about your Unity project…"></textarea>
 			<div data-ui="composer-toolbar">
 				<ComposerModelControls {store} />
-				<span data-ui="composer-hint"
-					><kbd>Enter</kbd> send · <kbd>Shift Enter</kbd> newline</span
-				>
+				<span data-ui="composer-hint">
+					{#if sendOnEnter}
+						<kbd>Enter</kbd> send · <kbd>Shift Enter</kbd> newline
+					{:else}
+						<kbd>⌘/Ctrl Enter</kbd> send · <kbd>Enter</kbd> newline
+					{/if}
+				</span>
 				{#if store.sessionState === 'streaming'}
 					<Button
 						type="button"

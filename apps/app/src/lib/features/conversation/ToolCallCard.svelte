@@ -13,6 +13,7 @@
 	import { Button } from '../../components';
 	import { commandName } from '../unity/unity-view';
 	import CompilerDiagnosticList from '../unity/CompilerDiagnosticList.svelte';
+	import UnityTestResults from '../unity/UnityTestResults.svelte';
 	import DiffView from './DiffView.svelte';
 	import { formatToolResult, recordValue, stringValue } from './format';
 
@@ -37,6 +38,11 @@
 			.filter((name): name is string => name !== undefined),
 	);
 	let errors = $derived(readArray(tool.result, 'errors'));
+	let consoleEntries = $derived(
+		tool.name === 'unity_console'
+			? readArray(tool.result, 'entries')
+			: readArray(tool.result, 'consoleEntries'),
+	);
 
 	$effect(() => {
 		const status = tool.status;
@@ -65,8 +71,14 @@
 				return 'Unity commands';
 			case 'unity_command':
 				return 'Unity command';
+			case 'unity_console':
+				return 'Unity console';
+			case 'unity_wait_for_compile':
+				return 'Compile Unity project';
 			case 'unity_wait_for_command':
 				return 'Reload Unity commands';
+			case 'unity_test':
+				return 'Unity tests';
 			case 'unity_command_template':
 				return 'Unity command template';
 			case 'read':
@@ -145,6 +157,31 @@
 			{:else}
 				<p data-ui="tool-empty">No registered commands were returned.</p>
 			{/if}
+		{:else if tool.name === 'unity_console'}
+			<div data-ui="tool-metrics">
+				<div><span>Entries</span><strong>{consoleEntries.length}</strong></div>
+				<div>
+					<span>Cursor</span><strong
+						>{stringValue(recordValue(tool.result, 'cursor')) ?? '—'}</strong
+					>
+				</div>
+			</div>
+		{:else if tool.name === 'unity_wait_for_compile' || tool.name === 'unity_wait_for_command'}
+			<div data-ui="tool-metrics">
+				<div>
+					<span>State</span><strong
+						>{stringValue(recordValue(tool.result, 'state')) ??
+							tool.statusText}</strong
+					>
+				</div>
+				<div>
+					<span>Diagnostics</span><strong
+						>{consoleEntries.length + errors.length}</strong
+					>
+				</div>
+			</div>
+		{:else if tool.name === 'unity_test'}
+			<UnityTestResults result={tool.result} {projectPath} />
 		{:else if diff}
 			<DiffView {diff} />
 		{:else if resultText}
@@ -156,6 +193,12 @@
 		{#if errors.length}
 			<div data-ui="tool-errors">
 				<CompilerDiagnosticList {errors} {projectPath} />
+			</div>
+		{/if}
+
+		{#if consoleEntries.length}
+			<div data-ui="tool-diagnostics">
+				<CompilerDiagnosticList errors={consoleEntries} {projectPath} />
 			</div>
 		{/if}
 

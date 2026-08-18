@@ -11,6 +11,7 @@ import {
 
 export type UnityLifecycleState =
 	| 'ready'
+	| 'pending'
 	| 'compiling'
 	| 'reloading'
 	| 'verifying'
@@ -22,6 +23,7 @@ export interface UnityLifecycle {
 	state: UnityLifecycleState;
 	label: string;
 	errors: CompilerDiagnostic[];
+	pendingPaths: string[];
 }
 
 export interface UnityView {
@@ -33,6 +35,8 @@ export interface UnityView {
 	version?: string;
 	state: string;
 	lifecycle: UnityLifecycle;
+	consoleDiagnostics: CompilerDiagnostic[];
+	testResult?: unknown;
 	toolActivity: ToolCallView[];
 }
 
@@ -66,6 +70,8 @@ export function createUnityView(input: UnityViewInput): UnityView {
 		readEditorValue(editor, ['state', 'connectionState']) ??
 		statusLabel(status?.state);
 	const lifecycle = lifecycleFrom(toolActivity, status);
+	const consoleDiagnostics = latestConsoleDiagnostics(toolActivity);
+	const testResult = latestToolResult(toolActivity, 'unity_test');
 
 	return {
 		...(selectedProject ? { selectedProject } : {}),
@@ -76,6 +82,8 @@ export function createUnityView(input: UnityViewInput): UnityView {
 		...(version ? { version } : {}),
 		state,
 		lifecycle,
+		consoleDiagnostics,
+		...(testResult === undefined ? {} : { testResult }),
 		toolActivity,
 	};
 }
@@ -86,30 +94,45 @@ function lifecycleFrom(
 ): UnityLifecycle {
 	for (let index = tools.length - 1; index >= 0; index--) {
 		const tool = tools[index];
-		if (tool.name !== 'unity_wait_for_command') continue;
-		if (tool.status === 'running') {
-			const text = tool.statusText.toLowerCase();
-			if (text.includes('verif'))
-				return lifecycle('verifying', 'Verifying command');
-			if (text.includes('compil'))
-				return lifecycle('compiling', 'Compiling scripts');
-			return lifecycle('reloading', 'Reloading scripts');
-		}
-		const result = record(tool.result);
-		const resultState = typeof result?.state === 'string' ? result.state : '';
-		if (tool.status === 'complete' && resultState === 'ready') {
-			return lifecycle('ready', 'Ready');
-		}
 		if (
-			tool.status === 'error' ||
-			['compile_failed', 'command_missing', 'timeout', 'error'].includes(
-				resultState,
-			)
+			tool.name === 'unity_wait_for_compile' ||
+			tool.name === 'unity_wait_for_command'
 		) {
+			if (tool.status === 'running') {
+				const text = tool.statusText.toLowerCase();
+				if (text.includes('verif'))
+					return lifecycle('verifying', 'Verifying command');
+				if (text.includes('compil'))
+					return lifecycle('compiling', 'Compiling scripts');
+				return lifecycle('reloading', 'Reloading scripts');
+			}
+			const result = record(tool.result);
+			const resultState = typeof result?.state === 'string' ? result.state : '';
+			if (tool.status === 'complete' && resultState === 'ready') {
+				return lifecycle('ready', 'Ready');
+			}
+			if (
+				tool.status === 'error' ||
+				['compile_failed', 'command_missing', 'timeout', 'error'].includes(
+					resultState,
+				)
+			) {
+				return lifecycle(
+					'failed',
+					'Compilation failed',
+					compilerDiagnostics(result?.errors),
+				);
+			}
+			continue;
+		}
+		if (tool.name !== 'edit' && tool.name !== 'write') continue;
+		const result = record(tool.result);
+		if (result?.compilationPending === true) {
 			return lifecycle(
-				'failed',
-				'Compilation failed',
-				compilerDiagnostics(result?.errors),
+				'pending',
+				'Compile pending',
+				[],
+				stringArray(result.compilationPaths),
 			);
 		}
 	}
@@ -124,8 +147,44 @@ function lifecycle(
 	state: UnityLifecycleState,
 	label: string,
 	errors: CompilerDiagnostic[] = [],
+	pendingPaths: string[] = [],
 ): UnityLifecycle {
-	return { state, label, errors };
+	return { state, label, errors, pendingPaths };
+}
+
+function latestConsoleDiagnostics(tools: ToolCallView[]): CompilerDiagnostic[] {
+	for (let index = tools.length - 1; index >= 0; index--) {
+		const tool = tools[index];
+		const result = record(tool.result);
+		if (
+			(tool.name === 'unity_wait_for_compile' ||
+				tool.name === 'unity_wait_for_command') &&
+			Array.isArray(result?.consoleEntries)
+		) {
+			return compilerDiagnostics(result.consoleEntries);
+		}
+		if (tool.name === 'unity_console' && Array.isArray(result?.entries)) {
+			return compilerDiagnostics(result.entries);
+		}
+	}
+	return [];
+}
+
+function latestToolResult(
+	tools: ToolCallView[],
+	name: string,
+): unknown | undefined {
+	for (let index = tools.length - 1; index >= 0; index--) {
+		if (tools[index]?.name === name && tools[index]?.result !== undefined) {
+			return tools[index]!.result;
+		}
+	}
+}
+
+function stringArray(value: unknown): string[] {
+	return Array.isArray(value)
+		? value.filter((item): item is string => typeof item === 'string')
+		: [];
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {

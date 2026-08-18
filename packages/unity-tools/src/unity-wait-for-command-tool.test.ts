@@ -5,6 +5,9 @@ import type { UnityCommandRunner, UnityRunResult } from './unity-runner';
 describe('unity_wait_for_command tool', () => {
 	it('binds reload and discovery to the selected project', async () => {
 		const runner = sequenceRunner(
+			jsonResult('command console', {
+				result: { entries: [], cursor: 1, dropped: false },
+			}),
 			catalog('recompile'),
 			jsonResult('command recompile', {}),
 			catalog('recompile_status'),
@@ -14,6 +17,9 @@ describe('unity_wait_for_command tool', () => {
 					failed: false,
 					errors: [],
 				}),
+			}),
+			jsonResult('command console', {
+				result: { entries: [], cursor: 2, dropped: false },
 			}),
 			catalog('project_command'),
 		);

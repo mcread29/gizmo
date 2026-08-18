@@ -2,6 +2,7 @@
 	import { CircleCheck, FolderOpen, Terminal } from '@lucide/svelte';
 	import { Button, Tabs } from '../../components';
 	import CompilerDiagnosticList from './CompilerDiagnosticList.svelte';
+	import UnityTestResults from './UnityTestResults.svelte';
 	import type { UnityView } from './unity-view';
 	import { readEditorValue } from './unity-view';
 
@@ -77,6 +78,33 @@
 							<div data-ui="card-label">Compiler errors</div>
 							<CompilerDiagnosticList
 								errors={view.lifecycle.errors}
+								projectPath={view.projectPath}
+							/>
+						</section>
+					{/if}
+					{#if view.lifecycle.pendingPaths.length}
+						<section data-ui="inspector-card" data-state="pending">
+							<div data-ui="card-label">Pending compilation</div>
+							<div data-ui="pending-paths">
+								{#each view.lifecycle.pendingPaths as path}<code>{path}</code
+									>{/each}
+							</div>
+						</section>
+					{/if}
+					{#if view.consoleDiagnostics.length}
+						<section data-ui="inspector-card">
+							<div data-ui="card-label">Console diagnostics</div>
+							<CompilerDiagnosticList
+								errors={view.consoleDiagnostics}
+								projectPath={view.projectPath}
+							/>
+						</section>
+					{/if}
+					{#if view.testResult !== undefined}
+						<section data-ui="inspector-card">
+							<div data-ui="card-label">Latest tests</div>
+							<UnityTestResults
+								result={view.testResult}
 								projectPath={view.projectPath}
 							/>
 						</section>

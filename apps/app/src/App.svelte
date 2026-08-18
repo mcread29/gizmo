@@ -6,6 +6,11 @@
 		WebSocketAgentClient,
 		type AgentClient,
 	} from './lib/agent-client';
+	import {
+		isDarkTheme,
+		loadAppSettings,
+		saveAppSettings,
+	} from './lib/app-settings';
 	import Conversation from './lib/features/conversation/Conversation.svelte';
 	import { formatToolResult } from './lib/features/conversation/format';
 	import SessionSidebar from './lib/features/sessions/SessionSidebar.svelte';
@@ -28,11 +33,14 @@
 		capabilities: ['editor-status', 'pipeline-commands'],
 	};
 	const agentStore = new AgentStore(untrack(() => client));
+	const initialSettings = untrack(() => loadAppSettings());
 
-	let theme = $state<'light' | 'dark'>('dark');
+	let theme = $state(initialSettings.theme);
+	let sendOnEnter = $state(initialSettings.sendOnEnter);
+	let autoFollowOutput = $state(initialSettings.autoFollowOutput);
+	let showThreadSidebar = $state(initialSettings.showThreadSidebar);
+	let showUnityInspector = $state(initialSettings.showUnityInspector);
 	let viewportWidth = $state(Number.POSITIVE_INFINITY);
-	let leftCollapsed = $state(false);
-	let rightCollapsed = $state(false);
 	let leftDrawerOpen = $state(false);
 	let rightDrawerOpen = $state(false);
 	let leftWidth = $state(248);
@@ -45,8 +53,11 @@
 	let renameDraft = $state('');
 	let leftOverlay = $derived(viewportWidth <= 720);
 	let rightOverlay = $derived(viewportWidth <= 1040);
-	let leftVisible = $derived(leftOverlay ? leftDrawerOpen : !leftCollapsed);
-	let rightVisible = $derived(rightOverlay ? rightDrawerOpen : !rightCollapsed);
+	let leftVisible = $derived(leftOverlay ? leftDrawerOpen : showThreadSidebar);
+	let rightVisible = $derived(
+		rightOverlay ? rightDrawerOpen : showUnityInspector,
+	);
+	let darkTheme = $derived(isDarkTheme(theme));
 	let leftMax = $derived(
 		Math.max(
 			200,
@@ -94,6 +105,13 @@
 
 	$effect(() => {
 		document.documentElement.dataset.theme = theme;
+		saveAppSettings({
+			theme,
+			sendOnEnter,
+			autoFollowOutput,
+			showThreadSidebar,
+			showUnityInspector,
+		});
 	});
 
 	function closeDrawers() {
@@ -106,7 +124,7 @@
 			leftDrawerOpen = !leftDrawerOpen;
 			if (leftDrawerOpen) rightDrawerOpen = false;
 		} else {
-			leftCollapsed = !leftCollapsed;
+			showThreadSidebar = !showThreadSidebar;
 		}
 	}
 
@@ -115,8 +133,12 @@
 			rightDrawerOpen = !rightDrawerOpen;
 			if (rightDrawerOpen) leftDrawerOpen = false;
 		} else {
-			rightCollapsed = !rightCollapsed;
+			showUnityInspector = !showUnityInspector;
 		}
+	}
+
+	function toggleTheme() {
+		theme = darkTheme ? 'light' : 'dark';
 	}
 
 	async function startThread(projectPath: string) {
@@ -209,7 +231,7 @@
 <AppContextMenu
 	{leftVisible}
 	{rightVisible}
-	{theme}
+	{darkTheme}
 	activeThreadId={agentStore.sessionId}
 	canDeleteThread={agentStore.sessionState !== 'streaming'}
 	canOpenEditor={Boolean(unityView.selectedProject && !unityView.editor)}
@@ -223,7 +245,7 @@
 	onRefreshEditor={() => void agentStore.refreshProjectStatus()}
 	onToggleLeft={toggleLeftPanel}
 	onToggleRight={toggleRightPanel}
-	onToggleTheme={() => (theme = theme === 'dark' ? 'light' : 'dark')}
+	onToggleTheme={toggleTheme}
 	onOpenSettings={() => (settingsDialogOpen = true)}
 >
 	<div
@@ -234,13 +256,13 @@
 	>
 		<Titlebar
 			{agent}
-			{theme}
+			{darkTheme}
 			view={unityView}
 			{leftVisible}
 			{rightVisible}
 			onToggleLeft={toggleLeftPanel}
 			onToggleRight={toggleRightPanel}
-			onToggleTheme={() => (theme = theme === 'dark' ? 'light' : 'dark')}
+			onToggleTheme={toggleTheme}
 			onOpenSettings={() => (settingsDialogOpen = true)}
 		/>
 
@@ -268,6 +290,8 @@
 			store={agentStore}
 			agentName={agent.name}
 			{currentSession}
+			{sendOnEnter}
+			{autoFollowOutput}
 			onRename={() => beginRename()}
 			onExport={() => void exportTranscript()}
 			onDelete={() => beginDelete()}
@@ -293,6 +317,11 @@
 			store={agentStore}
 			bind:projectOpen={projectDialogOpen}
 			bind:settingsOpen={settingsDialogOpen}
+			bind:theme
+			bind:sendOnEnter
+			bind:autoFollowOutput
+			bind:showThreadSidebar
+			bind:showUnityInspector
 			bind:renameOpen={renameDialogOpen}
 			bind:deleteOpen={deleteDialogOpen}
 			bind:renameDraft

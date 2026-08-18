@@ -63,4 +63,39 @@ describe('ToolCallCard', () => {
 			'vscode://file/projects/game/Assets/Editor/Test.cs:12:4',
 		);
 	});
+
+	it('renders structured Unity test summaries and linked failures', () => {
+		const tool: ToolCallView = {
+			id: 'tool-tests',
+			name: 'unity_test',
+			status: 'error',
+			statusText: 'Failed',
+			result: {
+				state: 'failed',
+				summary: { total: 1, passed: 0, failed: 1 },
+				tests: [
+					{
+						name: 'Game.PlayerTests.Jumps',
+						status: 'Failed',
+						message: 'Expected jump',
+						file: 'Assets/Tests/PlayerTests.cs',
+						line: 42,
+					},
+				],
+				errors: [],
+			},
+		};
+		const { getByRole, getByText } = render(ToolCallCard, {
+			tool,
+			projectPath: '/projects/game',
+		});
+
+		expect(getByText('Game.PlayerTests.Jumps')).toBeInTheDocument();
+		expect(
+			getByRole('link', { name: 'Assets/Tests/PlayerTests.cs:42' }),
+		).toHaveAttribute(
+			'href',
+			'vscode://file/projects/game/Assets/Tests/PlayerTests.cs:42',
+		);
+	});
 });

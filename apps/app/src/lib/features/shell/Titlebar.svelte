@@ -13,7 +13,7 @@
 
 	interface Props {
 		agent: AgentIdentity;
-		theme: 'light' | 'dark';
+		darkTheme: boolean;
 		view: UnityView;
 		leftVisible: boolean;
 		rightVisible: boolean;
@@ -25,7 +25,7 @@
 
 	let {
 		agent,
-		theme,
+		darkTheme,
 		view,
 		leftVisible,
 		rightVisible,
@@ -64,7 +64,7 @@
 		>
 	</div>
 	<div data-ui="titlebar-end">
-		<Tooltip text={theme === 'dark' ? 'Use light theme' : 'Use dark theme'}>
+		<Tooltip text={darkTheme ? 'Use light theme' : 'Use dark theme'}>
 			{#snippet children(props)}
 				<Button
 					{...props}
@@ -73,7 +73,7 @@
 					aria-label="Toggle color theme"
 					onclick={onToggleTheme}
 				>
-					{#if theme === 'dark'}<Sun size={17} />{:else}<Moon size={17} />{/if}
+					{#if darkTheme}<Sun size={17} />{:else}<Moon size={17} />{/if}
 				</Button>
 			{/snippet}
 		</Tooltip>

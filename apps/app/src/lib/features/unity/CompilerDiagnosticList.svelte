@@ -20,7 +20,10 @@
 
 <div data-ui="compiler-errors">
 	{#each diagnostics as diagnostic}
-		<div data-ui="compiler-error">
+		<div
+			data-ui="compiler-error"
+			data-severity={diagnostic.severity ?? 'error'}
+		>
 			{#if editorFileHref(diagnostic, projectPath)}
 				<a
 					data-ui="compiler-location"
