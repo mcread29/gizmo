@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Bot, Check, Copy, RotateCw, User } from '@lucide/svelte';
+	import { Bot, Check, Copy, User } from '@lucide/svelte';
 	import { Button } from '../../components';
 	import MarkdownContent from './MarkdownContent.svelte';
 	import MessageAttachments from './MessageAttachments.svelte';
@@ -15,7 +15,6 @@
 		group: MessageGroup;
 		agentName: string;
 		projectPath?: string;
-		onRetry?: () => void;
 		/** Present only on the block the agent is currently writing. */
 		activity?: StreamingActivity;
 		/** Whether reasoning blocks start expanded. */
@@ -32,7 +31,6 @@
 		group,
 		agentName,
 		projectPath,
-		onRetry,
 		activity,
 		expandReasoning,
 		collapseToken,
@@ -63,14 +61,6 @@
 			<strong>{group.role === 'user' ? 'You' : agentName}</strong>
 			<span>{formatMessageTime(group.createdAt)}</span>
 			<div data-ui="message-actions">
-				{#if onRetry}
-					<Button
-						variant="ghost"
-						size="sm"
-						aria-label="Send this message again"
-						onclick={onRetry}><RotateCw size={13} /> Retry</Button
-					>
-				{/if}
 				{#if content}
 					<Button
 						variant="ghost"

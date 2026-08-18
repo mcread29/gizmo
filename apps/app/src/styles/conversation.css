@@ -27,6 +27,12 @@
 	font-weight: 650;
 }
 
+[data-ui='conversation-header-actions'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
 [data-scroll='messages'] {
 	flex: 1;
 	min-height: 0;

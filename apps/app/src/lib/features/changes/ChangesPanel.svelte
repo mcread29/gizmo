@@ -1,11 +1,20 @@
 <script lang="ts">
-	import { Check, Copy, FileCode2, Undo2 } from '@lucide/svelte';
+	import {
+		Check,
+		ChevronDown,
+		ChevronRight,
+		Copy,
+		FileCode2,
+		Folder,
+		Undo2,
+	} from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Tooltip } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import DiffView from '../conversation/DiffView.svelte';
 	import { sourceHref } from '../unity/compiler-diagnostics';
 	import { changeTotals, threadChanges } from './thread-changes';
+	import { changeTree, changeTreeRows } from './change-tree';
 
 	interface Props {
 		store: AgentStore;
@@ -16,6 +25,9 @@
 
 	let files = $derived(threadChanges(store.messages));
 	let totals = $derived(changeTotals(files));
+	let tree = $derived(changeTree(files, projectPath));
+	let collapsedFolders = $state(new Set<string>());
+	let rows = $derived(changeTreeRows(tree, collapsedFolders));
 	let expanded = $state(new Set<string>());
 	let reverting = $state<string>();
 
@@ -23,6 +35,12 @@
 		const next = new Set(expanded);
 		if (!next.delete(file)) next.add(file);
 		expanded = next;
+	}
+
+	function toggleFolder(path: string) {
+		const next = new Set(collapsedFolders);
+		if (!next.delete(path)) next.add(path);
+		collapsedFolders = next;
 	}
 
 	async function copyPatch(patch: string) {
@@ -60,64 +78,88 @@
 		<span data-kind="removed">−{totals.removed}</span>
 	</div>
 	<div data-ui="change-list">
-		{#each files as entry (entry.file)}
-			<section data-ui="change-file">
+		{#each rows as row (row.node.path)}
+			{#if row.node.kind === 'folder'}
 				<button
 					type="button"
-					data-ui="change-header"
-					aria-expanded={expanded.has(entry.file)}
-					onclick={() => toggle(entry.file)}
+					data-ui="change-folder"
+					style={`--depth:${row.depth}`}
+					aria-expanded={!collapsedFolders.has(row.node.path)}
+					onclick={() => toggleFolder(row.node.path)}
 				>
-					<FileCode2 size={14} />
-					<span title={entry.file}>{entry.file}</span>
-					<small data-kind="added">+{entry.added}</small>
-					<small data-kind="removed">−{entry.removed}</small>
+					{#if collapsedFolders.has(row.node.path)}<ChevronRight
+							size={12}
+						/>{:else}<ChevronDown size={12} />{/if}
+					<Folder size={14} />
+					<strong>{row.node.name}</strong>
 				</button>
-				{#if expanded.has(entry.file)}
-					{#each entry.changes as change (change.toolCallId)}
-						<div data-ui="change-body">
-							<DiffView
-								diff={change.patch}
-								file={entry.file}
-								{projectPath}
-								showFileName={false}
-								wrap
-							/>
-							<div data-ui="change-actions">
-								{#if sourceHref(entry.file, projectPath)}
-									<a
-										data-ui="change-link"
-										href={sourceHref(entry.file, projectPath)}>Open</a
-									>
-								{/if}
-								<Button
-									variant="ghost"
-									size="sm"
-									onclick={() => copyPatch(change.patch)}
-									><Copy size={13} /> Copy</Button
-								>
-								<Tooltip text="Restores the file to its state before this edit">
-									{#snippet children(props)}
-										<Button
-											{...props}
-											variant="ghost"
-											size="sm"
-											disabled={change.status !== 'complete' ||
-												reverting === change.toolCallId}
-											onclick={() =>
-												revert(entry.file, change.toolCallId, change.patch)}
-											><Undo2 size={13} />
-											{reverting === change.toolCallId
-												? 'Reverting…'
-												: 'Revert'}</Button
+			{:else}
+				{@const entry = row.node.entry}
+				<section
+					data-ui="change-file"
+					data-expanded={expanded.has(entry.file) || undefined}
+					style={`--depth:${row.depth}`}
+				>
+					<button
+						type="button"
+						data-ui="change-header"
+						aria-expanded={expanded.has(entry.file)}
+						onclick={() => toggle(entry.file)}
+					>
+						<span data-ui="change-tree-spacer"></span>
+						<FileCode2 size={14} />
+						<span title={entry.file}>{row.node.name}</span>
+						<small data-kind="added">+{entry.added}</small>
+						<small data-kind="removed">−{entry.removed}</small>
+					</button>
+					{#if expanded.has(entry.file)}
+						{#each entry.changes as change (change.toolCallId)}
+							<div data-ui="change-body">
+								<DiffView
+									diff={change.patch}
+									file={entry.file}
+									{projectPath}
+									showFileName={false}
+									wrap
+								/>
+								<div data-ui="change-actions">
+									{#if sourceHref(entry.file, projectPath)}
+										<a
+											data-ui="change-link"
+											href={sourceHref(entry.file, projectPath)}>Open</a
 										>
-									{/snippet}
-								</Tooltip>
+									{/if}
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => copyPatch(change.patch)}
+										><Copy size={13} /> Copy</Button
+									>
+									<Tooltip
+										text="Restores the file to its state before this edit"
+									>
+										{#snippet children(props)}
+											<Button
+												{...props}
+												variant="ghost"
+												size="sm"
+												disabled={change.status !== 'complete' ||
+													reverting === change.toolCallId}
+												onclick={() =>
+													revert(entry.file, change.toolCallId, change.patch)}
+												><Undo2 size={13} />
+												{reverting === change.toolCallId
+													? 'Reverting…'
+													: 'Revert'}</Button
+											>
+										{/snippet}
+									</Tooltip>
+								</div>
 							</div>
-						</div>
-					{/each}
-				{/if}
-			</section>
+						{/each}
+					{/if}
+				</section>
+			{/if}
 		{/each}
 	</div>
 {/if}

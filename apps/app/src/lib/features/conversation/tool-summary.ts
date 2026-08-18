@@ -26,6 +26,14 @@ const maxLength = 72;
 export function toolSummary(input: unknown): string | undefined {
 	if (typeof input === 'string') return truncate(input);
 	if (!input || typeof input !== 'object' || Array.isArray(input)) return;
+	const code = (input as Record<string, unknown>).code;
+	if (typeof code === 'string') {
+		const firstLine = code
+			.split('\n')
+			.map((line) => line.trim())
+			.find(Boolean);
+		return firstLine ? truncate(`TypeScript · ${firstLine}`) : 'TypeScript';
+	}
 
 	const entries = Object.entries(input as Record<string, unknown>).filter(
 		([, value]) => describable(value),

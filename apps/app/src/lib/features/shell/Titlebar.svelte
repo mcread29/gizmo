@@ -4,7 +4,6 @@
 		Moon,
 		PanelLeft,
 		PanelRight,
-		GitBranch,
 		Settings,
 		Sparkles,
 		Sun,
@@ -24,11 +23,9 @@
 		view: UnityView;
 		store: AgentStore;
 		onOpenSettings: () => void;
-		onOpenTree: () => void;
 	}
 
-	let { agent, layout, view, store, onOpenSettings, onOpenTree }: Props =
-		$props();
+	let { agent, layout, view, store, onOpenSettings }: Props = $props();
 
 	// Visible even when the conversation is scrolled away from the newest reply.
 	let activity = $derived(
@@ -84,18 +81,6 @@
 				>
 					{#if layout.darkTheme}<Sun size={17} />{:else}<Moon size={17} />{/if}
 				</Button>
-			{/snippet}
-		</Tooltip>
-		<Tooltip text={`Session tree · ${shortcutHint('⇧T')}`}>
-			{#snippet children(props)}
-				<Button
-					{...props}
-					variant="ghost"
-					size="icon"
-					aria-label="Session tree"
-					disabled={!store.sessionId}
-					onclick={onOpenTree}><GitBranch size={17} /></Button
-				>
 			{/snippet}
 		</Tooltip>
 		<Tooltip text={`Settings · ${shortcutHint(',')}`}>

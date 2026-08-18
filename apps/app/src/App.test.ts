@@ -325,16 +325,35 @@ describe('application shell', () => {
 		expect(await findByRole('status')).toHaveTextContent('Deleted');
 	});
 
-	it('offers a manual retry once the agent connection drops', async () => {
+	it('does not offer prompt retry when the agent connection drops', async () => {
 		const client = new FakeAgentClient({ latencyMs: 0 });
-		const { findByRole, getByText, queryByRole } = render(App, { client });
+		const { findByRole, findByText, queryByRole } = render(App, { client });
 		await findByRole('button', { name: 'New thread' });
 		expect(queryByRole('button', { name: 'Retry' })).toBeNull();
 
 		client.dropConnection();
 
-		expect(await findByRole('button', { name: 'Retry' })).toBeInTheDocument();
-		expect(getByText('Local agent offline')).toBeInTheDocument();
+		expect(await findByText('Local agent offline')).toBeInTheDocument();
+		expect(queryByRole('button', { name: 'Retry' })).toBeNull();
+	});
+
+	it('opens the Pi session tree from the thread header', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const { findByRole, getByRole, getByText } = render(App, { client });
+		await findByRole('button', { name: 'New thread' });
+
+		const treeButton = getByRole('button', { name: 'Tree' });
+		expect(
+			treeButton.closest('[data-ui="conversation-header"]'),
+		).not.toBeNull();
+		await fireEvent.click(treeButton);
+
+		expect(
+			await findByRole('region', { name: 'Session tree' }),
+		).toBeInTheDocument();
+		expect(
+			getByText(/including the branches it walked away from/),
+		).toBeVisible();
 	});
 
 	it('steers the run in flight instead of queueing another turn', async () => {

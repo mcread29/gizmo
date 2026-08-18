@@ -39,6 +39,27 @@ describe('findMatches', () => {
 		expect(findMatches(messages, 'unity_command').ids).toEqual(['t1']);
 	});
 
+	it('matches Unity TypeScript source', () => {
+		const scripted: ConversationMessage = {
+			...messages[1]!,
+			id: 'm-script',
+			content: '',
+			tools: [
+				{
+					id: 'script-1',
+					name: 'unity_script',
+					status: 'complete',
+					statusText: 'Completed',
+					input: {
+						code: 'const command = "first";\nawait unity.commands["scene.validate"]({});',
+					},
+				},
+			],
+		};
+
+		expect(findMatches([scripted], 'scene.validate').ids).toEqual(['script-1']);
+	});
+
 	// A reply made of twenty matching tool calls is twenty results, not one.
 	it('counts each matching tool call rather than its message', () => {
 		const many: ConversationMessage = {

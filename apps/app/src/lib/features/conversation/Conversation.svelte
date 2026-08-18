@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentSessionSummary } from '@unity-agent/protocol';
-	import { MoreHorizontal } from '@lucide/svelte';
+	import { GitBranch, MoreHorizontal } from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Menu } from '../../components';
@@ -26,6 +26,7 @@
 		onCopy: () => void;
 		onExport: () => void;
 		onDelete: () => void;
+		onOpenTree: () => void;
 	}
 
 	let {
@@ -40,6 +41,7 @@
 		onCopy,
 		onExport,
 		onDelete,
+		onOpenTree,
 	}: Props = $props();
 
 	let searchOpen = $state(false);
@@ -95,33 +97,41 @@
 			<span data-ui="eyebrow">Thread</span>
 			<h1>{threadTitle(currentSession?.title ?? 'New thread')}</h1>
 		</div>
-		<Menu
-			items={[
-				{ label: 'Find in thread', onSelect: () => findInThread?.() },
-				{
-					label: 'Collapse tool calls',
-					onSelect: () => collapseToken++,
-				},
-				{ label: 'Rename', onSelect: onRename },
-				{ label: 'Copy transcript', onSelect: onCopy },
-				{ label: 'Export transcript', onSelect: onExport },
-				{
-					label: 'Delete',
-					tone: 'danger',
-					disabled: store.sessionState === 'streaming',
-					onSelect: onDelete,
-				},
-			]}
-		>
-			{#snippet trigger(props)}
-				<Button
-					{...props}
-					variant="ghost"
-					size="icon"
-					aria-label="Thread actions"><MoreHorizontal size={18} /></Button
-				>
-			{/snippet}
-		</Menu>
+		<div data-ui="conversation-header-actions">
+			<Button
+				variant="secondary"
+				size="sm"
+				disabled={!store.sessionId}
+				onclick={onOpenTree}><GitBranch size={14} /> Tree</Button
+			>
+			<Menu
+				items={[
+					{ label: 'Find in thread', onSelect: () => findInThread?.() },
+					{
+						label: 'Collapse tool calls',
+						onSelect: () => collapseToken++,
+					},
+					{ label: 'Rename', onSelect: onRename },
+					{ label: 'Copy transcript', onSelect: onCopy },
+					{ label: 'Export transcript', onSelect: onExport },
+					{
+						label: 'Delete',
+						tone: 'danger',
+						disabled: store.sessionState === 'streaming',
+						onSelect: onDelete,
+					},
+				]}
+			>
+				{#snippet trigger(props)}
+					<Button
+						{...props}
+						variant="ghost"
+						size="icon"
+						aria-label="Thread actions"><MoreHorizontal size={18} /></Button
+					>
+				{/snippet}
+			</Menu>
+		</div>
 	</div>
 
 	{#if searchOpen}

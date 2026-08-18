@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { RotateCw } from '@lucide/svelte';
+	import { PlugZap } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
 
@@ -19,11 +19,8 @@
 	{#if store.connection === 'disconnected'}
 		<!-- Reconnection is automatic and backs off; this is the escape hatch for
 		     someone who just restarted the server and does not want to wait. -->
-		<Button
-			variant="ghost"
-			size="sm"
-			onclick={() => void store.retryConnection()}
-			><RotateCw size={13} /> Retry</Button
+		<Button variant="ghost" size="sm" onclick={() => void store.reconnectNow()}
+			><PlugZap size={13} /> Reconnect</Button
 		>
 	{/if}
 </div>

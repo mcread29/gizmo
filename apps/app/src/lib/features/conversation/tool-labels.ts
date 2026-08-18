@@ -6,6 +6,7 @@ const labels: Record<string, string> = {
 	unity_wait_for_compile: 'Compile Unity project',
 	unity_wait_for_command: 'Reload Unity commands',
 	unity_test: 'Unity tests',
+	unity_script: 'Unity TypeScript',
 	unity_command_template: 'Unity command template',
 	read: 'Read file',
 	edit: 'Edit file',

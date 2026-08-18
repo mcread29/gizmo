@@ -134,9 +134,6 @@
 				onReadAttachment={(id) => store.readAttachment(id)}
 				onRevealAttachment={(id) => store.revealAttachment(id)}
 				projectPath={currentSession?.projectPath}
-				onRetry={group.role === 'user'
-					? () => void store.retryPrompt()
-					: undefined}
 				activity={activity.streaming &&
 				group.messages.at(-1)?.id === lastMessageId
 					? activity

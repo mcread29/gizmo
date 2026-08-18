@@ -24,10 +24,6 @@ export interface AgentModel {
 	thinkingLevel: string;
 }
 
-/**
- * What went wrong, so the interface can offer the action that would actually
- * help. A failed prompt is worth retrying; a failed rename is not.
- */
 export type AgentErrorKind =
 	'connection' | 'prompt' | 'session' | 'project' | 'agent';
 
@@ -44,22 +40,6 @@ export type ConnectionState =
 
 /** Backoff between automatic reconnects; the last entry repeats forever. */
 const reconnectDelays = [500, 1_000, 2_000, 5_000, 10_000, 15_000];
-
-/**
- * Backoff for a model that is merely busy. Overload clears in seconds to
- * minutes, so retrying beyond this is worse than telling the user.
- */
-const promptRetryDelays = [5_000, 15_000, 40_000];
-
-/**
- * Server-side capacity failures, which say nothing about the request and are
- * worth repeating verbatim. Anything else is the caller's problem to fix.
- */
-export function isTransientModelError(message: string): boolean {
-	return /\b(429|500|502|503|529)\b|overloaded|rate.?limit|capacity|temporarily unavailable|try again/i.test(
-		message,
-	);
-}
 
 export class AgentStore {
 	compactionPolicy: CompactionPolicy = {
@@ -79,6 +59,7 @@ export class AgentStore {
 	activeTools = $state<string[]>([]);
 	messages = $state<ConversationMessage[]>([]);
 	messagesLoading = $state(false);
+	/** Most recently submitted text, recalled into an empty composer with Up. */
 	lastPrompt = $state<string>();
 	sessions = $state<AgentSessionSummary[]>([]);
 	projects = $state<UnityProject[]>([]);
@@ -91,8 +72,6 @@ export class AgentStore {
 	consoleEntries = $state<UnityConsoleEntry[]>([]);
 	consoleLoading = $state(false);
 	usage = $state<SessionUsage>();
-	/** Seconds until an automatic prompt retry, while one is pending. */
-	retryCountdown = $state<number>();
 
 	readonly #client: AgentClient;
 	#unsubscribe?: () => void;
@@ -100,8 +79,6 @@ export class AgentStore {
 	#statusRequest?: { projectPath: string; promise: Promise<void> };
 	#reconnectTimer?: ReturnType<typeof setTimeout>;
 	#autoReconnect = true;
-	#retryTimer?: ReturnType<typeof setInterval>;
-	#retryAttempt = 0;
 
 	constructor(client: AgentClient) {
 		this.#client = client;
@@ -156,11 +133,11 @@ export class AgentStore {
 		if (!this.#client.setEndpoint) return;
 		await this.disconnect();
 		this.#client.setEndpoint(url);
-		await this.retryConnection();
+		await this.reconnectNow();
 	}
 
-	/** Abandons the backoff and tries immediately, for an explicit user retry. */
-	async retryConnection(): Promise<void> {
+	/** Abandons the backoff and reconnects immediately. */
+	async reconnectNow(): Promise<void> {
 		clearTimeout(this.#reconnectTimer);
 		this.#reconnectTimer = undefined;
 		this.reconnectAttempt = 0;
@@ -326,7 +303,6 @@ export class AgentStore {
 		this.messagesLoading = true;
 		this.sessionState = 'idle';
 		this.usage = undefined;
-		this.cancelRetry();
 		try {
 			const snapshot = await this.#client.resumeSession(sessionId);
 			this.messages = snapshot.messages;
@@ -490,7 +466,6 @@ export class AgentStore {
 		const prompt = text.trim() || attachmentPrompt(attachments.length);
 		this.error = undefined;
 		this.lastPrompt = prompt;
-		this.cancelRetry();
 		const session = this.sessions.find(
 			(candidate) => candidate.id === this.sessionId,
 		);
@@ -576,44 +551,6 @@ export class AgentStore {
 		} finally {
 			this.consoleLoading = false;
 		}
-	}
-
-	/** Resends the last prompt, for when a send failed rather than answered. */
-	async retryPrompt(): Promise<void> {
-		if (!this.lastPrompt || this.sessionState === 'streaming') return;
-		this.cancelRetry();
-		await this.prompt(this.lastPrompt);
-	}
-
-	/** Stops a pending automatic retry, leaving the error banner in place. */
-	cancelRetry(): void {
-		clearInterval(this.#retryTimer);
-		this.#retryTimer = undefined;
-		this.retryCountdown = undefined;
-		this.#retryAttempt = 0;
-	}
-
-	/**
-	 * Counts down in public so an automatic retry never looks like a hang, and
-	 * gives up rather than hammering a server that is not coming back.
-	 */
-	#scheduleRetry(): void {
-		if (!this.lastPrompt || this.#retryTimer) return;
-		const delay = promptRetryDelays[this.#retryAttempt];
-		if (delay === undefined) return;
-		this.#retryAttempt++;
-		this.retryCountdown = Math.round(delay / 1_000);
-		this.#retryTimer = setInterval(() => {
-			this.retryCountdown = (this.retryCountdown ?? 1) - 1;
-			if ((this.retryCountdown ?? 0) > 0) return;
-			clearInterval(this.#retryTimer);
-			this.#retryTimer = undefined;
-			this.retryCountdown = undefined;
-			const attempt = this.#retryAttempt;
-			void this.prompt(this.lastPrompt!).then(() => {
-				this.#retryAttempt = attempt;
-			});
-		}, 1_000);
 	}
 
 	/** The session as a tree, including branches this transcript does not walk. */
@@ -702,8 +639,6 @@ export class AgentStore {
 				if (!event.active) this.usage = undefined;
 				break;
 			case 'message.started':
-				// The model answered, so the next failure starts its backoff over.
-				if (event.role === 'assistant') this.#retryAttempt = 0;
 				this.messages.push({
 					id: event.messageId,
 					role: event.role,
@@ -780,7 +715,6 @@ export class AgentStore {
 			case 'error':
 				this.error = { kind: 'agent', message: event.message };
 				this.sessionState = 'error';
-				if (isTransientModelError(event.message)) this.#scheduleRetry();
 				break;
 		}
 	}

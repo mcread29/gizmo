@@ -15,6 +15,7 @@ export const agentToolPolicy = {
 		'unity_wait_for_compile',
 		'unity_wait_for_command',
 		'unity_test',
+		'unity_script',
 		'unity_command_template',
 	],
 	approvals: false,

@@ -216,7 +216,7 @@ describe('AgentStore', () => {
 			await store.connect();
 			client.dropConnection();
 
-			await store.retryConnection();
+			await store.reconnectNow();
 			expect(store.connection).toBe('connected');
 			expect(store.reconnectAttempt).toBe(0);
 		} finally {

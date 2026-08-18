@@ -7,6 +7,7 @@
 	import { formatToolResult, recordValue, stringValue } from './format';
 	import { highlightCode } from './highlight';
 	import { toolParameters } from './tool-summary';
+	import UnityScriptResult from './UnityScriptResult.svelte';
 
 	interface Props {
 		tool: ToolCallView;
@@ -26,7 +27,11 @@
 		stringValue(recordValue(tool.result, 'file')) ??
 			(diff ? patchFileName(diff) : undefined),
 	);
-	let parameters = $derived(toolParameters(tool.input));
+	let parameters = $derived(
+		tool.name === 'unity_script'
+			? toolParameters(tool.input).filter(([name]) => name !== 'code')
+			: toolParameters(tool.input),
+	);
 	// Structured results are JSON; the code blocks beside them are highlighted,
 	// so these should be too. highlight.js escapes its own output.
 	let highlighted = $derived(
@@ -115,6 +120,8 @@
 	</div>
 {:else if tool.name === 'unity_test'}
 	<UnityTestResults result={tool.result} {projectPath} />
+{:else if tool.name === 'unity_script'}
+	<UnityScriptResult input={tool.input} result={tool.result} />
 {:else if diff}
 	<DiffView {diff} file={diffFile} {projectPath} />
 {:else if resultText}

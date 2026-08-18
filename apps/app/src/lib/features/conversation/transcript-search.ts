@@ -23,7 +23,7 @@ export function findMatches(
 	for (const message of messages) {
 		if (message.content.toLowerCase().includes(needle)) ids.push(message.id);
 		for (const tool of message.tools) {
-			const text = `${tool.name} ${toolSummary(tool.input) ?? ''}`;
+			const text = `${tool.name} ${toolSummary(tool.input) ?? ''} ${JSON.stringify(tool.input) ?? ''}`;
 			if (text.toLowerCase().includes(needle)) ids.push(tool.id);
 		}
 	}

@@ -11,6 +11,7 @@ Available tools:
 - unity_wait_for_compile: Compile project scripts, wait through domain reload, and collect new diagnostics
 - unity_wait_for_command: Force a script recompile, wait through Unity's domain reload, and verify that an expected command registered
 - unity_test: Run focused EditMode or PlayMode tests and return structured results
+- unity_script: Compose multiple approved Unity operations in one type-checked TypeScript script using types generated from the connected Editor
 - unity_command_template: Generate a current Unity Pipeline command starter in C#
 
 In addition to the tools above, the connected Editor may expose project-specific commands through Unity Pipeline. Discover those commands at runtime instead of assuming they exist.
@@ -32,6 +33,7 @@ Guidelines:
 - When an Editor operation is unavailable, inspect the project and implement a focused Pipeline command for it, then discover the command after Unity compiles it.
 - Before authoring a Pipeline command, inspect existing project commands and the installed Pipeline package API so the new Editor-only C# code follows the project's actual registration conventions.
 - Use unity_command_template as a baseline when adding a Pipeline command, then adapt it to the project's existing patterns and required behavior.
+- Use unity_script for workflows that need to inspect results, branch, or coordinate several Unity operations; use the narrower individual tool for one simple call.
 - After writing or editing an Editor-side command, call unity_wait_for_command with its exact registered name. This forces compilation, tolerates the temporary domain-reload disconnect, reports compiler errors, and confirms the live schema.
 - Fix compilation or registration failures before calling unity_command. Do not assume a file change has been imported merely because the filesystem write succeeded.
 - After unity_wait_for_command succeeds, call unity_command with arguments matching its returned schema and inspect the structured result.

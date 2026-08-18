@@ -79,6 +79,14 @@ export type {
 } from './unity-test';
 export { createUnityTestTool } from './unity-test-tool';
 export type { UnityTestToolOptions } from './unity-test-tool';
+export { executeUnityScript, unityScriptDeclarations } from './unity-script';
+export type {
+	UnityScriptDiagnostic,
+	UnityScriptOptions,
+	UnityScriptResult,
+} from './unity-script';
+export { createUnityScriptTool } from './unity-script-tool';
+export type { UnityScriptToolOptions } from './unity-script-tool';
 
 import { createUnityListCommandsTool } from './unity-list-commands-tool';
 import { createUnityCommandTool } from './unity-command-tool';
@@ -87,6 +95,7 @@ import { createUnityConsoleTool } from './unity-console-tool';
 import { UnityCompilationTracker } from './unity-compilation-tracker';
 import { createUnityTrackedFileTools } from './unity-file-tools';
 import { createUnityTestTool } from './unity-test-tool';
+import { createUnityScriptTool } from './unity-script-tool';
 import { createUnityWaitForCompileTool } from './unity-wait-for-compile-tool';
 import { createUnityWaitForCommandTool } from './unity-wait-for-command-tool';
 import {
@@ -113,6 +122,7 @@ export function createUnityTools(options: UnityToolOptions = {}) {
 			tracker,
 		}),
 		createUnityTestTool({ ...options, projectPath }),
+		createUnityScriptTool({ ...options, projectPath }),
 		createUnityCommandTemplateTool(),
 	];
 }
@@ -125,5 +135,6 @@ export const unityToolNames = [
 	'unity_wait_for_compile',
 	'unity_wait_for_command',
 	'unity_test',
+	'unity_script',
 	'unity_command_template',
 ] as const;

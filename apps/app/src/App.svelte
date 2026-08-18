@@ -165,7 +165,6 @@
 				{store}
 				view={unityView}
 				onOpenSettings={() => router.go('settings')}
-				onOpenTree={() => router.go('tree')}
 			/>
 
 			{#if layout.drawerOpen}<button
@@ -202,6 +201,7 @@
 				onCopy={() => void sessions.copyTranscript()}
 				onExport={() => void sessions.exportTranscript()}
 				onDelete={() => sessions.beginDelete()}
+				onOpenTree={() => router.go('tree')}
 			/>
 
 			<UnityInspector

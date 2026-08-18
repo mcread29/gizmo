@@ -98,4 +98,44 @@ describe('ToolCallCard', () => {
 			'vscode://file/projects/game/Assets/Tests/PlayerTests.cs:42',
 		);
 	});
+
+	it('renders Unity TypeScript source, diagnostics, progress, and result', () => {
+		const tool: ToolCallView = {
+			id: 'tool-script',
+			name: 'unity_script',
+			status: 'error',
+			statusText: 'Failed',
+			input: {
+				code: 'const status = await unity.json(["status"]);\nreturn status;',
+				timeoutSeconds: 20,
+			},
+			result: {
+				ok: false,
+				phase: 'typecheck',
+				discoveredCommands: 12,
+				logs: ['Discovering commands'],
+				diagnostics: [
+					{
+						line: 1,
+						column: 7,
+						code: 2322,
+						message: 'Type mismatch',
+					},
+				],
+				error: 'TypeScript compilation failed',
+			},
+		};
+		const { container, getByText, queryByText } = render(ToolCallCard, {
+			tool,
+		});
+
+		expect(getByText('Unity TypeScript')).toBeInTheDocument();
+		expect(getByText(/TypeScript · const status/)).toBeInTheDocument();
+		expect(getByText('Live commands')).toBeInTheDocument();
+		expect(getByText('12')).toBeInTheDocument();
+		expect(getByText('Type mismatch')).toBeInTheDocument();
+		expect(getByText('Discovering commands')).toBeInTheDocument();
+		expect(container.querySelector('.language-typescript')).not.toBeNull();
+		expect(queryByText('code')).toBeNull();
+	});
 });
