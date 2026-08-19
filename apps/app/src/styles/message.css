@@ -203,6 +203,21 @@
 	transition: opacity 120ms ease;
 }
 
+[data-ui='message-footer'] {
+	display: flex;
+	justify-content: flex-end;
+}
+
+[data-ui='message-footer'] [data-ui='message-actions'] {
+	margin-left: 0;
+}
+
+[data-ui='earlier-messages'] {
+	display: flex;
+	justify-content: center;
+	margin-bottom: var(--space-6);
+}
+
 [data-ui='message']:hover [data-ui='message-actions'],
 [data-ui='message-actions']:focus-within {
 	opacity: 1;

@@ -120,13 +120,19 @@ export function applyAgentEvent(
 }
 
 function findMessage(state: AgentEventState, messageId: string) {
-	return state.messages.find((message) => message.id === messageId);
+	for (let index = state.messages.length - 1; index >= 0; index--) {
+		const message = state.messages[index];
+		if (message?.id === messageId) return message;
+	}
 }
 
 function findTool(state: AgentEventState, toolCallId: string) {
-	for (const message of state.messages) {
-		const tool = message.tools.find((candidate) => candidate.id === toolCallId);
-		if (tool) return tool;
+	for (let index = state.messages.length - 1; index >= 0; index--) {
+		const tools = state.messages[index]?.tools ?? [];
+		for (let toolIndex = tools.length - 1; toolIndex >= 0; toolIndex--) {
+			const tool = tools[toolIndex];
+			if (tool?.id === toolCallId) return tool;
+		}
 	}
 }
 

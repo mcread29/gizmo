@@ -42,9 +42,13 @@
 	}: Props = $props();
 
 	let copied = $state(false);
-	let content = $derived(groupContent(group));
+	let hasContent = $derived(
+		group.messages.some((message) => Boolean(message.content)),
+	);
+	let lastMessageId = $derived(group.messages.at(-1)?.id);
 
 	async function copyGroup() {
+		const content = groupContent(group);
 		if (!content || !navigator.clipboard) return;
 		await navigator.clipboard.writeText(content);
 		copied = true;
@@ -60,20 +64,20 @@
 		<div data-ui="message-meta">
 			<strong>{group.role === 'user' ? 'You' : agentName}</strong>
 			<span>{formatMessageTime(group.createdAt)}</span>
-			<div data-ui="message-actions">
-				{#if content}
-					<Button
-						variant="ghost"
-						size="sm"
-						aria-label={group.role === 'assistant'
-							? 'Copy response'
-							: 'Copy message'}
-						onclick={copyGroup}
-					>
-						{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy{/if}
-					</Button>
-				{/if}
-			</div>
+			{#if group.role === 'user'}
+				<div data-ui="message-actions">
+					{#if hasContent}
+						<Button
+							variant="ghost"
+							size="sm"
+							aria-label="Copy message"
+							onclick={copyGroup}
+						>
+							{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy{/if}
+						</Button>
+					{/if}
+				</div>
+			{/if}
 		</div>
 
 		{#each group.messages as message (message.id)}
@@ -95,6 +99,7 @@
 					reasoning={message.reasoning}
 					redacted={message.reasoningRedacted}
 					expanded={expandReasoning}
+					streaming={Boolean(activity && message.id === lastMessageId)}
 				/>
 				{#if message.content}
 					<!-- Live so a screen reader hears the reply as it is written. -->
@@ -102,7 +107,10 @@
 						data-ui="message-content"
 						aria-live={activity ? 'polite' : undefined}
 					>
-						<MarkdownContent content={message.content} />
+						<MarkdownContent
+							content={message.content}
+							streaming={Boolean(activity && message.id === lastMessageId)}
+						/>
 					</div>
 				{/if}
 				{#each message.tools as tool (tool.id)}
@@ -117,5 +125,19 @@
 		{/each}
 
 		{#if activity}<StreamingIndicator {activity} />{/if}
+		{#if group.role === 'assistant' && hasContent}
+			<div data-ui="message-footer">
+				<div data-ui="message-actions">
+					<Button
+						variant="ghost"
+						size="sm"
+						aria-label="Copy response"
+						onclick={copyGroup}
+					>
+						{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy{/if}
+					</Button>
+				</div>
+			</div>
+		{/if}
 	</div>
 </article>

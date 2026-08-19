@@ -9,9 +9,15 @@
 		redacted?: boolean;
 		/** Folded state this block opens in, from Settings. */
 		expanded?: boolean;
+		streaming?: boolean;
 	}
 
-	let { reasoning, redacted, expanded = false }: Props = $props();
+	let {
+		reasoning,
+		redacted,
+		expanded = false,
+		streaming = false,
+	}: Props = $props();
 
 	// Follows the setting, so changing it re-folds blocks already on screen
 	// rather than only applying to the next reply.
@@ -28,7 +34,7 @@
 			<span>Reasoning</span>
 		</summary>
 		<div data-ui="reasoning-content">
-			<MarkdownContent content={reasoning} />
+			<MarkdownContent content={reasoning} {streaming} />
 		</div>
 	</details>
 {:else if redacted}

@@ -1,12 +1,33 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { renderMarkdown } from './markdown';
 
 	interface Props {
 		content: string;
+		streaming?: boolean;
 	}
 
-	let { content }: Props = $props();
-	let html = $derived(renderMarkdown(content));
+	let { content, streaming = false }: Props = $props();
+	let displayedContent = $state('');
+	let pendingContent = '';
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	let html = $derived(renderMarkdown(displayedContent));
+
+	$effect(() => {
+		pendingContent = content;
+		if (!streaming) {
+			clearTimeout(timer);
+			timer = undefined;
+			displayedContent = content;
+		} else if (timer === undefined) {
+			timer = setTimeout(() => {
+				timer = undefined;
+				displayedContent = pendingContent;
+			}, 50);
+		}
+	});
+
+	onDestroy(() => clearTimeout(timer));
 
 	function handleCodeCopies(node: HTMLElement) {
 		const copyCode = async (event: MouseEvent) => {

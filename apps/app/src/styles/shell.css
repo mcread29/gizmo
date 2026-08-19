@@ -204,6 +204,10 @@
 	touch-action: none;
 }
 
+body[data-resizing='sidebar'] [data-ui='panel-resize-handle'] {
+	will-change: transform;
+}
+
 [data-ui='panel-resize-handle']::after {
 	position: absolute;
 	top: 0;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentSessionSummary } from '@unity-agent/protocol';
-	import { tick } from 'svelte';
+	import { onDestroy, tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { ArrowDown } from '@lucide/svelte';
 	import { BrandMark, Button, ScrollPanel } from '../../components';
@@ -31,14 +31,26 @@
 	}: Props = $props();
 
 	let scrollAnchor = $state<HTMLDivElement>();
+	let messageList = $state<HTMLDivElement>();
 	let followOutput = $state(false);
+	let visibleGroupCount = $state(60);
 	let knownCount = 0;
 	let knownSession: string | undefined;
+	let followTimer: ReturnType<typeof setTimeout> | undefined;
 	let activity = $derived(
 		streamingActivity(store.messages, store.sessionState),
 	);
 	let groups = $derived(groupMessages(store.messages));
+	let visibleGroups = $derived(
+		matched?.size ? groups : groups.slice(-visibleGroupCount),
+	);
+	let hiddenGroupCount = $derived(groups.length - visibleGroups.length);
 	let lastMessageId = $derived(store.messages.at(-1)?.id);
+	let streamRevision = $derived.by(() => {
+		const message = store.messages.at(-1);
+		const tool = message?.tools.at(-1);
+		return `${message?.id}:${message?.content.length}:${message?.reasoning?.length}:${message?.complete}:${tool?.id}:${tool?.status}:${tool?.statusText}`;
+	});
 
 	$effect(() => {
 		if (autoFollowOutput) followOutput = true;
@@ -49,6 +61,7 @@
 		const sessionId = store.sessionId;
 		if (sessionId === knownSession) return;
 		knownSession = sessionId;
+		visibleGroupCount = 60;
 		followOutput = true;
 		void tick().then(() => scrollIntoEnd(scrollAnchor));
 	});
@@ -62,25 +75,33 @@
 		knownCount = count;
 	});
 
-	// Reading the transcript shape is what makes this effect re-run on stream.
+	// Only the newest message can grow while streaming. Reading the whole
+	// transcript here made every token increasingly expensive on long threads.
 	$effect(() => {
-		store.messages
-			.map(
-				(message) =>
-					`${message.id}:${message.content.length}:${message.complete}:${message.tools.map((tool) => `${tool.id}:${tool.status}:${tool.statusText}`).join(',')}`,
-			)
-			.join('|');
+		streamRevision;
 		if (!autoFollowOutput || !followOutput) return;
-		let cancelled = false;
-		void tick().then(() => {
-			if (!cancelled) scrollIntoEnd(scrollAnchor);
-		});
-		return () => (cancelled = true);
+		if (followTimer !== undefined) return;
+		followTimer = setTimeout(() => {
+			followTimer = undefined;
+			void tick().then(() => scrollIntoEnd(scrollAnchor));
+		}, 16);
 	});
+
+	onDestroy(() => clearTimeout(followTimer));
 
 	function jumpToLatest() {
 		// The scroll listener re-engages following once the anchor is in view.
 		scrollIntoEnd(scrollAnchor, 'smooth');
+	}
+
+	async function showEarlier() {
+		const viewport = messageList?.closest<HTMLElement>(
+			'[data-ui="scroll-viewport"]',
+		);
+		const previousHeight = viewport?.scrollHeight ?? 0;
+		visibleGroupCount += 60;
+		await tick();
+		if (viewport) viewport.scrollTop += viewport.scrollHeight - previousHeight;
 	}
 
 	/** Stops following as soon as the user scrolls away from the bottom. */
@@ -97,7 +118,7 @@
 </script>
 
 <ScrollPanel name="messages">
-	<div data-ui="message-list" use:monitorScroll>
+	<div data-ui="message-list" bind:this={messageList} use:monitorScroll>
 		{#if store.messagesLoading && store.messages.length === 0}
 			<div data-ui="message-skeleton" aria-label="Loading transcript">
 				{#each { length: 3 } as _, index (index)}
@@ -118,8 +139,15 @@
 				</p>
 			</div>
 		{/if}
-		{#each groups as group, index (group.id)}
-			{#if index === 0 || dayKey(groups[index - 1]!.createdAt) !== dayKey(group.createdAt)}
+		{#if hiddenGroupCount > 0}
+			<div data-ui="earlier-messages">
+				<Button variant="ghost" size="sm" onclick={showEarlier}
+					>Show {Math.min(60, hiddenGroupCount)} earlier messages</Button
+				>
+			</div>
+		{/if}
+		{#each visibleGroups as group, index (group.id)}
+			{#if index === 0 || dayKey(visibleGroups[index - 1]!.createdAt) !== dayKey(group.createdAt)}
 				<div data-ui="day-separator">
 					<span>{formatDay(group.createdAt)}</span>
 				</div>

@@ -14,7 +14,8 @@
 	let removeDragListeners: (() => void) | undefined;
 	let resizeFrame: number | undefined;
 	let previewSize: number | undefined;
-	let shell: HTMLElement | undefined;
+	let handle: HTMLElement | undefined;
+	let dragStartSize = 0;
 	let panel: PanelName = $derived(side === 'left' ? 'sidebar' : 'inspector');
 	let min = $derived(panelWidthLimits[panel].min);
 	let label = $derived(side === 'left' ? 'thread sidebar' : 'editor inspector');
@@ -28,16 +29,13 @@
 		event.preventDefault();
 		finishDrag(false);
 		const startX = event.clientX;
-		const startSize = size;
-		shell =
-			(event.currentTarget as HTMLElement).closest<HTMLElement>(
-				'[data-ui="app-shell"]',
-			) ?? undefined;
+		dragStartSize = size;
+		handle = event.currentTarget as HTMLElement;
 		document.body.dataset.resizing = 'sidebar';
 
 		const move = (moveEvent: PointerEvent) => {
 			const delta = moveEvent.clientX - startX;
-			queuePreview(clamp(startSize + (side === 'left' ? delta : -delta)));
+			queuePreview(clamp(dragStartSize + (side === 'left' ? delta : -delta)));
 		};
 		const stop = () => finishDrag(true);
 		removeDragListeners = () => {
@@ -62,7 +60,11 @@
 
 	function applyPreview() {
 		if (previewSize === undefined) return;
-		shell?.style.setProperty(`--${panel}-width`, `${previewSize}px`);
+		const offset =
+			side === 'left'
+				? previewSize - dragStartSize
+				: dragStartSize - previewSize;
+		handle?.style.setProperty('transform', `translate3d(${offset}px, 0, 0)`);
 	}
 
 	function finishDrag(commit: boolean) {
@@ -71,13 +73,11 @@
 		if (resizeFrame !== undefined) cancelAnimationFrame(resizeFrame);
 		resizeFrame = undefined;
 		if (commit && previewSize !== undefined) {
-			applyPreview();
 			if (previewSize !== size) onResize(previewSize);
-		} else if (previewSize !== undefined) {
-			shell?.style.setProperty(`--${panel}-width`, `${size}px`);
 		}
+		handle?.style.removeProperty('transform');
 		previewSize = undefined;
-		shell = undefined;
+		handle = undefined;
 		delete document.body.dataset.resizing;
 	}
 

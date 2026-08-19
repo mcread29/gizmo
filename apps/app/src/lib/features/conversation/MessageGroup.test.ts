@@ -66,6 +66,12 @@ describe('MessageGroup', () => {
 			container.querySelector('[data-ui="message-content"]'),
 		).toContainElement(container.querySelector('[data-ui="markdown"]'));
 		expect(getByRole('button', { name: 'Copy response' })).toBeInTheDocument();
+		const responseCopy = getByRole('button', { name: 'Copy response' });
+		const messagePart = container.querySelector('[data-ui="message-part"]')!;
+		expect(
+			messagePart.compareDocumentPosition(responseCopy) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
 		expect(container.querySelector('[data-copy-code]')).toBeInTheDocument();
 		const details = container.querySelector('details');
 		expect(details).not.toHaveAttribute('open');
