@@ -27,6 +27,7 @@ import {
 import { sessionTree } from './session-transcript';
 import { unitySystemPrompt } from '../unity/unity-system-prompt';
 import { attachmentPrompt } from '../attachments/attachment-message';
+import { GitService } from '../git/git-service';
 import {
 	prepareAttachments,
 	readStoredAttachment,
@@ -48,6 +49,7 @@ export interface PiSessionLike {
 	getModelCatalog?(): Promise<AgentModelCatalog>;
 	selectModel?(provider: string, modelId: string): Promise<void>;
 	selectThinkingLevel?(level: string): void;
+	generateCommitMessage?(context: string): Promise<string>;
 	configureCompaction?(policy: CompactionPolicy): void;
 	compact?(): Promise<unknown>;
 	subscribe(listener: (event: AgentSessionEvent) => void): () => void;
@@ -61,7 +63,12 @@ export interface PiSessionLike {
 export type PiSessionFactory = (
 	options: SessionOptions,
 	sessionManager: SessionManager,
+	callbacks: PiSessionCallbacks,
 ) => Promise<PiSessionLike>;
+
+export interface PiSessionCallbacks {
+	confirmStopPlayMode(projectPath: string): Promise<boolean>;
+}
 export type AgentEventListener = (event: AgentEvent) => void;
 
 interface ActiveSession {
@@ -81,7 +88,12 @@ export class PiAgentService {
 	readonly #repository: SessionRepository;
 	readonly #listeners = new Set<AgentEventListener>();
 	readonly #sessions = new Map<string, ActiveSession>();
+	readonly #confirmations = new Map<
+		string,
+		{ sessionId: string; resolve: (accepted: boolean) => void }
+	>();
 	#eventId = 0;
+	#confirmationId = 0;
 
 	constructor(
 		factory: PiSessionFactory = createDefaultPiSession,
@@ -95,7 +107,11 @@ export class PiAgentService {
 		const cwd = options.cwd ?? process.cwd();
 		const sessionManager = await this.#repository.create(cwd);
 		try {
-			const session = await this.#factory({ cwd }, sessionManager);
+			const session = await this.#factory(
+				{ cwd },
+				sessionManager,
+				this.#callbacks(sessionManager.getSessionId()),
+			);
 			this.#activate(session, sessionManager, 'New session');
 			await this.#repository.setLastSession(session.sessionId);
 			return session.sessionId;
@@ -116,6 +132,7 @@ export class PiAgentService {
 			const session = await this.#factory(
 				{ cwd: snapshot.session.projectPath },
 				sessionManager,
+				this.#callbacks(sessionId),
 			);
 			this.#activate(session, sessionManager, snapshot.session.title);
 		}
@@ -162,6 +179,19 @@ export class PiAgentService {
 			throw new Error('Compaction is unavailable for this session');
 		session.configureCompaction?.(policy);
 		await session.compact();
+	}
+
+	async generateCommitMessage(
+		sessionId: string,
+		context: string,
+	): Promise<string> {
+		const session = this.#session(sessionId);
+		if (!session.generateCommitMessage) {
+			throw new Error(
+				'Commit message generation is unavailable for this session',
+			);
+		}
+		return session.generateCommitMessage(context);
 	}
 
 	#activate(
@@ -267,6 +297,7 @@ export class PiAgentService {
 	}
 
 	abort(sessionId: string): Promise<void> {
+		this.#cancelConfirmations(sessionId);
 		return this.#session(sessionId).abort();
 	}
 
@@ -314,6 +345,7 @@ export class PiAgentService {
 	}
 
 	async deleteSession(sessionId: string): Promise<void> {
+		this.#cancelConfirmations(sessionId);
 		const active = this.#sessions.get(sessionId);
 		if (active) {
 			active.unsubscribe();
@@ -328,13 +360,52 @@ export class PiAgentService {
 		return () => this.#listeners.delete(listener);
 	}
 
+	resolveConfirmation(
+		sessionId: string,
+		confirmationId: string,
+		accepted: boolean,
+	): void {
+		const pending = this.#confirmations.get(confirmationId);
+		if (!pending || pending.sessionId !== sessionId) {
+			throw new Error(`Unknown confirmation: ${confirmationId}`);
+		}
+		this.#confirmations.delete(confirmationId);
+		pending.resolve(accepted);
+	}
+
 	dispose(): void {
+		for (const { resolve } of this.#confirmations.values()) resolve(false);
+		this.#confirmations.clear();
 		for (const { session, unsubscribe } of this.#sessions.values()) {
 			unsubscribe();
 			session.dispose();
 		}
 		this.#sessions.clear();
 		this.#listeners.clear();
+	}
+
+	#callbacks(sessionId: string): PiSessionCallbacks {
+		return {
+			confirmStopPlayMode: (projectPath) =>
+				new Promise<boolean>((resolve) => {
+					const confirmationId = `confirmation-${++this.#confirmationId}`;
+					this.#confirmations.set(confirmationId, { sessionId, resolve });
+					this.#emit(sessionId, {
+						type: 'confirmation.requested',
+						confirmationId,
+						kind: 'stop_play_mode_for_compile',
+						projectPath,
+					});
+				}),
+		};
+	}
+
+	#cancelConfirmations(sessionId: string): void {
+		for (const [id, pending] of this.#confirmations) {
+			if (pending.sessionId !== sessionId) continue;
+			this.#confirmations.delete(id);
+			pending.resolve(false);
+		}
 	}
 
 	#session(sessionId: string): PiSessionLike {
@@ -378,6 +449,7 @@ export class PiAgentService {
 const createDefaultPiSession: PiSessionFactory = async (
 	options,
 	sessionManager,
+	callbacks,
 ) => {
 	const {
 		createAgentSession,
@@ -396,15 +468,48 @@ const createDefaultPiSession: PiSessionFactory = async (
 		systemPromptOverride: () => unitySystemPrompt,
 	});
 	await resourceLoader.reload();
+	const git = new GitService();
 	const { session } = await createAgentSession({
 		cwd,
-		customTools: createUnityTools({ projectPath: cwd }),
+		customTools: [
+			...createUnityTools({
+				projectPath: cwd,
+				confirmStopPlayMode: () => callbacks.confirmStopPlayMode(cwd),
+			}),
+			git.createStatusTool(cwd),
+		],
 		tools: [...agentToolPolicy.tools],
 		resourceLoader,
 		sessionManager,
 		settingsManager,
 	});
 	return Object.assign(session, {
+		async generateCommitMessage(context: string): Promise<string> {
+			if (!session.model) throw new Error('No model is selected');
+			const message = await session.modelRuntime.completeSimple(
+				session.model,
+				{
+					systemPrompt:
+						'Write a concise Git commit message for the supplied changes. Return only the message: an imperative subject line, optionally followed by a blank line and a short explanatory body. Do not use Markdown fences or quotes.',
+					messages: [{ role: 'user', content: context, timestamp: Date.now() }],
+				},
+				{ maxTokens: 300 },
+			);
+			if (message.stopReason === 'error') {
+				throw new Error(
+					message.errorMessage || 'Pi could not generate a commit message',
+				);
+			}
+			const text = message.content
+				.filter((block) => block.type === 'text')
+				.map((block) => block.text)
+				.join('')
+				.trim()
+				.replace(/^```(?:text)?\s*|\s*```$/g, '')
+				.trim();
+			if (!text) throw new Error('Pi returned an empty commit message');
+			return text;
+		},
 		configureCompaction(policy: CompactionPolicy): void {
 			const contextWindow = session.model?.contextWindow ?? 128_000;
 			settingsManager.applyOverrides({

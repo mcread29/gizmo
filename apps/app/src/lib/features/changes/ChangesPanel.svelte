@@ -6,10 +6,12 @@
 		Copy,
 		FileCode2,
 		Folder,
+		GitCommit,
+		RefreshCw,
 		Undo2,
 	} from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, Tooltip } from '../../components';
+	import { Button, Dialog, Tooltip } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import DiffView from '../conversation/DiffView.svelte';
 	import { sourceHref } from '../unity/compiler-diagnostics';
@@ -30,6 +32,21 @@
 	let rows = $derived(changeTreeRows(tree, collapsedFolders));
 	let expanded = $state(new Set<string>());
 	let reverting = $state<string>();
+	let commitDialogOpen = $state(false);
+	let commitMessage = $state('');
+	let generatingMessage = $state(false);
+
+	$effect(() => {
+		projectPath;
+		void store
+			.refreshGitStatus()
+			.catch((error) =>
+				toasts.show(
+					error instanceof Error ? error.message : String(error),
+					'danger',
+				),
+			);
+	});
 
 	function toggle(file: string) {
 		const next = new Set(expanded);
@@ -63,7 +80,85 @@
 			reverting = undefined;
 		}
 	}
+
+	async function prepareCommit() {
+		generatingMessage = true;
+		try {
+			commitMessage = await store.generateCommitMessage();
+			commitDialogOpen = true;
+		} catch (error) {
+			toasts.show(
+				error instanceof Error ? error.message : String(error),
+				'danger',
+			);
+		} finally {
+			generatingMessage = false;
+		}
+	}
+
+	async function refreshGitStatus() {
+		try {
+			await store.refreshGitStatus();
+		} catch (error) {
+			toasts.show(
+				error instanceof Error ? error.message : String(error),
+				'danger',
+			);
+		}
+	}
+
+	async function commitAll() {
+		try {
+			const result = await store.commitAll(commitMessage);
+			commitDialogOpen = false;
+			toasts.show(`Committed ${result.commit.slice(0, 7)}`);
+		} catch (error) {
+			toasts.show(
+				error instanceof Error ? error.message : String(error),
+				'danger',
+			);
+		}
+	}
 </script>
+
+<div data-ui="git-summary">
+	<div>
+		<strong
+			>{store.gitLoading && !store.gitStatus
+				? 'Loading Git status…'
+				: !store.gitStatus
+					? 'Git status unavailable'
+					: store.gitStatus.clean
+						? 'Working tree clean'
+						: `${store.gitStatus.files.length} repository change${store.gitStatus.files.length === 1 ? '' : 's'}`}</strong
+		>
+		{#if store.gitStatus}<span>{store.gitStatus.branch}</span>{/if}
+	</div>
+	<div data-ui="git-actions">
+		<Button
+			variant="ghost"
+			size="icon"
+			aria-label="Refresh Git status"
+			disabled={store.gitLoading}
+			onclick={refreshGitStatus}
+			><RefreshCw
+				size={14}
+				class={store.gitLoading ? 'spinning' : undefined}
+			/></Button
+		>
+		<Button
+			size="sm"
+			disabled={!store.gitStatus ||
+				store.gitStatus.clean ||
+				generatingMessage ||
+				store.gitCommitting}
+			onclick={prepareCommit}
+			><GitCommit size={14} />{generatingMessage
+				? 'Writing message…'
+				: 'Commit all'}</Button
+		>
+	</div>
+</div>
 
 {#if files.length === 0}
 	<div data-ui="empty-state">
@@ -163,3 +258,26 @@
 		{/each}
 	</div>
 {/if}
+
+<Dialog
+	bind:open={commitDialogOpen}
+	title="Commit all changes"
+	description="Pi generated this message. Edit it if needed, then stage and commit every change in the repository."
+>
+	<label data-ui="commit-message-field">
+		<span>Commit message</span>
+		<textarea bind:value={commitMessage} rows="6"></textarea>
+	</label>
+	<div data-ui="dialog-actions">
+		<Button variant="ghost" onclick={() => (commitDialogOpen = false)}
+			>Cancel</Button
+		>
+		<Button
+			disabled={!commitMessage.trim() || store.gitCommitting}
+			onclick={commitAll}
+			><GitCommit size={14} />{store.gitCommitting
+				? 'Committing…'
+				: 'Commit all'}</Button
+		>
+	</div>
+</Dialog>

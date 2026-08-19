@@ -8,6 +8,8 @@ import {
 	type AgentSessionSummary,
 	type ConversationMessage,
 	type CompactionPolicy,
+	type GitCommitResult,
+	type GitStatus,
 	type SessionSnapshot,
 	type SessionState,
 	type SessionTree,
@@ -32,6 +34,11 @@ export interface AgentError {
 	kind: AgentErrorKind;
 	message: string;
 }
+
+export type PendingConfirmation = Extract<
+	AgentEvent,
+	{ type: 'confirmation.requested' }
+>;
 
 const consoleLimit = 500;
 
@@ -86,6 +93,10 @@ export class AgentStore {
 	consoleEntries = $state<UnityConsoleEntry[]>([]);
 	consoleLoading = $state(false);
 	usage = $state<SessionUsage>();
+	pendingConfirmations = $state<PendingConfirmation[]>([]);
+	gitStatus = $state<GitStatus>();
+	gitLoading = $state(false);
+	gitCommitting = $state(false);
 
 	readonly #client: AgentClient;
 	#unsubscribe?: () => void;
@@ -533,6 +544,42 @@ export class AgentStore {
 		await this.#client.revertFile(this.selectedProjectPath, file, patch);
 	}
 
+	async refreshGitStatus(): Promise<void> {
+		if (this.connection !== 'connected' || !this.selectedProjectPath) return;
+		const projectPath = this.selectedProjectPath;
+		this.gitLoading = true;
+		try {
+			const status = await this.#client.getGitStatus(projectPath);
+			if (this.selectedProjectPath === projectPath) this.gitStatus = status;
+		} finally {
+			if (this.selectedProjectPath === projectPath) this.gitLoading = false;
+		}
+	}
+
+	async generateCommitMessage(): Promise<string> {
+		if (!this.sessionId) throw new Error('No active session');
+		if (!this.selectedProjectPath) throw new Error('No project selected');
+		return this.#client.generateCommitMessage(
+			this.sessionId,
+			this.selectedProjectPath,
+		);
+	}
+
+	async commitAll(message: string): Promise<GitCommitResult> {
+		if (!this.selectedProjectPath) throw new Error('No project selected');
+		this.gitCommitting = true;
+		try {
+			const result = await this.#client.commitAll(
+				this.selectedProjectPath,
+				message,
+			);
+			await this.refreshGitStatus();
+			return result;
+		} finally {
+			this.gitCommitting = false;
+		}
+	}
+
 	/** Clears the local tail only; the Editor console is untouched. */
 	clearConsole(): void {
 		this.consoleEntries = [];
@@ -603,6 +650,24 @@ export class AgentStore {
 		if (this.sessionId) await this.#client.abort(this.sessionId);
 	}
 
+	async resolveConfirmation(
+		confirmation: PendingConfirmation,
+		accepted: boolean,
+	): Promise<void> {
+		this.pendingConfirmations = this.pendingConfirmations.filter(
+			(candidate) => candidate.confirmationId !== confirmation.confirmationId,
+		);
+		try {
+			await this.#client.resolveConfirmation(
+				confirmation.sessionId,
+				confirmation.confirmationId,
+				accepted,
+			);
+		} catch (error) {
+			this.#fail('agent', error);
+		}
+	}
+
 	isSessionStreaming(sessionId: string | undefined): boolean {
 		return Boolean(sessionId && this.sessionStates[sessionId] === 'streaming');
 	}
@@ -630,6 +695,9 @@ export class AgentStore {
 			this.sessionStates[event.sessionId] = event.state;
 		} else if (event.type === 'error') {
 			this.sessionStates[event.sessionId] = 'error';
+		} else if (event.type === 'confirmation.requested') {
+			this.pendingConfirmations.push(event);
+			return;
 		}
 		if (this.sessionId && event.sessionId !== this.sessionId) return;
 

@@ -10,6 +10,7 @@ import type {
 } from '@unity-agent/unity-tools';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { PiAgentService } from '../sessions/pi-agent-service';
+import { GitService } from '../git/git-service';
 import { UnityProjectService } from '../unity/unity-project-service';
 
 export interface AgentWebSocketServerOptions {
@@ -19,6 +20,7 @@ export interface AgentWebSocketServerOptions {
 	allowedOrigins?: readonly string[];
 	createService?: () => PiAgentService;
 	createProjectService?: () => UnityProjectService;
+	createGitService?: () => GitService;
 }
 
 export interface AgentWebSocketServer {
@@ -41,7 +43,7 @@ export async function createAgentWebSocketServer(
 	});
 	const services = new Map<
 		WebSocket,
-		{ agent: PiAgentService; projects: UnityProjectService }
+		{ agent: PiAgentService; projects: UnityProjectService; git: GitService }
 	>();
 
 	server.on('connection', (socket) => {
@@ -49,7 +51,12 @@ export async function createAgentWebSocketServer(
 		const service = options.createService?.() ?? new PiAgentService();
 		const projectService =
 			options.createProjectService?.() ?? new UnityProjectService();
-		services.set(socket, { agent: service, projects: projectService });
+		const gitService = options.createGitService?.() ?? new GitService();
+		services.set(socket, {
+			agent: service,
+			projects: projectService,
+			git: gitService,
+		});
 		const unsubscribe = service.subscribe((event) =>
 			send(socket, { ...event, eventId: ++eventId }),
 		);
@@ -83,6 +90,7 @@ export async function createAgentWebSocketServer(
 				socket,
 				service,
 				projectService,
+				gitService,
 				emit,
 				isBinary ? undefined : data.toString(),
 			);
@@ -146,6 +154,7 @@ async function handleMessage(
 	socket: WebSocket,
 	service: PiAgentService,
 	projectService: UnityProjectService,
+	gitService: GitService,
 	emit: ProjectEmitters,
 	text: string | undefined,
 ): Promise<void> {
@@ -167,7 +176,13 @@ async function handleMessage(
 	}
 
 	try {
-		const result = await dispatch(service, projectService, emit, request);
+		const result = await dispatch(
+			service,
+			projectService,
+			gitService,
+			emit,
+			request,
+		);
 		send(socket, {
 			protocolVersion,
 			requestId: request.requestId,
@@ -182,6 +197,7 @@ async function handleMessage(
 async function dispatch(
 	service: PiAgentService,
 	projectService: UnityProjectService,
+	gitService: GitService,
 	emit: ProjectEmitters,
 	request: AgentRequest,
 ): Promise<{ sessionId?: string; result?: unknown }> {
@@ -224,6 +240,13 @@ async function dispatch(
 			return {};
 		case 'session.abort':
 			await service.abort(request.sessionId);
+			return {};
+		case 'confirmation.resolve':
+			service.resolveConfirmation(
+				request.sessionId,
+				request.confirmationId,
+				request.accepted,
+			);
 			return {};
 		case 'session.tree':
 			return { result: await service.getTree(request.sessionId) };
@@ -279,6 +302,21 @@ async function dispatch(
 			return {
 				result: consoleUpdate(
 					await projectService.readConsole(request.projectPath, request.tail),
+				),
+			};
+		case 'git.status':
+			return { result: await gitService.status(request.projectPath) };
+		case 'git.commit-message': {
+			const context = await gitService.commitContext(request.projectPath);
+			return {
+				result: await service.generateCommitMessage(request.sessionId, context),
+			};
+		}
+		case 'git.commit':
+			return {
+				result: await gitService.commitAll(
+					request.projectPath,
+					request.message,
 				),
 			};
 		case 'file.revert':

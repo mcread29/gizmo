@@ -5,6 +5,8 @@ import type { UnityCommandRunner, UnityRunResult } from './unity-runner';
 describe('waitForUnityCommand', () => {
 	it('waits through a reload and returns the newly registered schema', async () => {
 		const runner = sequenceRunner(
+			catalog('editor_status'),
+			editorStatus('stopped'),
 			consoleResult(10),
 			catalog('recompile'),
 			jsonResult('command recompile', { success: true }),
@@ -29,11 +31,13 @@ describe('waitForUnityCommand', () => {
 			compileStatus: 'completed',
 			registeredCommand: { name: 'new_project_command' },
 		});
-		expect(runner.run).toHaveBeenCalledTimes(8);
+		expect(runner.run).toHaveBeenCalledTimes(10);
 	});
 
 	it('returns compiler diagnostics without checking the final catalog', async () => {
 		const runner = sequenceRunner(
+			catalog('editor_status'),
+			editorStatus('stopped'),
 			consoleResult(10),
 			catalog('recompile'),
 			jsonResult('command recompile', { success: true }),
@@ -63,11 +67,13 @@ describe('waitForUnityCommand', () => {
 				},
 			],
 		});
-		expect(runner.run).toHaveBeenCalledTimes(6);
+		expect(runner.run).toHaveBeenCalledTimes(8);
 	});
 
 	it('distinguishes a successful compile from missing registration', async () => {
 		const runner = sequenceRunner(
+			catalog('editor_status'),
+			editorStatus('stopped'),
 			consoleResult(10),
 			catalog('recompile'),
 			jsonResult('command recompile', { success: true }),
@@ -88,6 +94,59 @@ describe('waitForUnityCommand', () => {
 			state: 'command_missing',
 			errors: [{ code: 'UNITY_COMMAND_NOT_REGISTERED_AFTER_RELOAD' }],
 		});
+	});
+
+	it('returns a precise result when the user keeps Play Mode running', async () => {
+		const confirmStopPlayMode = vi.fn(async () => false);
+		const runner = sequenceRunner(
+			catalog('editor_status'),
+			editorStatus('playing'),
+			consoleResult(10),
+		);
+
+		const result = await waitForUnityCommand(runner, {
+			projectPath: '/projects/game',
+			command: 'new_project_command',
+			confirmStopPlayMode,
+		});
+
+		expect(confirmStopPlayMode).toHaveBeenCalledOnce();
+		expect(result).toMatchObject({
+			ok: false,
+			state: 'play_mode_active',
+			errors: [{ code: 'UNITY_COMPILE_PLAY_MODE_ACTIVE' }],
+		});
+		expect(runner.run).toHaveBeenCalledTimes(3);
+	});
+
+	it('stops Play Mode before compiling when the user accepts', async () => {
+		const confirmStopPlayMode = vi.fn(async () => true);
+		const runner = sequenceRunner(
+			catalog('editor_status'),
+			editorStatus('playing'),
+			catalog('editor_stop'),
+			jsonResult('command editor_stop', { result: {} }),
+			catalog('editor_status'),
+			editorStatus('stopped'),
+			consoleResult(10),
+			catalog('recompile'),
+			jsonResult('command recompile', { success: true }),
+			catalog('recompile_status'),
+			compileStatus('completed'),
+			consoleResult(11),
+			catalog('new_project_command'),
+		);
+
+		const result = await waitForUnityCommand(runner, {
+			projectPath: '/projects/game',
+			command: 'new_project_command',
+			pollIntervalMs: 0,
+			confirmStopPlayMode,
+		});
+
+		expect(confirmStopPlayMode).toHaveBeenCalledOnce();
+		expect(result).toMatchObject({ ok: true, state: 'ready' });
+		expect(runner.run.mock.calls.flat().flat()).toContain('editor_stop');
 	});
 });
 
@@ -110,6 +169,12 @@ function compileStatus(
 ): UnityRunResult {
 	return jsonResult('command recompile_status', {
 		result: JSON.stringify({ status, failed, errors }),
+	});
+}
+
+function editorStatus(playMode: string): UnityRunResult {
+	return jsonResult('command editor_status', {
+		result: { playMode },
 	});
 }
 

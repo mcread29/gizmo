@@ -5,6 +5,10 @@ import type { UnityCommandRunner, UnityRunResult } from './unity-runner';
 describe('unity_wait_for_command tool', () => {
 	it('binds reload and discovery to the selected project', async () => {
 		const runner = sequenceRunner(
+			catalog('editor_status'),
+			jsonResult('command editor_status', {
+				result: { playMode: 'stopped' },
+			}),
 			jsonResult('command console', {
 				result: { entries: [], cursor: 1, dropped: false },
 			}),

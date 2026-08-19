@@ -6,6 +6,7 @@ import {
 	panelWidthLimits,
 	type AppSettings,
 	type AppTheme,
+	type CompilePlayModePolicy,
 	type PanelName,
 } from '../../app-settings';
 import {
@@ -32,6 +33,7 @@ export class WorkspaceLayout {
 	autoCompact = $state(true);
 	autoCompactFillPercent = $state(25);
 	compactionRetainPercent = $state(10);
+	compilePlayModePolicy = $state<CompilePlayModePolicy>('ask');
 	showThreadSidebar = $state(true);
 	showUnityInspector = $state(true);
 	sidebarWidth = $state(panelWidthLimits.sidebar.default);
@@ -80,6 +82,7 @@ export class WorkspaceLayout {
 		this.autoCompact = settings.autoCompact;
 		this.autoCompactFillPercent = settings.autoCompactFillPercent;
 		this.compactionRetainPercent = settings.compactionRetainPercent;
+		this.compilePlayModePolicy = settings.compilePlayModePolicy;
 		this.showThreadSidebar = settings.showThreadSidebar;
 		this.showUnityInspector = settings.showUnityInspector;
 		this.sidebarWidth = settings.sidebarWidth;
@@ -96,6 +99,7 @@ export class WorkspaceLayout {
 			autoCompact: this.autoCompact,
 			autoCompactFillPercent: this.autoCompactFillPercent,
 			compactionRetainPercent: this.compactionRetainPercent,
+			compilePlayModePolicy: this.compilePlayModePolicy,
 			showThreadSidebar: this.showThreadSidebar,
 			showUnityInspector: this.showUnityInspector,
 			sidebarWidth: this.sidebarWidth,

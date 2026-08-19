@@ -8,6 +8,8 @@ import {
 	type AgentEvent,
 	type ConversationMessage,
 	type CompactionPolicy,
+	type GitCommitResult,
+	type GitStatus,
 	type SessionCatalog,
 	type SessionOptions,
 	type SessionSnapshot,
@@ -454,6 +456,8 @@ export class FakeAgentClient implements AgentClient {
 		this.#getSession(sessionId).abortController?.abort();
 	}
 
+	async resolveConfirmation(): Promise<void> {}
+
 	async deleteSession(sessionId: string): Promise<void> {
 		const session = this.#getSession(sessionId);
 		session.abortController?.abort();
@@ -574,6 +578,36 @@ export class FakeAgentClient implements AgentClient {
 			warnings: [],
 			...(alreadyOpen ? { status: fakeStatus(projectPath, true) } : {}),
 		};
+	}
+
+	async getGitStatus(projectPath: string): Promise<GitStatus> {
+		this.#assertProject(projectPath);
+		return {
+			rootPath: projectPath,
+			branch: 'main',
+			clean: false,
+			files: [
+				{ path: 'Assets/Scripts/Player.cs', index: ' ', workingTree: 'M' },
+			],
+		};
+	}
+
+	async generateCommitMessage(
+		sessionId: string,
+		projectPath: string,
+	): Promise<string> {
+		this.#getSession(sessionId);
+		this.#assertProject(projectPath);
+		await this.#wait(new AbortController().signal);
+		return 'Update player behavior';
+	}
+
+	async commitAll(
+		projectPath: string,
+		message: string,
+	): Promise<GitCommitResult> {
+		this.#assertProject(projectPath);
+		return { rootPath: projectPath, commit: '0123456789abcdef', message };
 	}
 
 	subscribe(listener: AgentEventListener): () => void {

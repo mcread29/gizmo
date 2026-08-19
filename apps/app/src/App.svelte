@@ -238,7 +238,7 @@
 				/>
 			{/if}
 
-			<AppDialogs {store} {sessions} />
+			<AppDialogs {store} {sessions} {layout} />
 		</div>
 	</AppContextMenu>
 

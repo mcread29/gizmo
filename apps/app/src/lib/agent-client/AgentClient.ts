@@ -3,6 +3,8 @@ import type {
 	AgentModelCatalog,
 	CompactionPolicy,
 	FileRevertResult,
+	GitCommitResult,
+	GitStatus,
 	SessionCatalog,
 	SessionOptions,
 	SessionSnapshot,
@@ -42,6 +44,11 @@ export interface AgentClient {
 		attachments?: AgentAttachment[],
 	): Promise<void>;
 	abort(sessionId: string): Promise<void>;
+	resolveConfirmation(
+		sessionId: string,
+		confirmationId: string,
+		accepted: boolean,
+	): Promise<void>;
 	deleteSession(sessionId: string): Promise<void>;
 	readAttachment(
 		sessionId: string,
@@ -81,6 +88,12 @@ export interface AgentClient {
 		file: string,
 		patch: string,
 	): Promise<FileRevertResult>;
+	getGitStatus(projectPath: string): Promise<GitStatus>;
+	generateCommitMessage(
+		sessionId: string,
+		projectPath: string,
+	): Promise<string>;
+	commitAll(projectPath: string, message: string): Promise<GitCommitResult>;
 	/** Optional: transports with a configurable address implement this. */
 	setEndpoint?(url: string): void;
 	subscribe(listener: AgentEventListener): () => void;

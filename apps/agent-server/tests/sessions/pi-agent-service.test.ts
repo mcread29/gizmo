@@ -85,6 +85,33 @@ function event(value: unknown): AgentSessionEvent {
 }
 
 describe('PiAgentService', () => {
+	it('blocks a Unity compile until the app resolves its confirmation', async () => {
+		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+		temporaryDirectories.push(dataDir);
+		const pi = new FakePiSession();
+		let requestConfirmation!: (projectPath: string) => Promise<boolean>;
+		const service = new PiAgentService(async (_options, manager, callbacks) => {
+			pi.sessionId = manager.getSessionId();
+			requestConfirmation = callbacks.confirmStopPlayMode;
+			return pi;
+		}, new PiSessionRepository(dataDir));
+		const events: AgentEvent[] = [];
+		service.subscribe((agentEvent) => events.push(agentEvent));
+		const sessionId = await service.createSession({ cwd: '/projects/game' });
+
+		const decision = requestConfirmation('/projects/game');
+		const confirmation = events.find(
+			(agentEvent) => agentEvent.type === 'confirmation.requested',
+		);
+		expect(confirmation).toMatchObject({
+			type: 'confirmation.requested',
+			sessionId,
+			kind: 'stop_play_mode_for_compile',
+		});
+		service.resolveConfirmation(sessionId, confirmation!.confirmationId, true);
+		await expect(decision).resolves.toBe(true);
+	});
+
 	it('routes commands into the Pi session', async () => {
 		const pi = new FakePiSession();
 		const service = await createTestService(pi);

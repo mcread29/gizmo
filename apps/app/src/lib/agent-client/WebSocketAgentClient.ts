@@ -2,6 +2,8 @@ import {
 	parseAgentModelCatalog,
 	parseAgentResponse,
 	parseFileRevertResult,
+	parseGitCommitResult,
+	parseGitStatus,
 	parseUnityConsoleUpdate,
 	parseSessionCatalog,
 	parseSessionSnapshot,
@@ -16,6 +18,8 @@ import {
 	type AgentModelCatalog,
 	type CompactionPolicy,
 	type FileRevertResult,
+	type GitCommitResult,
+	type GitStatus,
 	type SessionCatalog,
 	type SessionOptions,
 	type SessionSnapshot,
@@ -174,6 +178,19 @@ export class WebSocketAgentClient implements AgentClient {
 		await this.#request({ type: 'session.abort', sessionId });
 	}
 
+	async resolveConfirmation(
+		sessionId: string,
+		confirmationId: string,
+		accepted: boolean,
+	): Promise<void> {
+		await this.#request({
+			type: 'confirmation.resolve',
+			sessionId,
+			confirmationId,
+			accepted,
+		});
+	}
+
 	async deleteSession(sessionId: string): Promise<void> {
 		await this.#request({ type: 'session.delete', sessionId });
 	}
@@ -329,6 +346,38 @@ export class WebSocketAgentClient implements AgentClient {
 			patch,
 		});
 		return parseFileRevertResult(response.result);
+	}
+
+	async getGitStatus(projectPath: string): Promise<GitStatus> {
+		const response = await this.#request({ type: 'git.status', projectPath });
+		return parseGitStatus(response.result);
+	}
+
+	async generateCommitMessage(
+		sessionId: string,
+		projectPath: string,
+	): Promise<string> {
+		const response = await this.#request({
+			type: 'git.commit-message',
+			sessionId,
+			projectPath,
+		});
+		if (typeof response.result !== 'string' || !response.result.trim()) {
+			throw new Error('Agent server returned an invalid commit message');
+		}
+		return response.result;
+	}
+
+	async commitAll(
+		projectPath: string,
+		message: string,
+	): Promise<GitCommitResult> {
+		const response = await this.#request({
+			type: 'git.commit',
+			projectPath,
+			message,
+		});
+		return parseGitCommitResult(response.result);
 	}
 
 	subscribe(listener: AgentEventListener): () => void {

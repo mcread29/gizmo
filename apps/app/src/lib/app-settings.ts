@@ -13,6 +13,13 @@ export const appThemes = [
 
 export type AppTheme = (typeof appThemes)[number];
 export type ThemeMode = 'light' | 'dark';
+export type CompilePlayModePolicy = 'ask' | 'stop' | 'keep_playing';
+
+export const compilePlayModePolicies = [
+	{ value: 'ask', label: 'Ask each time' },
+	{ value: 'stop', label: 'Stop Play Mode' },
+	{ value: 'keep_playing', label: 'Keep Play Mode running' },
+] as const;
 
 export type ColorScheme =
 	'default' | 'vesper' | 'catppuccin' | 'rose-pine' | 'solarized';
@@ -58,6 +65,7 @@ export interface AppSettings {
 	autoCompact: boolean;
 	autoCompactFillPercent: number;
 	compactionRetainPercent: number;
+	compilePlayModePolicy: CompilePlayModePolicy;
 	showThreadSidebar: boolean;
 	showUnityInspector: boolean;
 	sidebarWidth: number;
@@ -87,6 +95,7 @@ export const defaultAppSettings: AppSettings = {
 	autoCompact: true,
 	autoCompactFillPercent: 25,
 	compactionRetainPercent: 10,
+	compilePlayModePolicy: 'ask',
 	showThreadSidebar: true,
 	showUnityInspector: true,
 	sidebarWidth: panelWidthLimits.sidebar.default,
@@ -149,6 +158,9 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 			),
 			autoCompactFillPercent: fillPercent,
 			compactionRetainPercent: retainPercent,
+			compilePlayModePolicy: parseCompilePlayModePolicy(
+				settings.compilePlayModePolicy,
+			),
 			showThreadSidebar: boolean(
 				settings.showThreadSidebar,
 				defaultAppSettings.showThreadSidebar,
@@ -231,4 +243,8 @@ function parseAppTheme(value: unknown): AppTheme | undefined {
 	return appThemes.includes(value as AppTheme)
 		? (value as AppTheme)
 		: undefined;
+}
+
+function parseCompilePlayModePolicy(value: unknown): CompilePlayModePolicy {
+	return value === 'stop' || value === 'keep_playing' ? value : 'ask';
 }

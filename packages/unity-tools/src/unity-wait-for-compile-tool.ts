@@ -8,6 +8,7 @@ export interface UnityWaitForCompileToolOptions {
 	projectPath: string;
 	runner?: UnityCommandRunner;
 	tracker?: UnityCompilationTracker;
+	confirmStopPlayMode?: () => Promise<boolean>;
 }
 
 export function createUnityWaitForCompileTool(
@@ -23,6 +24,8 @@ export function createUnityWaitForCompileTool(
 			'Compile Unity project scripts and return linked diagnostics',
 		promptGuidelines: [
 			'After changing C#, assembly definitions, compiler response files, or Packages/manifest.json, call unity_wait_for_compile before reporting success.',
+			'This tool waits for Play Mode decisions, compilation, and domain reload internally. Do not poll unity_status while it runs or after it returns a final result.',
+			'If the user keeps Play Mode running, explain that compilation was deferred and do not retry.',
 			'Fix compiler errors and rerun the smallest relevant tests before finishing.',
 		],
 		parameters: Type.Object(
@@ -38,6 +41,7 @@ export function createUnityWaitForCompileTool(
 				projectPath: options.projectPath,
 				timeoutMs: (params.timeoutSeconds ?? 120) * 1_000,
 				signal,
+				confirmStopPlayMode: options.confirmStopPlayMode,
 				onProgress: (message) =>
 					onUpdate?.({
 						content: [{ type: 'text', text: message }],

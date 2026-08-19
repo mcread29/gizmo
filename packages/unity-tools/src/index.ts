@@ -103,7 +103,11 @@ import {
 	type UnityToolOptions,
 } from './unity-status-tool';
 
-export function createUnityTools(options: UnityToolOptions = {}) {
+export interface CreateUnityToolsOptions extends UnityToolOptions {
+	confirmStopPlayMode?: () => Promise<boolean>;
+}
+
+export function createUnityTools(options: CreateUnityToolsOptions = {}) {
 	const projectPath = options.projectPath ?? process.cwd();
 	const tracker = new UnityCompilationTracker();
 	return [

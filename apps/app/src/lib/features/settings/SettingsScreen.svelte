@@ -3,6 +3,7 @@
 	import { Slider, Switch } from 'bits-ui';
 	import {
 		appColorSchemes,
+		compilePlayModePolicies,
 		getColorScheme,
 		getThemeMode,
 		getThemeVariant,
@@ -198,6 +199,26 @@
 							/>
 						</Slider.Root>
 					</div>
+				</SettingsSection>
+
+				<SettingsSection
+					title="Unity compilation"
+					description="Choose what happens when an agent needs to compile while the Editor is in Play Mode."
+				>
+					<SelectField
+						value={layout.compilePlayModePolicy}
+						label="When Play Mode is active"
+						options={[...compilePlayModePolicies]}
+						onValueChange={(value) => {
+							if (
+								value === 'ask' ||
+								value === 'stop' ||
+								value === 'keep_playing'
+							) {
+								layout.compilePlayModePolicy = value;
+							}
+						}}
+					/>
 				</SettingsSection>
 
 				<SettingsSection

@@ -15,12 +15,14 @@ export interface WaitForUnityCompileOptions {
 	pollIntervalMs?: number;
 	signal?: AbortSignal;
 	onProgress?: (message: string) => void;
+	confirmStopPlayMode?: () => Promise<boolean>;
 }
 
 export interface UnityCompileDetails extends UnityJsonDetails {
 	state:
 		| 'ready'
 		| 'compile_failed'
+		| 'play_mode_active'
 		| 'disconnected'
 		| 'unavailable'
 		| 'timeout'
@@ -39,6 +41,8 @@ export async function waitForUnityCompile(
 	const startedAt = performance.now();
 	const timeoutMs = options.timeoutMs ?? 120_000;
 	const pollIntervalMs = options.pollIntervalMs ?? 750;
+	const ready = await prepareEditorForCompile(runner, options);
+	if (ready) return ready;
 	const baseline = await readUnityConsole(runner, {
 		projectPath: options.projectPath,
 		tail: 1,
@@ -128,6 +132,61 @@ export async function waitForUnityCompile(
 		{
 			code: 'UNITY_COMPILE_TIMEOUT',
 			message: `Unity did not finish compiling within ${Math.ceil(timeoutMs / 1_000)} seconds.`,
+		},
+	]);
+}
+
+async function prepareEditorForCompile(
+	runner: UnityCommandRunner,
+	options: WaitForUnityCompileOptions,
+): Promise<UnityCompileDetails | undefined> {
+	let status = await executeUnityCommand(runner, {
+		projectPath: options.projectPath,
+		command: 'editor_status',
+		signal: options.signal,
+	});
+	if (!status.ok) {
+		return finish(runner, status, failureState(status), options, 0);
+	}
+	const playMode = parseCommandResult(status.data)?.playMode;
+	if (playMode !== 'playing' && playMode !== 'paused') return;
+
+	options.onProgress?.('Waiting for permission to stop Play Mode');
+	if (!(await options.confirmStopPlayMode?.())) {
+		return finish(runner, status, 'play_mode_active', options, 0, undefined, [
+			{
+				code: 'UNITY_COMPILE_PLAY_MODE_ACTIVE',
+				message:
+					'Compilation was not started because Play Mode is active and the user chose to keep it running.',
+			},
+		]);
+	}
+
+	options.onProgress?.('Stopping Unity Play Mode');
+	status = await executeUnityCommand(runner, {
+		projectPath: options.projectPath,
+		command: 'editor_stop',
+		signal: options.signal,
+	});
+	if (!status.ok)
+		return finish(runner, status, failureState(status), options, 0);
+
+	const stopDeadline = performance.now() + 15_000;
+	while (performance.now() < stopDeadline) {
+		status = await executeUnityCommand(runner, {
+			projectPath: options.projectPath,
+			command: 'editor_status',
+			signal: options.signal,
+		});
+		if (!status.ok)
+			return finish(runner, status, failureState(status), options, 0);
+		if (parseCommandResult(status.data)?.playMode === 'stopped') return;
+		await wait(250, options.signal);
+	}
+	return finish(runner, status, 'error', options, 0, undefined, [
+		{
+			code: 'UNITY_PLAY_MODE_STOP_TIMEOUT',
+			message: 'Unity did not leave Play Mode within 15 seconds.',
 		},
 	]);
 }

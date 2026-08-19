@@ -1,5 +1,7 @@
 import type {
 	AgentModelCatalog,
+	GitCommitResult,
+	GitStatus,
 	SessionCatalog,
 	SessionOptions,
 	SessionSnapshot,
@@ -41,6 +43,7 @@ class InvalidEventClient implements AgentClient {
 	async compact() {}
 	async steer() {}
 	async abort() {}
+	async resolveConfirmation() {}
 	async deleteSession() {}
 	async readAttachment(): Promise<{
 		name: string;
@@ -61,6 +64,15 @@ class InvalidEventClient implements AgentClient {
 	}
 	async revertFile(_projectPath: string, file: string) {
 		return { file, reverted: true };
+	}
+	async getGitStatus(): Promise<GitStatus> {
+		throw new Error('No selected project');
+	}
+	async generateCommitMessage(): Promise<string> {
+		throw new Error('No selected project');
+	}
+	async commitAll(): Promise<GitCommitResult> {
+		throw new Error('No selected project');
 	}
 	async selectThinkingLevel(): Promise<AgentModelCatalog> {
 		return { models: [], thinkingLevels: [] };

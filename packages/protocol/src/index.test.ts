@@ -27,6 +27,7 @@ describe('agent protocol validation', () => {
 				'read',
 				'edit',
 				'write',
+				'git_status',
 				'unity_status',
 				'unity_list_commands',
 				'unity_command',

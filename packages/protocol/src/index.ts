@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 10 as const;
+export const protocolVersion = 12 as const;
 
 const sessionTitleLimit = 48;
 
@@ -18,6 +18,7 @@ export const agentToolPolicy = {
 		'read',
 		'edit',
 		'write',
+		'git_status',
 		'unity_status',
 		'unity_list_commands',
 		'unity_command',
@@ -354,6 +355,41 @@ export const fileRevertResultSchema = Type.Object(
 
 export type FileRevertResult = Static<typeof fileRevertResultSchema>;
 
+export const gitFileStatusSchema = Type.Object(
+	{
+		path: Type.String({ minLength: 1 }),
+		originalPath: Type.Optional(Type.String({ minLength: 1 })),
+		index: Type.String({ minLength: 1, maxLength: 1 }),
+		workingTree: Type.String({ minLength: 1, maxLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type GitFileStatus = Static<typeof gitFileStatusSchema>;
+
+export const gitStatusSchema = Type.Object(
+	{
+		rootPath: Type.String({ minLength: 1 }),
+		branch: Type.String({ minLength: 1 }),
+		clean: Type.Boolean(),
+		files: Type.Array(gitFileStatusSchema),
+	},
+	{ additionalProperties: false },
+);
+
+export type GitStatus = Static<typeof gitStatusSchema>;
+
+export const gitCommitResultSchema = Type.Object(
+	{
+		rootPath: Type.String({ minLength: 1 }),
+		commit: Type.String({ minLength: 1 }),
+		message: Type.String({ minLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type GitCommitResult = Static<typeof gitCommitResultSchema>;
+
 export const unityOpenProjectResultSchema = Type.Object(
 	{
 		state: Type.Union([
@@ -474,6 +510,16 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('confirmation.resolve'),
+			sessionId: Type.String({ minLength: 1 }),
+			confirmationId: Type.String({ minLength: 1 }),
+			accepted: Type.Boolean(),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('session.tree'),
 			sessionId: Type.String({ minLength: 1 }),
 		},
@@ -579,6 +625,32 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('git.status'),
+			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('git.commit-message'),
+			sessionId: Type.String({ minLength: 1 }),
+			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('git.commit'),
+			projectPath: Type.String({ minLength: 1 }),
+			message: Type.String({ minLength: 1, maxLength: 4000 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('file.revert'),
 			projectPath: Type.String({ minLength: 1 }),
 			file: Type.String({ minLength: 1 }),
@@ -659,6 +731,16 @@ export const agentEventSchema = Type.Union([
 				Type.Literal('threshold'),
 				Type.Literal('overflow'),
 			]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('confirmation.requested'),
+			confirmationId: Type.String({ minLength: 1 }),
+			kind: Type.Literal('stop_play_mode_for_compile'),
+			projectPath: Type.String({ minLength: 1 }),
 		},
 		{ additionalProperties: false },
 	),
@@ -860,6 +942,20 @@ export function parseUnityConsoleUpdate(input: unknown): UnityConsoleUpdate {
 
 export function parseFileRevertResult(input: unknown): FileRevertResult {
 	if (!Value.Check(fileRevertResultSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseGitStatus(input: unknown): GitStatus {
+	if (!Value.Check(gitStatusSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseGitCommitResult(input: unknown): GitCommitResult {
+	if (!Value.Check(gitCommitResultSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

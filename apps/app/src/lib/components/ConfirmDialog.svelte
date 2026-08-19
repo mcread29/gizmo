@@ -12,6 +12,7 @@
 		tone = 'danger',
 		children,
 		onConfirm,
+		onCancel,
 	}: {
 		open?: boolean;
 		title: string;
@@ -21,7 +22,26 @@
 		tone?: 'danger' | 'primary';
 		children?: Snippet;
 		onConfirm: () => void | Promise<void>;
+		onCancel?: () => void | Promise<void>;
 	} = $props();
+
+	let wasOpen = false;
+	let confirming = false;
+	$effect(() => {
+		if (open) wasOpen = true;
+		else if (wasOpen && !confirming) {
+			wasOpen = false;
+			void onCancel?.();
+		}
+	});
+
+	async function confirm() {
+		confirming = true;
+		await onConfirm();
+		wasOpen = false;
+		open = false;
+		confirming = false;
+	}
 </script>
 
 <Dialog bind:open {title} {description}>
@@ -32,8 +52,7 @@
 		<Button variant="secondary" onclick={() => (open = false)}
 			>{cancelLabel}</Button
 		>
-		<Button variant={tone} onclick={() => void onConfirm()}
-			>{confirmLabel}</Button
+		<Button variant={tone} onclick={() => void confirm()}>{confirmLabel}</Button
 		>
 	</div>
 </Dialog>

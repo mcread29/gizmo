@@ -8,6 +8,7 @@ export interface UnityWaitForCommandToolOptions {
 	projectPath: string;
 	runner?: UnityCommandRunner;
 	tracker?: UnityCompilationTracker;
+	confirmStopPlayMode?: () => Promise<boolean>;
 }
 
 export function createUnityWaitForCommandTool(
@@ -22,6 +23,7 @@ export function createUnityWaitForCommandTool(
 		promptSnippet: 'Reload scripts and wait for a Unity command to register',
 		promptGuidelines: [
 			'After authoring or changing an Editor-side Pipeline command, call unity_wait_for_command before invoking it.',
+			'This tool waits for Play Mode decisions, compilation, and domain reload internally. Do not poll unity_status while it runs or after it returns a final result.',
 			'If compilation fails, inspect the returned compiler errors and fix the source before retrying.',
 		],
 		parameters: Type.Object(
@@ -43,6 +45,7 @@ export function createUnityWaitForCommandTool(
 				command: params.command,
 				timeoutMs: (params.timeoutSeconds ?? 120) * 1_000,
 				signal,
+				confirmStopPlayMode: options.confirmStopPlayMode,
 				onProgress: (message) =>
 					onUpdate?.({
 						content: [{ type: 'text', text: message }],

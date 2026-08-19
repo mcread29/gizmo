@@ -4,7 +4,7 @@ export type {
 	AgentEventListener,
 } from './AgentClient';
 export { AgentStore } from './AgentStore.svelte';
-export type { AgentModel } from './AgentStore.svelte';
+export type { AgentModel, PendingConfirmation } from './AgentStore.svelte';
 export type { ConversationMessage, ToolCallView } from '@unity-agent/protocol';
 export { FakeAgentClient } from './FakeAgentClient';
 export { WebSocketAgentClient } from './WebSocketAgentClient';
