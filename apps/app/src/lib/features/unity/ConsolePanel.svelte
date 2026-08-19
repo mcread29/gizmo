@@ -1,6 +1,11 @@
 <script lang="ts">
+	import {
+		createVirtualizer,
+		observeElementRect,
+	} from '@tanstack/svelte-virtual';
 	import { Copy, RotateCw, Search, Terminal, Trash2 } from '@lucide/svelte';
 	import { onMount, tick } from 'svelte';
+	import { get } from 'svelte/store';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Tabs, Tooltip } from '../../components';
 	import { toasts } from '../../toasts.svelte';
@@ -21,30 +26,69 @@
 
 	let level = $state('all');
 	let filter = $state('');
-	let viewport = $state<HTMLDivElement>();
+	let viewport = $state<HTMLDivElement | null>(null);
 	let following = true;
+	let rowKeys: Array<string | number> = [];
 
-	let entries = $derived(
-		store.consoleEntries.filter((entry) =>
-			matchesConsoleFilter(entry, level, filter),
-		),
+	let rows = $derived(
+		store.consoleEntries
+			.map((entry, index) => ({ entry, key: entry.seq ?? index }))
+			.filter(({ entry }) => matchesConsoleFilter(entry, level, filter)),
 	);
+	let entries = $derived(rows.map(({ entry }) => entry));
+	const initialViewport = { width: 240, height: 640 };
+	const virtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+		count: 0,
+		getScrollElement: () => viewport,
+		getItemKey: (index) => rowKeys[index] ?? index,
+		estimateSize: () => 76,
+		overscan: 5,
+		initialRect: initialViewport,
+		observeElementRect: (instance, notify) =>
+			observeElementRect(instance, (rect) =>
+				notify(rect.height > 0 ? rect : initialViewport),
+			),
+	});
+	let virtualItems = $derived($virtualizer.getVirtualItems());
 
 	onMount(() => void store.loadConsole());
 
+	$effect(() => {
+		rowKeys = rows.map((row) => row.key);
+		get(virtualizer).setOptions({
+			count: rows.length,
+			getItemKey: (index) => rowKeys[index] ?? index,
+		});
+	});
+
+	$effect(() => {
+		const node = viewport;
+		get(virtualizer).setOptions({ getScrollElement: () => node });
+	});
+
 	// Tail behaviour: keep pinned to the newest line unless the user scrolls up.
 	$effect(() => {
-		entries.length;
+		const count = rows.length;
 		if (!following || !viewport) return;
 		void tick().then(() => {
-			if (viewport) viewport.scrollTop = viewport.scrollHeight;
+			if (!count) return;
+			$virtualizer.scrollToIndex(count - 1, { align: 'end' });
+			requestAnimationFrame(() => {
+				if (following) {
+					$virtualizer.scrollToIndex(count - 1, { align: 'end' });
+				}
+			});
 		});
 	});
 
 	function trackScroll() {
 		if (!viewport) return;
 		following =
-			viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 24;
+			viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 64;
+	}
+
+	function measure(node: HTMLDivElement) {
+		$virtualizer.measureElement(node);
 	}
 
 	async function copyVisible() {
@@ -142,30 +186,45 @@
 			role="log"
 			aria-label="Unity console"
 		>
-			{#each entries as entry, index (entry.seq ?? index)}
-				<div data-ui="console-entry" data-level={entry.level}>
-					<div data-ui="console-entry-meta">
-						<span data-ui="console-level">{entry.level}</span>
-						{#if entry.timestamp}<time
-								data-ui="console-time"
-								title={entry.timestamp}>{consoleTimeLabel(entry.timestamp)}</time
-							>{/if}
+			<div
+				data-ui="console-canvas"
+				style={`height:${$virtualizer.getTotalSize()}px`}
+			>
+				{#each virtualItems as row (row.key)}
+					{@const entry = rows[row.index]!.entry}
+					<div
+						data-ui="console-row"
+						data-index={row.index}
+						use:measure
+						style={`transform:translateY(${row.start}px)`}
+					>
+						<div data-ui="console-entry" data-level={entry.level}>
+							<div data-ui="console-entry-meta">
+								<span data-ui="console-level">{entry.level}</span>
+								{#if entry.timestamp}<time
+										data-ui="console-time"
+										title={entry.timestamp}>{consoleTimeLabel(
+											entry.timestamp,
+										)}</time
+									>{/if}
+							</div>
+							<p>{entry.message}</p>
+							{#if entry.file}
+								<a
+									data-ui="compiler-location"
+									title={entry.file}
+									href={sourceHref(
+										entry.file,
+										projectPath,
+										entry.line,
+										entry.column,
+									)}>{consoleSourceLabel(entry.file, entry.line)}</a
+								>
+							{/if}
+						</div>
 					</div>
-					<p>{entry.message}</p>
-					{#if entry.file}
-						<a
-							data-ui="compiler-location"
-							title={entry.file}
-							href={sourceHref(
-								entry.file,
-								projectPath,
-								entry.line,
-								entry.column,
-							)}>{consoleSourceLabel(entry.file, entry.line)}</a
-						>
-					{/if}
-				</div>
-			{/each}
+				{/each}
+			</div>
 		</div>
 	{/if}
 </div>

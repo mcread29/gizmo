@@ -38,7 +38,9 @@ HTMLElement.prototype.scrollTo = function (
 Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
 	configurable: true,
 	get() {
-		return this.dataset.ui === 'virtual-message' ? 220 : 0;
+		if (this.dataset.ui === 'virtual-message') return 220;
+		if (this.dataset.ui === 'console-row') return 76;
+		return 0;
 	},
 });
 
