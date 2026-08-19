@@ -1,4 +1,8 @@
-import { createAgentWebSocketServer } from './websocket-server';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { createAgentWebSocketServer } from './transport/websocket-server';
+
+await restoreDesktopEnvironment();
 
 const host = process.env.UNITY_AGENT_HOST ?? '127.0.0.1';
 const port = parsePort(process.env.UNITY_AGENT_PORT);
@@ -30,4 +34,28 @@ function parsePort(value: string | undefined): number {
 		throw new Error(`Invalid UNITY_AGENT_PORT: ${value}`);
 	}
 	return port;
+}
+
+async function restoreDesktopEnvironment(): Promise<void> {
+	if (process.platform !== 'linux' || process.env.DISPLAY) return;
+	try {
+		const { stdout } = await promisify(execFile)('systemctl', [
+			'--user',
+			'show-environment',
+		]);
+		const desktopVariables = new Set([
+			'DISPLAY',
+			'WAYLAND_DISPLAY',
+			'XAUTHORITY',
+		]);
+		for (const line of stdout.split('\n')) {
+			const separator = line.indexOf('=');
+			const key = line.slice(0, separator);
+			if (separator > 0 && desktopVariables.has(key) && !process.env[key]) {
+				process.env[key] = line.slice(separator + 1);
+			}
+		}
+	} catch {
+		// Headless Linux sessions legitimately have no user desktop environment.
+	}
 }

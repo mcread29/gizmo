@@ -62,6 +62,9 @@ describe('MessageGroup', () => {
 		});
 
 		expect(getByRole('heading', { name: 'Result' })).toBeInTheDocument();
+		expect(
+			container.querySelector('[data-ui="message-content"]'),
+		).toContainElement(container.querySelector('[data-ui="markdown"]'));
 		expect(getByRole('button', { name: 'Copy response' })).toBeInTheDocument();
 		expect(container.querySelector('[data-copy-code]')).toBeInTheDocument();
 		const details = container.querySelector('details');

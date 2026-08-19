@@ -154,7 +154,7 @@
 	<AppContextMenu
 		{layout}
 		activeThreadId={store.sessionId}
-		canDeleteThread={store.sessionState !== 'streaming'}
+		canDeleteThread={(sessionId) => !store.isSessionStreaming(sessionId)}
 		canOpenEditor={Boolean(unityView.selectedProject && !unityView.editor)}
 		getContextText={contextText}
 		onNewThread={() => (sessions.projectPickerOpen = true)}

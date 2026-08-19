@@ -9,8 +9,8 @@ import type {
 	UnityStatusDetails,
 } from '@unity-agent/unity-tools';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
-import { PiAgentService } from './pi-agent-service';
-import { UnityProjectService } from './unity-project-service';
+import { PiAgentService } from '../sessions/pi-agent-service';
+import { UnityProjectService } from '../unity/unity-project-service';
 
 export interface AgentWebSocketServerOptions {
 	host?: string;

@@ -12,7 +12,7 @@ import {
 	type UnityProject,
 	type UnityStatusDetails,
 } from '@unity-agent/unity-tools';
-import { revertPatch } from './patch';
+import { revertPatch } from '../tools/patch';
 
 export interface ProjectWatchListeners {
 	status: (status: UnityStatusDetails) => void;

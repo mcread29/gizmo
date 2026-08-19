@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	PiEventTranslator,
 	type TranslatedPiEvent,
-} from './pi-event-translator';
+} from '../../src/sessions/pi-event-translator';
 
 function event(value: unknown): AgentSessionEvent {
 	return value as AgentSessionEvent;

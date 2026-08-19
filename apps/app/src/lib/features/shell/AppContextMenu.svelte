@@ -13,7 +13,7 @@
 		children: Snippet;
 		layout: WorkspaceLayout;
 		activeThreadId?: string;
-		canDeleteThread: boolean;
+		canDeleteThread: (sessionId: string | undefined) => boolean;
 		canOpenEditor: boolean;
 		getContextText: (
 			kind: 'message' | 'tool',
@@ -113,7 +113,7 @@
 				<ContextMenu.Item
 					data-ui="menu-item"
 					data-tone="danger"
-					disabled={!canDeleteThread}
+					disabled={!canDeleteThread(target.id)}
 					onSelect={() => onDeleteThread(target.id!)}
 					>Delete thread</ContextMenu.Item
 				>

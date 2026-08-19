@@ -87,6 +87,32 @@ class InvalidEventClient implements AgentClient {
 }
 
 describe('AgentStore', () => {
+	it('surfaces an Editor launch failure', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0, editorOpen: false });
+		vi.spyOn(client, 'openProject').mockResolvedValue({
+			state: 'error',
+			ok: false,
+			command: ['unity', 'open', '/projects/ThirdPersonSandbox'],
+			exitCode: 0,
+			durationMs: 1,
+			data: null,
+			errors: [
+				{
+					code: 'UNITY_CLI_INVALID_JSON',
+					message: 'Editor exited with code 1',
+				},
+			],
+			warnings: [],
+		});
+		const store = new AgentStore(client);
+		await store.connect();
+
+		await store.openSelectedProject();
+
+		expect(store.projectError).toBe('Editor exited with code 1');
+		expect(store.projectOpening).toBe(false);
+	});
+
 	it('surfaces malformed transport events without breaking connection setup', async () => {
 		const store = new AgentStore(new InvalidEventClient());
 		await store.connect();
@@ -161,6 +187,28 @@ describe('AgentStore', () => {
 		expect(snapshot.messages[0]?.content).toBe('Background transcript');
 		expect(store.sessionId).toBe(activeId);
 		expect((await client.listSessions()).lastSessionId).toBe(activeId);
+	});
+
+	it('runs independent sessions concurrently', async () => {
+		const store = new AgentStore(new FakeAgentClient({ latencyMs: 20 }));
+		await store.connect();
+		const firstId = store.sessionId!;
+		const firstPrompt = store.prompt('Work on the first task');
+		expect(store.isSessionStreaming(firstId)).toBe(true);
+
+		await store.newSession('/projects/RenderingPlayground');
+		const secondId = store.sessionId!;
+		const secondPrompt = store.prompt('Work on the second task');
+
+		expect(secondId).not.toBe(firstId);
+		expect(store.isSessionStreaming(firstId)).toBe(true);
+		expect(store.isSessionStreaming(secondId)).toBe(true);
+		await Promise.all([firstPrompt, secondPrompt]);
+		expect(store.isSessionStreaming(firstId)).toBe(false);
+		expect(store.isSessionStreaming(secondId)).toBe(false);
+
+		await store.switchSession(firstId);
+		expect(store.messages[0]?.content).toBe('Work on the first task');
 	});
 
 	it('creates workspace-bound threads and changes the live Pi model settings', async () => {

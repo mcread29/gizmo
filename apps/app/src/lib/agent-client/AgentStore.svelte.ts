@@ -65,6 +65,7 @@ export class AgentStore {
 	reconnectAttempt = $state(0);
 	sessionId = $state<string>();
 	sessionState = $state<SessionState>('idle');
+	sessionStates = $state<Record<string, SessionState>>({});
 	model = $state<AgentModel>();
 	availableModels = $state<AgentModelOption[]>([]);
 	thinkingLevels = $state<string[]>([]);
@@ -126,6 +127,9 @@ export class AgentStore {
 			await this.refreshProjects();
 			const catalog = await this.#client.listSessions();
 			this.sessions = catalog.sessions;
+			this.sessionStates = Object.fromEntries(
+				this.sessions.map((session) => [session.id, 'idle' as const]),
+			);
 			const session =
 				this.sessions.find(({ id }) => id === resumeId) ??
 				this.sessions.find(({ id }) => id === catalog.lastSessionId) ??
@@ -230,7 +234,14 @@ export class AgentStore {
 		this.projectOpening = true;
 		this.projectError = undefined;
 		try {
-			await this.#client.openProject(this.selectedProjectPath);
+			const result = await this.#client.openProject(this.selectedProjectPath);
+			if (!result.ok || result.state === 'error') {
+				throw new Error(
+					result.errors[0]?.message ??
+						result.stderr ??
+						'Unity Editor could not be opened.',
+				);
+			}
 			await this.refreshProjectStatus();
 		} catch (error) {
 			this.projectError = errorMessage(error);
@@ -240,9 +251,7 @@ export class AgentStore {
 	}
 
 	async newSession(projectPath?: string): Promise<void> {
-		if (this.connection !== 'connected' || this.sessionState === 'streaming') {
-			return;
-		}
+		if (this.connection !== 'connected') return;
 		if (
 			projectPath &&
 			!this.projects.some((project) => project.path === projectPath)
@@ -266,6 +275,7 @@ export class AgentStore {
 				...(this.selectedProjectPath ? { cwd: this.selectedProjectPath } : {}),
 			});
 			this.sessionId = sessionId;
+			this.sessionStates[sessionId] = 'idle';
 			const now = Date.now();
 			this.sessions.unshift({
 				id: sessionId,
@@ -288,8 +298,7 @@ export class AgentStore {
 	}
 
 	async switchSession(sessionId: string): Promise<void> {
-		if (this.sessionState === 'streaming' || sessionId === this.sessionId)
-			return;
+		if (sessionId === this.sessionId) return;
 		const session = this.sessions.find(
 			(candidate) => candidate.id === sessionId,
 		);
@@ -298,7 +307,7 @@ export class AgentStore {
 		this.sessionId = sessionId;
 		this.messages = [];
 		this.messagesLoading = true;
-		this.sessionState = 'idle';
+		this.sessionState = this.sessionStates[sessionId] ?? 'idle';
 		this.usage = undefined;
 		try {
 			const snapshot = await this.#client.resumeSession(sessionId);
@@ -409,7 +418,7 @@ export class AgentStore {
 
 	async deleteSession(sessionId: string): Promise<void> {
 		if (
-			this.sessionState === 'streaming' ||
+			this.isSessionStreaming(sessionId) ||
 			!this.sessions.some((session) => session.id === sessionId)
 		) {
 			return;
@@ -421,6 +430,7 @@ export class AgentStore {
 			return;
 		}
 		this.sessions = this.sessions.filter((session) => session.id !== sessionId);
+		delete this.sessionStates[sessionId];
 		if (this.sessionId !== sessionId) return;
 		const next = this.sessions[0];
 		if (next) await this.switchSession(next.id);
@@ -453,11 +463,12 @@ export class AgentStore {
 		attachments: AgentAttachment[] = [],
 	): Promise<void> {
 		if (!this.sessionId || (!text.trim() && attachments.length === 0)) return;
+		const sessionId = this.sessionId;
 		const prompt = text.trim() || attachmentPrompt(attachments.length);
 		this.error = undefined;
 		this.lastPrompt = prompt;
 		const session = this.sessions.find(
-			(candidate) => candidate.id === this.sessionId,
+			(candidate) => candidate.id === sessionId,
 		);
 		if (session) {
 			if (session.title === 'New session') session.title = sessionTitle(prompt);
@@ -466,20 +477,17 @@ export class AgentStore {
 		try {
 			if (attachments.length) {
 				await this.#client.prompt(
-					this.sessionId,
+					sessionId,
 					prompt,
 					this.compactionPolicy,
 					attachments,
 				);
 			} else {
-				await this.#client.prompt(
-					this.sessionId,
-					prompt,
-					this.compactionPolicy,
-				);
+				await this.#client.prompt(sessionId, prompt, this.compactionPolicy);
 			}
 		} catch (error) {
-			this.#fail('prompt', error);
+			this.sessionStates[sessionId] = 'error';
+			if (this.sessionId === sessionId) this.#fail('prompt', error);
 		}
 	}
 
@@ -595,6 +603,10 @@ export class AgentStore {
 		if (this.sessionId) await this.#client.abort(this.sessionId);
 	}
 
+	isSessionStreaming(sessionId: string | undefined): boolean {
+		return Boolean(sessionId && this.sessionStates[sessionId] === 'streaming');
+	}
+
 	async readAttachment(attachmentId: string) {
 		if (!this.sessionId) throw new Error('No active session');
 		return await this.#client.readAttachment(this.sessionId, attachmentId);
@@ -614,6 +626,11 @@ export class AgentStore {
 			return;
 		}
 
+		if (event.type === 'session.state') {
+			this.sessionStates[event.sessionId] = event.state;
+		} else if (event.type === 'error') {
+			this.sessionStates[event.sessionId] = 'error';
+		}
 		if (this.sessionId && event.sessionId !== this.sessionId) return;
 
 		const eventError = applyAgentEvent(this, event);

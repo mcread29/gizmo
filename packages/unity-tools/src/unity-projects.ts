@@ -1,9 +1,10 @@
 import {
 	runUnityJson,
 	unityJsonArgs,
+	type UnityCliMessage,
 	type UnityJsonDetails,
 } from './unity-json';
-import type { UnityCommandRunner } from './unity-runner';
+import type { UnityCommandRunner, UnityRunResult } from './unity-runner';
 import { getUnityStatus, type UnityStatusDetails } from './unity-status';
 
 export interface UnityProject {
@@ -57,14 +58,58 @@ export async function openUnityProject(
 		};
 	}
 
-	const result = await runUnityJson(
-		runner,
-		[...unityJsonArgs, 'open', projectPath],
+	// beta.5 emits no output and does not launch the Editor when `open` is used
+	// with JSON formatting. Use its human output and normalize it for the API.
+	const run = await runner.run(
+		['--non-interactive', '--no-banner', 'open', projectPath],
 		{ signal, timeoutMs: 120_000 },
 	);
+	const result = openResult(run);
 	return {
 		...result,
 		state: result.ok ? 'opened' : 'error',
+	};
+}
+
+function openResult(run: UnityRunResult): UnityJsonDetails {
+	const output = [run.stderr.trim(), run.stdout.trim()]
+		.filter(Boolean)
+		.join('\n');
+	let error: UnityCliMessage | undefined;
+	if (run.spawnError) {
+		error = { code: 'UNITY_CLI_UNAVAILABLE', message: run.spawnError };
+	} else if (run.aborted) {
+		error = {
+			code: 'UNITY_CLI_ABORTED',
+			message: 'Unity CLI command was cancelled.',
+		};
+	} else if (run.timedOut) {
+		error = {
+			code: 'UNITY_CLI_TIMEOUT',
+			message: 'Unity CLI command timed out.',
+		};
+	} else if (run.outputLimitExceeded) {
+		error = {
+			code: 'UNITY_CLI_OUTPUT_LIMIT',
+			message: 'Unity CLI command exceeded the output limit.',
+		};
+	} else if (!run.ok || /^error:/im.test(output)) {
+		error = {
+			code: 'UNITY_EDITOR_OPEN_FAILED',
+			message:
+				output.replace(/^error:\s*/i, '') ||
+				'Unity Editor could not be opened.',
+		};
+	}
+	return {
+		ok: !error,
+		command: [run.executable, ...run.args],
+		exitCode: run.exitCode,
+		durationMs: run.durationMs,
+		data: null,
+		errors: error ? [error] : [],
+		warnings: [],
+		...(run.stderr.trim() ? { stderr: run.stderr.trim() } : {}),
 	};
 }
 

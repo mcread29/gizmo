@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { attachmentPrompt, displayedUserMessage } from './attachment-message';
+import {
+	attachmentPrompt,
+	displayedUserMessage,
+} from '../../src/attachments/attachment-message';
 
 describe('attachment messages', () => {
 	it('keeps paths for the agent but hides them from the transcript', () => {

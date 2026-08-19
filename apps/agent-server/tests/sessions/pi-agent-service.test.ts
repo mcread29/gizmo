@@ -9,8 +9,11 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PiAgentService, type PiSessionLike } from './pi-agent-service';
-import { PiSessionRepository } from './session-repository';
+import {
+	PiAgentService,
+	type PiSessionLike,
+} from '../../src/sessions/pi-agent-service';
+import { PiSessionRepository } from '../../src/sessions/session-repository';
 
 class FakePiSession implements PiSessionLike {
 	sessionId: string;

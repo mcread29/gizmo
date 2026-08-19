@@ -1,6 +1,6 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
-import { normalizeToolResult, toolResultIsError } from './tool-result';
-import { displayedUserMessage } from './attachment-message';
+import { normalizeToolResult, toolResultIsError } from '../tools/tool-result';
+import { displayedUserMessage } from '../attachments/attachment-message';
 
 export type TranslatedPiEvent =
 	| {

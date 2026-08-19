@@ -98,7 +98,10 @@
 				/>
 				{#if message.content}
 					<!-- Live so a screen reader hears the reply as it is written. -->
-					<div aria-live={activity ? 'polite' : undefined}>
+					<div
+						data-ui="message-content"
+						aria-live={activity ? 'polite' : undefined}
+					>
 						<MarkdownContent content={message.content} />
 					</div>
 				{/if}

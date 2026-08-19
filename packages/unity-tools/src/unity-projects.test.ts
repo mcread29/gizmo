@@ -98,16 +98,25 @@ describe('Unity projects', () => {
 		expect(result.state).toBe('opened');
 		expect(runner.run).toHaveBeenNthCalledWith(
 			2,
-			[
-				'--non-interactive',
-				'--no-banner',
-				'--format',
-				'json',
-				'open',
-				'/projects/game',
-			],
+			['--non-interactive', '--no-banner', 'open', '/projects/game'],
 			{ signal: undefined, timeoutMs: 120_000 },
 		);
+	});
+
+	it('recognizes an Editor failure hidden behind a zero CLI exit code', async () => {
+		const runner = sequenceRunner(
+			runResult({
+				ok: false,
+				exitCode: 6,
+				stdout: statusJson({ success: false, instances: [] }),
+			}),
+			runResult({ stdout: 'Error: Editor exited with code 1\n' }),
+		);
+
+		const result = await openUnityProject(runner, '/projects/game');
+
+		expect(result.state).toBe('error');
+		expect(result.errors[0]?.message).toBe('Editor exited with code 1');
 	});
 });
 

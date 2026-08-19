@@ -1,6 +1,6 @@
 import { agentToolPolicy } from '@unity-agent/protocol';
 import { describe, expect, it } from 'vitest';
-import { unitySystemPrompt } from './unity-system-prompt';
+import { unitySystemPrompt } from '../../src/unity/unity-system-prompt';
 
 describe('unitySystemPrompt', () => {
 	it('documents every tool exposed by the harness', () => {

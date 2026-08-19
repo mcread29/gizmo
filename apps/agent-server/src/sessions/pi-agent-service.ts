@@ -25,14 +25,14 @@ import {
 	type SessionRepository,
 } from './session-repository';
 import { sessionTree } from './session-transcript';
-import { unitySystemPrompt } from './unity-system-prompt';
-import { attachmentPrompt } from './attachment-message';
+import { unitySystemPrompt } from '../unity/unity-system-prompt';
+import { attachmentPrompt } from '../attachments/attachment-message';
 import {
 	prepareAttachments,
 	readStoredAttachment,
 	revealStoredAttachment,
 	type PiImage,
-} from './attachment-storage';
+} from '../attachments/attachment-storage';
 
 export interface PiSessionLike {
 	readonly sessionId: string;

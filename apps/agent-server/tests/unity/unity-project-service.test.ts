@@ -3,7 +3,7 @@ import type {
 	UnityRunResult,
 } from '@unity-agent/unity-tools';
 import { describe, expect, it, vi } from 'vitest';
-import { UnityProjectService } from './unity-project-service';
+import { UnityProjectService } from '../../src/unity/unity-project-service';
 
 describe('UnityProjectService', () => {
 	it('rejects paths outside the Unity project registry before status or open', async () => {

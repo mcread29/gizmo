@@ -9,8 +9,8 @@ import type {
 	SessionTreeEntry,
 	ToolCallView,
 } from '@unity-agent/protocol';
-import { displayedUserMessage } from './attachment-message';
-import { normalizeToolResult, toolResultIsError } from './tool-result';
+import { displayedUserMessage } from '../attachments/attachment-message';
+import { normalizeToolResult, toolResultIsError } from '../tools/tool-result';
 
 /** Includes every recorded entry, even branches outside the active transcript. */
 export function sessionTree(manager: SessionManager): SessionTree {

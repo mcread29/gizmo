@@ -57,9 +57,7 @@
 		<Button
 			variant="secondary"
 			size="sm"
-			disabled={store.connection !== 'connected' ||
-				store.projects.length === 0 ||
-				store.sessionState === 'streaming'}
+			disabled={store.connection !== 'connected' || store.projects.length === 0}
 			onclick={onOpenProjectPicker}><Plus size={14} /> New thread</Button
 		>
 	</div>
@@ -105,10 +103,17 @@
 						data-context-kind="thread"
 						data-context-id={session.id}
 						data-active={session.id === store.sessionId || undefined}
+						data-running={store.isSessionStreaming(session.id) || undefined}
 						aria-current={session.id === store.sessionId ? 'page' : undefined}
 						onclick={() => store.switchSession(session.id)}
 					>
-						<MessageSquare size={15} />
+						<span data-ui="session-icon"
+							><MessageSquare size={15} />
+							{#if store.isSessionStreaming(session.id)}<span
+									data-ui="session-running"
+									aria-label="Agent working"
+								></span>{/if}</span
+						>
 						<span>
 							<strong>{threadTitle(session.title)}</strong>
 							<small title={session.projectPath}

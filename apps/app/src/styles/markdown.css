@@ -90,6 +90,7 @@
 }
 
 [data-ui='code-block'] {
+	max-width: 100%;
 	overflow: hidden;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-md);

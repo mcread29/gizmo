@@ -11,12 +11,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebSocket } from 'ws';
-import { PiAgentService, type PiSessionLike } from './pi-agent-service';
-import { PiSessionRepository } from './session-repository';
+import {
+	PiAgentService,
+	type PiSessionLike,
+} from '../../src/sessions/pi-agent-service';
+import { PiSessionRepository } from '../../src/sessions/session-repository';
 import {
 	createAgentWebSocketServer,
 	type AgentWebSocketServer,
-} from './websocket-server';
+} from '../../src/transport/websocket-server';
 
 class StreamingPiSession implements PiSessionLike {
 	sessionId = 'pi-session-1';
