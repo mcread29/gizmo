@@ -11,7 +11,7 @@ const agentServer = await createAgentWebSocketServer({
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),
 });
 
-console.log(`Unity Agent server listening on ws://${host}:${port}/agent`);
+console.log(`Gizmo server listening on ws://${host}:${port}/agent`);
 
 let closing = false;
 async function close() {

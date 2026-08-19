@@ -1,4 +1,5 @@
 export { default as Button } from './Button.svelte';
+export { default as BrandMark } from './BrandMark.svelte';
 export { default as ConfirmDialog } from './ConfirmDialog.svelte';
 export { default as Dialog } from './Dialog.svelte';
 export { default as Menu } from './Menu.svelte';

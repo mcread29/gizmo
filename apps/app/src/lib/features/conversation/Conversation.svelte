@@ -165,7 +165,7 @@
 			bind:focus={focusComposer}
 		/>
 		<p data-ui="disclaimer">
-			Unity Agent can modify your project. Review changes before committing.
+			Gizmo can modify your project. Review changes before committing.
 		</p>
 	</div>
 </main>

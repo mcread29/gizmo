@@ -1,6 +1,6 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
-	"productName": "Unity Agent",
+	"productName": "Gizmo",
 	"version": "0.1.0",
 	"identifier": "dev.genge.unity-agent",
 	"build": {
@@ -12,7 +12,7 @@
 	"app": {
 		"windows": [
 			{
-				"title": "Unity Agent",
+				"title": "Gizmo",
 				"width": 1440,
 				"height": 900,
 				"minWidth": 960,

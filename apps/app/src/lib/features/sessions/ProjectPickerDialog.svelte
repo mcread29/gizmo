@@ -35,8 +35,8 @@
 				<strong>No Unity projects yet</strong>
 				<p>
 					Projects come from the <code>unity</code> command line tool, which
-					Unity Agent runs as <code>unity projects list</code>. Once that
-					reports your projects they appear here.
+					Gizmo runs as <code>unity projects list</code>. Once that reports your
+					projects they appear here.
 				</p>
 				{#if store.projectError}
 					<p data-ui="onboarding-error">{store.projectError}</p>

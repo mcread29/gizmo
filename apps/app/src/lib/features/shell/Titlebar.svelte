@@ -1,15 +1,8 @@
 <script lang="ts">
 	import type { AgentIdentity } from '@unity-agent/protocol';
-	import {
-		Moon,
-		PanelLeft,
-		PanelRight,
-		Settings,
-		Sparkles,
-		Sun,
-	} from '@lucide/svelte';
+	import { Moon, PanelLeft, PanelRight, Settings, Sun } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, Tooltip } from '../../components';
+	import { BrandMark, Button, Tooltip } from '../../components';
 	import StreamingIndicator from '../conversation/StreamingIndicator.svelte';
 	import { streamingActivity } from '../conversation/streaming';
 	import { shortcutHint } from './shortcuts';
@@ -53,7 +46,7 @@
 			{/snippet}
 		</Tooltip>
 		<div data-ui="brand-mark" data-tauri-drag-region>
-			<Sparkles size={15} />
+			<BrandMark />
 		</div>
 		<strong data-tauri-drag-region>{agent.name}</strong>
 		<span data-ui="preview-badge">Preview</span>

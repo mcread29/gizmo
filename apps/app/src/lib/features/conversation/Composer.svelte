@@ -134,7 +134,7 @@
 		}}
 	/>
 	<ComposerAttachments {attachments} onRemove={removeAttachment} />
-	<label for="prompt" data-ui="sr-only">Message Unity Agent</label>
+	<label for="prompt" data-ui="sr-only">Message Gizmo</label>
 	<textarea
 		id="prompt"
 		bind:this={element}

@@ -9,7 +9,7 @@ describe('unityCommandTemplate', () => {
 		});
 
 		expect(template.suggestedPath).toBe(
-			'Assets/Editor/UnityAgent/SceneDescribeSelectionCommand.cs',
+			'Assets/Editor/Gizmo/SceneDescribeSelectionCommand.cs',
 		);
 		expect(template.source).toContain(
 			'[CliCommand("scene.describe-selection", "Describe the current selection.")]',

@@ -48,13 +48,13 @@ pub fn run() {
                 .spawn()?;
             if !wait_for_agent() {
                 let _ = child.kill();
-                return Err("Unity Agent sidecar did not start on port 8787".into());
+                return Err("Gizmo sidecar did not start on port 8787".into());
             }
             app.manage(AgentSidecar(Mutex::new(Some(child))));
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("failed to build Unity Agent")
+        .expect("failed to build Gizmo")
         .run(|app, event| {
             if let RunEvent::ExitRequested { .. } = event {
                 if let Some(child) = app.state::<AgentSidecar>().0.lock().unwrap().take() {

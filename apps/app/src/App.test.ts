@@ -31,9 +31,7 @@ describe('application shell', () => {
 		expect(
 			getByRole('complementary', { name: 'Unity Editor inspector' }),
 		).toBeInTheDocument();
-		expect(
-			getByRole('textbox', { name: 'Message Unity Agent' }),
-		).toBeInTheDocument();
+		expect(getByRole('textbox', { name: 'Message Gizmo' })).toBeInTheDocument();
 	});
 
 	it('collapses both docked sidebars and exposes resize handles', async () => {
@@ -128,7 +126,7 @@ describe('application shell', () => {
 	it('grows the composer before enabling its scrollbar', async () => {
 		const { getByRole } = renderApp();
 		const composer = getByRole('textbox', {
-			name: 'Message Unity Agent',
+			name: 'Message Gizmo',
 		}) as HTMLTextAreaElement;
 		Object.defineProperty(composer, 'scrollHeight', {
 			configurable: true,
@@ -245,7 +243,7 @@ describe('application shell', () => {
 
 	it('streams a fake agent response through the production UI state', async () => {
 		const { findAllByText, findByText, getByRole, queryByRole } = renderApp();
-		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+		const composer = getByRole('textbox', { name: 'Message Gizmo' });
 		const send = getByRole('button', { name: 'Send message' });
 		await fireEvent.input(composer, {
 			target: { value: 'Inspect the Editor' },
@@ -362,7 +360,7 @@ describe('application shell', () => {
 		const client = new FakeAgentClient({ latencyMs: 20 });
 		const steer = vi.spyOn(client, 'steer');
 		const { findByRole, getByRole } = render(App, { client });
-		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+		const composer = getByRole('textbox', { name: 'Message Gizmo' });
 
 		await fireEvent.input(composer, {
 			target: { value: 'Inspect the Editor' },
@@ -430,7 +428,7 @@ describe('application shell', () => {
 
 	it('collects the files the agent edited into the Changes tab', async () => {
 		const { container, findByRole, getByRole } = renderApp();
-		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+		const composer = getByRole('textbox', { name: 'Message Gizmo' });
 		await fireEvent.input(composer, {
 			target: { value: 'Speed the player up' },
 		});
@@ -456,7 +454,7 @@ describe('application shell', () => {
 	it('keeps a separate composer draft for each thread', async () => {
 		const { container, findByRole, getByRole } = renderApp();
 		const composer = getByRole('textbox', {
-			name: 'Message Unity Agent',
+			name: 'Message Gizmo',
 		}) as HTMLTextAreaElement;
 		await findByRole('button', { name: 'New thread' });
 		await fireEvent.input(composer, { target: { value: 'First thread note' } });
@@ -476,7 +474,7 @@ describe('application shell', () => {
 
 	it('gives a run of agent messages one header instead of one each', async () => {
 		const { container, findByText, getByRole } = renderApp();
-		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+		const composer = getByRole('textbox', { name: 'Message Gizmo' });
 		await fireEvent.input(composer, {
 			target: { value: 'Inspect the Editor' },
 		});
@@ -496,7 +494,7 @@ describe('application shell', () => {
 
 	it('finds messages and tool arguments within the open thread', async () => {
 		const { container, findByRole, getByRole } = renderApp();
-		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
+		const composer = getByRole('textbox', { name: 'Message Gizmo' });
 		await fireEvent.input(composer, {
 			target: { value: 'Inspect the Editor' },
 		});

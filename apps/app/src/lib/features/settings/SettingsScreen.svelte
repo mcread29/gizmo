@@ -91,7 +91,7 @@
 				<span>Back</span>
 			</button>
 			<h1>Settings</h1>
-			<span>Customize Unity Agent on this device</span>
+			<span>Customize Gizmo on this device</span>
 		</header>
 
 		<ScrollPanel>

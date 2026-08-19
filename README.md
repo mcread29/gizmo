@@ -1,6 +1,9 @@
-# Unity Agent
+<img src="apps/app/src/assets/gizmo-logo.svg" width="88" height="88" alt="Gizmo logo">
 
-An open source agent built on Pi to interact with Unity through the Unity CLI.
+# Gizmo
+
+An open source AI workbench built on Pi to interact with Unity through the
+Unity CLI.
 
 ## Development
 

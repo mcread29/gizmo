@@ -34,7 +34,7 @@
 	let { client }: Props = $props();
 
 	const agent: AgentIdentity = {
-		name: 'Unity Agent',
+		name: 'Gizmo',
 		version: '0.0.0',
 		capabilities: ['editor-status', 'pipeline-commands'],
 	};

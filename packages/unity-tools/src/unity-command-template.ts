@@ -15,12 +15,12 @@ export function unityCommandTemplate(
 	options: UnityCommandTemplateOptions,
 ): UnityCommandTemplate {
 	const className = options.className ?? commandClassName(options.command);
-	const namespace = options.namespace ?? 'UnityAgent.Commands';
+	const namespace = options.namespace ?? 'Gizmo.Commands';
 	const command = csharpString(options.command);
 	const description = csharpString(options.description);
 	return {
 		command: options.command,
-		suggestedPath: `Assets/Editor/UnityAgent/${className}.cs`,
+		suggestedPath: `Assets/Editor/Gizmo/${className}.cs`,
 		source: `using Unity.Pipeline.Commands;
 
 namespace ${namespace}

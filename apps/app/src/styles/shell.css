@@ -138,9 +138,11 @@
 	width: 26px;
 	height: 26px;
 	place-items: center;
+}
+
+[data-ui='brand-mark'] img {
+	display: block;
 	border-radius: 7px;
-	background: var(--color-accent);
-	color: var(--color-on-accent);
 }
 
 [data-ui='preview-badge'] {

@@ -396,3 +396,12 @@ project was recompiled or modified during this verification.
   variant across surfaces, borders, statuses, focus rings, and accent contrast.
 - Added a compact scheme dropdown and Light/Dark switch while preserving
   concrete variants locally and migrating the earlier Vesper value.
+
+## 2026-08-18 — Gizmo identity
+
+- Renamed the product from Unity Agent to Gizmo across the application,
+  desktop metadata, generated Unity command templates, and documentation.
+- Replaced the generic sparkle treatment with a geometric G and manipulation
+  handle mark shared by the title bar, empty state, favicon, and desktop icons.
+- Preserved existing storage, environment, bundle, and protocol identifiers so
+  the rebrand does not discard sessions or settings.

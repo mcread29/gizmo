@@ -82,7 +82,7 @@ export class WebSocketAgentClient implements AgentClient {
 			const failed = () => {
 				cleanup();
 				this.#socket = undefined;
-				reject(new Error(`Could not connect to Unity Agent at ${this.#url}`));
+				reject(new Error(`Could not connect to Gizmo at ${this.#url}`));
 			};
 			const cleanup = () => {
 				socket.removeEventListener('open', opened);

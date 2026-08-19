@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { Sparkles } from '@lucide/svelte';
 	import type { AgentSessionSummary } from '@unity-agent/protocol';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { ArrowDown } from '@lucide/svelte';
-	import { Button, ScrollPanel } from '../../components';
+	import { BrandMark, Button, ScrollPanel } from '../../components';
 	import MessageGroupView from './MessageGroup.svelte';
 	import { isAtBottom, scrollIntoEnd } from './follow';
 	import { dayKey, formatDay, groupMessages } from './message-groups';
@@ -111,7 +110,7 @@
 			</div>
 		{:else if store.messages.length === 0}
 			<div data-ui="conversation-empty">
-				<div data-ui="brand-mark"><Sparkles size={18} /></div>
+				<div data-ui="brand-mark"><BrandMark size={38} /></div>
 				<h2>Ready when you are</h2>
 				<p>
 					Ask about the open project, inspect the Editor, or run a registered

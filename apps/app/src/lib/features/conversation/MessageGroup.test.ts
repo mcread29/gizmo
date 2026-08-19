@@ -58,7 +58,7 @@ describe('MessageGroup', () => {
 		};
 		const { container, getByRole, getByText } = render(MessageGroupView, {
 			group: groupMessages([message])[0]!,
-			agentName: 'Unity Agent',
+			agentName: 'Gizmo',
 		});
 
 		expect(getByRole('heading', { name: 'Result' })).toBeInTheDocument();
