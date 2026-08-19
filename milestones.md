@@ -11,10 +11,9 @@ The next release boundary is a distributable local alpha. Work should focus on
 sidecar isolation and recovery, cross-platform packaging, clean-machine setup,
 and failure diagnostics.
 
-Gizmo does not require its own UPM package to connect to a project. The
-connection boundary is the Unity CLI and its Editor Pipeline. A shared C#
-command package is optional future work only if repeated real workflows reveal
-stable Editor-side functionality worth maintaining across projects.
+The project connection boundary is the Unity CLI and its Editor Pipeline.
+Gizmo discovers registered commands at runtime and can author, compile, and
+verify project-local Editor commands through the existing tool loop.
 
 ## Milestone 1 — Workspace and shared contracts
 
@@ -205,8 +204,7 @@ Acceptance:
 - The WebView cannot launch arbitrary commands.
 - Closing the application terminates the sidecar.
 - A simulated sidecar crash is reported and can be recovered.
-- Parallel launches do not contend for a fixed port or accept each other's
-  connections.
+- Parallel launches receive isolated ports and authentication tokens.
 
 ## Milestone 10 — Local-alpha distribution
 
@@ -252,8 +250,8 @@ Add:
 - Secret and log redaction across the backend, protocol, and persisted
   transcripts.
 - Corrupt-session isolation and recovery.
-- An explicit mutation policy that works with the existing Changes review
-  surface without requiring a prompt before every write.
+- An explicit mutation policy integrated with the existing Changes review
+  surface.
 - Protocol and sidecar compatibility gates.
 - Support diagnostics that can be exported without credentials or project
   contents.
@@ -267,14 +265,6 @@ Acceptance:
 - Corrupt session data does not prevent the app from opening.
 - Incompatible frontend, backend, or protocol versions fail with a recovery
   path rather than undefined behavior.
-
-## Optional future work — Shared Unity command library
-
-Do not introduce a required Gizmo UPM package for connectivity. Project-local
-commands and the existing Pipeline discovery/author/reload loop remain the
-default. Extract commands into an optional package only when multiple real
-projects need the same stable C# implementation and its maintenance cost is
-justified.
 
 Milestones 9 and 10 form the local-alpha release boundary. Web deployment and
 broader hardening follow only after the packaged local workflow proves useful.

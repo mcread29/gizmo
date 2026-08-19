@@ -411,9 +411,7 @@ project was recompiled or modified during this verification.
 - Recorded that Unity CLI and Editor Pipeline already provide Gizmo's project
   connection and that command discovery, execution, authoring, reload, and
   verification have been validated.
-- Removed the required Gizmo UPM package and `scene.validate` proof-of-concept
-  from the core roadmap; any future shared command library must earn its place
-  through repeated cross-project use and remain optional.
+- Centered the roadmap on the established Unity CLI and Pipeline command loop.
 - Made sidecar isolation and recovery, clean-machine setup, cross-platform
   artifacts, signing, diagnostics, and packaged-build dogfooding the next
   release work.

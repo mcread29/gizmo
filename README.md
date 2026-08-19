@@ -7,11 +7,9 @@ Unity CLI.
 
 ## Architecture
 
-Gizmo connects through the Unity CLI and its Editor Pipeline; projects do not
-need a Gizmo-specific UPM package. Registered commands are discovered at
-runtime, and Gizmo can author and verify project-local Editor commands when a
-workflow needs one. A shared command package remains optional until repeated
-use across real projects justifies maintaining it.
+Gizmo connects to projects through the Unity CLI and its Editor Pipeline.
+Registered commands are discovered at runtime, and Gizmo can author, compile,
+and verify project-local Editor commands when a workflow needs one.
 
 ## Development
 
