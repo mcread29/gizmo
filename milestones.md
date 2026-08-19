@@ -1,3 +1,21 @@
+# Gizmo roadmap
+
+## Current direction
+
+Milestones 1–8 are complete, and the foundation of Milestone 9 is working: the
+Tauri shell owns a compiled Bun sidecar, the UI talks to a real Pi session, and
+Unity Pipeline commands have been discovered, invoked, authored, reloaded, and
+verified against connected Editors.
+
+The next release boundary is a distributable local alpha. Work should focus on
+sidecar isolation and recovery, cross-platform packaging, clean-machine setup,
+and failure diagnostics.
+
+Gizmo does not require its own UPM package to connect to a project. The
+connection boundary is the Unity CLI and its Editor Pipeline. A shared C#
+command package is optional future work only if repeated real workflows reveal
+stable Editor-side functionality worth maintaining across projects.
+
 ## Milestone 1 — Workspace and shared contracts
 
 Scaffold the pnpm workspace:
@@ -134,8 +152,11 @@ Add:
 - `unity_status`
 - `unity_list_commands`
 - `unity_command`
+- `unity_console`
+- `unity_wait_for_compile`
+- `unity_wait_for_command`
 - `unity_test`
-- `unity_diagnose`
+- `unity_command_template`
 
 Acceptance:
 
@@ -163,17 +184,20 @@ Acceptance:
 
 Automate this path with fake Pi and Unity implementations; retain one manual real-Editor verification.
 
-## Milestone 9 — Desktop packaging with Tauri
+## Milestone 9 — Desktop local-alpha hardening
 
-Add Tauri 2 to `apps/app` and package the agent server as a sidecar.
+The Tauri shell, compiled Bun sidecar, narrow frontend capability, graceful
+shutdown, and target-aware sidecar build already exist. Finish the process
+boundary required for a dependable local alpha.
 
 Implement:
 
 - Sidecar startup and graceful shutdown.
 - Random loopback port.
 - Per-launch authentication token.
-- Crash detection and restart UI.
+- Crash detection, automatic recovery, and explicit restart UI.
 - Narrow Tauri capabilities permitting only the named sidecar.
+- Actionable startup and connection diagnostics.
 
 Acceptance:
 
@@ -181,9 +205,34 @@ Acceptance:
 - The WebView cannot launch arbitrary commands.
 - Closing the application terminates the sidecar.
 - A simulated sidecar crash is reported and can be recovered.
-- macOS, Windows, and Linux build jobs produce appropriately named sidecars.
+- Parallel launches do not contend for a fixed port or accept each other's
+  connections.
 
-## Milestone 10 — Web deployment mode
+## Milestone 10 — Local-alpha distribution
+
+Turn the hardened desktop application into an installable release rather than
+another development build.
+
+Implement:
+
+- macOS, Windows, and Linux CI build artifacts with correctly named sidecars.
+- Signing and notarization where the target platform requires them.
+- First-run checks for Pi authentication, Unity CLI availability, and Editor
+  connectivity.
+- A versioning, release-notes, and update strategy.
+- Packaged-build dogfooding against representative existing projects and
+  commands.
+
+Acceptance:
+
+- A clean machine can install Gizmo without Node and complete the primary Unity
+  workflow.
+- Startup failures identify the missing dependency or failed process and offer
+  a recovery action.
+- Sessions survive normal application and sidecar restarts.
+- Release artifacts are reproducible and traceable to a source revision.
+
+## Milestone 11 — Web deployment mode (deferred)
 
 Add a WebSocket transport targeting a hosted agent server.
 
@@ -196,36 +245,36 @@ Acceptance:
 - The UI clearly distinguishes local Editor access from remote backend access.
 - The web application never receives filesystem paths, credentials, or process permissions it does not need.
 
-## Milestone 11 — Custom Unity Pipeline command package
-
-Create the initial C# package with one useful high-level command, such as `scene.validate`.
-
-Acceptance:
-
-- Unity recompiles and registers the command.
-- `unity list` discovers it without restarting the agent.
-- `unity command scene.validate` returns structured data.
-- The Pi agent invokes it successfully through `unity_command`.
-- Compilation failure leaves the agent functional and reports that the command is temporarily unavailable.
-- Any scene modifications support Undo and deliberately handle dirty/save state.
-
 ## Milestone 12 — Product hardening
 
 Add:
 
-- Model and authentication settings.
-- Session history and deletion.
-- Permission prompts for mutating Unity operations.
-- Log redaction.
-- Protocol compatibility handling.
-- Release packaging and update strategy.
+- Secret and log redaction across the backend, protocol, and persisted
+  transcripts.
+- Corrupt-session isolation and recovery.
+- An explicit mutation policy that works with the existing Changes review
+  surface without requiring a prompt before every write.
+- Protocol and sidecar compatibility gates.
+- Support diagnostics that can be exported without credentials or project
+  contents.
 
 Acceptance:
 
 - Read-only and mutating tools are visibly differentiated.
-- Mutating commands can require user confirmation.
+- Mutation policy is clear and can be tightened without changing tool
+  implementations.
 - Secrets never enter frontend logs, tool results, or session transcripts.
 - Corrupt session data does not prevent the app from opening.
-- A clean machine can install the desktop application and complete the primary Unity workflow.
+- Incompatible frontend, backend, or protocol versions fail with a recovery
+  path rather than undefined behavior.
 
-The first meaningful release boundary is Milestone 9. Milestones 10–12 can follow once the local desktop workflow proves useful.
+## Optional future work — Shared Unity command library
+
+Do not introduce a required Gizmo UPM package for connectivity. Project-local
+commands and the existing Pipeline discovery/author/reload loop remain the
+default. Extract commands into an optional package only when multiple real
+projects need the same stable C# implementation and its maintenance cost is
+justified.
+
+Milestones 9 and 10 form the local-alpha release boundary. Web deployment and
+broader hardening follow only after the packaged local workflow proves useful.

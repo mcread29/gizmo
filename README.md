@@ -5,6 +5,14 @@
 An open source AI workbench built on Pi to interact with Unity through the
 Unity CLI.
 
+## Architecture
+
+Gizmo connects through the Unity CLI and its Editor Pipeline; projects do not
+need a Gizmo-specific UPM package. Registered commands are discovered at
+runtime, and Gizmo can author and verify project-local Editor commands when a
+workflow needs one. A shared command package remains optional until repeated
+use across real projects justifies maintaining it.
+
 ## Development
 
 Install dependencies and start both the Svelte app and local Pi agent server:
@@ -31,8 +39,9 @@ from another origin.
 
 The Unity tools are `unity_status`, `unity_list_commands`, `unity_command`,
 `unity_console`, `unity_wait_for_compile`, `unity_wait_for_command`,
-`unity_test`, and `unity_command_template`. Command discovery returns the live Editor schemas,
-supports text filtering, and is refreshed before every execution.
+`unity_test`, and `unity_command_template`. Command discovery returns the live
+Editor schemas, supports text filtering, and is refreshed before every
+execution.
 `unity_command` accepts validated named parameters or raw argument arrays for
 unusual custom command syntax. After the agent authors an Editor-side command,
 `unity_wait_for_command` forces compilation, waits through the domain reload,
@@ -69,8 +78,8 @@ unity --non-interactive --no-banner --format json list --project-path <path>
 
 Their connected Editor state and discovered Pipeline commands are shown in the
 inspector after the agent invokes them. The harness intentionally grants its
-seven active tools full access without approval prompts and disables ambient Pi
-extensions.
+configured tools full access without approval prompts and disables ambient Pi
+extensions. The Changes view is the review surface for project mutations.
 
 ```sh
 pnpm check

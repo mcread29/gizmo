@@ -405,3 +405,17 @@ project was recompiled or modified during this verification.
   handle mark shared by the title bar, empty state, favicon, and desktop icons.
 - Preserved existing storage, environment, bundle, and protocol identifiers so
   the rebrand does not discard sessions or settings.
+
+## 2026-08-18 — Local-alpha roadmap correction
+
+- Recorded that Unity CLI and Editor Pipeline already provide Gizmo's project
+  connection and that command discovery, execution, authoring, reload, and
+  verification have been validated.
+- Removed the required Gizmo UPM package and `scene.validate` proof-of-concept
+  from the core roadmap; any future shared command library must earn its place
+  through repeated cross-project use and remain optional.
+- Made sidecar isolation and recovery, clean-machine setup, cross-platform
+  artifacts, signing, diagnostics, and packaged-build dogfooding the next
+  release work.
+- Reconciled the documented tool inventory and product-hardening backlog with
+  the implemented application and its Changes-based mutation review model.
