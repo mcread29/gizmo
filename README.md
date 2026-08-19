@@ -79,6 +79,10 @@ inspector after the agent invokes them. The harness intentionally grants its
 configured tools full access without approval prompts and disables ambient Pi
 extensions. The Changes view is the review surface for project mutations.
 
+Optional project integrations use the generic extension boundary documented in
+[`docs/extensions.md`](docs/extensions.md). Core discovers versioned descriptors
+and forwards declared operations without interpreting extension payloads.
+
 ```sh
 pnpm check
 pnpm test

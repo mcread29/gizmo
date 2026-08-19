@@ -59,9 +59,10 @@ class InvalidEventClient implements AgentClient {
 	async selectModel(): Promise<AgentModelCatalog> {
 		return { models: [], thinkingLevels: [] };
 	}
-	async readConsole() {
-		return { entries: [], dropped: false };
+	async listProjectExtensions() {
+		return { extensions: [] };
 	}
+	async invokeProjectExtension() {}
 	async revertFile(_projectPath: string, file: string) {
 		return { file, reverted: true };
 	}
@@ -161,6 +162,41 @@ describe('AgentStore', () => {
 		await store.deleteSession(firstSession);
 		expect(store.sessions.some((session) => session.id === firstSession)).toBe(
 			false,
+		);
+	});
+
+	it('loads extensions for the active project', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const listExtensions = vi
+			.spyOn(client, 'listProjectExtensions')
+			.mockImplementation(async (projectPath) => ({
+				extensions: [
+					{
+						id: projectPath,
+						name: 'Extension',
+						version: '1.0.0',
+						apiVersion: 1,
+						capabilities: [],
+						operations: [],
+					},
+				],
+			}));
+		const store = new AgentStore(client);
+
+		await store.connect();
+
+		expect(listExtensions).toHaveBeenLastCalledWith(
+			'/projects/ThirdPersonSandbox',
+		);
+		expect(store.projectExtensions[0]?.id).toBe('/projects/ThirdPersonSandbox');
+
+		await store.newSession('/projects/RenderingPlayground');
+
+		expect(listExtensions).toHaveBeenLastCalledWith(
+			'/projects/RenderingPlayground',
+		);
+		expect(store.projectExtensions[0]?.id).toBe(
+			'/projects/RenderingPlayground',
 		);
 	});
 

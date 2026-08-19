@@ -2,12 +2,15 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 import {
 	getUnityStatus,
+	invokeUnityExtension,
+	listUnityCommands,
+	listUnityExtensions,
 	listUnityProjects,
 	openUnityProject,
-	readUnityConsole,
+	unityExtensionCommands,
 	UnityRunner,
 	type UnityCommandRunner,
-	type UnityConsoleDetails,
+	type UnityExtensionDescriptor,
 	type UnityOpenProjectDetails,
 	type UnityProject,
 	type UnityStatusDetails,
@@ -16,13 +19,17 @@ import { revertPatch } from '../tools/patch';
 
 export interface ProjectWatchListeners {
 	status: (status: UnityStatusDetails) => void;
-	console: (update: UnityConsoleDetails) => void;
+	extensions: (extensions: UnityExtensionDescriptor[]) => void;
 }
 
 export class UnityProjectService {
 	readonly #runner: UnityCommandRunner;
 	readonly #watchIntervalMs: number;
 	readonly #controllers = new Set<AbortController>();
+	readonly #extensionCache = new Map<
+		string,
+		{ expiresAt: number; value: Promise<UnityExtensionDescriptor[]> }
+	>();
 	#projects?: UnityProject[];
 	#watch?: { controller: AbortController; timer?: NodeJS.Timeout };
 
@@ -54,14 +61,52 @@ export class UnityProjectService {
 		);
 	}
 
-	async readConsole(
+	async listExtensions(
 		projectPath: string,
-		tail = 200,
-	): Promise<UnityConsoleDetails> {
+	): Promise<UnityExtensionDescriptor[]> {
 		await this.#requireProject(projectPath);
 		return this.#run((signal) =>
-			readUnityConsole(this.#runner, { projectPath, tail, signal }),
+			this.#listExtensionsUnchecked(projectPath, signal),
 		);
+	}
+
+	async invokeExtension(
+		projectPath: string,
+		extensionId: string,
+		operationId: string,
+		input?: unknown,
+	): Promise<unknown> {
+		await this.#requireProject(projectPath);
+		return this.#run(async (signal) => {
+			const extensions = await this.#listExtensionsUnchecked(
+				projectPath,
+				signal,
+			);
+			const extension = extensions.find(({ id }) => id === extensionId);
+			if (!extension)
+				throw new Error(`Extension is not installed: ${extensionId}`);
+			const operation = extension.operations.find(
+				({ id }) => id === operationId,
+			);
+			if (!operation) {
+				throw new Error(
+					`Extension ${extensionId} does not expose operation: ${operationId}`,
+				);
+			}
+			if (operation.requiresConfirmation && !confirmed(input)) {
+				throw new Error(
+					`Extension operation requires confirmation: ${operationId}`,
+				);
+			}
+			return invokeUnityExtension(
+				this.#runner,
+				projectPath,
+				extensionId,
+				operationId,
+				input,
+				signal,
+			);
+		});
 	}
 
 	/**
@@ -94,9 +139,7 @@ export class UnityProjectService {
 	}
 
 	/**
-	 * Polls Editor status and the Unity console on one timer. Status is reported
-	 * only when it changes; console entries are reported as they arrive, using
-	 * the console cursor so nothing is replayed.
+	 * Polls Editor status on one timer and reports only changes.
 	 */
 	async watchStatus(
 		projectPath: string,
@@ -111,7 +154,10 @@ export class UnityProjectService {
 		};
 		this.#watch = watch;
 		let fingerprint = statusFingerprint(initial);
-		let cursor: number | undefined;
+		let extensionFingerprint = extensionListFingerprint(
+			await this.#listExtensionsUnchecked(projectPath, controller.signal),
+		);
+		let nextExtensionCheck = Date.now() + 5_000;
 
 		const poll = async () => {
 			if (controller.signal.aborted) return;
@@ -125,14 +171,17 @@ export class UnityProjectService {
 					fingerprint = nextFingerprint;
 					listeners.status(status);
 				}
-				if (status.state === 'connected') {
-					const console = await readUnityConsole(this.#runner, {
+				if (Date.now() >= nextExtensionCheck) {
+					nextExtensionCheck = Date.now() + 5_000;
+					const extensions = await this.#listExtensionsUnchecked(
 						projectPath,
-						signal: controller.signal,
-						...(cursor === undefined ? { tail: 1 } : { since: cursor }),
-					});
-					if (console.cursor !== undefined) cursor = console.cursor;
-					if (console.entries.length > 0) listeners.console(console);
+						controller.signal,
+					);
+					const nextExtensions = extensionListFingerprint(extensions);
+					if (nextExtensions !== extensionFingerprint) {
+						extensionFingerprint = nextExtensions;
+						listeners.extensions(extensions);
+					}
 				}
 			} catch {
 				// The next observation retries transient runner failures.
@@ -160,6 +209,49 @@ export class UnityProjectService {
 		this.#watch.controller.abort();
 		if (this.#watch.timer) clearTimeout(this.#watch.timer);
 		this.#watch = undefined;
+	}
+
+	async #listExtensionsUnchecked(
+		projectPath: string,
+		signal: AbortSignal,
+	): Promise<UnityExtensionDescriptor[]> {
+		const cached = this.#extensionCache.get(projectPath);
+		if (cached && cached.expiresAt > Date.now()) return cached.value;
+		const value = this.#discoverExtensions(projectPath, signal).catch(
+			(error) => {
+				this.#extensionCache.delete(projectPath);
+				throw error;
+			},
+		);
+		this.#extensionCache.set(projectPath, {
+			expiresAt: Date.now() + 5_000,
+			value,
+		});
+		return value;
+	}
+
+	async #discoverExtensions(
+		projectPath: string,
+		signal: AbortSignal,
+	): Promise<UnityExtensionDescriptor[]> {
+		const commands = await listUnityCommands(this.#runner, {
+			projectPath,
+			signal,
+		});
+		if (
+			!commands.ok ||
+			!commands.commands.some(
+				(command) => command.name === unityExtensionCommands.discoveryCommand,
+			)
+		) {
+			return [];
+		}
+		const details = await listUnityExtensions(
+			this.#runner,
+			projectPath,
+			signal,
+		);
+		return details.ok ? details.extensions : [];
 	}
 
 	async #requireProject(projectPath: string): Promise<void> {
@@ -190,4 +282,18 @@ function statusFingerprint(status: UnityStatusDetails): string {
 		warnings: status.warnings,
 		stderr: status.stderr,
 	});
+}
+
+function extensionListFingerprint(
+	extensions: readonly UnityExtensionDescriptor[],
+): string {
+	return JSON.stringify(extensions);
+}
+
+function confirmed(input: unknown): boolean {
+	return (
+		input !== null &&
+		typeof input === 'object' &&
+		(input as Record<string, unknown>).confirmed === true
+	);
 }

@@ -9,7 +9,7 @@ import type {
 	SessionOptions,
 	SessionSnapshot,
 	SessionTree,
-	UnityConsoleUpdate,
+	UnityExtensions,
 	UnityOpenProjectResult,
 	UnityProject,
 	UnityStatus,
@@ -82,7 +82,13 @@ export interface AgentClient {
 		projectPath: string,
 	): Promise<UnityStatus>;
 	openProject(projectPath: string): Promise<UnityOpenProjectResult>;
-	readConsole(projectPath: string, tail?: number): Promise<UnityConsoleUpdate>;
+	listProjectExtensions(projectPath: string): Promise<UnityExtensions>;
+	invokeProjectExtension(
+		projectPath: string,
+		extensionId: string,
+		operation: string,
+		input?: unknown,
+	): Promise<unknown>;
 	revertFile(
 		projectPath: string,
 		file: string,

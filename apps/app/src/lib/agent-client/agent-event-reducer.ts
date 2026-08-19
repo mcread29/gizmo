@@ -4,10 +4,9 @@ import type {
 	ConversationMessage,
 	SessionState,
 	SessionUsage,
-	UnityConsoleEntry,
+	UnityExtensionDescriptor,
 	UnityStatus,
 } from '@unity-agent/protocol';
-const consoleLimit = 500;
 
 export interface AgentEventState {
 	model?: { provider: string; id: string; thinkingLevel: string };
@@ -19,7 +18,7 @@ export interface AgentEventState {
 	sessions: AgentSessionSummary[];
 	sessionId?: string;
 	selectedProjectPath?: string;
-	consoleEntries: UnityConsoleEntry[];
+	projectExtensions: UnityExtensionDescriptor[];
 	projectStatus?: UnityStatus;
 	projectError?: string;
 }
@@ -99,18 +98,15 @@ export function applyAgentEvent(
 			}
 			break;
 		}
-		case 'project.console.appended':
-			if (event.projectPath === state.selectedProjectPath) {
-				state.consoleEntries = [
-					...state.consoleEntries,
-					...event.update.entries,
-				].slice(-consoleLimit);
-			}
-			break;
 		case 'project.status.changed':
 			if (event.projectPath === state.selectedProjectPath) {
 				state.projectStatus = event.status;
 				state.projectError = undefined;
+			}
+			break;
+		case 'project.extensions.changed':
+			if (event.projectPath === state.selectedProjectPath) {
+				state.projectExtensions = event.extensions;
 			}
 			break;
 		case 'error':

@@ -4,7 +4,7 @@ import {
 	parseFileRevertResult,
 	parseGitCommitResult,
 	parseGitStatus,
-	parseUnityConsoleUpdate,
+	parseUnityExtensions,
 	parseSessionCatalog,
 	parseSessionSnapshot,
 	parseSessionTree,
@@ -24,7 +24,7 @@ import {
 	type SessionOptions,
 	type SessionSnapshot,
 	type SessionTree,
-	type UnityConsoleUpdate,
+	type UnityExtensions,
 	type UnityOpenProjectResult,
 	type UnityProject,
 	type UnityStatus,
@@ -322,16 +322,28 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseUnityOpenProjectResult(response.result);
 	}
 
-	async readConsole(
-		projectPath: string,
-		tail?: number,
-	): Promise<UnityConsoleUpdate> {
+	async listProjectExtensions(projectPath: string): Promise<UnityExtensions> {
 		const response = await this.#request({
-			type: 'project.console',
+			type: 'project.extensions',
 			projectPath,
-			...(tail === undefined ? {} : { tail }),
 		});
-		return parseUnityConsoleUpdate(response.result);
+		return parseUnityExtensions(response.result);
+	}
+
+	async invokeProjectExtension(
+		projectPath: string,
+		extensionId: string,
+		operation: string,
+		input?: unknown,
+	): Promise<unknown> {
+		const response = await this.#request({
+			type: 'project.extension.invoke',
+			projectPath,
+			extensionId,
+			operation,
+			...(input === undefined ? {} : { input }),
+		});
+		return response.result;
 	}
 
 	async revertFile(

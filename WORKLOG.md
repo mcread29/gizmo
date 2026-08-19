@@ -1,5 +1,24 @@
 # Work log
 
+## 2026-08-19 — Project extension boundary
+
+Replaced the Console-specific project integration with a generic extension host
+and bumped the protocol to version 13.
+
+- Unity exposes versioned descriptors through `gizmo_extensions` and opaque,
+  declared operations through `gizmo_extension_invoke`.
+- The agent server discovers those entrypoints before invocation, validates the
+  extension and operation, enforces declared confirmation requirements, and
+  otherwise leaves payloads uninterpreted.
+- The app keeps project-scoped extension descriptors in the agent store and
+  renders generic inspector contributions from registered web extensions.
+- The Console now owns its payload validation, polling, state, badge, panel,
+  tests, and styles under `lib/extensions/console`; core contains no
+  Console-extension branches or state.
+
+The Cronkis Extras package provides the first implementation of the boundary as
+`com.gizmo.extras.console`.
+
 ## 2026-08-18 — Making a long agent run readable
 
 A thread of 23 tool calls was mostly chrome: 23 avatars, 23 repeated

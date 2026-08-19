@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { AgentStore } from '../../agent-client';
 	import { Tabs } from '../../components';
+	import { activateProjectExtensions } from '../../extensions/registry';
+	import type { WebExtensionRuntime } from '../../extensions/types';
 	import ChangesPanel from '../changes/ChangesPanel.svelte';
 	import { threadChanges } from '../changes/thread-changes';
 	import ActivityPanel from './ActivityPanel.svelte';
-	import ConsolePanel from './ConsolePanel.svelte';
-	import { consoleErrorCount } from './console-log';
 	import EditorPanel from './EditorPanel.svelte';
 	import type { UnityView } from './unity-view';
 
@@ -19,7 +19,52 @@
 	let { store, view, hidden, onOpenProject }: Props = $props();
 	let inspectorTab = $state('editor');
 	let changeCount = $derived(threadChanges(store.messages).length);
-	let errorCount = $derived(consoleErrorCount(store.consoleEntries));
+	let extensionRuntimes = $state<WebExtensionRuntime[]>([]);
+	let extensionTabs = $derived(
+		extensionRuntimes.flatMap((runtime) => runtime.inspectorTabs),
+	);
+
+	$effect(() => {
+		const projectPath = view.projectPath;
+		const descriptors = store.projectExtensions;
+		const runtimes = projectPath
+			? activateProjectExtensions(descriptors, {
+					projectPath,
+					invoke: (extensionId, operation, input) =>
+						store.invokeProjectExtension(
+							projectPath,
+							extensionId,
+							operation,
+							input,
+						),
+				})
+			: [];
+		extensionRuntimes = runtimes;
+		return () => runtimes.forEach((runtime) => runtime.dispose());
+	});
+
+	let tabs = $derived([
+		{ value: 'editor', label: 'Editor', shortLabel: 'Status' },
+		{
+			value: 'changes',
+			label: 'Changes',
+			shortLabel: 'Files',
+			badge: changeCount,
+		},
+		...extensionTabs.map((tab) => ({
+			value: tab.id,
+			label: tab.label,
+			shortLabel: tab.shortLabel,
+			badge: tab.badge,
+			badgeTone: tab.badgeTone,
+		})),
+		{ value: 'activity', label: 'Activity', shortLabel: 'Runs' },
+	]);
+
+	$effect(() => {
+		if (tabs.some((tab) => tab.value === inspectorTab)) return;
+		inspectorTab = 'editor';
+	});
 </script>
 
 <aside
@@ -39,36 +84,21 @@
 		>
 	</div>
 
-	<Tabs
-		variant="inspector"
-		lazy
-		items={[
-			{ value: 'editor', label: 'Editor', shortLabel: 'Status' },
-			{
-				value: 'changes',
-				label: 'Changes',
-				shortLabel: 'Files',
-				badge: changeCount,
-			},
-			{
-				value: 'console',
-				label: 'Console',
-				shortLabel: 'Logs',
-				badge: errorCount,
-				badgeTone: 'danger',
-			},
-			{ value: 'activity', label: 'Activity', shortLabel: 'Runs' },
-		]}
-		bind:value={inspectorTab}
-	>
+	<Tabs variant="inspector" lazy items={tabs} bind:value={inspectorTab}>
 		{#snippet children(value)}
-			<div data-ui="inspector-panel" data-panel={value}>
+			{@const extensionTab = extensionTabs.find((tab) => tab.id === value)}
+			<div
+				data-ui="inspector-panel"
+				data-panel={value}
+				data-extension={extensionTab ? '' : undefined}
+			>
 				{#if value === 'editor'}
 					<EditorPanel {view} {store} {onOpenProject} />
 				{:else if value === 'changes'}
 					<ChangesPanel {store} projectPath={view.projectPath} />
-				{:else if value === 'console'}
-					<ConsolePanel {store} projectPath={view.projectPath} />
+				{:else if extensionTab}
+					{@const Component = extensionTab.component}
+					<Component {...extensionTab.props} />
 				{:else}
 					<ActivityPanel {view} />
 				{/if}

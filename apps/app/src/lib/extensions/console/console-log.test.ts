@@ -1,4 +1,4 @@
-import type { UnityConsoleEntry } from '@unity-agent/protocol';
+import type { ConsoleEntry } from './console-types';
 import { describe, expect, it } from 'vitest';
 import {
 	consoleErrorCount,
@@ -8,7 +8,7 @@ import {
 	matchesConsoleFilter,
 } from './console-log';
 
-const entry: UnityConsoleEntry = {
+const entry: ConsoleEntry = {
 	level: 'error',
 	message: 'NullReferenceException in PlayerController',
 	file: 'Assets/Player.cs',

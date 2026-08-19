@@ -58,6 +58,16 @@ export type {
 	UnityConsoleEntry,
 	UnityConsoleLevel,
 } from './unity-console';
+export {
+	invokeUnityExtension,
+	listUnityExtensions,
+	unityExtensionCommands,
+} from './unity-extensions';
+export type {
+	UnityExtensionDescriptor,
+	UnityExtensionOperation,
+	UnityExtensionsDetails,
+} from './unity-extensions';
 export { createUnityConsoleTool } from './unity-console-tool';
 export type { UnityConsoleToolOptions } from './unity-console-tool';
 export { UnityCompilationTracker } from './unity-compilation-tracker';

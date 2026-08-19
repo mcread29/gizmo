@@ -14,7 +14,7 @@ import {
 	type SessionState,
 	type SessionTree,
 	type SessionUsage,
-	type UnityConsoleEntry,
+	type UnityExtensionDescriptor,
 	type UnityProject,
 	type UnityStatus,
 } from '@unity-agent/protocol';
@@ -39,8 +39,6 @@ export type PendingConfirmation = Extract<
 	AgentEvent,
 	{ type: 'confirmation.requested' }
 >;
-
-const consoleLimit = 500;
 
 export type ConnectionState =
 	'disconnected' | 'connecting' | 'reconnecting' | 'connected';
@@ -90,8 +88,8 @@ export class AgentStore {
 	projectOpening = $state(false);
 	projectError = $state<string>();
 	error = $state<AgentError>();
-	consoleEntries = $state<UnityConsoleEntry[]>([]);
-	consoleLoading = $state(false);
+	projectExtensions = $state<UnityExtensionDescriptor[]>([]);
+	extensionsLoading = $state(false);
 	usage = $state<SessionUsage>();
 	pendingConfirmations = $state<PendingConfirmation[]>([]);
 	gitStatus = $state<GitStatus>();
@@ -253,7 +251,10 @@ export class AgentStore {
 						'Unity Editor could not be opened.',
 				);
 			}
-			await this.refreshProjectStatus();
+			await Promise.all([
+				this.refreshProjectStatus(),
+				this.loadProjectExtensions(),
+			]);
 		} catch (error) {
 			this.projectError = errorMessage(error);
 		} finally {
@@ -580,22 +581,41 @@ export class AgentStore {
 		}
 	}
 
-	/** Clears the local tail only; the Editor console is untouched. */
-	clearConsole(): void {
-		this.consoleEntries = [];
+	async loadProjectExtensions(): Promise<void> {
+		if (this.connection !== 'connected' || !this.selectedProjectPath) return;
+		const projectPath = this.selectedProjectPath;
+		this.extensionsLoading = true;
+		try {
+			const result = await this.#client.listProjectExtensions(projectPath);
+			if (this.selectedProjectPath === projectPath) {
+				this.projectExtensions = result.extensions;
+			}
+		} catch (error) {
+			if (this.selectedProjectPath === projectPath) {
+				this.#fail('project', error);
+			}
+		} finally {
+			if (this.selectedProjectPath === projectPath) {
+				this.extensionsLoading = false;
+			}
+		}
 	}
 
-	async loadConsole(): Promise<void> {
-		if (this.connection !== 'connected' || !this.selectedProjectPath) return;
-		this.consoleLoading = true;
-		try {
-			const update = await this.#client.readConsole(this.selectedProjectPath);
-			this.consoleEntries = update.entries.slice(-consoleLimit);
-		} catch (error) {
-			this.#fail('project', error);
-		} finally {
-			this.consoleLoading = false;
+	async invokeProjectExtension(
+		projectPath: string,
+		extensionId: string,
+		operation: string,
+		input?: unknown,
+	): Promise<unknown> {
+		if (this.selectedProjectPath !== projectPath) {
+			throw new Error('The extension project is no longer selected');
 		}
+		return this.#client.invokeProjectExtension(
+			projectPath,
+			extensionId,
+			operation,
+			input,
+		);
 	}
 
 	/** The session as a tree, including branches this transcript does not walk. */
@@ -715,11 +735,12 @@ export class AgentStore {
 		}
 		const sessionId = this.sessionId;
 		const projectPath = this.selectedProjectPath;
+		this.projectExtensions = [];
 		try {
-			const status = await this.#client.watchProjectStatus(
-				sessionId,
-				projectPath,
-			);
+			const [status] = await Promise.all([
+				this.#client.watchProjectStatus(sessionId, projectPath),
+				this.loadProjectExtensions(),
+			]);
 			if (
 				this.sessionId === sessionId &&
 				this.selectedProjectPath === projectPath

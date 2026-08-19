@@ -1,7 +1,7 @@
-import type { UnityConsoleEntry } from '@unity-agent/protocol';
+import type { ConsoleEntry } from './console-types';
 
 export function matchesConsoleFilter(
-	entry: UnityConsoleEntry,
+	entry: ConsoleEntry,
 	level: string,
 	text: string,
 ): boolean {
@@ -12,7 +12,7 @@ export function matchesConsoleFilter(
 }
 
 /** One line of plain text, for copying out to an issue or a message. */
-export function consoleLine(entry: UnityConsoleEntry): string {
+export function consoleLine(entry: ConsoleEntry): string {
 	const location = entry.file
 		? ` (${entry.file}${entry.line ? `:${entry.line}` : ''})`
 		: '';
@@ -20,7 +20,7 @@ export function consoleLine(entry: UnityConsoleEntry): string {
 	return `${stamp}[${entry.level}] ${entry.message}${location}`;
 }
 
-export function consoleErrorCount(entries: UnityConsoleEntry[]): number {
+export function consoleErrorCount(entries: ConsoleEntry[]): number {
 	return entries.filter((entry) => entry.level === 'error').length;
 }
 

@@ -14,7 +14,7 @@ import {
 	type SessionOptions,
 	type SessionSnapshot,
 	type SessionTree,
-	type UnityConsoleEntry,
+	type UnityExtensionDescriptor,
 	type UnityOpenProjectResult,
 	type UnityProject,
 	type UnityStatus,
@@ -56,7 +56,6 @@ export class FakeAgentClient implements AgentClient {
 	#lastSessionId?: string;
 	#editorOpen = true;
 	#watchedProject?: { sessionId: string; projectPath: string };
-	#consoleTimer?: ReturnType<typeof setInterval>;
 
 	constructor(options: FakeAgentClientOptions = {}) {
 		this.#latencyMs = options.latencyMs ?? 90;
@@ -68,8 +67,6 @@ export class FakeAgentClient implements AgentClient {
 	}
 
 	async disconnect(): Promise<void> {
-		clearInterval(this.#consoleTimer);
-		this.#consoleTimer = undefined;
 		for (const session of this.#sessions.values())
 			session.abortController?.abort();
 		this.#connected = false;
@@ -430,18 +427,27 @@ export class FakeAgentClient implements AgentClient {
 		await this.prompt(sessionId, text, undefined, attachments);
 	}
 
-	async readConsole(
-		_projectPath: string,
-		tail = 200,
-	): Promise<{
-		entries: UnityConsoleEntry[];
-		cursor?: number;
-		dropped: boolean;
+	async listProjectExtensions(_projectPath: string): Promise<{
+		extensions: UnityExtensionDescriptor[];
 	}> {
+		return { extensions: [fakeConsoleExtension] };
+	}
+
+	async invokeProjectExtension(
+		_projectPath: string,
+		extensionId: string,
+		operation: string,
+	): Promise<unknown> {
+		if (extensionId !== fakeConsoleExtension.id || operation !== 'snapshot') {
+			throw new Error(
+				`Unknown extension operation: ${extensionId}/${operation}`,
+			);
+		}
 		return {
-			entries: fakeConsoleEntries.slice(-tail),
-			cursor: fakeConsoleEntries.length,
-			dropped: false,
+			state: 'ready',
+			revision: 'fake-console',
+			counts: { logs: 2, warnings: 1, errors: 1 },
+			entries: fakeConsoleEntries,
 		};
 	}
 
@@ -529,30 +535,7 @@ export class FakeAgentClient implements AgentClient {
 		this.#getSession(sessionId);
 		this.#assertProject(projectPath);
 		this.#watchedProject = { sessionId, projectPath };
-		this.#streamConsole(sessionId, projectPath);
 		return fakeStatus(projectPath, this.#editorOpen);
-	}
-
-	/** Trickles console entries out so the live tail has something to show. */
-	#streamConsole(sessionId: string, projectPath: string): void {
-		clearInterval(this.#consoleTimer);
-		let index = 0;
-		this.#consoleTimer = setInterval(() => {
-			const entry = fakeConsoleEntries[index % fakeConsoleEntries.length];
-			index++;
-			if (!entry || this.#watchedProject?.sessionId !== sessionId) return;
-			this.#emit({
-				type: 'project.console.appended',
-				sessionId,
-				projectPath,
-				update: {
-					entries: [{ ...entry, seq: index }],
-					cursor: index,
-					dropped: false,
-				},
-			});
-		}, 2_500);
-		this.#consoleTimer.unref?.();
 	}
 
 	async openProject(projectPath: string): Promise<UnityOpenProjectResult> {
@@ -775,7 +758,16 @@ const fakeEditResult = {
 	warnings: [],
 };
 
-const fakeConsoleEntries: UnityConsoleEntry[] = [
+const fakeConsoleExtension: UnityExtensionDescriptor = {
+	id: 'com.gizmo.extras.console',
+	name: 'Console',
+	version: '0.1.0',
+	apiVersion: 1,
+	capabilities: ['unity.console'],
+	operations: [{ id: 'snapshot', mutates: false, requiresConfirmation: false }],
+};
+
+const fakeConsoleEntries = [
 	{ level: 'log', message: 'Reloading assemblies for play mode' },
 	{
 		level: 'warn',

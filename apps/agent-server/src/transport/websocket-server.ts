@@ -5,7 +5,7 @@ import {
 	type AgentResponse,
 } from '@unity-agent/protocol';
 import type {
-	UnityConsoleDetails,
+	UnityExtensionDescriptor,
 	UnityStatusDetails,
 } from '@unity-agent/unity-tools';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
@@ -70,18 +70,14 @@ export async function createAgentWebSocketServer(
 					projectPath,
 					status: { ...status, command: [...status.command] },
 				}),
-			console: (sessionId, projectPath, update) =>
+			extensions: (sessionId, projectPath, extensions) =>
 				send(socket, {
 					protocolVersion,
 					eventId: ++eventId,
 					sessionId,
-					type: 'project.console.appended',
+					type: 'project.extensions.changed',
 					projectPath,
-					update: {
-						entries: update.entries.map((entry) => ({ ...entry })),
-						...(update.cursor === undefined ? {} : { cursor: update.cursor }),
-						dropped: update.dropped,
-					},
+					extensions,
 				}),
 		};
 
@@ -135,19 +131,11 @@ interface ProjectEmitters {
 		projectPath: string,
 		status: UnityStatusDetails,
 	): void;
-	console(
+	extensions(
 		sessionId: string,
 		projectPath: string,
-		update: UnityConsoleDetails,
+		extensions: UnityExtensionDescriptor[],
 	): void;
-}
-
-function consoleUpdate(details: UnityConsoleDetails) {
-	return {
-		entries: details.entries.map((entry) => ({ ...entry })),
-		...(details.cursor === undefined ? {} : { cursor: details.cursor }),
-		dropped: details.dropped,
-	};
 }
 
 async function handleMessage(
@@ -292,16 +280,25 @@ async function dispatch(
 				result: await projectService.watchStatus(request.projectPath, {
 					status: (status) =>
 						emit.status(request.sessionId, request.projectPath, status),
-					console: (update) =>
-						emit.console(request.sessionId, request.projectPath, update),
+					extensions: (extensions) =>
+						emit.extensions(request.sessionId, request.projectPath, extensions),
 				}),
 			};
 		case 'project.open':
 			return { result: await projectService.openProject(request.projectPath) };
-		case 'project.console':
+		case 'project.extensions':
 			return {
-				result: consoleUpdate(
-					await projectService.readConsole(request.projectPath, request.tail),
+				result: {
+					extensions: await projectService.listExtensions(request.projectPath),
+				},
+			};
+		case 'project.extension.invoke':
+			return {
+				result: await projectService.invokeExtension(
+					request.projectPath,
+					request.extensionId,
+					request.operation,
+					request.input,
 				),
 			};
 		case 'git.status':

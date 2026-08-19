@@ -18,13 +18,37 @@ function state(): AgentEventState {
 			},
 		],
 		sessionId: 'session-1',
-		consoleEntries: [],
+		projectExtensions: [],
 	};
 }
 
 const envelope = { protocolVersion, sessionId: 'session-1' } as const;
 
 describe('applyAgentEvent', () => {
+	it('replaces project extension descriptors when discovery changes', () => {
+		const target = state();
+		target.selectedProjectPath = '/projects/game';
+
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 1,
+			type: 'project.extensions.changed',
+			projectPath: '/projects/game',
+			extensions: [
+				{
+					id: 'com.gizmo.extras.console',
+					name: 'Console',
+					version: '0.1.0',
+					apiVersion: 1,
+					capabilities: ['unity.console'],
+					operations: [],
+				},
+			],
+		});
+
+		expect(target.projectExtensions[0]?.id).toBe('com.gizmo.extras.console');
+	});
+
 	it('owns transcript and tool-call progression', () => {
 		const target = state();
 		applyAgentEvent(target, {

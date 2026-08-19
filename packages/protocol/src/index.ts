@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 12 as const;
+export const protocolVersion = 13 as const;
 
 const sessionTitleLimit = 48;
 
@@ -313,36 +313,43 @@ export const unityStatusSchema = Type.Object(
 
 export type UnityStatus = Static<typeof unityStatusSchema>;
 
-export const unityConsoleEntrySchema = Type.Object(
+export const unityExtensionOperationSchema = Type.Object(
 	{
-		seq: Type.Optional(Type.Integer({ minimum: 0 })),
-		timestamp: Type.Optional(Type.String()),
-		level: Type.Union([
-			Type.Literal('log'),
-			Type.Literal('warn'),
-			Type.Literal('error'),
-		]),
-		message: Type.String(),
-		stackTrace: Type.Optional(Type.String()),
-		file: Type.Optional(Type.String()),
-		line: Type.Optional(Type.Integer({ minimum: 0 })),
-		column: Type.Optional(Type.Integer({ minimum: 0 })),
+		id: Type.String({ minLength: 1, maxLength: 128 }),
+		mutates: Type.Boolean(),
+		requiresConfirmation: Type.Boolean(),
 	},
 	{ additionalProperties: false },
 );
 
-export type UnityConsoleEntry = Static<typeof unityConsoleEntrySchema>;
+export type UnityExtensionOperation = Static<
+	typeof unityExtensionOperationSchema
+>;
 
-export const unityConsoleUpdateSchema = Type.Object(
+export const unityExtensionDescriptorSchema = Type.Object(
 	{
-		entries: Type.Array(unityConsoleEntrySchema),
-		cursor: Type.Optional(Type.Integer({ minimum: 0 })),
-		dropped: Type.Boolean(),
+		id: Type.String({ minLength: 1, maxLength: 128 }),
+		name: Type.String({ minLength: 1, maxLength: 128 }),
+		version: Type.String({ minLength: 1, maxLength: 64 }),
+		apiVersion: Type.Integer({ minimum: 1 }),
+		capabilities: Type.Array(Type.String({ minLength: 1, maxLength: 128 })),
+		operations: Type.Array(unityExtensionOperationSchema),
 	},
 	{ additionalProperties: false },
 );
 
-export type UnityConsoleUpdate = Static<typeof unityConsoleUpdateSchema>;
+export type UnityExtensionDescriptor = Static<
+	typeof unityExtensionDescriptorSchema
+>;
+
+export const unityExtensionsSchema = Type.Object(
+	{
+		extensions: Type.Array(unityExtensionDescriptorSchema),
+	},
+	{ additionalProperties: false },
+);
+
+export type UnityExtensions = Static<typeof unityExtensionsSchema>;
 
 export const fileRevertResultSchema = Type.Object(
 	{
@@ -616,9 +623,19 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
-			type: Type.Literal('project.console'),
+			type: Type.Literal('project.extensions'),
 			projectPath: Type.String({ minLength: 1 }),
-			tail: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.extension.invoke'),
+			projectPath: Type.String({ minLength: 1 }),
+			extensionId: Type.String({ minLength: 1, maxLength: 128 }),
+			operation: Type.String({ minLength: 1, maxLength: 128 }),
+			input: Type.Optional(Type.Unknown()),
 		},
 		{ additionalProperties: false },
 	),
@@ -756,9 +773,9 @@ export const agentEventSchema = Type.Union([
 	Type.Object(
 		{
 			...eventEnvelope,
-			type: Type.Literal('project.console.appended'),
+			type: Type.Literal('project.extensions.changed'),
 			projectPath: Type.String({ minLength: 1 }),
-			update: unityConsoleUpdateSchema,
+			extensions: Type.Array(unityExtensionDescriptorSchema),
 		},
 		{ additionalProperties: false },
 	),
@@ -933,8 +950,8 @@ export function parseUnityOpenProjectResult(
 	return input;
 }
 
-export function parseUnityConsoleUpdate(input: unknown): UnityConsoleUpdate {
-	if (!Value.Check(unityConsoleUpdateSchema, input)) {
+export function parseUnityExtensions(input: unknown): UnityExtensions {
+	if (!Value.Check(unityExtensionsSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

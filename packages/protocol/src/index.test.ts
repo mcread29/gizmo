@@ -56,6 +56,20 @@ describe('agent protocol validation', () => {
 		expect(request.type).toBe('session.prompt');
 	});
 
+	it('accepts opaque extension operations through the generic project boundary', () => {
+		const request = parseAgentRequest({
+			protocolVersion,
+			requestId: 'request-extension',
+			type: 'project.extension.invoke',
+			projectPath: '/projects/game',
+			extensionId: 'com.gizmo.extras.console',
+			operation: 'snapshot',
+			input: { tail: 20 },
+		});
+
+		expect(request.type).toBe('project.extension.invoke');
+	});
+
 	it('accepts base64 file attachments on prompts', () => {
 		expect(
 			parseAgentRequest({

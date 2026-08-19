@@ -74,17 +74,110 @@ describe('UnityProjectService', () => {
 		);
 	});
 
+	it('discovers extension entrypoints without invoking missing commands', async () => {
+		const runner = runnerReturning(
+			projectsResult(),
+			runResult({
+				stdout: JSON.stringify({
+					success: true,
+					command: 'list',
+					data: { tools: [{ name: 'console' }] },
+					errors: [],
+					warnings: [],
+				}),
+			}),
+		);
+		const service = new UnityProjectService(runner);
+
+		await service.listProjects();
+		const extensions = await service.listExtensions('/projects/game');
+
+		expect(extensions).toEqual([]);
+		expect(runner.run).toHaveBeenCalledTimes(2);
+		expect(runner.run.mock.calls.flatMap(([args]) => args)).not.toContain(
+			'gizmo_extensions',
+		);
+	});
+
+	it('forwards only operations declared by an installed extension', async () => {
+		const runner = runnerReturning(
+			projectsResult(),
+			runResult({
+				stdout: JSON.stringify({
+					success: true,
+					command: 'list',
+					data: { tools: [{ name: 'gizmo_extensions' }] },
+					errors: [],
+					warnings: [],
+				}),
+			}),
+			runResult({
+				stdout: extensionResult({
+					extensions: [
+						{
+							id: 'com.gizmo.extras.console',
+							name: 'Console',
+							version: '0.1.0',
+							apiVersion: 1,
+							capabilities: ['unity.console'],
+							operations: [
+								{
+									id: 'snapshot',
+									mutates: false,
+									requiresConfirmation: false,
+								},
+							],
+						},
+					],
+				}),
+			}),
+			runResult({ stdout: extensionResult({ opaque: true }) }),
+		);
+		const service = new UnityProjectService(runner);
+
+		await service.listProjects();
+		await service.listExtensions('/projects/game');
+		await expect(
+			service.invokeExtension(
+				'/projects/game',
+				'com.gizmo.extras.console',
+				'snapshot',
+				{ tail: 1 },
+			),
+		).resolves.toEqual({ opaque: true });
+		await expect(
+			service.invokeExtension(
+				'/projects/game',
+				'com.gizmo.extras.console',
+				'missing',
+			),
+		).rejects.toThrow('does not expose operation');
+
+		expect(runner.run.mock.calls.flatMap(([args]) => args)).toContain(
+			'gizmo_extension_invoke',
+		);
+	});
+
 	it('emits only changed project status while watching', async () => {
 		const runner = runnerReturning(
 			projectsResult(),
 			statusResult([{ projectPath: '/projects/game', state: 'ready' }]),
+			runResult({
+				stdout: JSON.stringify({
+					success: true,
+					command: 'list',
+					data: { tools: [{ name: 'console' }] },
+					errors: [],
+					warnings: [],
+				}),
+			}),
 			statusResult([]),
 		);
 		const service = new UnityProjectService(runner, 1);
 		const changed = new Promise<string>((resolve) => {
 			void service.watchStatus('/projects/game', {
 				status: (status) => resolve(status.state),
-				console: () => {},
+				extensions: () => {},
 			});
 		});
 
@@ -142,6 +235,16 @@ function statusResult(instances: Record<string, unknown>[]): UnityRunResult {
 					],
 			warnings: [],
 		}),
+	});
+}
+
+function extensionResult(result: unknown): string {
+	return JSON.stringify({
+		success: true,
+		command: 'command gizmo',
+		data: { result },
+		errors: [],
+		warnings: [],
 	});
 }
 
