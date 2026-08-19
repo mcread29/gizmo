@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { CircleCheck, Terminal } from '@lucide/svelte';
-	import type { AgentStore } from '../../agent-client';
+	import { CircleCheck, CircleDashed, CircleX, Terminal } from '@lucide/svelte';
 	import { toolLabel } from '../conversation/tool-labels';
 	import { toolSummary } from '../conversation/tool-summary';
 	import type { UnityView } from './unity-view';
 
-	let { view, store }: { view: UnityView; store: AgentStore } = $props();
+	let { view }: { view: UnityView } = $props();
 </script>
 
 {#if view.toolActivity.length === 0}
@@ -18,24 +17,21 @@
 	<div data-ui="activity-list">
 		{#each view.toolActivity as tool (tool.id)}
 			<div data-ui="activity-item" data-state={tool.status}>
-				<Terminal size={14} /><span>
-					<strong>{tool.name}</strong>
-					<small>{toolSummary(tool.input) ?? tool.statusText}</small>
+				<Terminal size={13} />
+				<span>
+					<strong>{toolLabel(tool.name)}</strong>
+					<small title={toolSummary(tool.input) ?? tool.statusText}
+						>{toolSummary(tool.input) ?? tool.statusText}</small
+					>
 				</span>
+				{#if tool.status === 'running'}
+					<CircleDashed data-ui="spinner" size={13} />
+				{:else if tool.status === 'error'}
+					<CircleX size={13} />
+				{:else}
+					<CircleCheck size={13} />
+				{/if}
 			</div>
 		{/each}
 	</div>
-{/if}
-
-{#if store.activeTools.length}
-	<section data-ui="inspector-card" data-ui-spaced="true">
-		<div data-ui="card-label">
-			<span>Available tools</span><span>{store.activeTools.length}</span>
-		</div>
-		<div data-ui="tool-command-list">
-			{#each store.activeTools as tool (tool)}
-				<code title={tool}>{toolLabel(tool)}</code>
-			{/each}
-		</div>
-	</section>
 {/if}

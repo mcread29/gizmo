@@ -49,107 +49,114 @@
 	}
 </script>
 
-<div data-ui="console-toolbar">
-	<Tabs
-		items={[
-			{ value: 'all', label: 'All' },
-			{ value: 'warn', label: 'Warnings' },
-			{ value: 'error', label: 'Errors' },
-		]}
-		bind:value={level}
-	>
-		{#snippet children()}{/snippet}
-	</Tabs>
-	<div data-ui="console-actions">
-		<Tooltip text="Reload from the Editor">
-			{#snippet children(props)}
-				<Button
-					{...props}
-					variant="ghost"
-					size="icon"
-					aria-label="Reload console"
-					disabled={store.consoleLoading}
-					onclick={() => void store.loadConsole()}
-					><RotateCw size={13} /></Button
-				>
-			{/snippet}
-		</Tooltip>
-		<Tooltip text="Copy the lines shown">
-			{#snippet children(props)}
-				<Button
-					{...props}
-					variant="ghost"
-					size="icon"
-					aria-label="Copy console"
-					disabled={entries.length === 0}
-					onclick={() => void copyVisible()}><Copy size={13} /></Button
-				>
-			{/snippet}
-		</Tooltip>
-		<Tooltip text="Clear what is shown here, not the Editor console">
-			{#snippet children(props)}
-				<Button
-					{...props}
-					variant="ghost"
-					size="icon"
-					aria-label="Clear console"
-					disabled={store.consoleEntries.length === 0}
-					onclick={() => store.clearConsole()}><Trash2 size={13} /></Button
-				>
-			{/snippet}
-		</Tooltip>
-	</div>
-</div>
-
-<div data-ui="console-filter">
-	<Search size={13} />
-	<label for="console-filter" data-ui="sr-only">Filter console</label>
-	<input
-		id="console-filter"
-		bind:value={filter}
-		type="search"
-		placeholder="Filter"
-		autocomplete="off"
-	/>
-</div>
-
-{#if entries.length === 0}
-	<div data-ui="empty-state">
-		<Terminal size={22} /><strong>
-			{store.consoleEntries.length ? 'Nothing matches' : 'Console is quiet'}
-		</strong><span>
-			{#if store.consoleEntries.length}
-				No lines match the current filter.
-			{:else if store.consoleLoading}
-				Reading the Unity console…
-			{:else}
-				Editor output appears here as it happens.
-			{/if}
-		</span>
-	</div>
-{:else}
-	<div
-		data-ui="console-log"
-		bind:this={viewport}
-		onscroll={trackScroll}
-		role="log"
-		aria-label="Unity console"
-	>
-		{#each entries as entry, index (entry.seq ?? index)}
-			<div data-ui="console-entry" data-level={entry.level}>
-				<p>
-					{#if entry.timestamp}<time data-ui="console-time"
-							>{entry.timestamp}</time
-						>{/if}{entry.message}
-				</p>
-				{#if entry.file}
-					<a
-						data-ui="compiler-location"
-						href={sourceHref(entry.file, projectPath, entry.line, entry.column)}
-						>{entry.file}{entry.line ? `:${entry.line}` : ''}</a
+<div data-ui="console-panel">
+	<div data-ui="console-toolbar">
+		<Tabs
+			variant="filter"
+			items={[
+				{ value: 'all', label: 'All' },
+				{ value: 'warn', label: 'Warnings' },
+				{ value: 'error', label: 'Errors' },
+			]}
+			bind:value={level}
+		>
+			{#snippet children()}{/snippet}
+		</Tabs>
+		<div data-ui="console-actions">
+			<Tooltip text="Reload from the Editor">
+				{#snippet children(props)}
+					<Button
+						{...props}
+						variant="ghost"
+						size="icon"
+						aria-label="Reload console"
+						disabled={store.consoleLoading}
+						onclick={() => void store.loadConsole()}
+						><RotateCw size={13} /></Button
 					>
-				{/if}
-			</div>
-		{/each}
+				{/snippet}
+			</Tooltip>
+			<Tooltip text="Copy the lines shown">
+				{#snippet children(props)}
+					<Button
+						{...props}
+						variant="ghost"
+						size="icon"
+						aria-label="Copy console"
+						disabled={entries.length === 0}
+						onclick={() => void copyVisible()}><Copy size={13} /></Button
+					>
+				{/snippet}
+			</Tooltip>
+			<Tooltip text="Clear what is shown here, not the Editor console">
+				{#snippet children(props)}
+					<Button
+						{...props}
+						variant="ghost"
+						size="icon"
+						aria-label="Clear console"
+						disabled={store.consoleEntries.length === 0}
+						onclick={() => store.clearConsole()}><Trash2 size={13} /></Button
+					>
+				{/snippet}
+			</Tooltip>
+		</div>
 	</div>
-{/if}
+
+	<div data-ui="console-filter">
+		<Search size={13} />
+		<label for="console-filter" data-ui="sr-only">Filter console</label>
+		<input
+			id="console-filter"
+			bind:value={filter}
+			type="search"
+			placeholder="Filter"
+			autocomplete="off"
+		/>
+	</div>
+
+	{#if entries.length === 0}
+		<div data-ui="empty-state">
+			<Terminal size={22} /><strong>
+				{store.consoleEntries.length ? 'Nothing matches' : 'Console is quiet'}
+			</strong><span>
+				{#if store.consoleEntries.length}
+					No lines match the current filter.
+				{:else if store.consoleLoading}
+					Reading the Unity console…
+				{:else}
+					Editor output appears here as it happens.
+				{/if}
+			</span>
+		</div>
+	{:else}
+		<div
+			data-ui="console-log"
+			bind:this={viewport}
+			onscroll={trackScroll}
+			role="log"
+			aria-label="Unity console"
+		>
+			{#each entries as entry, index (entry.seq ?? index)}
+				<div data-ui="console-entry" data-level={entry.level}>
+					<p>
+						{#if entry.timestamp}<time data-ui="console-time"
+								>{entry.timestamp}</time
+							>{/if}{entry.message}
+					</p>
+					{#if entry.file}
+						<a
+							data-ui="compiler-location"
+							href={sourceHref(
+								entry.file,
+								projectPath,
+								entry.line,
+								entry.column,
+							)}>{entry.file}{entry.line ? `:${entry.line}` : ''}</a
+						>
+					{/if}
+				</div>
+			{/each}
+		</div>
+	{/if}
+</div>

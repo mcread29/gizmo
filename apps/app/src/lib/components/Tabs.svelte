@@ -14,14 +14,16 @@
 		value = $bindable(),
 		items,
 		children,
+		variant = 'default',
 	}: {
 		value?: string;
 		items: TabItem[];
 		children: Snippet<[string]>;
+		variant?: 'default' | 'inspector' | 'filter';
 	} = $props();
 </script>
 
-<Tabs.Root bind:value>
+<Tabs.Root bind:value data-ui="tabs" data-variant={variant}>
 	<Tabs.List data-ui="tabs-list">
 		{#each items as item}
 			<Tabs.Trigger data-ui="tabs-trigger" value={item.value}>

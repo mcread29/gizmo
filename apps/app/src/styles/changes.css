@@ -161,7 +161,14 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--space-2);
-	margin-bottom: var(--space-3);
+}
+
+[data-ui='console-panel'] {
+	display: grid;
+	grid-template-rows: auto auto minmax(0, 1fr);
+	gap: var(--space-2);
+	height: 100%;
+	min-height: 0;
 }
 
 [data-ui='console-actions'] {
@@ -174,11 +181,10 @@
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
-	margin-bottom: var(--space-2);
 	padding: 0 var(--space-2);
 	border: 1px solid var(--color-border);
-	border-radius: var(--radius-sm);
-	background: var(--color-surface-soft);
+	border-radius: var(--radius-md);
+	background: var(--color-surface-raised);
 	color: var(--color-text-faint);
 }
 
@@ -205,19 +211,25 @@
 
 [data-ui='console-log'] {
 	display: grid;
-	gap: 1px;
-	max-height: 60vh;
-	overflow: auto;
+	align-content: start;
+	min-height: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-md);
-	background: var(--color-canvas);
+	background: var(--color-surface-raised);
 }
 
 [data-ui='console-entry'] {
 	display: grid;
 	gap: 2px;
 	padding: 6px var(--space-2);
+	border-bottom: 1px solid var(--color-border);
 	border-left: 2px solid transparent;
+}
+
+[data-ui='console-entry']:last-child {
+	border-bottom: 0;
 }
 
 [data-ui='console-entry'] p {

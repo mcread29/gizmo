@@ -40,6 +40,7 @@
 	</div>
 
 	<Tabs
+		variant="inspector"
 		items={[
 			{ value: 'editor', label: 'Editor' },
 			{ value: 'changes', label: 'Changes', badge: changeCount },
@@ -54,15 +55,17 @@
 		bind:value={inspectorTab}
 	>
 		{#snippet children(value)}
-			{#if value === 'editor'}
-				<EditorPanel {view} {store} {onOpenProject} />
-			{:else if value === 'changes'}
-				<ChangesPanel {store} projectPath={view.projectPath} />
-			{:else if value === 'console'}
-				<ConsolePanel {store} projectPath={view.projectPath} />
-			{:else}
-				<ActivityPanel {view} {store} />
-			{/if}
+			<div data-ui="inspector-panel" data-panel={value}>
+				{#if value === 'editor'}
+					<EditorPanel {view} {store} {onOpenProject} />
+				{:else if value === 'changes'}
+					<ChangesPanel {store} projectPath={view.projectPath} />
+				{:else if value === 'console'}
+					<ConsolePanel {store} projectPath={view.projectPath} />
+				{:else}
+					<ActivityPanel {view} />
+				{/if}
+			</div>
 		{/snippet}
 	</Tabs>
 </aside>
