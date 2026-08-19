@@ -1,7 +1,12 @@
 import { executeUnityCommand, type UnityCommandDetails } from './unity-command';
 import { readUnityConsole, type UnityConsoleEntry } from './unity-console';
 import { unityDiagnostic } from './unity-diagnostics';
-import type { UnityCliMessage, UnityJsonDetails } from './unity-json';
+import {
+	asRecord,
+	parseCommandResult,
+	type UnityCliMessage,
+	type UnityJsonDetails,
+} from './unity-json';
 import type { UnityCommandRunner } from './unity-runner';
 
 export interface WaitForUnityCompileOptions {
@@ -162,16 +167,7 @@ function compileResult(data: unknown): {
 	failed: boolean;
 	errors: UnityCliMessage[];
 } {
-	const outer = record(data);
-	let result: unknown = outer?.result;
-	if (typeof result === 'string') {
-		try {
-			result = JSON.parse(result);
-		} catch {
-			return { failed: false, errors: [] };
-		}
-	}
-	const details = record(result);
+	const details = parseCommandResult(data);
 	return {
 		...(typeof details?.status === 'string' ? { status: details.status } : {}),
 		failed: details?.failed === true,
@@ -185,7 +181,7 @@ function compileResult(data: unknown): {
 
 function normalizeError(value: unknown): UnityCliMessage | undefined {
 	if (typeof value === 'string') return unityDiagnostic(value);
-	const error = record(value);
+	const error = asRecord(value);
 	if (!error) return;
 	const message =
 		typeof error.message === 'string' ? error.message : JSON.stringify(value);
@@ -211,12 +207,6 @@ function failureState(
 	return details.state === 'disconnected' || details.state === 'unavailable'
 		? details.state
 		: 'error';
-}
-
-function record(value: unknown): Record<string, unknown> | undefined {
-	return value !== null && typeof value === 'object'
-		? (value as Record<string, unknown>)
-		: undefined;
 }
 
 function positiveInteger(value: unknown): value is number {

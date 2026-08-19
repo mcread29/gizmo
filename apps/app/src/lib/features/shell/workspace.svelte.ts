@@ -1,5 +1,6 @@
 import {
 	clampPanelWidth,
+	defaultAppSettings,
 	isDarkTheme,
 	loadAppSettings,
 	panelWidthLimits,
@@ -64,6 +65,14 @@ export class WorkspaceLayout {
 	);
 
 	constructor(settings: AppSettings = loadAppSettings()) {
+		this.#applySettings(settings);
+	}
+
+	restoreDefaults(): void {
+		this.#applySettings({ ...defaultAppSettings, agentUrl: this.agentUrl });
+	}
+
+	#applySettings(settings: AppSettings): void {
 		this.theme = settings.theme;
 		this.sendOnEnter = settings.sendOnEnter;
 		this.autoFollowOutput = settings.autoFollowOutput;

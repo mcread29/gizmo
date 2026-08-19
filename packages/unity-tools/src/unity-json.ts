@@ -6,6 +6,39 @@ import type {
 	UnityRunResult,
 } from './unity-runner';
 
+export const unityJsonArgs = [
+	'--non-interactive',
+	'--no-banner',
+	'--format',
+	'json',
+] as const;
+
+export function asRecord(value: unknown): Record<string, unknown> | undefined {
+	return value !== null && typeof value === 'object'
+		? (value as Record<string, unknown>)
+		: undefined;
+}
+
+export function finiteNumber(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isFinite(value)
+		? value
+		: undefined;
+}
+
+export function parseCommandResult(
+	data: unknown,
+): Record<string, unknown> | undefined {
+	let result: unknown = asRecord(data)?.result;
+	if (typeof result === 'string') {
+		try {
+			result = JSON.parse(result);
+		} catch {
+			return;
+		}
+	}
+	return asRecord(result);
+}
+
 const unityCliMessageSchema = Type.Object(
 	{
 		code: Type.String(),

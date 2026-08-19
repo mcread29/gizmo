@@ -1,17 +1,14 @@
-import { runUnityJson, type UnityJsonDetails } from './unity-json';
+import {
+	runUnityJson,
+	unityJsonArgs,
+	type UnityJsonDetails,
+} from './unity-json';
 import {
 	listUnityCommands,
 	type UnityRegisteredCommand,
 	type UnityListCommandsDetails,
 } from './unity-list-commands';
 import type { UnityCommandRunner } from './unity-runner';
-
-const globalJsonArgs = [
-	'--non-interactive',
-	'--no-banner',
-	'--format',
-	'json',
-] as const;
 
 export interface ExecuteUnityCommandOptions {
 	projectPath: string;
@@ -82,7 +79,7 @@ export async function executeUnityCommand(
 	const result = await runUnityJson(
 		runner,
 		[
-			...globalJsonArgs,
+			...unityJsonArgs,
 			'command',
 			'--project-path',
 			options.projectPath,

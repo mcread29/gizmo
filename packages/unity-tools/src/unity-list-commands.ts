@@ -1,12 +1,9 @@
-import { runUnityJson, type UnityJsonDetails } from './unity-json';
+import {
+	runUnityJson,
+	unityJsonArgs,
+	type UnityJsonDetails,
+} from './unity-json';
 import type { UnityCommandRunner } from './unity-runner';
-
-const globalJsonArgs = [
-	'--non-interactive',
-	'--no-banner',
-	'--format',
-	'json',
-] as const;
 
 export interface UnityListCommandsOptions {
 	projectPath?: string;
@@ -42,7 +39,7 @@ export async function listUnityCommands(
 	options: UnityListCommandsOptions = {},
 ): Promise<UnityListCommandsDetails> {
 	const args = [
-		...globalJsonArgs,
+		...unityJsonArgs,
 		'list',
 		...(options.projectPath ? ['--project-path', options.projectPath] : []),
 	];

@@ -1,4 +1,11 @@
-import { runUnityJson, type UnityJsonDetails } from './unity-json';
+import {
+	finiteNumber,
+	asRecord,
+	parseCommandResult,
+	runUnityJson,
+	unityJsonArgs,
+	type UnityJsonDetails,
+} from './unity-json';
 import { sourceLocation } from './unity-diagnostics';
 import type { UnityCommandRunner } from './unity-runner';
 
@@ -35,10 +42,7 @@ export async function readUnityConsole(
 	options: ReadUnityConsoleOptions,
 ): Promise<UnityConsoleDetails> {
 	const args = [
-		'--non-interactive',
-		'--no-banner',
-		'--format',
-		'json',
+		...unityJsonArgs,
 		'command',
 		'--project-path',
 		options.projectPath,
@@ -51,7 +55,7 @@ export async function readUnityConsole(
 		...(options.since === undefined ? [] : ['--since', String(options.since)]),
 	];
 	const details = await runUnityJson(runner, args, { signal: options.signal });
-	const result = commandResult(details.data);
+	const result = parseCommandResult(details.data);
 	const entries = Array.isArray(result?.entries)
 		? result.entries.map(consoleEntry).filter((entry) => entry !== undefined)
 		: [];
@@ -67,15 +71,15 @@ export async function readUnityConsole(
 					? 'unavailable'
 					: 'error',
 		entries,
-		...(number(result?.cursor) === undefined
+		...(finiteNumber(result?.cursor) === undefined
 			? {}
-			: { cursor: number(result?.cursor) }),
+			: { cursor: finiteNumber(result?.cursor) }),
 		dropped: result?.dropped === true,
 	};
 }
 
 function consoleEntry(value: unknown): UnityConsoleEntry | undefined {
-	const entry = record(value);
+	const entry = asRecord(value);
 	if (!entry || typeof entry.message !== 'string') return;
 	const level =
 		entry.level === 'error' || entry.level === 'warn' ? entry.level : 'log';
@@ -85,7 +89,9 @@ function consoleEntry(value: unknown): UnityConsoleEntry | undefined {
 		`${entry.message}${stackTrace ? `\n${stackTrace}` : ''}`,
 	);
 	return {
-		...(number(entry.seq) === undefined ? {} : { seq: number(entry.seq) }),
+		...(finiteNumber(entry.seq) === undefined
+			? {}
+			: { seq: finiteNumber(entry.seq) }),
 		...(typeof entry.timestampUtc === 'string'
 			? { timestamp: entry.timestampUtc }
 			: {}),
@@ -94,29 +100,4 @@ function consoleEntry(value: unknown): UnityConsoleEntry | undefined {
 		...(stackTrace ? { stackTrace } : {}),
 		...location,
 	};
-}
-
-function commandResult(data: unknown): Record<string, unknown> | undefined {
-	const outer = record(data);
-	let result: unknown = outer?.result;
-	if (typeof result === 'string') {
-		try {
-			result = JSON.parse(result);
-		} catch {
-			return;
-		}
-	}
-	return record(result);
-}
-
-function record(value: unknown): Record<string, unknown> | undefined {
-	return value !== null && typeof value === 'object'
-		? (value as Record<string, unknown>)
-		: undefined;
-}
-
-function number(value: unknown): number | undefined {
-	return typeof value === 'number' && Number.isFinite(value)
-		? value
-		: undefined;
 }

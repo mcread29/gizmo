@@ -3,7 +3,6 @@
 	import { Slider, Switch } from 'bits-ui';
 	import {
 		appColorSchemes,
-		defaultAppSettings,
 		getColorScheme,
 		getThemeMode,
 		getThemeVariant,
@@ -19,6 +18,7 @@
 	} from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
+	import SettingsSection from './SettingsSection.svelte';
 
 	interface Props {
 		open?: boolean;
@@ -72,19 +72,15 @@
 		layout.autoCompactFillPercent = trigger;
 	}
 
-	function restoreDefaults() {
-		layout.theme = defaultAppSettings.theme;
-		layout.sendOnEnter = defaultAppSettings.sendOnEnter;
-		layout.autoFollowOutput = defaultAppSettings.autoFollowOutput;
-		layout.expandReasoning = defaultAppSettings.expandReasoning;
-		layout.autoCompact = defaultAppSettings.autoCompact;
-		layout.autoCompactFillPercent = defaultAppSettings.autoCompactFillPercent;
-		layout.compactionRetainPercent = defaultAppSettings.compactionRetainPercent;
-		layout.showThreadSidebar = defaultAppSettings.showThreadSidebar;
-		layout.showUnityInspector = defaultAppSettings.showUnityInspector;
-		layout.reset('sidebar');
-		layout.reset('inspector');
-	}
+	const shortcuts = [
+		['New thread', 'Ctrl/⌘ N'],
+		['Search threads', 'Ctrl/⌘ K'],
+		['Focus composer', 'Ctrl/⌘ Shift L'],
+		['Toggle threads', 'Ctrl/⌘ B'],
+		['Toggle inspector', 'Ctrl/⌘ Shift B'],
+		['Session tree', 'Ctrl/⌘ Shift T'],
+		['Settings', 'Ctrl/⌘ ,'],
+	] as const;
 </script>
 
 {#if open}
@@ -100,11 +96,10 @@
 
 		<ScrollPanel>
 			<div data-ui="settings-form">
-				<section data-ui="settings-section">
-					<div data-ui="settings-section-header">
-						<strong>Theme</strong>
-						<span>Choose a color scheme and appearance.</span>
-					</div>
+				<SettingsSection
+					title="Theme"
+					description="Choose a color scheme and appearance."
+				>
 					<div data-ui="theme-controls">
 						<SelectField
 							value={colorScheme}
@@ -135,13 +130,12 @@
 							>
 						</div>
 					</div>
-				</section>
+				</SettingsSection>
 
-				<section data-ui="settings-section">
-					<div data-ui="settings-section-header">
-						<strong>Composer</strong>
-						<span>Control message input and response behavior.</span>
-					</div>
+				<SettingsSection
+					title="Composer"
+					description="Control message input and response behavior."
+				>
 					<SwitchField
 						bind:checked={layout.sendOnEnter}
 						label="Send with Enter"
@@ -152,15 +146,12 @@
 						label="Follow agent output"
 						description="Keep the newest response content in view while the agent is working."
 					/>
-				</section>
+				</SettingsSection>
 
-				<section data-ui="settings-section">
-					<div data-ui="settings-section-header">
-						<strong>Context compaction</strong>
-						<span
-							>Summarize older work before the model runs out of context.</span
-						>
-					</div>
+				<SettingsSection
+					title="Context compaction"
+					description="Summarize older work before the model runs out of context."
+				>
 					<SwitchField
 						bind:checked={layout.autoCompact}
 						label="Auto-compact context"
@@ -207,25 +198,23 @@
 							/>
 						</Slider.Root>
 					</div>
-				</section>
+				</SettingsSection>
 
-				<section data-ui="settings-section">
-					<div data-ui="settings-section-header">
-						<strong>Reasoning</strong>
-						<span>How model reasoning appears above each reply.</span>
-					</div>
+				<SettingsSection
+					title="Reasoning"
+					description="How model reasoning appears above each reply."
+				>
 					<SwitchField
 						bind:checked={layout.expandReasoning}
 						label="Expand reasoning"
 						description="Reasoning is often longer than the reply. When off, it stays folded behind a single line you can open."
 					/>
-				</section>
+				</SettingsSection>
 
-				<section data-ui="settings-section">
-					<div data-ui="settings-section-header">
-						<strong>Layout</strong>
-						<span>Choose which workspace panels stay visible.</span>
-					</div>
+				<SettingsSection
+					title="Layout"
+					description="Choose which workspace panels stay visible."
+				>
 					<SwitchField
 						bind:checked={layout.showThreadSidebar}
 						label="Thread sidebar"
@@ -236,15 +225,12 @@
 						label="Unity inspector"
 						description="Show Editor status, diagnostics, and activity."
 					/>
-				</section>
+				</SettingsSection>
 
-				<section data-ui="settings-section">
-					<div data-ui="settings-section-header">
-						<strong>Agent server</strong>
-						<span
-							>Leave empty to use the local sidecar. Changing this reconnects.</span
-						>
-					</div>
+				<SettingsSection
+					title="Agent server"
+					description="Leave empty to use the local sidecar. Changing this reconnects."
+				>
 					<div data-ui="endpoint-field">
 						<label for="agent-url" data-ui="sr-only">Agent server address</label
 						>
@@ -263,48 +249,27 @@
 							>{applying ? 'Connecting…' : 'Apply'}</Button
 						>
 					</div>
-				</section>
+				</SettingsSection>
 
-				<section data-ui="settings-section">
-					<div data-ui="settings-section-header">
-						<strong>Keyboard</strong>
-						<span>Shortcuts available anywhere in the workspace.</span>
-					</div>
+				<SettingsSection
+					title="Keyboard"
+					description="Shortcuts available anywhere in the workspace."
+				>
 					<dl data-ui="shortcut-list">
-						<div>
-							<dt>New thread</dt>
-							<dd><kbd>Ctrl/⌘ N</kbd></dd>
-						</div>
-						<div>
-							<dt>Search threads</dt>
-							<dd><kbd>Ctrl/⌘ K</kbd></dd>
-						</div>
-						<div>
-							<dt>Focus composer</dt>
-							<dd><kbd>Ctrl/⌘ Shift L</kbd></dd>
-						</div>
-						<div>
-							<dt>Toggle threads</dt>
-							<dd><kbd>Ctrl/⌘ B</kbd></dd>
-						</div>
-						<div>
-							<dt>Toggle inspector</dt>
-							<dd><kbd>Ctrl/⌘ Shift B</kbd></dd>
-						</div>
-						<div>
-							<dt>Session tree</dt>
-							<dd><kbd>Ctrl/⌘ Shift T</kbd></dd>
-						</div>
-						<div>
-							<dt>Settings</dt>
-							<dd><kbd>Ctrl/⌘ ,</kbd></dd>
-						</div>
+						{#each shortcuts as [label, keys] (label)}
+							<div>
+								<dt>{label}</dt>
+								<dd><kbd>{keys}</kbd></dd>
+							</div>
+						{/each}
 					</dl>
-				</section>
+				</SettingsSection>
 
 				<div data-ui="settings-actions">
-					<Button variant="secondary" size="sm" onclick={restoreDefaults}
-						>Restore defaults</Button
+					<Button
+						variant="secondary"
+						size="sm"
+						onclick={() => layout.restoreDefaults()}>Restore defaults</Button
 					>
 				</div>
 			</div>

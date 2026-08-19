@@ -256,7 +256,9 @@ describe('application shell', () => {
 		expect((await findAllByText('Inspect the Editor')).length).toBeGreaterThan(
 			0,
 		);
-		expect(await findByText('Unity Editor status')).toBeInTheDocument();
+		expect((await findAllByText('Unity Editor status')).length).toBeGreaterThan(
+			0,
+		);
 		expect(
 			await findByText(/connected and ready for commands/),
 		).toBeInTheDocument();

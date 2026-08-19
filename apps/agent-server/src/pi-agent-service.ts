@@ -5,6 +5,7 @@ import type {
 import {
 	agentToolPolicy,
 	protocolVersion,
+	sessionTitle,
 	type AgentAttachment,
 	type AgentModelCatalog,
 	type CompactionPolicy,
@@ -15,27 +16,23 @@ import {
 	type SessionTree,
 } from '@unity-agent/protocol';
 import { createUnityTools } from '@unity-agent/unity-tools';
-import { spawn } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { platform } from 'node:os';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import {
 	PiEventTranslator,
 	type TranslatedPiEvent,
 } from './pi-event-translator';
 import {
 	PiSessionRepository,
-	sessionTree,
 	type SessionRepository,
 } from './session-repository';
+import { sessionTree } from './session-transcript';
 import { unitySystemPrompt } from './unity-system-prompt';
+import { attachmentPrompt } from './attachment-message';
 import {
-	attachmentPrompt,
-	storedAttachmentId,
-	storedAttachments,
-	type StoredAttachment,
-} from './attachment-message';
+	prepareAttachments,
+	readStoredAttachment,
+	revealStoredAttachment,
+	type PiImage,
+} from './attachment-storage';
 
 export interface PiSessionLike {
 	readonly sessionId: string;
@@ -60,19 +57,6 @@ export interface PiSessionLike {
 	setSessionName?(name: string): void;
 	dispose(): void;
 }
-
-interface PiImage {
-	type: 'image';
-	data: string;
-	mimeType: string;
-}
-
-const modelImageMimeTypes = new Set([
-	'image/png',
-	'image/jpeg',
-	'image/webp',
-	'image/gif',
-]);
 
 export type PiSessionFactory = (
 	options: SessionOptions,
@@ -270,51 +254,16 @@ export class PiAgentService {
 		sessionId: string,
 		attachmentId: string,
 	): Promise<{ name: string; mimeType: string; data: string }> {
-		const attachment = await this.#attachment(sessionId, attachmentId);
-		return {
-			name: attachment.name,
-			mimeType: attachment.mimeType,
-			data: (await readFile(attachment.path)).toString('base64'),
-		};
+		await this.resumeSession(sessionId);
+		return readStoredAttachment(this.#active(sessionId).manager, attachmentId);
 	}
 
 	async revealAttachment(
 		sessionId: string,
 		attachmentId: string,
 	): Promise<void> {
-		const attachment = await this.#attachment(sessionId, attachmentId);
-		await revealFile(attachment.path);
-	}
-
-	async #attachment(
-		sessionId: string,
-		attachmentId: string,
-	): Promise<StoredAttachment> {
 		await this.resumeSession(sessionId);
-		const manager = this.#active(sessionId).manager;
-		const directory = resolve(
-			manager.getSessionDir(),
-			'attachments',
-			manager.getSessionId(),
-		);
-		for (const entry of manager.getBranch()) {
-			if (entry.type !== 'message') continue;
-			const message = (
-				entry as { message?: { role?: string; content?: unknown } }
-			).message;
-			if (message?.role !== 'user') continue;
-			const attachment = storedAttachments(message.content).find(
-				(item) => storedAttachmentId(item) === attachmentId,
-			);
-			if (!attachment) continue;
-			const filePath = resolve(attachment.path);
-			const childPath = relative(directory, filePath);
-			if (childPath && !childPath.startsWith('..') && !isAbsolute(childPath)) {
-				return attachment;
-			}
-			break;
-		}
-		throw new Error('Attachment not found in this session');
+		await revealStoredAttachment(this.#active(sessionId).manager, attachmentId);
 	}
 
 	abort(sessionId: string): Promise<void> {
@@ -515,89 +464,8 @@ const createDefaultPiSession: PiSessionFactory = async (
 	});
 };
 
-function sessionTitle(prompt: string): string {
-	const title = prompt.trim();
-	return title.length > 48 ? `${title.slice(0, 47)}…` : title;
-}
-
 function validateCompactionPolicy(policy: CompactionPolicy): void {
 	if (policy.retainPercent >= policy.fillPercent) {
 		throw new Error('Retained context must be below the compaction threshold');
 	}
-}
-
-async function prepareAttachments(
-	manager: SessionManager,
-	attachments: AgentAttachment[],
-): Promise<{ files: StoredAttachment[]; images: PiImage[] }> {
-	if (!attachments.length) return { files: [], images: [] };
-	const directory = join(
-		manager.getSessionDir(),
-		'attachments',
-		manager.getSessionId(),
-	);
-	await mkdir(directory, { recursive: true });
-	const files: StoredAttachment[] = [];
-	const images: PiImage[] = [];
-	let totalBytes = 0;
-	for (const attachment of attachments) {
-		if (!validBase64(attachment.data)) {
-			throw new Error(`Invalid attachment data: ${attachment.name}`);
-		}
-		const bytes = Buffer.from(attachment.data, 'base64');
-		totalBytes += bytes.byteLength;
-		if (bytes.byteLength > 10 * 1024 * 1024 || totalBytes > 20 * 1024 * 1024) {
-			throw new Error(
-				'Attachments exceed the 10 MB per-file or 20 MB total limit',
-			);
-		}
-		const name = safeFileName(attachment.name);
-		const id = randomUUID();
-		const path = join(directory, `${id}-${name}`);
-		await writeFile(path, bytes, { flag: 'wx' });
-		files.push({
-			id,
-			name: attachment.name,
-			mimeType: attachment.mimeType,
-			size: bytes.byteLength,
-			path,
-		});
-		if (modelImageMimeTypes.has(attachment.mimeType)) {
-			images.push({
-				type: 'image',
-				data: attachment.data,
-				mimeType: attachment.mimeType,
-			});
-		}
-	}
-	return { files, images };
-}
-
-function revealFile(filePath: string): Promise<void> {
-	const command =
-		platform() === 'darwin'
-			? (['open', ['-R', filePath]] as const)
-			: platform() === 'win32'
-				? (['explorer.exe', ['/select,', filePath]] as const)
-				: (['xdg-open', [dirname(filePath)]] as const);
-	return new Promise((resolvePromise, reject) => {
-		const child = spawn(command[0], command[1], {
-			detached: true,
-			stdio: 'ignore',
-		});
-		child.once('error', reject);
-		child.once('spawn', () => {
-			child.unref();
-			resolvePromise();
-		});
-	});
-}
-
-function safeFileName(name: string): string {
-	const safe = name.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^\.+/, '');
-	return safe || 'attachment';
-}
-
-function validBase64(value: string): boolean {
-	return value.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(value);
 }

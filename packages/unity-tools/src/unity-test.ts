@@ -1,6 +1,6 @@
 import { executeUnityCommand } from './unity-command';
 import { sourceLocation } from './unity-diagnostics';
-import type { UnityCliMessage } from './unity-json';
+import { asRecord, finiteNumber, type UnityCliMessage } from './unity-json';
 import type { UnityCommandRunner } from './unity-runner';
 
 export type UnityTestMode = 'all' | 'editor' | 'playmode';
@@ -87,6 +87,7 @@ export async function runUnityTests(
 		.filter((test) => test !== undefined);
 	const total = summary.total || tests.length;
 	const resultSuccess = field(result, 'success');
+	const durationSeconds = finiteNumber(field(result, 'duration'));
 	const failed = summary.failed > 0 || resultSuccess === false;
 	const noTests = total === 0;
 	const errors = [...details.errors];
@@ -109,9 +110,9 @@ export async function runUnityTests(
 		mode,
 		...(options.filter ? { filter: options.filter } : {}),
 		durationMs:
-			number(field(result, 'duration')) === undefined
+			durationSeconds === undefined
 				? details.durationMs
-				: number(field(result, 'duration'))! * 1_000,
+				: durationSeconds * 1_000,
 		summary: { ...summary, total },
 		tests,
 		errors,
@@ -120,18 +121,18 @@ export async function runUnityTests(
 }
 
 function testSummary(value: unknown): UnityTestSummary {
-	const summary = record(value);
+	const summary = asRecord(value);
 	return {
-		total: number(field(summary, 'total')) ?? 0,
-		passed: number(field(summary, 'passed')) ?? 0,
-		failed: number(field(summary, 'failed')) ?? 0,
-		skipped: number(field(summary, 'skipped')) ?? 0,
-		inconclusive: number(field(summary, 'inconclusive')) ?? 0,
+		total: finiteNumber(field(summary, 'total')) ?? 0,
+		passed: finiteNumber(field(summary, 'passed')) ?? 0,
+		failed: finiteNumber(field(summary, 'failed')) ?? 0,
+		skipped: finiteNumber(field(summary, 'skipped')) ?? 0,
+		inconclusive: finiteNumber(field(summary, 'inconclusive')) ?? 0,
 	};
 }
 
 function testResult(value: unknown): UnityTestResult | undefined {
-	const result = record(value);
+	const result = asRecord(value);
 	const name = string(field(result, 'fullName'));
 	if (!name) return;
 	const message = string(field(result, 'message'));
@@ -140,7 +141,7 @@ function testResult(value: unknown): UnityTestResult | undefined {
 	return {
 		name,
 		status: string(field(result, 'status')) ?? 'Unknown',
-		durationMs: (number(field(result, 'duration')) ?? 0) * 1_000,
+		durationMs: (finiteNumber(field(result, 'duration')) ?? 0) * 1_000,
 		...(message ? { message } : {}),
 		...(stackTrace ? { stackTrace } : {}),
 		...location,
@@ -148,7 +149,7 @@ function testResult(value: unknown): UnityTestResult | undefined {
 }
 
 function commandResult(data: unknown): Record<string, unknown> | undefined {
-	const outer = record(data);
+	const outer = asRecord(data);
 	let result: unknown = field(outer, 'result');
 	if (typeof result === 'string') {
 		try {
@@ -157,7 +158,7 @@ function commandResult(data: unknown): Record<string, unknown> | undefined {
 			return;
 		}
 	}
-	return record(result);
+	return asRecord(result);
 }
 
 function field(
@@ -175,22 +176,10 @@ function emptySummary(): UnityTestSummary {
 	return { total: 0, passed: 0, failed: 0, skipped: 0, inconclusive: 0 };
 }
 
-function record(value: unknown): Record<string, unknown> | undefined {
-	return value !== null && typeof value === 'object'
-		? (value as Record<string, unknown>)
-		: undefined;
-}
-
 function array(value: unknown): unknown[] {
 	return Array.isArray(value) ? value : [];
 }
 
 function string(value: unknown): string | undefined {
 	return typeof value === 'string' && value ? value : undefined;
-}
-
-function number(value: unknown): number | undefined {
-	return typeof value === 'number' && Number.isFinite(value)
-		? value
-		: undefined;
 }

@@ -1,5 +1,6 @@
 import {
 	parseAgentEvent,
+	sessionTitle,
 	type AgentAttachment,
 	type AgentModelCatalog,
 	type AgentModelOption,
@@ -11,12 +12,12 @@ import {
 	type SessionState,
 	type SessionTree,
 	type SessionUsage,
-	type ToolCallView,
 	type UnityConsoleEntry,
 	type UnityProject,
 	type UnityStatus,
 } from '@unity-agent/protocol';
 import type { AgentClient } from './AgentClient';
+import { applyAgentEvent } from './agent-event-reducer';
 
 export interface AgentModel {
 	provider: string;
@@ -32,11 +33,23 @@ export interface AgentError {
 	message: string;
 }
 
-/** How many console lines the live tail keeps before dropping the oldest. */
 const consoleLimit = 500;
 
 export type ConnectionState =
 	'disconnected' | 'connecting' | 'reconnecting' | 'connected';
+
+interface SessionSelection {
+	sessionId?: string;
+	sessionState: SessionState;
+	messages: ConversationMessage[];
+	messagesLoading: boolean;
+	model?: AgentModel;
+	availableModels: AgentModelOption[];
+	thinkingLevels: string[];
+	selectedProjectPath?: string;
+	projectStatus?: UnityStatus;
+	usage?: SessionUsage;
+}
 
 /** Backoff between automatic reconnects; the last entry repeats forever. */
 const reconnectDelays = [500, 1_000, 2_000, 5_000, 10_000, 15_000];
@@ -236,13 +249,7 @@ export class AgentStore {
 		) {
 			return;
 		}
-		const previousProjectPath = this.selectedProjectPath;
-		const previousProjectStatus = this.projectStatus;
-		const previousId = this.sessionId;
-		const previousMessages = this.messages;
-		const previousModel = this.model;
-		const previousModels = this.availableModels;
-		const previousThinkingLevels = this.thinkingLevels;
+		const previous = this.#captureSelection();
 		if (projectPath) {
 			this.selectedProjectPath = projectPath;
 			this.projectStatus = undefined;
@@ -254,6 +261,7 @@ export class AgentStore {
 		this.availableModels = [];
 		this.thinkingLevels = [];
 		this.sessionState = 'idle';
+		this.usage = undefined;
 		try {
 			const sessionId = await this.#client.createSession({
 				...(this.selectedProjectPath ? { cwd: this.selectedProjectPath } : {}),
@@ -273,13 +281,7 @@ export class AgentStore {
 			await this.refreshModelCatalog();
 			await this.#watchSelectedProject();
 		} catch (error) {
-			this.sessionId = previousId;
-			this.messages = previousMessages;
-			this.model = previousModel;
-			this.availableModels = previousModels;
-			this.thinkingLevels = previousThinkingLevels;
-			this.selectedProjectPath = previousProjectPath;
-			this.projectStatus = previousProjectStatus;
+			this.#restoreSelection(previous);
 			this.#fail('session', error);
 		}
 	}
@@ -291,13 +293,7 @@ export class AgentStore {
 			(candidate) => candidate.id === sessionId,
 		);
 		if (!session) return;
-		const previousId = this.sessionId;
-		const previousMessages = this.messages;
-		const previousModel = this.model;
-		const previousModels = this.availableModels;
-		const previousThinkingLevels = this.thinkingLevels;
-		const previousProjectPath = this.selectedProjectPath;
-		const previousProjectStatus = this.projectStatus;
+		const previous = this.#captureSelection();
 		this.sessionId = sessionId;
 		this.messages = [];
 		this.messagesLoading = true;
@@ -315,13 +311,7 @@ export class AgentStore {
 			await this.refreshModelCatalog();
 			await this.#watchSelectedProject();
 		} catch (error) {
-			this.sessionId = previousId;
-			this.messages = previousMessages;
-			this.model = previousModel;
-			this.availableModels = previousModels;
-			this.thinkingLevels = previousThinkingLevels;
-			this.selectedProjectPath = previousProjectPath;
-			this.projectStatus = previousProjectStatus;
+			this.#restoreSelection(previous);
 			this.#fail('session', error);
 		} finally {
 			if (this.sessionId === sessionId) this.messagesLoading = false;
@@ -362,21 +352,9 @@ export class AgentStore {
 		) {
 			return;
 		}
-		this.modelLoading = true;
-		this.error = undefined;
-		const sessionId = this.sessionId;
-		try {
-			const catalog = await this.#client.selectModel(
-				sessionId,
-				provider,
-				modelId,
-			);
-			if (this.sessionId === sessionId) this.#applyModelCatalog(catalog);
-		} catch (error) {
-			this.#fail('session', error);
-		} finally {
-			this.modelLoading = false;
-		}
+		await this.#selectCatalog((sessionId) =>
+			this.#client.selectModel(sessionId, provider, modelId),
+		);
 	}
 
 	async selectThinkingLevel(level: string): Promise<void> {
@@ -388,11 +366,20 @@ export class AgentStore {
 		) {
 			return;
 		}
+		await this.#selectCatalog((sessionId) =>
+			this.#client.selectThinkingLevel(sessionId, level),
+		);
+	}
+
+	async #selectCatalog(
+		request: (sessionId: string) => Promise<AgentModelCatalog>,
+	): Promise<void> {
+		if (!this.sessionId) return;
 		this.modelLoading = true;
 		this.error = undefined;
 		const sessionId = this.sessionId;
 		try {
-			const catalog = await this.#client.selectThinkingLevel(sessionId, level);
+			const catalog = await request(sessionId);
 			if (this.sessionId === sessionId) this.#applyModelCatalog(catalog);
 		} catch (error) {
 			this.#fail('session', error);
@@ -626,97 +613,8 @@ export class AgentStore {
 
 		if (this.sessionId && event.sessionId !== this.sessionId) return;
 
-		switch (event.type) {
-			case 'session.created':
-				this.model = event.model;
-				this.activeTools = event.tools ?? [];
-				break;
-			case 'session.state':
-				this.sessionState = event.state;
-				break;
-			case 'session.compaction':
-				this.compacting = event.active;
-				if (!event.active) this.usage = undefined;
-				break;
-			case 'message.started':
-				this.messages.push({
-					id: event.messageId,
-					role: event.role,
-					content: '',
-					createdAt: event.createdAt,
-					complete: false,
-					tools: [],
-					...(event.attachments ? { attachments: event.attachments } : {}),
-				});
-				{
-					const session = this.#currentSession();
-					if (session) session.messageCount++;
-				}
-				break;
-			case 'message.delta': {
-				const message = this.#message(event.messageId);
-				if (message) message.content += event.delta;
-				break;
-			}
-			case 'session.usage':
-				this.usage = event.usage;
-				break;
-			case 'message.reasoning': {
-				const message = this.#message(event.messageId);
-				if (message) {
-					if (event.delta)
-						message.reasoning = (message.reasoning ?? '') + event.delta;
-					if (event.redacted) message.reasoningRedacted = true;
-				}
-				break;
-			}
-			case 'message.completed': {
-				const message = this.#message(event.messageId);
-				if (message) message.complete = true;
-				break;
-			}
-			case 'tool.started':
-				this.#message(event.messageId)?.tools.push({
-					id: event.toolCallId,
-					name: event.toolName,
-					status: 'running',
-					statusText: 'Starting',
-					...(event.input === undefined ? {} : { input: event.input }),
-				});
-				break;
-			case 'tool.updated': {
-				const tool = this.#tool(event.toolCallId);
-				if (tool) tool.statusText = event.message;
-				break;
-			}
-			case 'tool.completed': {
-				const tool = this.#tool(event.toolCallId);
-				if (tool) {
-					tool.status = event.isError ? 'error' : 'complete';
-					tool.statusText = event.isError ? 'Failed' : 'Completed';
-					tool.result = event.result;
-				}
-				break;
-			}
-			case 'project.console.appended':
-				if (event.projectPath === this.selectedProjectPath) {
-					this.consoleEntries = [
-						...this.consoleEntries,
-						...event.update.entries,
-					].slice(-consoleLimit);
-				}
-				break;
-			case 'project.status.changed':
-				if (event.projectPath === this.selectedProjectPath) {
-					this.projectStatus = event.status;
-					this.projectError = undefined;
-				}
-				break;
-			case 'error':
-				this.error = { kind: 'agent', message: event.message };
-				this.sessionState = 'error';
-				break;
-		}
+		const eventError = applyAgentEvent(this, event);
+		if (eventError) this.error = { kind: 'agent', message: eventError };
 	}
 
 	async #watchSelectedProject(): Promise<void> {
@@ -755,22 +653,32 @@ export class AgentStore {
 		this.error = { kind, message: errorMessage(error) };
 	}
 
-	#message(messageId: string): ConversationMessage | undefined {
-		return this.messages.find((message) => message.id === messageId);
+	#captureSelection(): SessionSelection {
+		return {
+			sessionId: this.sessionId,
+			sessionState: this.sessionState,
+			messages: this.messages,
+			messagesLoading: this.messagesLoading,
+			model: this.model,
+			availableModels: this.availableModels,
+			thinkingLevels: this.thinkingLevels,
+			selectedProjectPath: this.selectedProjectPath,
+			projectStatus: this.projectStatus,
+			usage: this.usage,
+		};
 	}
 
-	#tool(toolCallId: string): ToolCallView | undefined {
-		for (const message of this.messages) {
-			const tool = message.tools.find(
-				(candidate) => candidate.id === toolCallId,
-			);
-			if (tool) return tool;
-		}
-		return undefined;
-	}
-
-	#currentSession(): AgentSessionSummary | undefined {
-		return this.sessions.find(({ id }) => id === this.sessionId);
+	#restoreSelection(selection: SessionSelection): void {
+		this.sessionId = selection.sessionId;
+		this.sessionState = selection.sessionState;
+		this.messages = selection.messages;
+		this.messagesLoading = selection.messagesLoading;
+		this.model = selection.model;
+		this.availableModels = selection.availableModels;
+		this.thinkingLevels = selection.thinkingLevels;
+		this.selectedProjectPath = selection.selectedProjectPath;
+		this.projectStatus = selection.projectStatus;
+		this.usage = selection.usage;
 	}
 
 	#applyModelCatalog(catalog: AgentModelCatalog): void {
@@ -782,10 +690,6 @@ export class AgentStore {
 
 function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
-}
-
-function sessionTitle(prompt: string): string {
-	return prompt.length > 48 ? `${prompt.slice(0, 47)}…` : prompt;
 }
 
 function attachmentPrompt(count: number): string {

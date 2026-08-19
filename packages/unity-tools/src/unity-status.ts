@@ -1,5 +1,6 @@
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
+import { unityJsonArgs } from './unity-json';
 import type { UnityCommandRunner, UnityRunResult } from './unity-runner';
 
 const unityCliMessageSchema = Type.Object(
@@ -53,13 +54,7 @@ export interface UnityStatusOptions {
 	signal?: AbortSignal;
 }
 
-export const unityStatusArgs = [
-	'--non-interactive',
-	'--no-banner',
-	'--format',
-	'json',
-	'status',
-] as const;
+export const unityStatusArgs = [...unityJsonArgs, 'status'] as const;
 
 export async function getUnityStatus(
 	runner: UnityCommandRunner,

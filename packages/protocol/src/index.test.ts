@@ -9,9 +9,18 @@ import {
 	parseSessionSnapshot,
 	protocolVersion,
 	ProtocolValidationError,
+	sessionTitle,
 } from './index';
 
 describe('agent protocol validation', () => {
+	it('normalizes generated session titles consistently', () => {
+		expect(sessionTitle('  Inspect the active scene  ')).toBe(
+			'Inspect the active scene',
+		);
+		expect(sessionTitle('')).toBe('New session');
+		expect(sessionTitle('x'.repeat(49))).toBe(`${'x'.repeat(47)}…`);
+	});
+
 	it('defines the harness-owned full-access tool boundary', () => {
 		expect(agentToolPolicy).toEqual({
 			tools: [

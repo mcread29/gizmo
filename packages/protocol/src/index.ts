@@ -3,6 +3,16 @@ import { Value } from 'typebox/value';
 
 export const protocolVersion = 10 as const;
 
+const sessionTitleLimit = 48;
+
+export function sessionTitle(input: string): string {
+	const title = input.trim();
+	if (!title) return 'New session';
+	return title.length > sessionTitleLimit
+		? `${title.slice(0, sessionTitleLimit - 1)}…`
+		: title;
+}
+
 export const agentToolPolicy = {
 	tools: [
 		'read',

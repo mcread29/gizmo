@@ -2,24 +2,18 @@
 	import type { AgentAttachment } from '@unity-agent/protocol';
 	import {
 		CornerDownLeft,
-		File as FileIcon,
 		Minimize2,
 		Paperclip,
 		Send,
 		Square,
-		X,
 	} from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Tooltip } from '../../components';
 	import { shortcutHint } from '../shell/shortcuts';
 	import { toasts } from '../../toasts.svelte';
-	import {
-		attachmentSize,
-		attachmentUrl,
-		maxAttachmentCount,
-		readAttachments,
-	} from './attachments';
+	import { maxAttachmentCount, readAttachments } from './attachments';
+	import ComposerAttachments from './ComposerAttachments.svelte';
 	import ComposerModelControls from './ComposerModelControls.svelte';
 	import UsageMeter from './UsageMeter.svelte';
 	import { autoGrow, isSendKey, resizeComposer } from './composer-actions';
@@ -139,30 +133,7 @@
 			event.currentTarget.value = '';
 		}}
 	/>
-	{#if attachments.length}
-		<div data-ui="attachment-list" aria-label="Attachments">
-			{#each attachments as attachment, index (`${attachment.name}-${index}`)}
-				<div data-ui="attachment-chip">
-					{#if attachment.mimeType.startsWith('image/')}
-						<img src={attachmentUrl(attachment)} alt="" />
-					{:else}
-						<FileIcon size={18} />
-					{/if}
-					<span>
-						<strong>{attachment.name}</strong>
-						<small>{attachmentSize(attachment)}</small>
-					</span>
-					<button
-						type="button"
-						aria-label={`Remove ${attachment.name}`}
-						onclick={() => removeAttachment(index)}
-					>
-						<X size={13} />
-					</button>
-				</div>
-			{/each}
-		</div>
-	{/if}
+	<ComposerAttachments {attachments} onRemove={removeAttachment} />
 	<label for="prompt" data-ui="sr-only">Message Unity Agent</label>
 	<textarea
 		id="prompt"

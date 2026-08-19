@@ -5,10 +5,13 @@ import {
 	listUnityCommands,
 	type UnityRegisteredCommand,
 } from './unity-list-commands';
-import { runUnityJson, type UnityJsonDetails } from './unity-json';
+import {
+	runUnityJson,
+	unityJsonArgs,
+	type UnityJsonDetails,
+} from './unity-json';
 import { UnityRunner, type UnityCommandRunner } from './unity-runner';
 
-const jsonArgs = ['--non-interactive', '--no-banner', '--format', 'json'];
 const allowedCommands = new Set(['status', 'list', 'command', 'test']);
 
 export interface UnityScriptOptions {
@@ -337,7 +340,9 @@ async function handleRpc(
 		throw new Error(
 			`Unity CLI command is not available to scripts: ${args[0] ?? ''}`,
 		);
-	const result = await runUnityJson(runner, [...jsonArgs, ...args], { signal });
+	const result = await runUnityJson(runner, [...unityJsonArgs, ...args], {
+		signal,
+	});
 	if (request.method === 'json') {
 		if (!result.ok) throw new Error(resultError(result));
 		return result.data;

@@ -1,13 +1,10 @@
-import { runUnityJson, type UnityJsonDetails } from './unity-json';
+import {
+	runUnityJson,
+	unityJsonArgs,
+	type UnityJsonDetails,
+} from './unity-json';
 import type { UnityCommandRunner } from './unity-runner';
 import { getUnityStatus, type UnityStatusDetails } from './unity-status';
-
-const globalJsonArgs = [
-	'--non-interactive',
-	'--no-banner',
-	'--format',
-	'json',
-] as const;
 
 export interface UnityProject {
 	title: string;
@@ -34,7 +31,7 @@ export async function listUnityProjects(
 ): Promise<UnityProjectsDetails> {
 	const result = await runUnityJson(
 		runner,
-		[...globalJsonArgs, 'projects', 'list', '--all', '--verbose'],
+		[...unityJsonArgs, 'projects', 'list', '--all', '--verbose'],
 		{ signal },
 	);
 	return { ...result, projects: normalizeProjects(result.data) };
@@ -62,7 +59,7 @@ export async function openUnityProject(
 
 	const result = await runUnityJson(
 		runner,
-		[...globalJsonArgs, 'open', projectPath],
+		[...unityJsonArgs, 'open', projectPath],
 		{ signal, timeoutMs: 120_000 },
 	);
 	return {

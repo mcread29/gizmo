@@ -25,12 +25,6 @@
 </script>
 
 <Dialog bind:open {title} {description}>
-	{#snippet trigger(props)}<button
-			{...props}
-			data-ui="hidden-trigger"
-			hidden
-			tabindex="-1">{title}</button
-		>{/snippet}
 	{#if children}<div data-ui="confirm-body">{@render children()}</div>{/if}
 	<!-- Cancel comes first and is the default focus target: a modal whose only
 	     button is the destructive one is a misclick away from data loss. -->

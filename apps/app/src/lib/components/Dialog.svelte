@@ -16,16 +16,18 @@
 		open?: boolean;
 		title: string;
 		description?: string;
-		trigger: Snippet<[HTMLButtonAttributes]>;
+		trigger?: Snippet<[HTMLButtonAttributes]>;
 		children: Snippet;
 		size?: 'md' | 'lg';
 	} = $props();
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger>
-		{#snippet child({ props })}{@render trigger(props)}{/snippet}
-	</Dialog.Trigger>
+	{#if trigger}
+		<Dialog.Trigger>
+			{#snippet child({ props })}{@render trigger(props)}{/snippet}
+		</Dialog.Trigger>
+	{/if}
 	<Dialog.Portal>
 		<Dialog.Overlay />
 		<Dialog.Content data-ui="dialog" data-size={size}>

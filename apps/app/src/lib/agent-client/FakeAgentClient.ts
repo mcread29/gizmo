@@ -1,6 +1,7 @@
 import {
 	agentToolPolicy,
 	protocolVersion,
+	sessionTitle,
 	type AgentAttachment,
 	type AgentModelCatalog,
 	type AgentSessionSummary,
@@ -714,10 +715,6 @@ function fakeStatus(projectPath: string, open: boolean): UnityStatus {
 		errors: [],
 		warnings: [],
 	};
-}
-
-function sessionTitle(prompt: string): string {
-	return prompt.length > 48 ? `${prompt.slice(0, 47)}…` : prompt;
 }
 
 const fakeEditFile = 'Assets/Scripts/PlayerController.cs';

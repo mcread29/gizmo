@@ -45,4 +45,17 @@ describe('WorkspaceLayout', () => {
 		expect(narrow.leftDrawerOpen).toBe(true);
 		expect(narrow.rightDrawerOpen).toBe(false);
 	});
+
+	it('restores workspace preferences without discarding the server address', () => {
+		const workspace = layout(1440);
+		workspace.theme = 'vesper-light';
+		workspace.sidebarWidth = 400;
+		workspace.agentUrl = 'ws://example.test/agent';
+
+		workspace.restoreDefaults();
+
+		expect(workspace.theme).toBe(defaultAppSettings.theme);
+		expect(workspace.sidebarWidth).toBe(defaultAppSettings.sidebarWidth);
+		expect(workspace.agentUrl).toBe('ws://example.test/agent');
+	});
 });
