@@ -32,7 +32,7 @@ describe('ToolCallCard', () => {
 		expect(getByText('Editors')).toBeInTheDocument();
 	});
 
-	it('links structured compiler diagnostics to the project file', () => {
+	it('links structured compiler diagnostics to the project file', async () => {
 		const tool: ToolCallView = {
 			id: 'tool-2',
 			name: 'unity_wait_for_command',
@@ -51,10 +51,11 @@ describe('ToolCallCard', () => {
 				],
 			},
 		};
-		const { getByRole } = render(ToolCallCard, {
+		const { container, getByRole } = render(ToolCallCard, {
 			tool,
 			projectPath: '/projects/game',
 		});
+		await fireEvent.click(container.querySelector('summary')!);
 
 		expect(
 			getByRole('link', { name: 'Assets/Editor/Test.cs:12:4' }),
@@ -64,7 +65,7 @@ describe('ToolCallCard', () => {
 		);
 	});
 
-	it('renders structured Unity test summaries and linked failures', () => {
+	it('renders structured Unity test summaries and linked failures', async () => {
 		const tool: ToolCallView = {
 			id: 'tool-tests',
 			name: 'unity_test',
@@ -85,10 +86,11 @@ describe('ToolCallCard', () => {
 				errors: [],
 			},
 		};
-		const { getByRole, getByText } = render(ToolCallCard, {
+		const { container, getByRole, getByText } = render(ToolCallCard, {
 			tool,
 			projectPath: '/projects/game',
 		});
+		await fireEvent.click(container.querySelector('summary')!);
 
 		expect(getByText('Game.PlayerTests.Jumps')).toBeInTheDocument();
 		expect(
@@ -99,7 +101,7 @@ describe('ToolCallCard', () => {
 		);
 	});
 
-	it('renders Unity TypeScript source, diagnostics, progress, and result', () => {
+	it('renders Unity TypeScript source, diagnostics, progress, and result', async () => {
 		const tool: ToolCallView = {
 			id: 'tool-script',
 			name: 'unity_script',
@@ -128,6 +130,7 @@ describe('ToolCallCard', () => {
 		const { container, getByText, queryByText } = render(ToolCallCard, {
 			tool,
 		});
+		await fireEvent.click(container.querySelector('summary')!);
 
 		expect(getByText('Unity TypeScript')).toBeInTheDocument();
 		expect(getByText(/TypeScript · const status/)).toBeInTheDocument();

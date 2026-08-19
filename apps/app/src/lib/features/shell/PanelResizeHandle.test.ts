@@ -67,10 +67,9 @@ describe('PanelResizeHandle', () => {
 		await fireEvent.pointerUp(window);
 		expect(onResize).toHaveBeenCalledOnce();
 		expect(onResize).toHaveBeenCalledWith(308);
-		expect(handle.style.transform).toBe('');
 	});
 
-	it('previews a drag by moving only the resize guide', async () => {
+	it('previews a drag by resizing the panel immediately', async () => {
 		const onResize = vi.fn();
 		const { getByRole } = render(PanelResizeHandle, {
 			side: 'right',
@@ -82,12 +81,15 @@ describe('PanelResizeHandle', () => {
 		const handle = getByRole('slider', {
 			name: 'Resize editor inspector',
 		});
+		const shell = document.createElement('div');
+		shell.dataset.ui = 'app-shell';
+		handle.parentElement?.insertBefore(shell, handle);
+		shell.append(handle);
 
 		await fireEvent.pointerDown(handle, { button: 0, clientX: 600 });
 		await fireEvent.pointerMove(window, { clientX: 560 });
-		await new Promise(requestAnimationFrame);
 
-		expect(handle).toHaveStyle('transform: translate3d(-40px, 0, 0)');
+		expect(shell.style.getPropertyValue('--inspector-width')).toBe('328px');
 		expect(onResize).not.toHaveBeenCalled();
 		await fireEvent.pointerUp(window);
 		expect(onResize).toHaveBeenCalledWith(328);

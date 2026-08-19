@@ -1,6 +1,14 @@
 <script lang="ts">
-	import type { AgentSessionSummary } from '@unity-agent/protocol';
+	import type {
+		AgentSessionSummary,
+		ConversationMessage,
+	} from '@unity-agent/protocol';
+	import {
+		createVirtualizer,
+		observeElementRect,
+	} from '@tanstack/svelte-virtual';
 	import { onDestroy, tick } from 'svelte';
+	import { get } from 'svelte/store';
 	import type { AgentStore } from '../../agent-client';
 	import { ArrowDown } from '@lucide/svelte';
 	import { BrandMark, Button, ScrollPanel } from '../../components';
@@ -18,6 +26,7 @@
 		expandReasoning: boolean;
 		collapseToken?: number;
 		matched?: ReadonlySet<string>;
+		reveal?: (id: string) => Promise<void>;
 	}
 
 	let {
@@ -28,23 +37,52 @@
 		expandReasoning,
 		collapseToken,
 		matched,
+		reveal = $bindable(),
 	}: Props = $props();
 
 	let scrollAnchor = $state<HTMLDivElement>();
-	let messageList = $state<HTMLDivElement>();
 	let followOutput = $state(false);
-	let visibleGroupCount = $state(60);
+	let viewport = $state<HTMLElement | null>(null);
 	let knownCount = 0;
 	let knownSession: string | undefined;
+	let rowKeys: Array<string | number> = [];
+	let rowEstimates: number[] = [];
 	let followTimer: ReturnType<typeof setTimeout> | undefined;
 	let activity = $derived(
 		streamingActivity(store.messages, store.sessionState),
 	);
 	let groups = $derived(groupMessages(store.messages));
-	let visibleGroups = $derived(
-		matched?.size ? groups : groups.slice(-visibleGroupCount),
+	const initialViewport = { width: 800, height: 800 };
+	let rows = $derived(
+		groups.flatMap((group) =>
+			group.messages
+				.flatMap(splitMessage)
+				.map(({ message, sourceMessageId, kind }, index, messages) => ({
+					id: message.id,
+					role: group.role,
+					createdAt: message.createdAt,
+					messages: [message],
+					sourceMessageId,
+					kind,
+					activityTarget: index === messages.length - 1,
+					groupedBefore: index > 0,
+					groupedAfter: index < messages.length - 1,
+				})),
+		),
 	);
-	let hiddenGroupCount = $derived(groups.length - visibleGroups.length);
+	const virtualizer = createVirtualizer<HTMLElement, HTMLDivElement>({
+		count: 0,
+		getScrollElement: () => viewport ?? null,
+		getItemKey: (index) => rowKeys[index] ?? index,
+		estimateSize: (index) => rowEstimates[index] ?? 220,
+		overscan: 2,
+		initialRect: initialViewport,
+		observeElementRect: (instance, notify) =>
+			observeElementRect(instance, (rect) =>
+				notify(rect.height > 0 ? rect : initialViewport),
+			),
+	});
+	let virtualItems = $derived($virtualizer.getVirtualItems());
 	let lastMessageId = $derived(store.messages.at(-1)?.id);
 	let streamRevision = $derived.by(() => {
 		const message = store.messages.at(-1);
@@ -56,14 +94,37 @@
 		if (autoFollowOutput) followOutput = true;
 	});
 
+	$effect(() => {
+		const count = rows.length;
+		rowKeys = rows.map((row) => row.id);
+		rowEstimates = rows.map((row) => (row.kind === 'tool' ? 48 : 220));
+		get(virtualizer).setOptions({
+			count,
+			getItemKey: (index) => rowKeys[index] ?? index,
+		});
+	});
+
 	// A thread opens at its newest message, not wherever the previous one sat.
 	$effect(() => {
 		const sessionId = store.sessionId;
-		if (sessionId === knownSession) return;
+		const count = rows.length;
+		if (!viewport || !count || sessionId === knownSession) return;
 		knownSession = sessionId;
-		visibleGroupCount = 60;
 		followOutput = true;
-		void tick().then(() => scrollIntoEnd(scrollAnchor));
+		$virtualizer.measure();
+		$virtualizer.scrollToIndex(count - 1, { align: 'end' });
+	});
+
+	$effect(() => {
+		const node = viewport;
+		get(virtualizer).setOptions({ getScrollElement: () => node ?? null });
+		if (!node) return;
+		const update = () => {
+			followOutput = isAtBottom(node);
+		};
+		node.addEventListener('scroll', update, { passive: true });
+		update();
+		return () => node.removeEventListener('scroll', update);
 	});
 
 	// Sending re-engages following even if the user had scrolled up to read.
@@ -81,9 +142,14 @@
 		streamRevision;
 		if (!autoFollowOutput || !followOutput) return;
 		if (followTimer !== undefined) return;
+		const count = rows.length;
 		followTimer = setTimeout(() => {
 			followTimer = undefined;
-			void tick().then(() => scrollIntoEnd(scrollAnchor));
+			void tick().then(() => {
+				if (count) {
+					$virtualizer.scrollToIndex(count - 1, { align: 'end' });
+				}
+			});
 		}, 16);
 	});
 
@@ -94,31 +160,70 @@
 		scrollIntoEnd(scrollAnchor, 'smooth');
 	}
 
-	async function showEarlier() {
-		const viewport = messageList?.closest<HTMLElement>(
-			'[data-ui="scroll-viewport"]',
+	reveal = async (id: string) => {
+		const index = rows.findIndex((row) =>
+			row.sourceMessageId === id ||
+			row.messages.some(
+				(message) =>
+					message.id === id || message.tools.some((tool) => tool.id === id),
+			),
 		);
-		const previousHeight = viewport?.scrollHeight ?? 0;
-		visibleGroupCount += 60;
+		if (index < 0 || !viewport) return;
+		$virtualizer.scrollToIndex(index, { align: 'center' });
 		await tick();
-		if (viewport) viewport.scrollTop += viewport.scrollHeight - previousHeight;
+		scrollIntoEnd(
+			document.querySelector(`[data-context-id="${id}"]`),
+			'smooth',
+			'center',
+		);
+	};
+
+	function measure(node: HTMLDivElement) {
+		$virtualizer.measureElement(node);
 	}
 
-	/** Stops following as soon as the user scrolls away from the bottom. */
-	function monitorScroll(node: HTMLElement) {
-		const viewport = node.closest<HTMLElement>('[data-ui="scroll-viewport"]');
-		if (!viewport) return;
-		const update = () => (followOutput = isAtBottom(viewport));
-		viewport.addEventListener('scroll', update, { passive: true });
-		update();
-		return {
-			destroy: () => viewport.removeEventListener('scroll', update),
-		};
+	function splitMessage(message: ConversationMessage) {
+		const rows: Array<{
+			message: ConversationMessage;
+			sourceMessageId: string;
+			kind: 'message' | 'tool';
+		}> = [];
+		const hasMessageBody = Boolean(
+			message.content ||
+				message.reasoning ||
+				message.reasoningRedacted ||
+				message.attachments?.length ||
+				message.tools.length === 0,
+		);
+		if (hasMessageBody) {
+			rows.push({
+				message: { ...message, tools: [] },
+				sourceMessageId: message.id,
+				kind: 'message',
+			});
+		}
+		for (const tool of message.tools) {
+			rows.push({
+				message: {
+					...message,
+					id: `${message.id}:tool:${tool.id}`,
+					content: '',
+					reasoning: undefined,
+					reasoningRedacted: undefined,
+					attachments: undefined,
+					tools: [tool],
+				},
+				sourceMessageId: message.id,
+				kind: 'tool',
+			});
+		}
+		return rows;
 	}
+
 </script>
 
-<ScrollPanel name="messages">
-	<div data-ui="message-list" bind:this={messageList} use:monitorScroll>
+<ScrollPanel name="messages" bind:viewport>
+	<div data-ui="message-list">
 		{#if store.messagesLoading && store.messages.length === 0}
 			<div data-ui="message-skeleton" aria-label="Loading transcript">
 				{#each { length: 3 } as _, index (index)}
@@ -139,34 +244,43 @@
 				</p>
 			</div>
 		{/if}
-		{#if hiddenGroupCount > 0}
-			<div data-ui="earlier-messages">
-				<Button variant="ghost" size="sm" onclick={showEarlier}
-					>Show {Math.min(60, hiddenGroupCount)} earlier messages</Button
+		<div
+			data-ui="virtual-canvas"
+			style={`height:${$virtualizer.getTotalSize()}px`}
+		>
+			{#each virtualItems as virtualRow (virtualRow.key)}
+				{@const row = rows[virtualRow.index]!}
+				<div
+					data-ui="virtual-message"
+					data-index={virtualRow.index}
+					use:measure
+					style={`transform:translateY(${virtualRow.start}px)`}
 				>
-			</div>
-		{/if}
-		{#each visibleGroups as group, index (group.id)}
-			{#if index === 0 || dayKey(visibleGroups[index - 1]!.createdAt) !== dayKey(group.createdAt)}
-				<div data-ui="day-separator">
-					<span>{formatDay(group.createdAt)}</span>
+					{#if virtualRow.index === 0 || dayKey(rows[virtualRow.index - 1]!.createdAt) !== dayKey(row.createdAt)}
+						<div data-ui="day-separator">
+							<span>{formatDay(row.createdAt)}</span>
+						</div>
+					{/if}
+					<MessageGroupView
+						group={row}
+						groupedBefore={row.groupedBefore}
+						groupedAfter={row.groupedAfter}
+						{agentName}
+						{expandReasoning}
+						{collapseToken}
+						{matched}
+						onReadAttachment={(id) => store.readAttachment(id)}
+						onRevealAttachment={(id) => store.revealAttachment(id)}
+						projectPath={currentSession?.projectPath}
+						activity={activity.streaming &&
+						row.sourceMessageId === lastMessageId &&
+						row.activityTarget
+							? activity
+							: undefined}
+					/>
 				</div>
-			{/if}
-			<MessageGroupView
-				{group}
-				{agentName}
-				{expandReasoning}
-				{collapseToken}
-				{matched}
-				onReadAttachment={(id) => store.readAttachment(id)}
-				onRevealAttachment={(id) => store.revealAttachment(id)}
-				projectPath={currentSession?.projectPath}
-				activity={activity.streaming &&
-				group.messages.at(-1)?.id === lastMessageId
-					? activity
-					: undefined}
-			/>
-		{/each}
+			{/each}
+		</div>
 		<div data-ui="scroll-anchor" bind:this={scrollAnchor}></div>
 	</div>
 </ScrollPanel>

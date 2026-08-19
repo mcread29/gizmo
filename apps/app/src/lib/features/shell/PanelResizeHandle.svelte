@@ -12,10 +12,8 @@
 
 	let { side, size, max, onResize, onReset }: Props = $props();
 	let removeDragListeners: (() => void) | undefined;
-	let resizeFrame: number | undefined;
 	let previewSize: number | undefined;
-	let handle: HTMLElement | undefined;
-	let dragStartSize = 0;
+	let shell: HTMLElement | undefined;
 	let panel: PanelName = $derived(side === 'left' ? 'sidebar' : 'inspector');
 	let min = $derived(panelWidthLimits[panel].min);
 	let label = $derived(side === 'left' ? 'thread sidebar' : 'editor inspector');
@@ -29,13 +27,16 @@
 		event.preventDefault();
 		finishDrag(false);
 		const startX = event.clientX;
-		dragStartSize = size;
-		handle = event.currentTarget as HTMLElement;
+		const startSize = size;
+		shell =
+			(event.currentTarget as HTMLElement).closest<HTMLElement>(
+				'[data-ui="app-shell"]',
+			) ?? undefined;
 		document.body.dataset.resizing = 'sidebar';
 
 		const move = (moveEvent: PointerEvent) => {
 			const delta = moveEvent.clientX - startX;
-			queuePreview(clamp(dragStartSize + (side === 'left' ? delta : -delta)));
+			applyPreview(clamp(startSize + (side === 'left' ? delta : -delta)));
 		};
 		const stop = () => finishDrag(true);
 		removeDragListeners = () => {
@@ -48,36 +49,22 @@
 		window.addEventListener('pointercancel', stop, { once: true });
 	}
 
-	function queuePreview(nextSize: number) {
+	function applyPreview(nextSize: number) {
 		if (nextSize === previewSize) return;
 		previewSize = nextSize;
-		if (resizeFrame !== undefined) return;
-		resizeFrame = requestAnimationFrame(() => {
-			resizeFrame = undefined;
-			applyPreview();
-		});
-	}
-
-	function applyPreview() {
-		if (previewSize === undefined) return;
-		const offset =
-			side === 'left'
-				? previewSize - dragStartSize
-				: dragStartSize - previewSize;
-		handle?.style.setProperty('transform', `translate3d(${offset}px, 0, 0)`);
+		shell?.style.setProperty(`--${panel}-width`, `${nextSize}px`);
 	}
 
 	function finishDrag(commit: boolean) {
 		removeDragListeners?.();
 		removeDragListeners = undefined;
-		if (resizeFrame !== undefined) cancelAnimationFrame(resizeFrame);
-		resizeFrame = undefined;
 		if (commit && previewSize !== undefined) {
 			if (previewSize !== size) onResize(previewSize);
+		} else if (previewSize !== undefined) {
+			shell?.style.setProperty(`--${panel}-width`, `${size}px`);
 		}
-		handle?.style.removeProperty('transform');
 		previewSize = undefined;
-		handle = undefined;
+		shell = undefined;
 		delete document.body.dataset.resizing;
 	}
 

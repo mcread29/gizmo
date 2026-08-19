@@ -25,6 +25,8 @@
 		matched?: ReadonlySet<string>;
 		onReadAttachment?: (id: string) => Promise<AttachmentContent>;
 		onRevealAttachment?: (id: string) => Promise<void>;
+		groupedBefore?: boolean;
+		groupedAfter?: boolean;
 	}
 
 	let {
@@ -39,6 +41,8 @@
 			throw new Error('Attachment is unavailable');
 		},
 		onRevealAttachment = async () => {},
+		groupedBefore = false,
+		groupedAfter = false,
 	}: Props = $props();
 
 	let copied = $state(false);
@@ -56,29 +60,38 @@
 	}
 </script>
 
-<article data-ui="message" data-role={group.role}>
+<article
+	data-ui="message"
+	data-role={group.role}
+	data-grouped-before={groupedBefore || undefined}
+	data-grouped-after={groupedAfter || undefined}
+>
 	<div data-ui="avatar">
-		{#if group.role === 'user'}<User size={15} />{:else}<Bot size={15} />{/if}
+		{#if !groupedBefore}
+			{#if group.role === 'user'}<User size={15} />{:else}<Bot size={15} />{/if}
+		{/if}
 	</div>
 	<div data-ui="message-body">
-		<div data-ui="message-meta">
-			<strong>{group.role === 'user' ? 'You' : agentName}</strong>
-			<span>{formatMessageTime(group.createdAt)}</span>
-			{#if group.role === 'user'}
-				<div data-ui="message-actions">
-					{#if hasContent}
-						<Button
-							variant="ghost"
-							size="sm"
-							aria-label="Copy message"
-							onclick={copyGroup}
-						>
-							{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy{/if}
-						</Button>
-					{/if}
-				</div>
-			{/if}
-		</div>
+		{#if !groupedBefore}
+			<div data-ui="message-meta">
+				<strong>{group.role === 'user' ? 'You' : agentName}</strong>
+				<span>{formatMessageTime(group.createdAt)}</span>
+				{#if group.role === 'user'}
+					<div data-ui="message-actions">
+						{#if hasContent}
+							<Button
+								variant="ghost"
+								size="sm"
+								aria-label="Copy message"
+								onclick={copyGroup}
+							>
+								{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy{/if}
+							</Button>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		{#each group.messages as message (message.id)}
 			<div
@@ -118,6 +131,7 @@
 						{tool}
 						{projectPath}
 						{collapseToken}
+						active={Boolean(activity && tool.status === 'running')}
 						matched={matched?.has(tool.id)}
 					/>
 				{/each}

@@ -23,11 +23,23 @@ const markdown = new Marked({
 	renderer,
 });
 
-export function renderMarkdown(source: string): string {
+const completedCache = new Map<string, string>();
+const completedCacheLimit = 100;
+
+export function renderMarkdown(source: string, cache = true): string {
+	const cached = cache ? completedCache.get(source) : undefined;
+	if (cached !== undefined) return cached;
 	const rendered = markdown.parse(source, { async: false });
-	return DOMPurify.sanitize(rendered, {
+	const sanitized = DOMPurify.sanitize(rendered, {
 		ADD_ATTR: ['target'],
 	});
+	if (cache) {
+		if (completedCache.size >= completedCacheLimit) {
+			completedCache.delete(completedCache.keys().next().value!);
+		}
+		completedCache.set(source, sanitized);
+	}
+	return sanitized;
 }
 
 function escapeHtml(value: string): string {

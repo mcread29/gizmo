@@ -263,7 +263,6 @@ describe('application shell', () => {
 		expect(
 			(await findAllByText('/projects/ThirdPersonSandbox')).length,
 		).toBeGreaterThan(0);
-		expect((await findAllByText('scene.validate')).length).toBeGreaterThan(0);
 		await waitFor(() =>
 			expect(
 				queryByRole('button', { name: 'Stop response' }),
@@ -484,9 +483,11 @@ describe('application shell', () => {
 		await fireEvent.click(getByRole('button', { name: 'Send message' }));
 		await findByText(/connected and ready for commands/);
 
-		// One block for the prompt and one for the whole reply, however many
-		// tool calls and message parts the reply is made of.
-		expect(container.querySelectorAll('[data-ui="message"]')).toHaveLength(2);
+		// One header for the prompt and one for the whole reply, however many
+		// virtual rows the reply's tool calls need.
+		expect(container.querySelectorAll('[data-ui="message-meta"]')).toHaveLength(
+			2,
+		);
 		expect(
 			container.querySelectorAll('[data-ui="tool-call"]').length,
 		).toBeGreaterThan(1);

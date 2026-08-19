@@ -11,7 +11,7 @@
 	let displayedContent = $state('');
 	let pendingContent = '';
 	let timer: ReturnType<typeof setTimeout> | undefined;
-	let html = $derived(renderMarkdown(displayedContent));
+	let html = $derived(renderMarkdown(displayedContent, !streaming));
 
 	$effect(() => {
 		pendingContent = content;

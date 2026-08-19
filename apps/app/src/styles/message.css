@@ -1,10 +1,20 @@
 [data-ui='message'] {
-	content-visibility: auto;
-	contain-intrinsic-size: auto 160px;
 	display: grid;
 	grid-template-columns: 30px minmax(0, 1fr);
 	gap: var(--space-3);
 	margin-bottom: var(--space-8);
+}
+
+[data-ui='message'][data-grouped-after] {
+	margin-bottom: var(--space-2);
+}
+
+[data-ui='message'][data-grouped-before] [data-ui='avatar'] {
+	visibility: hidden;
+}
+
+[data-ui='message'][data-grouped-before] [data-ui='message-body'] {
+	padding-top: 0;
 }
 
 [data-ui='avatar'] {
@@ -212,10 +222,17 @@
 	margin-left: 0;
 }
 
-[data-ui='earlier-messages'] {
-	display: flex;
-	justify-content: center;
-	margin-bottom: var(--space-6);
+[data-ui='virtual-message'] {
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: flow-root;
+	width: 100%;
+}
+
+[data-ui='virtual-canvas'] {
+	position: relative;
+	width: 100%;
 }
 
 [data-ui='message']:hover [data-ui='message-actions'],

@@ -1,12 +1,12 @@
 import type { ConversationMessage } from '@unity-agent/protocol';
-import { fireEvent, render } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import type { AgentStore } from '../../agent-client';
 import MessageList from './MessageList.svelte';
 
 describe('MessageList', () => {
-	it('mounts recent history first and expands older messages on demand', async () => {
-		const messages = Array.from({ length: 65 }, (_, index) => message(index));
+	it('mounts only a viewport-sized window from a long transcript', async () => {
+		const messages = Array.from({ length: 100 }, (_, index) => message(index));
 		const store = {
 			messages,
 			messagesLoading: false,
@@ -17,27 +17,26 @@ describe('MessageList', () => {
 			},
 			revealAttachment: async () => {},
 		} as unknown as AgentStore;
-		const { container, getByRole } = render(MessageList, {
+		const { container, findByText } = render(MessageList, {
 			store,
 			agentName: 'Gizmo',
 			autoFollowOutput: false,
 			expandReasoning: false,
 		});
 
-		expect(container.querySelectorAll('[data-ui="message"]')).toHaveLength(60);
-		await fireEvent.click(
-			getByRole('button', { name: 'Show 5 earlier messages' }),
-		);
-		expect(container.querySelectorAll('[data-ui="message"]')).toHaveLength(65);
+		expect(
+			container.querySelectorAll('[data-ui="message"]').length,
+		).toBeLessThan(20);
+		expect(await findByText('Message 99')).toBeInTheDocument();
 	});
 });
 
 function message(index: number): ConversationMessage {
 	return {
 		id: `message-${index}`,
-		role: index % 2 === 0 ? 'user' : 'assistant',
+		role: 'assistant',
 		content: `Message ${index}`,
-		createdAt: index * 10 * 60_000,
+		createdAt: index * 1_000,
 		complete: true,
 		tools: [],
 	};

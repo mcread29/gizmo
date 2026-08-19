@@ -10,12 +10,17 @@
 	let {
 		children,
 		name,
+		viewport = $bindable(null),
 		...rest
-	}: ScrollArea.RootProps & { children: Snippet; name?: string } = $props();
+	}: ScrollArea.RootProps & {
+		children: Snippet;
+		name?: string;
+		viewport?: HTMLElement | null;
+	} = $props();
 </script>
 
 <ScrollArea.Root {...rest} data-ui="scroll-area" data-scroll={name}>
-	<ScrollArea.Viewport data-ui="scroll-viewport"
+	<ScrollArea.Viewport bind:ref={viewport} data-ui="scroll-viewport"
 		>{@render children()}</ScrollArea.Viewport
 	>
 	<ScrollArea.Scrollbar data-ui="scrollbar" orientation="vertical">

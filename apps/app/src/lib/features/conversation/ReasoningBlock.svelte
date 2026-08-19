@@ -33,9 +33,11 @@
 			<Brain size={13} />
 			<span>Reasoning</span>
 		</summary>
-		<div data-ui="reasoning-content">
-			<MarkdownContent content={reasoning} {streaming} />
-		</div>
+		{#if open}
+			<div data-ui="reasoning-content">
+				<MarkdownContent content={reasoning} {streaming} />
+			</div>
+		{/if}
 	</details>
 {:else if redacted}
 	<p data-ui="reasoning-withheld">

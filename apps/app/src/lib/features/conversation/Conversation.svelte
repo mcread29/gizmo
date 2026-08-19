@@ -11,7 +11,6 @@
 	import ConversationError from './ConversationError.svelte';
 	import MessageList from './MessageList.svelte';
 	import TranscriptSearch from './TranscriptSearch.svelte';
-	import { scrollIntoEnd } from './follow';
 	import { findMatches, stepIndex } from './transcript-search';
 
 	interface Props {
@@ -49,6 +48,7 @@
 	let matchIndex = $state(0);
 	let focusSearch = $state<() => void>();
 	let collapseToken = $state(0);
+	let revealMessage = $state<(id: string) => Promise<void>>();
 
 	let matches = $derived(findMatches(store.messages, query));
 
@@ -71,11 +71,7 @@
 	function revealMatch() {
 		const id = matches.ids[matchIndex];
 		if (!id) return;
-		scrollIntoEnd(
-			document.querySelector(`[data-context-id="${id}"]`),
-			'smooth',
-			'center',
-		);
+		void revealMessage?.(id);
 	}
 
 	function closeSearch() {
@@ -153,6 +149,7 @@
 		{currentSession}
 		{collapseToken}
 		matched={matches.set}
+		bind:reveal={revealMessage}
 		autoFollowOutput={layout.autoFollowOutput}
 		expandReasoning={layout.expandReasoning}
 	/>

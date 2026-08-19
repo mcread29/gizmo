@@ -10,6 +10,56 @@ globalThis.ResizeObserver = ResizeObserverMock;
 globalThis.requestAnimationFrame = (callback) => window.setTimeout(callback, 0);
 globalThis.cancelAnimationFrame = (handle) => window.clearTimeout(handle);
 
+const getBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+HTMLElement.prototype.getBoundingClientRect = function () {
+	const rect = getBoundingClientRect.call(this);
+	if (this.dataset.ui !== 'scroll-viewport') return rect;
+	return {
+		...rect,
+		bottom: 800,
+		height: 800,
+		right: 800,
+		toJSON: () => ({}),
+		width: 800,
+	};
+};
+
+HTMLElement.prototype.scrollTo = function (
+	optionsOrX?: ScrollToOptions | number,
+	y?: number,
+) {
+	this.scrollTop =
+		typeof optionsOrX === 'number'
+			? (y ?? 0)
+			: (optionsOrX?.top ?? this.scrollTop);
+	this.dispatchEvent(new Event('scroll'));
+};
+
+Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+	configurable: true,
+	get() {
+		return this.dataset.ui === 'virtual-message' ? 220 : 0;
+	},
+});
+
+Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+	configurable: true,
+	get() {
+		return this.dataset.ui === 'scroll-viewport' ? 800 : 0;
+	},
+});
+
+Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
+	configurable: true,
+	get() {
+		if (this.dataset.ui !== 'scroll-viewport') return 0;
+		const canvas = this.querySelector(
+			'[data-ui="virtual-canvas"]',
+		) as HTMLElement | null;
+		return Number.parseFloat(canvas?.style.height ?? '0');
+	},
+});
+
 /*
  * Node exposes a `localStorage` global that is undefined unless the process was
  * started with --localstorage-file, and it shadows jsdom's. Install a minimal

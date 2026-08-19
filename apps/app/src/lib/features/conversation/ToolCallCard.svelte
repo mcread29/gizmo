@@ -24,9 +24,12 @@
 		collapseToken?: number;
 		/** Marks this call as a search hit. */
 		matched?: boolean;
+		/** This is the tool currently running in the active turn. */
+		active?: boolean;
 	}
 
-	let { tool, projectPath, collapseToken, matched }: Props = $props();
+	let { tool, projectPath, collapseToken, matched, active = false }: Props =
+		$props();
 	let open = $state(false);
 	let copied = $state(false);
 	/** Once the user has expressed a preference, status changes stop overriding it. */
@@ -47,9 +50,9 @@
 	);
 
 	$effect(() => {
-		const status = tool.status;
+		active;
 		if (pinned) return;
-		open = status === 'running' || status === 'error';
+		open = active;
 	});
 
 	// An explicit collapse overrides whatever the user had pinned open. The
@@ -88,7 +91,14 @@
 	data-matched={matched || undefined}
 	bind:open
 >
-	<summary data-ui="tool-header" onclick={() => (pinned = true)}>
+	<summary
+		data-ui="tool-header"
+		onclick={(event) => {
+			event.preventDefault();
+			pinned = true;
+			open = !open;
+		}}
+	>
 		{#if toolIcon(tool.name) === 'unity'}
 			<PlugZap size={15} />
 		{:else if toolIcon(tool.name) === 'file'}
@@ -109,27 +119,29 @@
 		{/if}
 	</summary>
 
-	<div data-ui="tool-content">
-		<ToolResult {tool} {projectPath} {consoleEntries} {errors} />
+	{#if open}
+		<div data-ui="tool-content">
+			<ToolResult {tool} {projectPath} {consoleEntries} {errors} />
 
-		{#if errors.length}
-			<div data-ui="tool-errors">
-				<CompilerDiagnosticList {errors} {projectPath} />
-			</div>
-		{/if}
+			{#if errors.length}
+				<div data-ui="tool-errors">
+					<CompilerDiagnosticList {errors} {projectPath} />
+				</div>
+			{/if}
 
-		{#if consoleEntries.length}
-			<div data-ui="tool-diagnostics">
-				<CompilerDiagnosticList errors={consoleEntries} {projectPath} />
-			</div>
-		{/if}
+			{#if consoleEntries.length}
+				<div data-ui="tool-diagnostics">
+					<CompilerDiagnosticList errors={consoleEntries} {projectPath} />
+				</div>
+			{/if}
 
-		{#if resultText}
-			<div data-ui="tool-actions">
-				<Button variant="ghost" size="sm" onclick={copyResult}>
-					{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy output{/if}
-				</Button>
-			</div>
-		{/if}
-	</div>
+			{#if resultText}
+				<div data-ui="tool-actions">
+					<Button variant="ghost" size="sm" onclick={copyResult}>
+						{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy output{/if}
+					</Button>
+				</div>
+			{/if}
+		</div>
+	{/if}
 </details>
