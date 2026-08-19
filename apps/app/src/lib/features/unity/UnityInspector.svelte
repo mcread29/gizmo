@@ -43,15 +43,21 @@
 		variant="inspector"
 		lazy
 		items={[
-			{ value: 'editor', label: 'Editor' },
-			{ value: 'changes', label: 'Changes', badge: changeCount },
+			{ value: 'editor', label: 'Editor', shortLabel: 'Status' },
+			{
+				value: 'changes',
+				label: 'Changes',
+				shortLabel: 'Files',
+				badge: changeCount,
+			},
 			{
 				value: 'console',
 				label: 'Console',
+				shortLabel: 'Logs',
 				badge: errorCount,
 				badgeTone: 'danger',
 			},
-			{ value: 'activity', label: 'Activity' },
+			{ value: 'activity', label: 'Activity', shortLabel: 'Runs' },
 		]}
 		bind:value={inspectorTab}
 	>

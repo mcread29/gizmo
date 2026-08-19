@@ -5,7 +5,12 @@
 	import { Button, Tabs, Tooltip } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import { sourceHref } from './compiler-diagnostics';
-	import { consoleLine, matchesConsoleFilter } from './console-log';
+	import {
+		consoleLine,
+		consoleSourceLabel,
+		consoleTimeLabel,
+		matchesConsoleFilter,
+	} from './console-log';
 
 	interface Props {
 		store: AgentStore;
@@ -50,13 +55,25 @@
 </script>
 
 <div data-ui="console-panel">
+	<div data-ui="console-filter">
+		<Search size={13} />
+		<label for="console-filter" data-ui="sr-only">Filter console</label>
+		<input
+			id="console-filter"
+			bind:value={filter}
+			type="search"
+			placeholder="Filter messages or files"
+			autocomplete="off"
+		/>
+	</div>
+
 	<div data-ui="console-toolbar">
 		<Tabs
 			variant="filter"
 			items={[
-				{ value: 'all', label: 'All' },
-				{ value: 'warn', label: 'Warnings' },
-				{ value: 'error', label: 'Errors' },
+				{ value: 'all', label: 'All', shortLabel: 'All' },
+				{ value: 'warn', label: 'Warnings', shortLabel: 'Warn' },
+				{ value: 'error', label: 'Errors', shortLabel: 'Error' },
 			]}
 			bind:value={level}
 		>
@@ -103,18 +120,6 @@
 		</div>
 	</div>
 
-	<div data-ui="console-filter">
-		<Search size={13} />
-		<label for="console-filter" data-ui="sr-only">Filter console</label>
-		<input
-			id="console-filter"
-			bind:value={filter}
-			type="search"
-			placeholder="Filter"
-			autocomplete="off"
-		/>
-	</div>
-
 	{#if entries.length === 0}
 		<div data-ui="empty-state">
 			<Terminal size={22} /><strong>
@@ -139,20 +144,24 @@
 		>
 			{#each entries as entry, index (entry.seq ?? index)}
 				<div data-ui="console-entry" data-level={entry.level}>
-					<p>
-						{#if entry.timestamp}<time data-ui="console-time"
-								>{entry.timestamp}</time
-							>{/if}{entry.message}
-					</p>
+					<div data-ui="console-entry-meta">
+						<span data-ui="console-level">{entry.level}</span>
+						{#if entry.timestamp}<time
+								data-ui="console-time"
+								title={entry.timestamp}>{consoleTimeLabel(entry.timestamp)}</time
+							>{/if}
+					</div>
+					<p>{entry.message}</p>
 					{#if entry.file}
 						<a
 							data-ui="compiler-location"
+							title={entry.file}
 							href={sourceHref(
 								entry.file,
 								projectPath,
 								entry.line,
 								entry.column,
-							)}>{entry.file}{entry.line ? `:${entry.line}` : ''}</a
+							)}>{consoleSourceLabel(entry.file, entry.line)}</a
 						>
 					{/if}
 				</div>

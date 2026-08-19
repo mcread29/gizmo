@@ -244,14 +244,14 @@
 	gap: var(--space-2);
 	padding: 0 var(--space-2);
 	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
+	border-radius: var(--radius-sm);
 	background: var(--color-surface-raised);
 	color: var(--color-text-faint);
 }
 
 [data-ui='console-filter'] input {
 	width: 100%;
-	height: 26px;
+	height: 30px;
 	padding: 0;
 	border: 0;
 	outline: none;
@@ -265,9 +265,26 @@
 	box-shadow: var(--focus-ring);
 }
 
+[data-ui='console-entry-meta'] {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	min-width: 0;
+}
+
 [data-ui='console-time'] {
-	margin-right: var(--space-2);
 	color: var(--color-text-faint);
+	font: 9px / 1 var(--font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+[data-ui='console-level'] {
+	color: var(--color-text-faint);
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
 }
 
 [data-ui='console-log'] {
@@ -283,8 +300,8 @@
 
 [data-ui='console-entry'] {
 	display: grid;
-	gap: 2px;
-	padding: 6px var(--space-2);
+	gap: 5px;
+	padding: 8px var(--space-2);
 	border-bottom: 1px solid var(--color-border);
 	border-left: 2px solid transparent;
 }
@@ -295,7 +312,7 @@
 
 [data-ui='console-entry'] p {
 	color: var(--color-text-muted);
-	font: var(--text-2xs) / 1.45 var(--font-mono);
+	font: var(--text-2xs) / 1.5 var(--font-mono);
 	overflow-wrap: anywhere;
 }
 
@@ -307,6 +324,10 @@
 	color: var(--color-warning);
 }
 
+[data-ui='console-entry'][data-level='warn'] [data-ui='console-level'] {
+	color: var(--color-warning);
+}
+
 [data-ui='console-entry'][data-level='error'] {
 	border-left-color: var(--color-danger);
 	background: var(--color-danger-soft);
@@ -314,4 +335,31 @@
 
 [data-ui='console-entry'][data-level='error'] p {
 	color: var(--color-danger);
+}
+
+[data-ui='console-entry'][data-level='error'] [data-ui='console-level'] {
+	color: var(--color-danger);
+}
+
+@container inspector (max-width: 280px) {
+	[data-ui='git-summary'] {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	[data-ui='git-actions'] {
+		justify-content: space-between;
+	}
+
+	[data-ui='change-actions'] {
+		flex-wrap: wrap;
+	}
+
+	[data-ui='tabs'][data-variant='filter'] > [data-ui='tabs-list'] {
+		gap: var(--space-2);
+	}
+
+	[data-ui='console-actions'] {
+		gap: 0;
+	}
 }

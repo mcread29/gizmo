@@ -23,3 +23,13 @@ export function consoleLine(entry: UnityConsoleEntry): string {
 export function consoleErrorCount(entries: UnityConsoleEntry[]): number {
 	return entries.filter((entry) => entry.level === 'error').length;
 }
+
+export function consoleTimeLabel(timestamp: string): string {
+	return timestamp.match(/T(\d{2}:\d{2}:\d{2})/)?.[1] ?? timestamp;
+}
+
+export function consoleSourceLabel(file: string, line?: number): string {
+	const parts = file.split(/[\\/]/).filter(Boolean);
+	const path = parts.slice(-2).join('/') || file;
+	return line ? `${path}:${line}` : path;
+}

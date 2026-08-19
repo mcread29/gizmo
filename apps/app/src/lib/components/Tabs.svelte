@@ -5,6 +5,8 @@
 	export interface TabItem {
 		value: string;
 		label: string;
+		/** A space-saving label used when the tab container is narrow. */
+		shortLabel?: string;
 		/** Rendered as a pill beside the label; omitted when zero. */
 		badge?: number;
 		badgeTone?: 'accent' | 'danger';
@@ -37,7 +39,10 @@
 	<Tabs.List data-ui="tabs-list">
 		{#each items as item}
 			<Tabs.Trigger data-ui="tabs-trigger" value={item.value}>
-				{item.label}{#if item.badge}<span
+				<span data-ui="tabs-label">{item.label}</span>
+				{#if item.shortLabel}<span data-ui="tabs-label-short"
+						>{item.shortLabel}</span
+					>{/if}{#if item.badge}<span
 						data-ui="tabs-badge"
 						data-tone={item.badgeTone ?? 'accent'}>{item.badge}</span
 					>{/if}
