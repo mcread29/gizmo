@@ -45,4 +45,27 @@ describe('PanelResizeHandle', () => {
 
 		expect(onResize).toHaveBeenCalledWith(280);
 	});
+
+	it('commits pointer resizing once when the drag ends', async () => {
+		const onResize = vi.fn();
+		const { getByRole } = render(PanelResizeHandle, {
+			side: 'left',
+			size: 248,
+			max: 420,
+			onResize,
+			onReset: () => {},
+		});
+		const handle = getByRole('slider', {
+			name: 'Resize thread sidebar',
+		});
+
+		await fireEvent.pointerDown(handle, { button: 0, clientX: 200 });
+		await fireEvent.pointerMove(window, { clientX: 240 });
+		await fireEvent.pointerMove(window, { clientX: 260 });
+
+		expect(onResize).not.toHaveBeenCalled();
+		await fireEvent.pointerUp(window);
+		expect(onResize).toHaveBeenCalledOnce();
+		expect(onResize).toHaveBeenCalledWith(308);
+	});
 });

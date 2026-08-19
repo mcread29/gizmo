@@ -15,12 +15,22 @@
 		items,
 		children,
 		variant = 'default',
+		lazy = false,
 	}: {
 		value?: string;
 		items: TabItem[];
 		children: Snippet<[string]>;
 		variant?: 'default' | 'inspector' | 'filter';
+		/** Defer each panel until its first selection, then preserve its state. */
+		lazy?: boolean;
 	} = $props();
+
+	let mounted = $state(new Set(value ? [value] : []));
+
+	$effect(() => {
+		if (!lazy || !value || mounted.has(value)) return;
+		mounted = new Set([...mounted, value]);
+	});
 </script>
 
 <Tabs.Root bind:value data-ui="tabs" data-variant={variant}>
@@ -35,8 +45,8 @@
 		{/each}
 	</Tabs.List>
 	{#each items as item}
-		<Tabs.Content data-ui="tabs-content" value={item.value}
-			>{@render children(item.value)}</Tabs.Content
-		>
+		<Tabs.Content data-ui="tabs-content" value={item.value}>
+			{#if !lazy || mounted.has(item.value)}{@render children(item.value)}{/if}
+		</Tabs.Content>
 	{/each}
 </Tabs.Root>

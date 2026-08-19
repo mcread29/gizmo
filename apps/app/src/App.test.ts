@@ -429,7 +429,7 @@ describe('application shell', () => {
 	});
 
 	it('collects the files the agent edited into the Changes tab', async () => {
-		const { findByRole, getByRole } = renderApp();
+		const { container, findByRole, getByRole } = renderApp();
 		const composer = getByRole('textbox', { name: 'Message Unity Agent' });
 		await fireEvent.input(composer, {
 			target: { value: 'Speed the player up' },
@@ -445,6 +445,7 @@ describe('application shell', () => {
 				changesTab.querySelector('[data-ui="tabs-badge"]'),
 			).toHaveTextContent('1'),
 		);
+		expect(container.querySelector('[data-ui="change-list"]')).toBeNull();
 		await fireEvent.click(changesTab);
 
 		expect(

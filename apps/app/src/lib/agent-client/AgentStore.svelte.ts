@@ -253,7 +253,6 @@ export class AgentStore {
 		if (projectPath) {
 			this.selectedProjectPath = projectPath;
 			this.projectStatus = undefined;
-			await this.refreshProjectStatus();
 		}
 		this.sessionId = undefined;
 		this.messages = [];
@@ -278,8 +277,10 @@ export class AgentStore {
 				lastActiveAt: now,
 				messageCount: 0,
 			});
-			await this.refreshModelCatalog();
-			await this.#watchSelectedProject();
+			await Promise.all([
+				this.refreshModelCatalog(),
+				this.#watchSelectedProject(),
+			]);
 		} catch (error) {
 			this.#restoreSelection(previous);
 			this.#fail('session', error);
@@ -302,14 +303,16 @@ export class AgentStore {
 		try {
 			const snapshot = await this.#client.resumeSession(sessionId);
 			this.messages = snapshot.messages;
+			this.messagesLoading = false;
 			Object.assign(session, snapshot.session);
 			if (session.projectPath !== this.selectedProjectPath) {
 				this.selectedProjectPath = session.projectPath;
 				this.projectStatus = undefined;
-				await this.refreshProjectStatus();
 			}
-			await this.refreshModelCatalog();
-			await this.#watchSelectedProject();
+			await Promise.all([
+				this.refreshModelCatalog(),
+				this.#watchSelectedProject(),
+			]);
 		} catch (error) {
 			this.#restoreSelection(previous);
 			this.#fail('session', error);

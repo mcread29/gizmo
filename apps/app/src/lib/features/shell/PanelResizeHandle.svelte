@@ -11,7 +11,10 @@
 	}
 
 	let { side, size, max, onResize, onReset }: Props = $props();
-	let stopDragging: (() => void) | undefined;
+	let removeDragListeners: (() => void) | undefined;
+	let resizeFrame: number | undefined;
+	let previewSize: number | undefined;
+	let shell: HTMLElement | undefined;
 	let panel: PanelName = $derived(side === 'left' ? 'sidebar' : 'inspector');
 	let min = $derived(panelWidthLimits[panel].min);
 	let label = $derived(side === 'left' ? 'thread sidebar' : 'editor inspector');
@@ -23,26 +26,59 @@
 	function beginDrag(event: PointerEvent) {
 		if (event.button !== 0) return;
 		event.preventDefault();
-		stopDragging?.();
+		finishDrag(false);
 		const startX = event.clientX;
 		const startSize = size;
+		shell =
+			(event.currentTarget as HTMLElement).closest<HTMLElement>(
+				'[data-ui="app-shell"]',
+			) ?? undefined;
 		document.body.dataset.resizing = 'sidebar';
 
 		const move = (moveEvent: PointerEvent) => {
 			const delta = moveEvent.clientX - startX;
-			onResize(clamp(startSize + (side === 'left' ? delta : -delta)));
+			queuePreview(clamp(startSize + (side === 'left' ? delta : -delta)));
 		};
-		const stop = () => {
+		const stop = () => finishDrag(true);
+		removeDragListeners = () => {
 			window.removeEventListener('pointermove', move);
 			window.removeEventListener('pointerup', stop);
 			window.removeEventListener('pointercancel', stop);
-			delete document.body.dataset.resizing;
-			stopDragging = undefined;
 		};
-		stopDragging = stop;
 		window.addEventListener('pointermove', move);
 		window.addEventListener('pointerup', stop, { once: true });
 		window.addEventListener('pointercancel', stop, { once: true });
+	}
+
+	function queuePreview(nextSize: number) {
+		if (nextSize === previewSize) return;
+		previewSize = nextSize;
+		if (resizeFrame !== undefined) return;
+		resizeFrame = requestAnimationFrame(() => {
+			resizeFrame = undefined;
+			applyPreview();
+		});
+	}
+
+	function applyPreview() {
+		if (previewSize === undefined) return;
+		shell?.style.setProperty(`--${panel}-width`, `${previewSize}px`);
+	}
+
+	function finishDrag(commit: boolean) {
+		removeDragListeners?.();
+		removeDragListeners = undefined;
+		if (resizeFrame !== undefined) cancelAnimationFrame(resizeFrame);
+		resizeFrame = undefined;
+		if (commit && previewSize !== undefined) {
+			applyPreview();
+			if (previewSize !== size) onResize(previewSize);
+		} else if (previewSize !== undefined) {
+			shell?.style.setProperty(`--${panel}-width`, `${size}px`);
+		}
+		previewSize = undefined;
+		shell = undefined;
+		delete document.body.dataset.resizing;
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
@@ -62,7 +98,7 @@
 		onResize(clamp(size + (side === 'left' ? screenDelta : -screenDelta)));
 	}
 
-	onDestroy(() => stopDragging?.());
+	onDestroy(() => finishDrag(false));
 </script>
 
 <div

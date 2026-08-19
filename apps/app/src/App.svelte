@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { AgentIdentity } from '@unity-agent/protocol';
 	import { Tooltip } from 'bits-ui';
-	import { onMount, untrack } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import {
 		AgentStore,
 		WebSocketAgentClient,
@@ -55,6 +55,8 @@
 	let focusComposer = $state<() => void>();
 	let findInThread = $state<() => void>();
 	let focusThreadSearch = $state<() => void>();
+	let settingsSaveTimer: ReturnType<typeof setTimeout> | undefined;
+	let pendingSettings = layout.settings;
 
 	let currentSession = $derived(
 		store.sessions.find((session) => session.id === store.sessionId),
@@ -84,13 +86,29 @@
 
 	$effect(() => {
 		document.documentElement.dataset.theme = layout.theme;
-		saveAppSettings(layout.settings);
+	});
+
+	$effect(() => {
 		store.compactionPolicy = {
 			enabled: layout.autoCompact,
 			fillPercent: layout.autoCompactFillPercent,
 			retainPercent: layout.compactionRetainPercent,
 		};
 	});
+
+	$effect(() => {
+		pendingSettings = layout.settings;
+		clearTimeout(settingsSaveTimer);
+		settingsSaveTimer = setTimeout(flushSettings, 150);
+	});
+
+	function flushSettings() {
+		clearTimeout(settingsSaveTimer);
+		settingsSaveTimer = undefined;
+		saveAppSettings(pendingSettings);
+	}
+
+	onDestroy(flushSettings);
 
 	function onKeydown(event: KeyboardEvent) {
 		handleShortcut(event, {

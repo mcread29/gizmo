@@ -35,19 +35,32 @@
 	let selectedId = $state<string>();
 	let editing = $state<{ id: string; parentId: string | null; text: string }>();
 	let labelling = $state<{ id: string; text: string }>();
+	let loadedRevision = '';
+	let loadedSessionId: string | undefined;
+	let treeRevision = $derived(
+		`${store.sessionId ?? ''}:${store.sessions.find((session) => session.id === store.sessionId)?.messageCount ?? 0}`,
+	);
 
-	// Reloaded on every open: the thread has usually moved on since last time.
 	$effect(() => {
-		if (open) void reload();
+		if (open && treeRevision !== loadedRevision) void reload(treeRevision);
 	});
 
-	async function reload() {
+	async function reload(revision = treeRevision) {
 		loading = true;
 		try {
-			tree = await store.loadTree();
-			selectedId ??= tree?.leafId ?? undefined;
+			const result = await store.loadTree();
+			if (revision !== treeRevision) return;
+			tree = result;
+			if (result) {
+				loadedRevision = revision;
+				selectedId =
+					loadedSessionId === store.sessionId
+						? (selectedId ?? result.leafId ?? undefined)
+						: (result.leafId ?? undefined);
+				loadedSessionId = store.sessionId;
+			}
 		} finally {
-			loading = false;
+			if (revision === treeRevision) loading = false;
 		}
 	}
 
@@ -68,8 +81,8 @@
 	/** Moves the thread's leaf, so the next prompt continues from here. */
 	async function goHere(entryId: string) {
 		if (!(await store.branchTo(entryId))) return;
+		loadedRevision = '';
 		toasts.show('Thread continues from this point', 'success');
-		await reload();
 		onClose();
 	}
 
@@ -82,6 +95,7 @@
 		const { parentId, text } = editing;
 		editing = undefined;
 		if (!(await store.branchTo(parentId))) return;
+		loadedRevision = '';
 		onClose();
 		await store.prompt(text);
 	}

@@ -28,6 +28,18 @@
 	--right-column: 0px;
 }
 
+/* Full-screen routes keep the titlebar but skip the covered workspace tree. */
+[data-ui='app-shell'][inert]
+	> :is(
+		[data-ui='sidebar'],
+		[data-ui='conversation'],
+		[data-ui='inspector'],
+		[data-ui='panel-resize-handle'],
+		[data-ui='drawer-scrim']
+	) {
+	display: none;
+}
+
 [data-ui='app-shell'][data-left-mode='docked'][data-left-visible='false']
 	[data-ui='sidebar'],
 [data-ui='app-shell'][data-right-mode='docked'][data-right-visible='false']

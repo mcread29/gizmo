@@ -41,6 +41,7 @@
 
 	<Tabs
 		variant="inspector"
+		lazy
 		items={[
 			{ value: 'editor', label: 'Editor' },
 			{ value: 'changes', label: 'Changes', badge: changeCount },

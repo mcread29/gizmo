@@ -1,4 +1,6 @@
 [data-ui='message'] {
+	content-visibility: auto;
+	contain-intrinsic-size: auto 160px;
 	display: grid;
 	grid-template-columns: 30px minmax(0, 1fr);
 	gap: var(--space-3);
