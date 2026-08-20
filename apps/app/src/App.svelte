@@ -188,6 +188,7 @@
 				{layout}
 				bind:focusSearch={focusThreadSearch}
 				onOpenProjectPicker={() => (sessions.projectPickerOpen = true)}
+				onManageProjects={() => (sessions.projectManagerOpen = true)}
 			/>
 			{#if layout.leftVisible && layout.leftMode === 'docked'}
 				<PanelResizeHandle

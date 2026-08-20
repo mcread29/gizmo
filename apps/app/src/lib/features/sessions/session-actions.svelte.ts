@@ -14,6 +14,7 @@ import {
  */
 export class SessionActions {
 	projectPickerOpen = $state(false);
+	projectManagerOpen = $state(false);
 	renameOpen = $state(false);
 	deleteOpen = $state(false);
 	renameDraft = $state('');

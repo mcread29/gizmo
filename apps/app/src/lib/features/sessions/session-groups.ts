@@ -5,6 +5,27 @@ export interface SessionGroup {
 	sessions: AgentSessionSummary[];
 }
 
+/** Groups projects alphabetically while preserving recent-first thread order. */
+export function groupSessionsByProject(
+	sessions: AgentSessionSummary[],
+	projectName: (projectPath: string | undefined) => string,
+): SessionGroup[] {
+	const groups = new Map<string, SessionGroup>();
+	for (const session of sessions) {
+		const path = session.workspacePath ?? session.projectPath;
+		const key = path ?? '';
+		const group = groups.get(key) ?? {
+			label: projectName(path),
+			sessions: [],
+		};
+		group.sessions.push(session);
+		groups.set(key, group);
+	}
+	return [...groups.values()].sort((left, right) =>
+		left.label.localeCompare(right.label),
+	);
+}
+
 /** Threads still named by the server placeholder read better as a fresh start. */
 export function threadTitle(title: string): string {
 	return title === 'New session' ? 'New thread' : title;

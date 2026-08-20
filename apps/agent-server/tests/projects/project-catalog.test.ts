@@ -31,6 +31,8 @@ describe('ProjectCatalog', () => {
 		expect(
 			JSON.parse(await readFile(join(data, 'projects.json'), 'utf8')),
 		).toHaveLength(1);
+		await catalog.remove(project);
+		expect(await catalog.list()).toEqual([]);
 	});
 });
 

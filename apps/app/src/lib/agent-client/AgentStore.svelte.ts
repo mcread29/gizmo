@@ -761,11 +761,7 @@ export class AgentStore {
 			this.connection !== 'connected' ||
 			!this.sessionId ||
 			!this.selectedProjectPath ||
-			(!this.activeDomains.includes('unity') &&
-				!this.projects.some(
-					({ path, domainId }) =>
-						path === this.selectedProjectPath && domainId === 'unity',
-				))
+			!this.activeDomains.includes('unity')
 		) {
 			this.projectStatus = undefined;
 			this.projectExtensions = [];

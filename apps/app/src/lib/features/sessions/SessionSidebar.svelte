@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { MessageSquare, Plus, Search } from '@lucide/svelte';
+	import { FolderCog, MessageSquare, Plus, Search } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel } from '../../components';
 	import ComponentGallery from '../../components/ComponentGallery.svelte';
@@ -7,7 +7,7 @@
 	import ConnectionStatus from './ConnectionStatus.svelte';
 	import {
 		formatSessionTime,
-		groupSessions,
+		groupSessionsByProject,
 		matchesQuery,
 		threadTitle,
 	} from './session-groups';
@@ -17,6 +17,7 @@
 		layout: WorkspaceLayout;
 		focusSearch?: () => void;
 		onOpenProjectPicker: () => void;
+		onManageProjects: () => void;
 	}
 
 	let {
@@ -24,6 +25,7 @@
 		layout,
 		focusSearch = $bindable(),
 		onOpenProjectPicker,
+		onManageProjects,
 	}: Props = $props();
 
 	let query = $state('');
@@ -36,7 +38,7 @@
 			matchesQuery(session, query, workspaceName),
 		),
 	);
-	let groups = $derived(groupSessions(matches));
+	let groups = $derived(groupSessionsByProject(matches, workspaceName));
 
 	function workspaceName(projectPath: string | undefined) {
 		return (
@@ -54,6 +56,13 @@
 >
 	<div data-ui="sidebar-header">
 		<span data-ui="eyebrow">Threads</span>
+		<Button
+			variant="ghost"
+			size="icon"
+			aria-label="Manage projects"
+			disabled={store.connection !== 'connected'}
+			onclick={onManageProjects}><FolderCog size={15} /></Button
+		>
 		<Button
 			variant="secondary"
 			size="sm"
@@ -92,7 +101,7 @@
 			{:else if matches.length === 0}
 				<p data-ui="sidebar-empty"><span>No threads match “{query}”.</span></p>
 			{/if}
-			{#each groups as group (group.label)}
+			{#each groups as group (group.sessions[0]?.workspacePath ?? group.sessions[0]?.projectPath ?? group.label)}
 				<div data-ui="section-label">
 					<span>{group.label}</span><span>{group.sessions.length}</span>
 				</div>
@@ -117,9 +126,7 @@
 						<span>
 							<strong>{threadTitle(session.title)}</strong>
 							<small title={session.workspacePath ?? session.projectPath}
-								>{workspaceName(session.workspacePath ?? session.projectPath)} · {formatSessionTime(
-									session.lastActiveAt,
-								)}</small
+								>{formatSessionTime(session.lastActiveAt)}</small
 							>
 						</span>
 					</button>

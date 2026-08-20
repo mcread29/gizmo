@@ -72,6 +72,11 @@ development accepts an absolute path. Stored projects appear in the dialog on
 later launches. The server announces the active domain ID with the
 session-created event.
 
+The project manager can change a stored project's domain or remove it from
+Gizmo. Removal does not touch project files or existing threads. The thread
+sidebar groups sessions by project, sorted by project name, while keeping each
+project's threads in most-recent-first order.
+
 ## Included domains
 
 ### Unity

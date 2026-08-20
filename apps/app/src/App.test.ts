@@ -226,7 +226,7 @@ describe('application shell', () => {
 	});
 
 	it('starts a thread from a workspace and exposes model controls', async () => {
-		const { findByRole, findByText, getByRole } = renderApp();
+		const { findAllByText, findByRole, getByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		expect(
 			await findByRole('button', { name: 'Thinking level' }),
@@ -238,7 +238,23 @@ describe('application shell', () => {
 		).toBeInTheDocument();
 		await fireEvent.click(getByRole('button', { name: /RenderingPlayground/ }));
 
-		expect(await findByText(/RenderingPlayground · Now/)).toBeInTheDocument();
+		expect((await findAllByText('RenderingPlayground')).length).toBeGreaterThan(
+			0,
+		);
+		expect((await findAllByText('Now')).length).toBeGreaterThan(0);
+	});
+
+	it('opens project management with persisted domain controls', async () => {
+		const { findByRole, getByRole } = renderApp();
+		await findByRole('button', { name: 'Model' });
+		await fireEvent.click(getByRole('button', { name: 'Manage projects' }));
+
+		expect(
+			await findByRole('dialog', { name: 'Projects' }),
+		).toBeInTheDocument();
+		expect(
+			getByRole('combobox', { name: 'Domain for ThirdPersonSandbox' }),
+		).toHaveValue('unity');
 	});
 
 	it('streams a fake agent response through the production UI state', async () => {

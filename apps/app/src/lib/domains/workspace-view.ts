@@ -6,12 +6,7 @@ export type ActiveWorkspaceView = WorkspaceView & { unity?: UnityView };
 
 export function createWorkspaceView(store: AgentStore): ActiveWorkspaceView {
 	const workspacePath = store.selectedProjectPath;
-	if (
-		store.activeDomains.includes('unity') ||
-		store.projects.some(
-			({ path, domainId }) => path === workspacePath && domainId === 'unity',
-		)
-	) {
+	if (store.activeDomains.includes('unity')) {
 		const unity = createUnityView({
 			messages: store.messages,
 			projects: store.projects,
