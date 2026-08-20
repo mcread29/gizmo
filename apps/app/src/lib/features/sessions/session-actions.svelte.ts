@@ -1,4 +1,5 @@
 import type { AgentStore } from '../../agent-client';
+import type { WorkspaceIntegration } from '@unity-agent/protocol';
 import { isDesktop, saveTextFile } from '../../desktop';
 import type { ToastQueue } from '../../toasts.svelte';
 import {
@@ -37,9 +38,29 @@ export class SessionActions {
 		this.#toasts = toasts;
 	}
 
-	async startThread(projectPath: string, domainId?: string): Promise<void> {
+	async startThread(): Promise<void> {
+		const projectPath = this.#store.selectedProjectPath;
+		if (!projectPath) {
+			this.projectPickerOpen = true;
+			return;
+		}
+		const integrations = this.#store.projects.find(
+			(project) => project.path === projectPath,
+		)?.integrations;
+		await this.#store.newSession(projectPath, integrations);
+	}
+
+	async openWorkspace(
+		projectPath: string,
+		integrations?: WorkspaceIntegration[],
+	): Promise<void> {
 		this.projectPickerOpen = false;
-		await this.#store.newSession(projectPath, domainId);
+		const latest = this.#store.sessions.find(
+			(session) =>
+				(session.workspacePath ?? session.projectPath) === projectPath,
+		);
+		if (latest) await this.#store.switchSession(latest.id);
+		else await this.#store.newSession(projectPath, integrations);
 	}
 
 	beginRename(sessionId = this.#store.sessionId): void {

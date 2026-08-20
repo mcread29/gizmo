@@ -108,11 +108,15 @@ export class PiAgentService {
 
 	async createSession(options: SessionOptions = {}): Promise<string> {
 		const cwd = options.cwd ?? process.cwd();
-		const domainId = options.domainId ?? (await this.#projects.domainFor(cwd));
+		const integrations =
+			options.integrations ??
+			(options.domainId && options.domainId !== 'generic'
+				? [{ id: options.domainId, root: '.' }]
+				: await this.#projects.integrationsFor(cwd));
 		const sessionManager = await this.#repository.create(cwd);
 		try {
 			const session = await this.#factory(
-				{ cwd, domainId },
+				{ cwd, integrations },
 				sessionManager,
 				this.#callbacks(sessionManager.getSessionId()),
 			);
@@ -132,7 +136,7 @@ export class PiAgentService {
 			sessions: await Promise.all(
 				catalog.sessions.map(async (session) => ({
 					...session,
-					domainId: await this.#projects.domainFor(
+					integrations: await this.#projects.integrationsFor(
 						session.workspacePath ?? session.projectPath,
 					),
 				})),
@@ -144,12 +148,12 @@ export class PiAgentService {
 		const snapshot = await this.#repository.snapshot(sessionId);
 		const workspacePath =
 			snapshot.session.workspacePath ?? snapshot.session.projectPath;
-		const domainId = await this.#projects.domainFor(workspacePath);
-		snapshot.session.domainId = domainId;
+		const integrations = await this.#projects.integrationsFor(workspacePath);
+		snapshot.session.integrations = integrations;
 		if (!this.#sessions.has(sessionId)) {
 			const sessionManager = await this.#repository.open(sessionId);
 			const session = await this.#factory(
-				{ cwd: workspacePath, domainId },
+				{ cwd: workspacePath, integrations },
 				sessionManager,
 				this.#callbacks(sessionId),
 			);
@@ -167,8 +171,15 @@ export class PiAgentService {
 		return this.#projects.detect(projectPath);
 	}
 
-	addProject(projectPath: string, domainId: string) {
-		return this.#projects.add(projectPath, domainId);
+	browseProjects(path?: string) {
+		return this.#projects.browse(path);
+	}
+
+	addProject(
+		projectPath: string,
+		integrations: NonNullable<SessionOptions['integrations']>,
+	) {
+		return this.#projects.add(projectPath, integrations);
 	}
 
 	removeProject(projectPath: string) {
@@ -506,7 +517,10 @@ const createDefaultPiSession: PiSessionFactory = async (
 				return callbacks.confirmStopPlayMode(cwd);
 			},
 		},
-		options.domainId,
+		options.integrations ??
+			(options.domainId && options.domainId !== 'generic'
+				? [{ id: options.domainId, root: '.' }]
+				: []),
 	);
 	const resourceLoader = new DefaultResourceLoader({
 		cwd,

@@ -275,9 +275,14 @@ async function dispatch(
 			return { result: await service.listProjects() };
 		case 'project.detect':
 			return { result: await service.detectProject(request.projectPath) };
+		case 'project.browse':
+			return { result: await service.browseProjects(request.path) };
 		case 'project.add':
 			return {
-				result: await service.addProject(request.projectPath, request.domainId),
+				result: await service.addProject(
+					request.projectPath,
+					request.integrations,
+				),
 			};
 		case 'project.remove':
 			await service.removeProject(request.projectPath);

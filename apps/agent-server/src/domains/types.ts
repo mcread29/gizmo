@@ -10,6 +10,7 @@ export interface WorkspaceDomain {
 	id: string;
 	name: string;
 	detect(workspacePath: string): Promise<boolean>;
+	detectRoots?(workspacePath: string): Promise<string[]>;
 	systemPrompt: string;
 	createTools(context: DomainContext): ToolDefinition[];
 }

@@ -57,13 +57,13 @@ describe('agent protocol validation', () => {
 		expect(request.type).toBe('project.extension.invoke');
 	});
 
-	it('validates stored projects with their selected domain', () => {
+	it('validates stored projects with their selected integrations', () => {
 		expect(
 			parseStoredProjects([
 				{
 					title: 'Game',
 					path: '/projects/game',
-					domainId: 'unity',
+					integrations: [{ id: 'unity', root: '.' }],
 					addedAt: 1,
 				},
 			]),
@@ -76,6 +76,14 @@ describe('agent protocol validation', () => {
 				projectPath: '/projects/game',
 			}),
 		).toMatchObject({ type: 'project.detect' });
+		expect(
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'browse-1',
+				type: 'project.browse',
+				path: '/projects',
+			}),
+		).toMatchObject({ type: 'project.browse', path: '/projects' });
 	});
 
 	it('accepts base64 file attachments on prompts', () => {

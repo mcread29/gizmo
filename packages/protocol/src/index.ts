@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 15 as const;
+export const protocolVersion = 16 as const;
 
 const sessionTitleLimit = 48;
 
@@ -44,12 +44,27 @@ const responseEnvelope = {
 export const sessionOptionsSchema = Type.Object(
 	{
 		cwd: Type.Optional(Type.String({ minLength: 1 })),
+		integrations: Type.Optional(
+			Type.Array(
+				Type.Object(
+					{
+						id: Type.String({ minLength: 1, maxLength: 64 }),
+						root: Type.String({ minLength: 1 }),
+					},
+					{ additionalProperties: false },
+				),
+			),
+		),
 		domainId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
 	},
 	{ additionalProperties: false },
 );
 
 export type SessionOptions = Static<typeof sessionOptionsSchema>;
+
+export type WorkspaceIntegration = NonNullable<
+	SessionOptions['integrations']
+>[number];
 
 export const toolCallViewSchema = Type.Object(
 	{
@@ -192,6 +207,17 @@ export const agentSessionSummarySchema = Type.Object(
 		title: Type.String({ minLength: 1 }),
 		workspacePath: Type.Optional(Type.String({ minLength: 1 })),
 		domainId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
+		integrations: Type.Optional(
+			Type.Array(
+				Type.Object(
+					{
+						id: Type.String({ minLength: 1, maxLength: 64 }),
+						root: Type.String({ minLength: 1 }),
+					},
+					{ additionalProperties: false },
+				),
+			),
+		),
 		/** @deprecated Read old session catalogs only. */
 		projectPath: Type.Optional(Type.String({ minLength: 1 })),
 		createdAt: Type.Integer({ minimum: 0 }),
@@ -285,7 +311,15 @@ export const storedProjectSchema = Type.Object(
 	{
 		title: Type.String({ minLength: 1 }),
 		path: Type.String({ minLength: 1 }),
-		domainId: Type.String({ minLength: 1, maxLength: 64 }),
+		integrations: Type.Array(
+			Type.Object(
+				{
+					id: Type.String({ minLength: 1, maxLength: 64 }),
+					root: Type.String({ minLength: 1 }),
+				},
+				{ additionalProperties: false },
+			),
+		),
 		addedAt: Type.Integer({ minimum: 0 }),
 	},
 	{ additionalProperties: false },
@@ -301,6 +335,7 @@ export const projectDomainsSchema = Type.Object(
 					id: Type.String({ minLength: 1, maxLength: 64 }),
 					name: Type.String({ minLength: 1, maxLength: 64 }),
 					detected: Type.Boolean(),
+					root: Type.String({ minLength: 1 }),
 				},
 				{ additionalProperties: false },
 			),
@@ -310,6 +345,27 @@ export const projectDomainsSchema = Type.Object(
 );
 
 export type ProjectDomains = Static<typeof projectDomainsSchema>;
+
+export const workspaceDirectoryListingSchema = Type.Object(
+	{
+		path: Type.String({ minLength: 1 }),
+		parent: Type.Optional(Type.String({ minLength: 1 })),
+		directories: Type.Array(
+			Type.Object(
+				{
+					name: Type.String({ minLength: 1 }),
+					path: Type.String({ minLength: 1 }),
+				},
+				{ additionalProperties: false },
+			),
+		),
+	},
+	{ additionalProperties: false },
+);
+
+export type WorkspaceDirectoryListing = Static<
+	typeof workspaceDirectoryListingSchema
+>;
 
 export const unityStatusSchema = Type.Object(
 	{
@@ -626,9 +682,25 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('project.browse'),
+			path: Type.Optional(Type.String({ minLength: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('project.add'),
 			projectPath: Type.String({ minLength: 1 }),
-			domainId: Type.String({ minLength: 1, maxLength: 64 }),
+			integrations: Type.Array(
+				Type.Object(
+					{
+						id: Type.String({ minLength: 1, maxLength: 64 }),
+						root: Type.String({ minLength: 1 }),
+					},
+					{ additionalProperties: false },
+				),
+			),
 		},
 		{ additionalProperties: false },
 	),
@@ -962,6 +1034,15 @@ export function parseStoredProjects(input: unknown): StoredProject[] {
 
 export function parseProjectDomains(input: unknown): ProjectDomains {
 	if (!Value.Check(projectDomainsSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseWorkspaceDirectoryListing(
+	input: unknown,
+): WorkspaceDirectoryListing {
+	if (!Value.Check(workspaceDirectoryListingSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

@@ -18,6 +18,8 @@ import {
 	type UnityOpenProjectResult,
 	type StoredProject,
 	type ProjectDomains,
+	type WorkspaceIntegration,
+	type WorkspaceDirectoryListing,
 	type UnityStatus,
 } from '@unity-agent/protocol';
 import type {
@@ -106,7 +108,7 @@ export class FakeAgentClient implements AgentClient {
 				id: sessionId,
 				title: 'New session',
 				workspacePath: options.cwd ?? fakeProjects[0]!.path,
-				domainId: options.domainId ?? 'unity',
+				integrations: options.integrations ?? [{ id: 'unity', root: '.' }],
 				createdAt: now,
 				lastActiveAt: now,
 				messageCount: 0,
@@ -528,20 +530,34 @@ export class FakeAgentClient implements AgentClient {
 	async detectProject(_projectPath: string): Promise<ProjectDomains> {
 		return {
 			domains: [
-				{ id: 'unity', name: 'Unity', detected: true },
-				{ id: 'generic', name: 'Generic', detected: true },
+				{ id: 'unity', name: 'Unity', detected: true, root: '.' },
+				{ id: 'svelte', name: 'Svelte', detected: true, root: 'WebFrontend' },
 			],
+		};
+	}
+
+	async browseProjects(path = '/projects'): Promise<WorkspaceDirectoryListing> {
+		return {
+			path,
+			...(path !== '/' ? { parent: '/' } : {}),
+			directories:
+				path === '/projects'
+					? fakeProjects.map((project) => ({
+							name: project.title,
+							path: project.path,
+						}))
+					: [],
 		};
 	}
 
 	async addProject(
 		projectPath: string,
-		domainId: string,
+		integrations: WorkspaceIntegration[],
 	): Promise<StoredProject> {
 		const project = {
 			title: projectPath.split('/').at(-1) ?? projectPath,
 			path: projectPath,
-			domainId,
+			integrations,
 			addedAt: Date.now(),
 		};
 		fakeProjects.splice(
@@ -675,10 +691,7 @@ export class FakeAgentClient implements AgentClient {
 				thinkingLevel: session.thinkingLevel,
 			},
 			tools: [...agentToolPolicy.tools],
-			domains:
-				session.summary.domainId === 'generic'
-					? []
-					: [session.summary.domainId ?? 'unity'],
+			domains: session.summary.integrations?.map(({ id }) => id) ?? [],
 		});
 		this.#emit({
 			type: 'session.state',
@@ -735,13 +748,16 @@ const fakeProjects: StoredProject[] = [
 	{
 		title: 'ThirdPersonSandbox',
 		path: '/projects/ThirdPersonSandbox',
-		domainId: 'unity',
+		integrations: [
+			{ id: 'unity', root: '.' },
+			{ id: 'svelte', root: 'WebFrontend' },
+		],
 		addedAt: 1,
 	},
 	{
 		title: 'RenderingPlayground',
 		path: '/projects/RenderingPlayground',
-		domainId: 'unity',
+		integrations: [{ id: 'unity', root: '.' }],
 		addedAt: 0,
 	},
 ];

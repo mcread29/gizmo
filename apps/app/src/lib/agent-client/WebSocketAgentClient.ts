@@ -12,6 +12,7 @@ import {
 	parseUnityStatus,
 	parseStoredProjects,
 	parseProjectDomains,
+	parseWorkspaceDirectoryListing,
 	protocolVersion,
 	type AgentRequest,
 	type AgentAttachment,
@@ -30,6 +31,8 @@ import {
 	type UnityStatus,
 	type StoredProject,
 	type ProjectDomains,
+	type WorkspaceIntegration,
+	type WorkspaceDirectoryListing,
 } from '@unity-agent/protocol';
 import type {
 	AgentClient,
@@ -304,14 +307,22 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseProjectDomains(response.result);
 	}
 
+	async browseProjects(path?: string): Promise<WorkspaceDirectoryListing> {
+		const response = await this.#request({
+			type: 'project.browse',
+			...(path ? { path } : {}),
+		});
+		return parseWorkspaceDirectoryListing(response.result);
+	}
+
 	async addProject(
 		projectPath: string,
-		domainId: string,
+		integrations: WorkspaceIntegration[],
 	): Promise<StoredProject> {
 		const response = await this.#request({
 			type: 'project.add',
 			projectPath,
-			domainId,
+			integrations,
 		});
 		return parseStoredProjects([response.result])[0]!;
 	}

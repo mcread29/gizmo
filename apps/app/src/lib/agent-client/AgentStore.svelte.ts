@@ -17,6 +17,8 @@ import {
 	type UnityExtensionDescriptor,
 	type StoredProject,
 	type ProjectDomains,
+	type WorkspaceIntegration,
+	type WorkspaceDirectoryListing,
 	type UnityStatus,
 } from '@unity-agent/protocol';
 import type { AgentClient } from './AgentClient';
@@ -265,19 +267,22 @@ export class AgentStore {
 		}
 	}
 
-	async newSession(projectPath?: string, domainId?: string): Promise<void> {
+	async newSession(
+		projectPath?: string,
+		integrations?: WorkspaceIntegration[],
+	): Promise<void> {
 		if (this.connection !== 'connected') return;
 		const previous = this.#captureSelection();
 		if (projectPath) {
 			this.selectedProjectPath = projectPath;
 			this.projectStatus = undefined;
 		}
-		const selectedDomain =
-			domainId ??
+		const selectedIntegrations =
+			integrations ??
 			this.projects.find(({ path }) => path === this.selectedProjectPath)
-				?.domainId ??
-			'generic';
-		this.activeDomains = selectedDomain === 'generic' ? [] : [selectedDomain];
+				?.integrations ??
+			[];
+		this.activeDomains = selectedIntegrations.map(({ id }) => id);
 		this.sessionId = undefined;
 		this.messages = [];
 		this.model = undefined;
@@ -288,7 +293,7 @@ export class AgentStore {
 		try {
 			const sessionId = await this.#client.createSession({
 				...(this.selectedProjectPath ? { cwd: this.selectedProjectPath } : {}),
-				domainId: selectedDomain,
+				integrations: selectedIntegrations,
 			});
 			this.sessionId = sessionId;
 			this.sessionStates[sessionId] = 'idle';
@@ -299,7 +304,7 @@ export class AgentStore {
 				...(this.selectedProjectPath
 					? { workspacePath: this.selectedProjectPath }
 					: {}),
-				domainId: selectedDomain,
+				integrations: selectedIntegrations,
 				createdAt: now,
 				lastActiveAt: now,
 				messageCount: 0,
@@ -318,11 +323,15 @@ export class AgentStore {
 		return this.#client.detectProject(projectPath);
 	}
 
+	browseProjects(path?: string): Promise<WorkspaceDirectoryListing> {
+		return this.#client.browseProjects(path);
+	}
+
 	async addProject(
 		projectPath: string,
-		domainId: string,
+		integrations: WorkspaceIntegration[],
 	): Promise<StoredProject> {
-		const project = await this.#client.addProject(projectPath, domainId);
+		const project = await this.#client.addProject(projectPath, integrations);
 		this.projects = [
 			project,
 			...this.projects.filter(({ path }) => path !== project.path),
@@ -353,9 +362,10 @@ export class AgentStore {
 			this.messagesLoading = false;
 			Object.assign(session, snapshot.session);
 			this.activeDomains =
-				session.domainId && session.domainId !== 'generic'
+				session.integrations?.map(({ id }) => id) ??
+				(session.domainId && session.domainId !== 'generic'
 					? [session.domainId]
-					: [];
+					: []);
 			const workspacePath = session.workspacePath ?? session.projectPath;
 			if (workspacePath !== this.selectedProjectPath) {
 				this.selectedProjectPath = workspacePath;

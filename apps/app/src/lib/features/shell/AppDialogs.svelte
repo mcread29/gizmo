@@ -19,13 +19,9 @@
 <ProjectPickerDialog
 	bind:open={sessions.projectPickerOpen}
 	{store}
-	onSelect={(projectPath, domainId) =>
-		void sessions.startThread(projectPath, domainId)}
+	onSelect={(projectPath, integrations) =>
+		void sessions.openWorkspace(projectPath, integrations)}
 />
-<ProjectManagerDialog
-	bind:open={sessions.projectManagerOpen}
-	{store}
-	onAdd={() => (sessions.projectPickerOpen = true)}
-/>
+<ProjectManagerDialog bind:open={sessions.projectManagerOpen} {store} />
 <ThreadDialogs {sessions} />
 <DomainDialogs {store} {layout} />

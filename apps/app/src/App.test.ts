@@ -21,12 +21,12 @@ function renderApp() {
 }
 
 describe('application shell', () => {
-	it('renders the primary workspace regions', () => {
-		const { getByRole } = renderApp();
+	it('renders the primary workspace regions', async () => {
+		const { findByRole, getByRole } = renderApp();
 
 		expect(getByRole('main')).toBeInTheDocument();
 		expect(
-			getByRole('navigation', { name: 'Recent threads' }),
+			await findByRole('navigation', { name: 'Recent threads' }),
 		).toBeInTheDocument();
 		expect(
 			getByRole('complementary', { name: 'Workspace inspector' }),
@@ -84,9 +84,6 @@ describe('application shell', () => {
 		const { container, findByRole, getByRole } = renderApp();
 		await findByRole('button', { name: 'New thread' });
 		await fireEvent.click(getByRole('button', { name: 'New thread' }));
-		await fireEvent.click(
-			await findByRole('button', { name: /RenderingPlayground/ }),
-		);
 
 		await waitFor(() =>
 			expect(
@@ -225,18 +222,19 @@ describe('application shell', () => {
 		expect(expandReasoning).toHaveAttribute('aria-checked', 'false');
 	});
 
-	it('starts a thread from a workspace and exposes model controls', async () => {
+	it('switches workspaces separately from starting a thread', async () => {
 		const { findAllByText, findByRole, getByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		expect(
 			await findByRole('button', { name: 'Thinking level' }),
 		).toBeInTheDocument();
 
-		await fireEvent.click(getByRole('button', { name: 'New thread' }));
-		expect(
-			await findByRole('dialog', { name: 'New thread' }),
-		).toBeInTheDocument();
-		await fireEvent.click(getByRole('button', { name: /RenderingPlayground/ }));
+		await fireEvent.click(
+			getByRole('button', { name: /Workspace menu, ThirdPersonSandbox/ }),
+		);
+		await fireEvent.click(
+			await findByRole('menuitem', { name: /RenderingPlayground/ }),
+		);
 
 		expect((await findAllByText('RenderingPlayground')).length).toBeGreaterThan(
 			0,
@@ -244,17 +242,48 @@ describe('application shell', () => {
 		expect((await findAllByText('Now')).length).toBeGreaterThan(0);
 	});
 
-	it('opens project management with persisted domain controls', async () => {
-		const { findByRole, getByRole } = renderApp();
+	it('browses server folders without asking for a typed path', async () => {
+		const { findByRole, getByRole, queryByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
-		await fireEvent.click(getByRole('button', { name: 'Manage projects' }));
+		await fireEvent.click(
+			await findByRole('button', {
+				name: /Workspace menu, ThirdPersonSandbox/,
+			}),
+		);
+		await fireEvent.click(
+			await findByRole('menuitem', { name: 'Open workspace…' }),
+		);
 
 		expect(
-			await findByRole('dialog', { name: 'Projects' }),
+			await findByRole('dialog', { name: 'Open workspace' }),
 		).toBeInTheDocument();
 		expect(
-			getByRole('combobox', { name: 'Domain for ThirdPersonSandbox' }),
-		).toHaveValue('unity');
+			await findByRole('region', { name: 'Folder browser' }),
+		).toHaveTextContent('/projects');
+		expect(queryByRole('textbox', { name: 'Workspace path' })).toBeNull();
+	});
+
+	it('opens workspace settings with independent integration controls', async () => {
+		const { findAllByRole, findByRole, getByRole } = renderApp();
+		await findByRole('button', { name: 'Model' });
+		await fireEvent.click(
+			await findByRole('button', {
+				name: /Workspace menu, ThirdPersonSandbox/,
+			}),
+		);
+		await fireEvent.click(
+			await findByRole('menuitem', { name: 'Workspace settings…' }),
+		);
+
+		expect(
+			await findByRole('dialog', { name: 'ThirdPersonSandbox setup' }),
+		).toBeInTheDocument();
+		expect(
+			(await findAllByRole('textbox', { name: 'Unity root' }))[0],
+		).toHaveValue('.');
+		expect(getByRole('textbox', { name: 'Svelte root' })).toHaveValue(
+			'WebFrontend',
+		);
 	});
 
 	it('streams a fake agent response through the production UI state', async () => {
@@ -311,9 +340,6 @@ describe('application shell', () => {
 		const { container, findByRole, getByRole, queryByRole } = renderApp();
 		await findByRole('button', { name: 'New thread' });
 		await fireEvent.click(getByRole('button', { name: 'New thread' }));
-		await fireEvent.click(
-			await findByRole('button', { name: /RenderingPlayground/ }),
-		);
 		await waitFor(() =>
 			expect(
 				container.querySelectorAll('[data-ui="session-item"]'),
@@ -475,9 +501,6 @@ describe('application shell', () => {
 		await fireEvent.input(composer, { target: { value: 'First thread note' } });
 
 		await fireEvent.click(getByRole('button', { name: 'New thread' }));
-		await fireEvent.click(
-			await findByRole('button', { name: /RenderingPlayground/ }),
-		);
 		await waitFor(() =>
 			expect(
 				container.querySelectorAll('[data-ui="session-item"]'),

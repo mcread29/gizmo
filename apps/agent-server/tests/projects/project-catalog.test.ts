@@ -10,7 +10,7 @@ afterEach(async () =>
 );
 
 describe('ProjectCatalog', () => {
-	it('stores the user-selected domain and allows generic everywhere', async () => {
+	it('stores the selected workspace integrations', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');
 		await writeFile(
@@ -23,16 +23,77 @@ describe('ProjectCatalog', () => {
 			id: 'svelte',
 			name: 'Svelte',
 			detected: true,
+			root: '.',
 		});
-		await catalog.add(project, 'generic');
+		await catalog.add(project, [{ id: 'svelte', root: '.' }]);
 		expect(await catalog.list()).toMatchObject([
-			{ path: project, domainId: 'generic' },
+			{ path: project, integrations: [{ id: 'svelte', root: '.' }] },
 		]);
 		expect(
 			JSON.parse(await readFile(join(data, 'projects.json'), 'utf8')),
 		).toHaveLength(1);
 		await catalog.remove(project);
 		expect(await catalog.list()).toEqual([]);
+	});
+
+	it('detects a Svelte app nested in a monorepo', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		await mkdir(join(project, 'apps', 'app'), { recursive: true });
+		await writeFile(
+			join(project, 'apps', 'app', 'package.json'),
+			JSON.stringify({ dependencies: { svelte: '^5.0.0' } }),
+		);
+
+		expect((await new ProjectCatalog(data).detect(project)).domains).toContainEqual(
+			{
+				id: 'svelte',
+				name: 'Svelte',
+				detected: true,
+				root: join('apps', 'app'),
+			},
+		);
+	});
+
+	it('reads projects saved with the old single-domain format', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		await writeFile(
+			join(data, 'projects.json'),
+			JSON.stringify([
+				{
+					title: 'Legacy game',
+					path: project,
+					domainId: 'unity',
+					addedAt: 1,
+				},
+			]),
+		);
+
+		expect(await new ProjectCatalog(data).list()).toEqual([
+			{
+				title: 'Legacy game',
+				path: project,
+				integrations: [{ id: 'unity', root: '.' }],
+				addedAt: 1,
+			},
+		]);
+	});
+
+	it('lists folders for the web workspace picker', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		await mkdir(join(project, 'Game'));
+		await mkdir(join(project, 'WebFrontend'));
+		await writeFile(join(project, 'README.md'), 'not a directory');
+
+		expect(await new ProjectCatalog(data).browse(project)).toMatchObject({
+			path: project,
+			directories: [
+				{ name: 'Game', path: join(project, 'Game') },
+				{ name: 'WebFrontend', path: join(project, 'WebFrontend') },
+			],
+		});
 	});
 });
 

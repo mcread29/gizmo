@@ -1,6 +1,7 @@
 @import './styles/shell.css';
 @import './styles/sidebar.css';
 @import './styles/conversation.css';
+@import './styles/workspace-dashboard.css';
 @import './styles/message.css';
 @import './styles/markdown.css';
 @import './styles/tool-call.css';

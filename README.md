@@ -8,14 +8,14 @@ forking the product.
 
 ## Architecture
 
-Gizmo stores user-selected projects with a chosen domain and combines that
-domain's prompt, tools, and UI with a generic coding, Git, session, and file core. The Unity
-domain connects through the Unity CLI and Editor Pipeline; the Svelte domain
-uses the same product shell with Svelte-aware guidance and workspace UI. See
+Gizmo stores user-selected workspaces with any number of integrations and combines their
+prompts, tools, and UI with a generic coding, Git, session, and file core. It detects
+matching integrations when a folder is opened, then lets the user enable, disable, or
+relocate each integration for that workspace. Unity connects through the Unity CLI and
+Editor Pipeline; Svelte uses the same product shell with Svelte-aware guidance. See
 [`docs/domains.md`](docs/domains.md).
 
-Every folder can instead use the Generic domain, which keeps Pi's default
-system prompt unchanged.
+A folder with no integrations keeps Pi's default system prompt unchanged.
 
 ## Development
 

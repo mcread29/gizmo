@@ -82,10 +82,18 @@ class InvalidEventClient implements AgentClient {
 		return [];
 	}
 	async detectProject() {
-		return { domains: [{ id: 'generic', name: 'Generic', detected: true }] };
+		return {
+			domains: [{ id: 'svelte', name: 'Svelte', detected: true, root: '.' }],
+		};
 	}
-	async addProject(projectPath: string, domainId: string) {
-		return { title: 'project', path: projectPath, domainId, addedAt: 0 };
+	async browseProjects() {
+		return { path: '/projects', directories: [] };
+	}
+	async addProject(
+		projectPath: string,
+		integrations: { id: string; root: string }[],
+	) {
+		return { title: 'project', path: projectPath, integrations, addedAt: 0 };
 	}
 	async removeProject() {}
 	async getProjectStatus(): Promise<UnityStatus> {

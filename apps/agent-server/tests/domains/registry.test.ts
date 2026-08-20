@@ -21,7 +21,7 @@ describe('workspace domain registry', () => {
 		);
 		const active = await activateDomains(
 			{ workspacePath, confirm: async () => false },
-			'svelte',
+			[{ id: 'svelte', root: '.' }],
 		);
 
 		expect(active.domains.map(({ id }) => id)).toEqual(['svelte']);
@@ -37,24 +37,22 @@ describe('workspace domain registry', () => {
 			join(workspacePath, 'package.json'),
 			JSON.stringify({ dependencies: { svelte: '5.0.0' } }),
 		);
-		const unity = await activateDomains(
+		const active = await activateDomains(
 			{ workspacePath, confirm: async () => true },
-			'unity',
-		);
-		const svelte = await activateDomains(
-			{ workspacePath, confirm: async () => true },
-			'svelte',
+			[
+				{ id: 'unity', root: '.' },
+				{ id: 'svelte', root: '.' },
+			],
 		);
 
-		expect(unity.domains.map(({ id }) => id)).toEqual(['unity']);
-		expect(unity.tools.some(({ name }) => name === 'unity_status')).toBe(true);
-		expect(svelte.domains.map(({ id }) => id)).toEqual(['svelte']);
+		expect(active.domains.map(({ id }) => id)).toEqual(['unity', 'svelte']);
+		expect(active.tools.some(({ name }) => name === 'unity_status')).toBe(true);
 	});
 
 	it('uses Pi defaults for the generic domain', async () => {
 		const active = await activateDomains(
 			{ workspacePath: await workspace(), confirm: async () => false },
-			'generic',
+			[],
 		);
 		expect(active).toEqual({ domains: [], tools: [] });
 	});

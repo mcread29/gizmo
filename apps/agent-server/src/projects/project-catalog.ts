@@ -1,9 +1,17 @@
-import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
-import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import {
-	parseStoredProjects,
+	mkdir,
+	readFile,
+	readdir,
+	rename,
+	stat,
+	writeFile,
+} from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import {
 	type ProjectDomains,
 	type StoredProject,
+	type WorkspaceIntegration,
 } from '@unity-agent/protocol';
 import { detectDomains } from '../domains/registry';
 import { defaultDataDir } from '../sessions/session-repository';
@@ -17,9 +25,19 @@ export class ProjectCatalog {
 
 	async list(): Promise<StoredProject[]> {
 		try {
-			return parseStoredProjects(
-				JSON.parse(await readFile(this.#file, 'utf8')) as unknown,
-			);
+			const input = JSON.parse(
+				await readFile(this.#file, 'utf8'),
+			) as LegacyProject[];
+			return input.map((project) => ({
+				title: project.title,
+				path: project.path,
+				addedAt: project.addedAt,
+				integrations:
+					project.integrations ??
+					(project.domainId && project.domainId !== 'generic'
+						? [{ id: project.domainId, root: '.' }]
+						: []),
+			}));
 		} catch (error) {
 			if (missing(error)) return [];
 			throw error;
@@ -28,27 +46,47 @@ export class ProjectCatalog {
 
 	async detect(projectPath: string): Promise<ProjectDomains> {
 		const path = await requireDirectory(projectPath);
+		return { domains: await detectDomains(path) };
+	}
+
+	async browse(input?: string) {
+		const path = await requireDirectory(input ?? homedir());
+		const entries = await readdir(path, { withFileTypes: true });
+		const parent = dirname(path);
 		return {
-			domains: [
-				...(await detectDomains(path)),
-				{ id: 'generic', name: 'Generic', detected: true },
-			],
+			path,
+			...(parent !== path ? { parent } : {}),
+			directories: entries
+				.filter((entry) => entry.isDirectory())
+				.sort((left, right) => left.name.localeCompare(right.name))
+				.map((entry) => ({ name: entry.name, path: join(path, entry.name) })),
 		};
 	}
 
-	async add(projectPath: string, domainId: string): Promise<StoredProject> {
+	async add(
+		projectPath: string,
+		integrations: WorkspaceIntegration[],
+	): Promise<StoredProject> {
 		const path = await requireDirectory(projectPath);
-		const selected = (await this.detect(path)).domains.find(
-			({ id }) => id === domainId,
+		const known = new Set(
+			(await this.detect(path)).domains.map(({ id }) => id),
 		);
-		if (!selected?.detected) {
-			throw new Error(`Domain ${domainId} does not match this project`);
+		for (const integration of integrations) {
+			if (!known.has(integration.id))
+				throw new Error(`Unknown integration: ${integration.id}`);
+			const root = resolve(path, integration.root);
+			if (root !== path && !root.startsWith(`${path}/`))
+				throw new Error('Integration root must be inside the workspace');
+			if (!(await stat(root)).isDirectory())
+				throw new Error(
+					`Integration root is not a directory: ${integration.root}`,
+				);
 		}
 		const projects = await this.list();
 		const project = {
 			title: basename(path),
 			path,
-			domainId,
+			integrations,
 			addedAt:
 				projects.find((item) => item.path === path)?.addedAt ?? Date.now(),
 		};
@@ -66,11 +104,13 @@ export class ProjectCatalog {
 		);
 	}
 
-	async domainFor(projectPath: string | undefined): Promise<string> {
-		if (!projectPath) return 'generic';
+	async integrationsFor(
+		projectPath: string | undefined,
+	): Promise<WorkspaceIntegration[]> {
+		if (!projectPath) return [];
 		return (
 			(await this.list()).find(({ path }) => path === resolve(projectPath))
-				?.domainId ?? 'generic'
+				?.integrations ?? []
 		);
 	}
 
@@ -84,6 +124,14 @@ export class ProjectCatalog {
 		);
 		await rename(temporary, this.#file);
 	}
+}
+
+interface LegacyProject {
+	title: string;
+	path: string;
+	addedAt: number;
+	domainId?: string;
+	integrations?: WorkspaceIntegration[];
 }
 
 async function requireDirectory(input: string): Promise<string> {

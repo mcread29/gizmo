@@ -162,14 +162,19 @@ describe('WebSocketAgentClient', () => {
 				{
 					title: 'Game',
 					path: '/projects/game',
-					domainId: 'unity',
+					integrations: [{ id: 'unity', root: '.' }],
 					addedAt: 1,
 				},
 			],
 		});
 
 		await expect(projects).resolves.toEqual([
-			{ title: 'Game', path: '/projects/game', domainId: 'unity', addedAt: 1 },
+			{
+				title: 'Game',
+				path: '/projects/game',
+				integrations: [{ id: 'unity', root: '.' }],
+				addedAt: 1,
+			},
 		]);
 	});
 

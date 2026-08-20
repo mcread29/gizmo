@@ -104,7 +104,7 @@
 
 	function onKeydown(event: KeyboardEvent) {
 		handleShortcut(event, {
-			newThread: () => (sessions.projectPickerOpen = true),
+			newThread: () => void sessions.startThread(),
 			openSettings: () => router.go('settings'),
 			openTree: () => router.go('tree'),
 			focusComposer: () => focusComposer?.(),
@@ -149,7 +149,7 @@
 		canDeleteThread={(sessionId) => !store.isSessionStreaming(sessionId)}
 		canOpenEditor={workspaceView.canOpen}
 		getContextText={contextText}
-		onNewThread={() => (sessions.projectPickerOpen = true)}
+		onNewThread={() => void sessions.startThread()}
 		onOpenThread={(sessionId) => void store.switchSession(sessionId)}
 		onRenameThread={(sessionId) => sessions.beginRename(sessionId)}
 		onCopyTranscript={(sessionId) => void sessions.copyTranscript(sessionId)}
@@ -187,7 +187,10 @@
 				{store}
 				{layout}
 				bind:focusSearch={focusThreadSearch}
-				onOpenProjectPicker={() => (sessions.projectPickerOpen = true)}
+				onOpenWorkspacePicker={() => (sessions.projectPickerOpen = true)}
+				onOpenWorkspace={(projectPath, integrations) =>
+					void sessions.openWorkspace(projectPath, integrations)}
+				onNewThread={() => void sessions.startThread()}
 				onManageProjects={() => (sessions.projectManagerOpen = true)}
 			/>
 			{#if layout.leftVisible && layout.leftMode === 'docked'}
@@ -213,6 +216,8 @@
 				onExport={() => void sessions.exportTranscript()}
 				onDelete={() => sessions.beginDelete()}
 				onOpenTree={() => router.go('tree')}
+				onOpenThread={(sessionId) => void store.switchSession(sessionId)}
+				onManageWorkspace={() => (sessions.projectManagerOpen = true)}
 			/>
 
 			<WorkspaceInspector

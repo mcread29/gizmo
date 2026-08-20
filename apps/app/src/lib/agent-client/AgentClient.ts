@@ -11,6 +11,8 @@ import type {
 	SessionTree,
 	StoredProject,
 	ProjectDomains,
+	WorkspaceIntegration,
+	WorkspaceDirectoryListing,
 	UnityExtensions,
 	UnityOpenProjectResult,
 	UnityStatus,
@@ -78,7 +80,11 @@ export interface AgentClient {
 	): Promise<AgentModelCatalog>;
 	listProjects(): Promise<StoredProject[]>;
 	detectProject(projectPath: string): Promise<ProjectDomains>;
-	addProject(projectPath: string, domainId: string): Promise<StoredProject>;
+	browseProjects(path?: string): Promise<WorkspaceDirectoryListing>;
+	addProject(
+		projectPath: string,
+		integrations: WorkspaceIntegration[],
+	): Promise<StoredProject>;
 	removeProject(projectPath: string): Promise<void>;
 	getProjectStatus(projectPath: string): Promise<UnityStatus>;
 	watchProjectStatus(

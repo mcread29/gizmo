@@ -1,8 +1,8 @@
 # Workspace domains
 
-Gizmo's core is a general coding workbench. A workspace domain teaches it how
+Gizmo's core is a general coding workbench. A workspace integration teaches it how
 to recognize and work with a particular project ecosystem, such as Unity or
-Svelte. Domains are bundled integrations selected from the workspace contents;
+Svelte. Integrations are bundled and detected from the workspace contents;
 they are separate from the smaller project-side extensions described in
 [extensions.md](extensions.md).
 
@@ -17,10 +17,11 @@ extension lifecycle. A domain owns:
 - inspector UI, dialogs, and settings; and
 - adapters to an external runtime such as the Unity Editor.
 
-Projects are added explicitly and stored in `projects.json` with one selected
-domain. Detection suggests only compatible specialized domains, while Generic
-is always available. New and resumed threads activate the stored selection, so
-the same folder is not reinterpreted differently between sessions.
+Workspaces are added explicitly and stored in `projects.json` with their enabled
+integrations and per-integration roots. Detection supplies the initial setup. Users can
+then enable, disable, or relocate integrations in Workspace settings. New and resumed
+threads activate the stored setup, so the same folder is not reinterpreted differently
+between sessions.
 
 Core coding and Git tools are always available and are not repeated by domains.
 
@@ -28,11 +29,10 @@ Core coding and Git tools are always available and are not repeated by domains.
 workspace folder
       │
       ▼
-domain registry ── detect/select ──┬─ Unity: Editor tools + prompt
-                                  ├─ Svelte: conventions + inspector
-                                  └─ Generic: Pi defaults
+integration registry ── detect/configure ──┬─ Unity: Editor tools + prompt
+                                          └─ Svelte: conventions + inspector
       │
-      ├─ composed Pi session
+      ├─ composed Pi session, or Pi defaults when none are enabled
       └─ contributed web UI
 ```
 
@@ -66,14 +66,14 @@ feature directory while code is migrated). They may contribute the inspector,
 dialogs, and settings. Keep runtime-specific state and polling behind that
 boundary.
 
-The new-thread dialog accepts any folder, detects compatible domains, and stores
-the user's selection. The desktop build uses a native folder picker; browser
+The new-thread dialog accepts any folder, enables detected integrations, and stores
+the setup. The desktop build uses a native folder picker; browser
 development accepts an absolute path. Stored projects appear in the dialog on
 later launches. The server announces the active domain ID with the
 session-created event.
 
-The project manager can change a stored project's domain or remove it from
-Gizmo. Removal does not touch project files or existing threads. The thread
+Workspace settings can toggle each integration, set its root within the workspace, or
+remove the workspace from Gizmo. Removal does not touch project files or existing threads. The thread
 sidebar groups sessions by project, sorted by project name, while keeping each
 project's threads in most-recent-first order.
 
@@ -92,11 +92,11 @@ dependencies. It contributes Svelte-specific working guidance and a lightweight
 changes/activity inspector. It intentionally has no custom tools yet; normal
 coding and project scripts already cover the useful baseline.
 
-### Generic
+### No integrations
 
-Available for every folder. It contributes no prompt override or custom tools,
-which deliberately preserves Pi's normal default coding-agent prompt and tool
-behavior.
+Every folder can run without an integration. This preserves Pi's normal default
+coding-agent prompt and tool behavior. Generic coding is core behavior rather than a
+separate integration.
 
 ## Adding a domain
 

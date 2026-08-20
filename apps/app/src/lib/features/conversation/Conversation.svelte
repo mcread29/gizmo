@@ -11,6 +11,7 @@
 	import ConversationError from './ConversationError.svelte';
 	import MessageList from './MessageList.svelte';
 	import TranscriptSearch from './TranscriptSearch.svelte';
+	import WorkspaceDashboard from '../workspace/WorkspaceDashboard.svelte';
 	import { findMatches, stepIndex } from './transcript-search';
 
 	interface Props {
@@ -26,6 +27,8 @@
 		onExport: () => void;
 		onDelete: () => void;
 		onOpenTree: () => void;
+		onOpenThread: (sessionId: string) => void;
+		onManageWorkspace: () => void;
 	}
 
 	let {
@@ -41,6 +44,8 @@
 		onExport,
 		onDelete,
 		onOpenTree,
+		onOpenThread,
+		onManageWorkspace,
 	}: Props = $props();
 
 	let searchOpen = $state(false);
@@ -51,6 +56,9 @@
 	let revealMessage = $state<(id: string) => Promise<void>>();
 
 	let matches = $derived(findMatches(store.messages, query));
+	let showDashboard = $derived(
+		!store.messagesLoading && store.messages.length === 0,
+	);
 
 	// A shrinking result set must not leave the cursor past the end.
 	$effect(() => {
@@ -90,8 +98,14 @@
 >
 	<div data-ui="conversation-header">
 		<div>
-			<span data-ui="eyebrow">Thread</span>
-			<h1>{threadTitle(currentSession?.title ?? 'New thread')}</h1>
+			<span data-ui="eyebrow">{showDashboard ? 'Workspace' : 'Thread'}</span>
+			<h1
+				>{showDashboard
+					? store.projects.find(
+							({ path }) => path === store.selectedProjectPath,
+						)?.title ?? 'Workspace'
+					: threadTitle(currentSession?.title ?? 'New thread')}</h1
+			>
 		</div>
 		<div data-ui="conversation-header-actions">
 			<Button
@@ -143,16 +157,20 @@
 
 	<ConversationError {store} />
 
-	<MessageList
-		{store}
-		{agentName}
-		{currentSession}
-		{collapseToken}
-		matched={matches.set}
-		bind:reveal={revealMessage}
-		autoFollowOutput={layout.autoFollowOutput}
-		expandReasoning={layout.expandReasoning}
-	/>
+	{#if showDashboard}
+		<WorkspaceDashboard {store} {onOpenThread} {onManageWorkspace} />
+	{:else}
+		<MessageList
+			{store}
+			{agentName}
+			{currentSession}
+			{collapseToken}
+			matched={matches.set}
+			bind:reveal={revealMessage}
+			autoFollowOutput={layout.autoFollowOutput}
+			expandReasoning={layout.expandReasoning}
+		/>
+	{/if}
 
 	<div data-ui="composer-wrap">
 		<Composer
