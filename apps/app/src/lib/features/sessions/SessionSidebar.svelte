@@ -80,7 +80,7 @@
 			{#if store.sessions.length === 0}
 				<div data-ui="sidebar-empty">
 					<strong>No threads yet</strong>
-					<span>Start one against a registered Unity workspace.</span>
+					<span>Start one in a workspace.</span>
 					<Button
 						variant="secondary"
 						size="sm"
@@ -116,8 +116,8 @@
 						>
 						<span>
 							<strong>{threadTitle(session.title)}</strong>
-							<small title={session.projectPath}
-								>{workspaceName(session.projectPath)} · {formatSessionTime(
+							<small title={session.workspacePath ?? session.projectPath}
+								>{workspaceName(session.workspacePath ?? session.projectPath)} · {formatSessionTime(
 									session.lastActiveAt,
 								)}</small
 							>

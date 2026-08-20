@@ -3,7 +3,6 @@ import type {
 	SessionManager,
 } from '@earendil-works/pi-coding-agent';
 import {
-	agentToolPolicy,
 	protocolVersion,
 	sessionTitle,
 	type AgentAttachment,
@@ -15,7 +14,6 @@ import {
 	type SessionSnapshot,
 	type SessionTree,
 } from '@unity-agent/protocol';
-import { createUnityTools } from '@unity-agent/unity-tools';
 import {
 	PiEventTranslator,
 	type TranslatedPiEvent,
@@ -25,9 +23,10 @@ import {
 	type SessionRepository,
 } from './session-repository';
 import { sessionTree } from './session-transcript';
-import { unitySystemPrompt } from '../unity/unity-system-prompt';
+import { activateDomains } from '../domains/registry';
 import { attachmentPrompt } from '../attachments/attachment-message';
 import { GitService } from '../git/git-service';
+import { ProjectCatalog } from '../projects/project-catalog';
 import {
 	prepareAttachments,
 	readStoredAttachment,
@@ -37,6 +36,7 @@ import {
 
 export interface PiSessionLike {
 	readonly sessionId: string;
+	readonly domains?: readonly string[];
 	readonly sessionName?: string;
 	readonly model?: {
 		readonly provider: string;
@@ -86,6 +86,7 @@ type ServiceEvent = WithoutEventEnvelope<AgentEvent>;
 export class PiAgentService {
 	readonly #factory: PiSessionFactory;
 	readonly #repository: SessionRepository;
+	readonly #projects: ProjectCatalog;
 	readonly #listeners = new Set<AgentEventListener>();
 	readonly #sessions = new Map<string, ActiveSession>();
 	readonly #confirmations = new Map<
@@ -98,17 +99,20 @@ export class PiAgentService {
 	constructor(
 		factory: PiSessionFactory = createDefaultPiSession,
 		repository: SessionRepository = new PiSessionRepository(),
+		projects: ProjectCatalog = new ProjectCatalog(),
 	) {
 		this.#factory = factory;
 		this.#repository = repository;
+		this.#projects = projects;
 	}
 
 	async createSession(options: SessionOptions = {}): Promise<string> {
 		const cwd = options.cwd ?? process.cwd();
+		const domainId = options.domainId ?? (await this.#projects.domainFor(cwd));
 		const sessionManager = await this.#repository.create(cwd);
 		try {
 			const session = await this.#factory(
-				{ cwd },
+				{ cwd, domainId },
 				sessionManager,
 				this.#callbacks(sessionManager.getSessionId()),
 			);
@@ -121,16 +125,31 @@ export class PiAgentService {
 		}
 	}
 
-	listSessions(): Promise<SessionCatalog> {
-		return this.#repository.list();
+	async listSessions(): Promise<SessionCatalog> {
+		const catalog = await this.#repository.list();
+		return {
+			...catalog,
+			sessions: await Promise.all(
+				catalog.sessions.map(async (session) => ({
+					...session,
+					domainId: await this.#projects.domainFor(
+						session.workspacePath ?? session.projectPath,
+					),
+				})),
+			),
+		};
 	}
 
 	async resumeSession(sessionId: string): Promise<SessionSnapshot> {
 		const snapshot = await this.#repository.snapshot(sessionId);
+		const workspacePath =
+			snapshot.session.workspacePath ?? snapshot.session.projectPath;
+		const domainId = await this.#projects.domainFor(workspacePath);
+		snapshot.session.domainId = domainId;
 		if (!this.#sessions.has(sessionId)) {
 			const sessionManager = await this.#repository.open(sessionId);
 			const session = await this.#factory(
-				{ cwd: snapshot.session.projectPath },
+				{ cwd: workspacePath, domainId },
 				sessionManager,
 				this.#callbacks(sessionId),
 			);
@@ -138,6 +157,22 @@ export class PiAgentService {
 		}
 		await this.#repository.setLastSession(sessionId);
 		return snapshot;
+	}
+
+	listProjects() {
+		return this.#projects.list();
+	}
+
+	detectProject(projectPath: string) {
+		return this.#projects.detect(projectPath);
+	}
+
+	addProject(projectPath: string, domainId: string) {
+		return this.#projects.add(projectPath, domainId);
+	}
+
+	removeProject(projectPath: string) {
+		return this.#projects.remove(projectPath);
 	}
 
 	async renameSession(sessionId: string, title: string): Promise<void> {
@@ -208,6 +243,7 @@ export class PiAgentService {
 		this.#emit(sessionId, {
 			type: 'session.created',
 			title,
+			...(session.domains ? { domains: [...session.domains] } : {}),
 			...(session.getActiveToolNames
 				? { tools: session.getActiveToolNames() }
 				: {}),
@@ -460,30 +496,45 @@ const createDefaultPiSession: PiSessionFactory = async (
 	const cwd = options.cwd ?? process.cwd();
 	const agentDir = getAgentDir();
 	const settingsManager = SettingsManager.create(cwd, agentDir);
+	const activeDomains = await activateDomains(
+		{
+			workspacePath: cwd,
+			confirm: (kind) => {
+				if (kind !== 'stop_play_mode_for_compile') {
+					throw new Error(`Unsupported confirmation: ${kind}`);
+				}
+				return callbacks.confirmStopPlayMode(cwd);
+			},
+		},
+		options.domainId,
+	);
 	const resourceLoader = new DefaultResourceLoader({
 		cwd,
 		agentDir,
 		settingsManager,
 		noExtensions: true,
-		systemPromptOverride: () => unitySystemPrompt,
+		...(activeDomains.systemPrompt
+			? { systemPromptOverride: () => activeDomains.systemPrompt! }
+			: {}),
 	});
 	await resourceLoader.reload();
 	const git = new GitService();
 	const { session } = await createAgentSession({
 		cwd,
-		customTools: [
-			...createUnityTools({
-				projectPath: cwd,
-				confirmStopPlayMode: () => callbacks.confirmStopPlayMode(cwd),
-			}),
-			git.createStatusTool(cwd),
+		customTools: [...activeDomains.tools, git.createStatusTool(cwd)],
+		tools: [
+			'read',
+			'edit',
+			'write',
+			'git_status',
+			...activeDomains.tools.map(({ name }) => name),
 		],
-		tools: [...agentToolPolicy.tools],
 		resourceLoader,
 		sessionManager,
 		settingsManager,
 	});
 	return Object.assign(session, {
+		domains: activeDomains.domains.map(({ id }) => id),
 		async generateCommitMessage(context: string): Promise<string> {
 			if (!session.model) throw new Error('No model is selected');
 			const message = await session.modelRuntime.completeSimple(

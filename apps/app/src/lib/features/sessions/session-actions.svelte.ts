@@ -36,9 +36,9 @@ export class SessionActions {
 		this.#toasts = toasts;
 	}
 
-	async startThread(projectPath: string): Promise<void> {
+	async startThread(projectPath: string, domainId?: string): Promise<void> {
 		this.projectPickerOpen = false;
-		await this.#store.newSession(projectPath);
+		await this.#store.newSession(projectPath, domainId);
 	}
 
 	beginRename(sessionId = this.#store.sessionId): void {

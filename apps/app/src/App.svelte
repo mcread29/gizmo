@@ -24,8 +24,8 @@
 	import Titlebar from './lib/features/shell/Titlebar.svelte';
 	import { handleShortcut } from './lib/features/shell/shortcuts';
 	import { WorkspaceLayout } from './lib/features/shell/workspace.svelte';
-	import UnityInspector from './lib/features/unity/UnityInspector.svelte';
-	import { createUnityView } from './lib/features/unity/unity-view';
+	import WorkspaceInspector from './lib/domains/WorkspaceInspector.svelte';
+	import { createWorkspaceView } from './lib/domains/workspace-view';
 
 	interface Props {
 		client?: AgentClient;
@@ -61,15 +61,7 @@
 	let currentSession = $derived(
 		store.sessions.find((session) => session.id === store.sessionId),
 	);
-	let unityView = $derived(
-		createUnityView({
-			messages: store.messages,
-			projects: store.projects,
-			selectedProjectPath: store.selectedProjectPath,
-			projectStatus: store.projectStatus,
-			projectsLoading: store.projectsLoading,
-		}),
-	);
+	let workspaceView = $derived(createWorkspaceView(store));
 
 	onMount(() => {
 		const measure = () => layout.measure();
@@ -144,7 +136,7 @@
 <svelte:head
 	><meta
 		name="description"
-		content="An agent workspace for the Unity Editor"
+		content="An extensible agent workspace for software projects"
 	/></svelte:head
 >
 
@@ -155,7 +147,7 @@
 		{layout}
 		activeThreadId={store.sessionId}
 		canDeleteThread={(sessionId) => !store.isSessionStreaming(sessionId)}
-		canOpenEditor={Boolean(unityView.selectedProject && !unityView.editor)}
+		canOpenEditor={workspaceView.canOpen}
 		getContextText={contextText}
 		onNewThread={() => (sessions.projectPickerOpen = true)}
 		onOpenThread={(sessionId) => void store.switchSession(sessionId)}
@@ -164,8 +156,8 @@
 		onExportTranscript={(sessionId) =>
 			void sessions.exportTranscript(sessionId)}
 		onDeleteThread={(sessionId) => sessions.beginDelete(sessionId)}
-		onOpenEditor={() => void store.openSelectedProject()}
-		onRefreshEditor={() => void store.refreshProjectStatus()}
+		onOpenEditor={workspaceView.open}
+		onRefreshEditor={workspaceView.refresh}
 		onOpenSettings={() => router.go('settings')}
 	>
 		<div
@@ -181,7 +173,7 @@
 				{agent}
 				{layout}
 				{store}
-				view={unityView}
+				view={workspaceView}
 				onOpenSettings={() => router.go('settings')}
 			/>
 
@@ -222,11 +214,10 @@
 				onOpenTree={() => router.go('tree')}
 			/>
 
-			<UnityInspector
+			<WorkspaceInspector
 				{store}
-				view={unityView}
+				view={workspaceView}
 				hidden={!layout.rightVisible}
-				onOpenProject={() => store.openSelectedProject()}
 			/>
 			{#if layout.rightVisible && layout.rightMode === 'docked'}
 				<PanelResizeHandle

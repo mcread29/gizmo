@@ -162,13 +162,14 @@ describe('WebSocketAgentClient', () => {
 				{
 					title: 'Game',
 					path: '/projects/game',
-					isFavorite: false,
+					domainId: 'unity',
+					addedAt: 1,
 				},
 			],
 		});
 
 		await expect(projects).resolves.toEqual([
-			{ title: 'Game', path: '/projects/game', isFavorite: false },
+			{ title: 'Game', path: '/projects/game', domainId: 'unity', addedAt: 1 },
 		]);
 	});
 

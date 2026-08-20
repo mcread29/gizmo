@@ -7,9 +7,9 @@
 	import { get } from 'svelte/store';
 	import { toolLabel } from '../conversation/tool-labels';
 	import { toolSummary } from '../conversation/tool-summary';
-	import type { UnityView } from './unity-view';
+	import type { ToolCallView } from '@unity-agent/protocol';
 
-	let { view }: { view: UnityView } = $props();
+	let { view }: { view: { toolActivity: ToolCallView[] } } = $props();
 	let viewport = $state<HTMLDivElement | null>(null);
 	let keys: Array<string | number> = [];
 	let tools = $derived(view.toolActivity);

@@ -4,7 +4,7 @@
 	import ThreadDialogs from '../sessions/ThreadDialogs.svelte';
 	import type { SessionActions } from '../sessions/session-actions.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
-	import CompileConfirmationDialog from '../unity/CompileConfirmationDialog.svelte';
+	import DomainDialogs from '../../domains/DomainDialogs.svelte';
 
 	interface Props {
 		store: AgentStore;
@@ -18,7 +18,8 @@
 <ProjectPickerDialog
 	bind:open={sessions.projectPickerOpen}
 	{store}
-	onSelect={(projectPath) => void sessions.startThread(projectPath)}
+	onSelect={(projectPath, domainId) =>
+		void sessions.startThread(projectPath, domainId)}
 />
 <ThreadDialogs {sessions} />
-<CompileConfirmationDialog {store} {layout} />
+<DomainDialogs {store} {layout} />

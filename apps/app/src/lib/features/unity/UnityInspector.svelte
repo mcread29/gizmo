@@ -71,7 +71,7 @@
 	data-ui="inspector"
 	data-context-kind="unity"
 	data-context-value={view.projectPath}
-	aria-label="Unity Editor inspector"
+	aria-label="Workspace inspector"
 	inert={hidden || undefined}
 >
 	<div data-ui="inspector-header">

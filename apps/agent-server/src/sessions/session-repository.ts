@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { sessionTranscript } from './session-transcript';
 
 export interface SessionRepository {
-	create(projectPath: string): Promise<SessionManager>;
+	create(workspacePath: string): Promise<SessionManager>;
 	open(sessionId: string): Promise<SessionManager>;
 	list(): Promise<SessionCatalog>;
 	snapshot(sessionId: string): Promise<SessionSnapshot>;
@@ -45,9 +45,9 @@ export class PiSessionRepository implements SessionRepository {
 		this.#workspaceFile = join(dataDir, 'workspace.json');
 	}
 
-	async create(projectPath: string): Promise<SessionManager> {
+	async create(workspacePath: string): Promise<SessionManager> {
 		await mkdir(this.#sessionDir, { recursive: true });
-		const pending = SessionManager.create(projectPath, this.#sessionDir);
+		const pending = SessionManager.create(workspacePath, this.#sessionDir);
 		pending.appendSessionInfo('New session');
 		const sessionFile = pending.getSessionFile();
 		const header = pending.getHeader();
@@ -151,14 +151,18 @@ export class PiSessionRepository implements SessionRepository {
 }
 
 export function defaultDataDir(): string {
-	return process.env.UNITY_AGENT_DATA_DIR ?? join(homedir(), '.unity-agent');
+	return (
+		process.env.GIZMO_DATA_DIR ??
+		process.env.UNITY_AGENT_DATA_DIR ??
+		join(homedir(), '.unity-agent')
+	);
 }
 
 function toSummary(info: SessionInfo): AgentSessionSummary {
 	return {
 		id: info.id,
 		title: info.name?.trim() || sessionTitle(info.firstMessage),
-		...(info.cwd ? { projectPath: info.cwd } : {}),
+		...(info.cwd ? { workspacePath: info.cwd } : {}),
 		createdAt: info.created.getTime(),
 		lastActiveAt: info.modified.getTime(),
 		messageCount: info.messageCount,

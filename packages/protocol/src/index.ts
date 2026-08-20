@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 13 as const;
+export const protocolVersion = 15 as const;
 
 const sessionTitleLimit = 48;
 
@@ -14,21 +14,7 @@ export function sessionTitle(input: string): string {
 }
 
 export const agentToolPolicy = {
-	tools: [
-		'read',
-		'edit',
-		'write',
-		'git_status',
-		'unity_status',
-		'unity_list_commands',
-		'unity_command',
-		'unity_console',
-		'unity_wait_for_compile',
-		'unity_wait_for_command',
-		'unity_test',
-		'unity_script',
-		'unity_command_template',
-	],
+	tools: ['read', 'edit', 'write', 'git_status'],
 	approvals: false,
 	extensions: false,
 } as const;
@@ -58,6 +44,7 @@ const responseEnvelope = {
 export const sessionOptionsSchema = Type.Object(
 	{
 		cwd: Type.Optional(Type.String({ minLength: 1 })),
+		domainId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
 	},
 	{ additionalProperties: false },
 );
@@ -203,6 +190,9 @@ export const agentSessionSummarySchema = Type.Object(
 	{
 		id: Type.String({ minLength: 1 }),
 		title: Type.String({ minLength: 1 }),
+		workspacePath: Type.Optional(Type.String({ minLength: 1 })),
+		domainId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
+		/** @deprecated Read old session catalogs only. */
 		projectPath: Type.Optional(Type.String({ minLength: 1 })),
 		createdAt: Type.Integer({ minimum: 0 }),
 		lastActiveAt: Type.Integer({ minimum: 0 }),
@@ -290,6 +280,36 @@ export const unityProjectSchema = Type.Object(
 );
 
 export type UnityProject = Static<typeof unityProjectSchema>;
+
+export const storedProjectSchema = Type.Object(
+	{
+		title: Type.String({ minLength: 1 }),
+		path: Type.String({ minLength: 1 }),
+		domainId: Type.String({ minLength: 1, maxLength: 64 }),
+		addedAt: Type.Integer({ minimum: 0 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type StoredProject = Static<typeof storedProjectSchema>;
+
+export const projectDomainsSchema = Type.Object(
+	{
+		domains: Type.Array(
+			Type.Object(
+				{
+					id: Type.String({ minLength: 1, maxLength: 64 }),
+					name: Type.String({ minLength: 1, maxLength: 64 }),
+					detected: Type.Boolean(),
+				},
+				{ additionalProperties: false },
+			),
+		),
+	},
+	{ additionalProperties: false },
+);
+
+export type ProjectDomains = Static<typeof projectDomainsSchema>;
 
 export const unityStatusSchema = Type.Object(
 	{
@@ -598,6 +618,31 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('project.detect'),
+			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.add'),
+			projectPath: Type.String({ minLength: 1 }),
+			domainId: Type.String({ minLength: 1, maxLength: 64 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.remove'),
+			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('project.status'),
 			projectPath: Type.String({ minLength: 1 }),
 		},
@@ -716,6 +761,7 @@ export const agentEventSchema = Type.Union([
 			...eventEnvelope,
 			type: Type.Literal('session.created'),
 			title: Type.String(),
+			domains: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
 			tools: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
 			model: Type.Optional(
 				Type.Object(
@@ -901,6 +947,21 @@ export function parseAgentEvent(input: unknown): AgentEvent {
 export function parseUnityProjects(input: unknown): UnityProject[] {
 	const schema = Type.Array(unityProjectSchema);
 	if (!Value.Check(schema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseStoredProjects(input: unknown): StoredProject[] {
+	const schema = Type.Array(storedProjectSchema);
+	if (!Value.Check(schema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseProjectDomains(input: unknown): ProjectDomains {
+	if (!Value.Check(projectDomainsSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

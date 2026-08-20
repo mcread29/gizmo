@@ -2,14 +2,20 @@
 
 # Gizmo
 
-An open source AI workbench built on Pi to interact with Unity through the
-Unity CLI.
+An open source, extensible AI workbench built on Pi. Workspace domains add
+first-class support for Unity, Svelte, and other project ecosystems without
+forking the product.
 
 ## Architecture
 
-Gizmo connects to projects through the Unity CLI and its Editor Pipeline.
-Registered commands are discovered at runtime, and Gizmo can author, compile,
-and verify project-local Editor commands when a workflow needs one.
+Gizmo stores user-selected projects with a chosen domain and combines that
+domain's prompt, tools, and UI with a generic coding, Git, session, and file core. The Unity
+domain connects through the Unity CLI and Editor Pipeline; the Svelte domain
+uses the same product shell with Svelte-aware guidance and workspace UI. See
+[`docs/domains.md`](docs/domains.md).
+
+Every folder can instead use the Generic domain, which keeps Pi's default
+system prompt unchanged.
 
 ## Development
 
@@ -25,14 +31,15 @@ the local WebSocket server on port `8787`.
 
 Pi conversations are stored as JSONL under `~/.unity-agent/sessions`. The app
 restores the last selected session and project on reconnect. Set
-`UNITY_AGENT_DATA_DIR` to use a different application-data directory.
+`GIZMO_DATA_DIR` to use a different application-data directory. The older
+`UNITY_AGENT_DATA_DIR` name remains supported for migration.
 
 The backend uses Pi's selected model and authentication from
 `~/.pi/agent/settings.json` and `~/.pi/agent/auth.json`. Run `pi` and use
 `/login` or configure a provider API key before sending prompts.
 
 Browser WebSockets are restricted to the local Vite origin by default. Set a
-comma-separated `UNITY_AGENT_ORIGINS` value when intentionally serving the UI
+comma-separated `GIZMO_ORIGINS` value when intentionally serving the UI
 from another origin.
 
 The Unity tools are `unity_status`, `unity_list_commands`, `unity_command`,
@@ -79,7 +86,7 @@ inspector after the agent invokes them. The harness intentionally grants its
 configured tools full access without approval prompts and disables ambient Pi
 extensions. The Changes view is the review surface for project mutations.
 
-Optional project integrations use the generic extension boundary documented in
+Unity-hosted project integrations use the generic extension boundary documented in
 [`docs/extensions.md`](docs/extensions.md). Core discovers versioned descriptors
 and forwards declared operations without interpreting extension payloads.
 Candidate integrations are collected in

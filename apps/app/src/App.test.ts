@@ -29,7 +29,7 @@ describe('application shell', () => {
 			getByRole('navigation', { name: 'Recent threads' }),
 		).toBeInTheDocument();
 		expect(
-			getByRole('complementary', { name: 'Unity Editor inspector' }),
+			getByRole('complementary', { name: 'Workspace inspector' }),
 		).toBeInTheDocument();
 		expect(getByRole('textbox', { name: 'Message Gizmo' })).toBeInTheDocument();
 	});
@@ -52,7 +52,7 @@ describe('application shell', () => {
 			name: 'Toggle thread sidebar',
 		});
 		const rightToggle = getByRole('button', {
-			name: 'Toggle editor inspector',
+			name: 'Toggle workspace inspector',
 		});
 		expect(leftToggle).toHaveAttribute('aria-expanded', 'true');
 		expect(rightToggle).toHaveAttribute('aria-expanded', 'true');
@@ -193,7 +193,7 @@ describe('application shell', () => {
 			await findByRole('region', { name: 'Settings' }),
 		).toBeInTheDocument();
 		const sendOnEnter = getByRole('switch', { name: 'Send with Enter' });
-		const showInspector = getByRole('switch', { name: 'Unity inspector' });
+		const showInspector = getByRole('switch', { name: 'Workspace inspector' });
 		const scheme = getByRole('button', { name: 'Color scheme' });
 		expect(scheme).toHaveTextContent('Default');
 
@@ -207,7 +207,7 @@ describe('application shell', () => {
 		expect(document.documentElement).toHaveAttribute('data-theme', 'light');
 		expect(getByText('⌘/Ctrl Enter')).toBeInTheDocument();
 		expect(
-			getByRole('button', { name: 'Toggle editor inspector' }),
+			getByRole('button', { name: 'Toggle workspace inspector' }),
 		).toHaveAttribute('aria-expanded', 'false');
 		await waitFor(() => {
 			const saved = JSON.parse(

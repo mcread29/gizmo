@@ -7,6 +7,7 @@ import {
 	parseAgentResponse,
 	parseSessionCatalog,
 	parseSessionSnapshot,
+	parseStoredProjects,
 	protocolVersion,
 	ProtocolValidationError,
 	sessionTitle,
@@ -23,21 +24,7 @@ describe('agent protocol validation', () => {
 
 	it('defines the harness-owned full-access tool boundary', () => {
 		expect(agentToolPolicy).toEqual({
-			tools: [
-				'read',
-				'edit',
-				'write',
-				'git_status',
-				'unity_status',
-				'unity_list_commands',
-				'unity_command',
-				'unity_console',
-				'unity_wait_for_compile',
-				'unity_wait_for_command',
-				'unity_test',
-				'unity_script',
-				'unity_command_template',
-			],
+			tools: ['read', 'edit', 'write', 'git_status'],
 			approvals: false,
 			extensions: false,
 		});
@@ -68,6 +55,27 @@ describe('agent protocol validation', () => {
 		});
 
 		expect(request.type).toBe('project.extension.invoke');
+	});
+
+	it('validates stored projects with their selected domain', () => {
+		expect(
+			parseStoredProjects([
+				{
+					title: 'Game',
+					path: '/projects/game',
+					domainId: 'unity',
+					addedAt: 1,
+				},
+			]),
+		).toHaveLength(1);
+		expect(
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'detect-1',
+				type: 'project.detect',
+				projectPath: '/projects/game',
+			}),
+		).toMatchObject({ type: 'project.detect' });
 	});
 
 	it('accepts base64 file attachments on prompts', () => {

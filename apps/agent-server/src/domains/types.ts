@@ -1,0 +1,21 @@
+import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
+
+export interface DomainContext {
+	workspacePath: string;
+	confirm(kind: string): Promise<boolean>;
+}
+
+/** A self-contained integration for one kind of workspace. */
+export interface WorkspaceDomain {
+	id: string;
+	name: string;
+	detect(workspacePath: string): Promise<boolean>;
+	systemPrompt: string;
+	createTools(context: DomainContext): ToolDefinition[];
+}
+
+export interface ActiveDomains {
+	domains: WorkspaceDomain[];
+	systemPrompt?: string;
+	tools: ToolDefinition[];
+}

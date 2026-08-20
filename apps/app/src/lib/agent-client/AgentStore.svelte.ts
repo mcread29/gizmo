@@ -15,7 +15,8 @@ import {
 	type SessionTree,
 	type SessionUsage,
 	type UnityExtensionDescriptor,
-	type UnityProject,
+	type StoredProject,
+	type ProjectDomains,
 	type UnityStatus,
 } from '@unity-agent/protocol';
 import type { AgentClient } from './AgentClient';
@@ -51,6 +52,7 @@ interface SessionSelection {
 	model?: AgentModel;
 	availableModels: AgentModelOption[];
 	thinkingLevels: string[];
+	activeDomains: string[];
 	selectedProjectPath?: string;
 	projectStatus?: UnityStatus;
 	usage?: SessionUsage;
@@ -76,12 +78,13 @@ export class AgentStore {
 	thinkingLevels = $state<string[]>([]);
 	modelLoading = $state(false);
 	activeTools = $state<string[]>([]);
+	activeDomains = $state<string[]>([]);
 	messages = $state<ConversationMessage[]>([]);
 	messagesLoading = $state(false);
 	/** Most recently submitted text, recalled into an empty composer with Up. */
 	lastPrompt = $state<string>();
 	sessions = $state<AgentSessionSummary[]>([]);
-	projects = $state<UnityProject[]>([]);
+	projects = $state<StoredProject[]>([]);
 	selectedProjectPath = $state<string>();
 	projectStatus = $state<UnityStatus>();
 	projectsLoading = $state(false);
@@ -262,19 +265,19 @@ export class AgentStore {
 		}
 	}
 
-	async newSession(projectPath?: string): Promise<void> {
+	async newSession(projectPath?: string, domainId?: string): Promise<void> {
 		if (this.connection !== 'connected') return;
-		if (
-			projectPath &&
-			!this.projects.some((project) => project.path === projectPath)
-		) {
-			return;
-		}
 		const previous = this.#captureSelection();
 		if (projectPath) {
 			this.selectedProjectPath = projectPath;
 			this.projectStatus = undefined;
 		}
+		const selectedDomain =
+			domainId ??
+			this.projects.find(({ path }) => path === this.selectedProjectPath)
+				?.domainId ??
+			'generic';
+		this.activeDomains = selectedDomain === 'generic' ? [] : [selectedDomain];
 		this.sessionId = undefined;
 		this.messages = [];
 		this.model = undefined;
@@ -285,6 +288,7 @@ export class AgentStore {
 		try {
 			const sessionId = await this.#client.createSession({
 				...(this.selectedProjectPath ? { cwd: this.selectedProjectPath } : {}),
+				domainId: selectedDomain,
 			});
 			this.sessionId = sessionId;
 			this.sessionStates[sessionId] = 'idle';
@@ -293,8 +297,9 @@ export class AgentStore {
 				id: sessionId,
 				title: 'New session',
 				...(this.selectedProjectPath
-					? { projectPath: this.selectedProjectPath }
+					? { workspacePath: this.selectedProjectPath }
 					: {}),
+				domainId: selectedDomain,
 				createdAt: now,
 				lastActiveAt: now,
 				messageCount: 0,
@@ -307,6 +312,27 @@ export class AgentStore {
 			this.#restoreSelection(previous);
 			this.#fail('session', error);
 		}
+	}
+
+	detectProject(projectPath: string): Promise<ProjectDomains> {
+		return this.#client.detectProject(projectPath);
+	}
+
+	async addProject(
+		projectPath: string,
+		domainId: string,
+	): Promise<StoredProject> {
+		const project = await this.#client.addProject(projectPath, domainId);
+		this.projects = [
+			project,
+			...this.projects.filter(({ path }) => path !== project.path),
+		];
+		return project;
+	}
+
+	async removeProject(projectPath: string): Promise<void> {
+		await this.#client.removeProject(projectPath);
+		this.projects = this.projects.filter(({ path }) => path !== projectPath);
 	}
 
 	async switchSession(sessionId: string): Promise<void> {
@@ -326,8 +352,13 @@ export class AgentStore {
 			this.messages = snapshot.messages;
 			this.messagesLoading = false;
 			Object.assign(session, snapshot.session);
-			if (session.projectPath !== this.selectedProjectPath) {
-				this.selectedProjectPath = session.projectPath;
+			this.activeDomains =
+				session.domainId && session.domainId !== 'generic'
+					? [session.domainId]
+					: [];
+			const workspacePath = session.workspacePath ?? session.projectPath;
+			if (workspacePath !== this.selectedProjectPath) {
+				this.selectedProjectPath = workspacePath;
 				this.projectStatus = undefined;
 			}
 			await Promise.all([
@@ -729,8 +760,15 @@ export class AgentStore {
 		if (
 			this.connection !== 'connected' ||
 			!this.sessionId ||
-			!this.selectedProjectPath
+			!this.selectedProjectPath ||
+			(!this.activeDomains.includes('unity') &&
+				!this.projects.some(
+					({ path, domainId }) =>
+						path === this.selectedProjectPath && domainId === 'unity',
+				))
 		) {
+			this.projectStatus = undefined;
+			this.projectExtensions = [];
 			return;
 		}
 		const sessionId = this.sessionId;
@@ -771,6 +809,7 @@ export class AgentStore {
 			model: this.model,
 			availableModels: this.availableModels,
 			thinkingLevels: this.thinkingLevels,
+			activeDomains: this.activeDomains,
 			selectedProjectPath: this.selectedProjectPath,
 			projectStatus: this.projectStatus,
 			usage: this.usage,
@@ -785,6 +824,7 @@ export class AgentStore {
 		this.model = selection.model;
 		this.availableModels = selection.availableModels;
 		this.thinkingLevels = selection.thinkingLevels;
+		this.activeDomains = selection.activeDomains;
 		this.selectedProjectPath = selection.selectedProjectPath;
 		this.projectStatus = selection.projectStatus;
 		this.usage = selection.usage;

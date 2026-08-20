@@ -1,7 +1,7 @@
 import type {
 	ConversationMessage,
 	ToolCallView,
-	UnityProject,
+	StoredProject,
 	UnityStatus,
 } from '@unity-agent/protocol';
 import {
@@ -27,7 +27,7 @@ export interface UnityLifecycle {
 }
 
 export interface UnityView {
-	selectedProject?: UnityProject;
+	selectedProject?: StoredProject;
 	status?: UnityStatus;
 	editor?: Record<string, unknown>;
 	projectPath?: string;
@@ -42,7 +42,7 @@ export interface UnityView {
 
 interface UnityViewInput {
 	messages: ConversationMessage[];
-	projects: UnityProject[];
+	projects: StoredProject[];
 	selectedProjectPath?: string;
 	projectStatus?: UnityStatus;
 	projectsLoading: boolean;
@@ -64,8 +64,7 @@ export function createUnityView(input: UnityViewInput): UnityView {
 		projectName(projectPath) ??
 		(input.projectsLoading ? 'Loading projects' : 'Select a project');
 	const version =
-		readEditorValue(editor, ['version', 'unityVersion']) ??
-		selectedProject?.version;
+		readEditorValue(editor, ['version', 'unityVersion']) ?? undefined;
 	const state =
 		readEditorValue(editor, ['state', 'connectionState']) ??
 		statusLabel(status?.state);

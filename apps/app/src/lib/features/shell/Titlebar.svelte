@@ -8,12 +8,12 @@
 	import { shortcutHint } from './shortcuts';
 	import WindowControls from './WindowControls.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
-	import type { UnityView } from '../unity/unity-view';
+	import type { WorkspaceView } from '../../domains/types';
 
 	interface Props {
 		agent: AgentIdentity;
 		layout: WorkspaceLayout;
-		view: UnityView;
+		view: WorkspaceView;
 		store: AgentStore;
 		onOpenSettings: () => void;
 	}
@@ -52,14 +52,12 @@
 		<span data-ui="preview-badge">Preview</span>
 	</div>
 	<div data-ui="titlebar-center" data-tauri-drag-region>
-		<span data-ui="project-dot" data-state={view.status?.state}></span>
-		<span>{view.projectName}</span>
+		<span data-ui="project-dot" data-state={view.state}></span>
+		<span>{view.workspaceName}</span>
 		{#if activity.streaming}
 			<StreamingIndicator {activity} compact />
 		{:else}
-			<span data-ui="muted"
-				>{view.version ? `Unity ${view.version}` : view.state}</span
-			>
+			<span data-ui="muted">{view.subtitle}</span>
 		{/if}
 	</div>
 	<div data-ui="titlebar-end">
@@ -88,14 +86,14 @@
 			{/snippet}
 		</Tooltip>
 		<Tooltip
-			text={`${layout.rightVisible ? 'Hide' : 'Show'} editor inspector · ${shortcutHint('⇧B')}`}
+			text={`${layout.rightVisible ? 'Hide' : 'Show'} workspace inspector · ${shortcutHint('⇧B')}`}
 		>
 			{#snippet children(props)}
 				<Button
 					{...props}
 					variant="ghost"
 					size="icon"
-					aria-label="Toggle editor inspector"
+					aria-label="Toggle workspace inspector"
 					aria-expanded={layout.rightVisible}
 					onclick={() => layout.toggleRight()}
 				>

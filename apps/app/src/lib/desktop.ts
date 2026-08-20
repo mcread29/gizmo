@@ -21,6 +21,14 @@ export async function saveTextFile(
 	return path ?? undefined;
 }
 
+/** Opens the native folder picker. Browser development can use the path field. */
+export async function pickWorkspaceDirectory(): Promise<string | undefined> {
+	if (!isDesktop()) return undefined;
+	const { invoke } = await import('@tauri-apps/api/core');
+	const path = await invoke<string | null>('pick_workspace_directory');
+	return path ?? undefined;
+}
+
 export async function minimizeWindow(): Promise<void> {
 	await withWindow((window) => window.minimize());
 }

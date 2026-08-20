@@ -11,7 +11,7 @@ import type {
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { PiAgentService } from '../sessions/pi-agent-service';
 import { GitService } from '../git/git-service';
-import { UnityProjectService } from '../unity/unity-project-service';
+import { UnityProjectService } from '../domains/unity/unity-project-service';
 
 export interface AgentWebSocketServerOptions {
 	host?: string;
@@ -272,7 +272,16 @@ async function dispatch(
 				),
 			};
 		case 'project.list':
-			return { result: await projectService.listProjects() };
+			return { result: await service.listProjects() };
+		case 'project.detect':
+			return { result: await service.detectProject(request.projectPath) };
+		case 'project.add':
+			return {
+				result: await service.addProject(request.projectPath, request.domainId),
+			};
+		case 'project.remove':
+			await service.removeProject(request.projectPath);
+			return {};
 		case 'project.status':
 			return { result: await projectService.getStatus(request.projectPath) };
 		case 'project.watch':

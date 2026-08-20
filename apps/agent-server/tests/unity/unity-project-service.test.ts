@@ -3,7 +3,7 @@ import type {
 	UnityRunResult,
 } from '@unity-agent/unity-tools';
 import { describe, expect, it, vi } from 'vitest';
-import { UnityProjectService } from '../../src/unity/unity-project-service';
+import { UnityProjectService } from '../../src/domains/unity/unity-project-service';
 
 describe('UnityProjectService', () => {
 	it('rejects paths outside the Unity project registry before status or open', async () => {
@@ -28,7 +28,7 @@ describe('UnityProjectService', () => {
 
 		await service.listProjects();
 		await expect(service.openProject('/tmp/not-registered')).rejects.toThrow(
-			'not a registered Unity project',
+			'not a Unity project',
 		);
 
 		expect(runner.run).toHaveBeenCalledOnce();

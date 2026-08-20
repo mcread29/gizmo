@@ -4,9 +4,13 @@ import { createAgentWebSocketServer } from './transport/websocket-server';
 
 await restoreDesktopEnvironment();
 
-const host = process.env.UNITY_AGENT_HOST ?? '127.0.0.1';
-const port = parsePort(process.env.UNITY_AGENT_PORT);
-const allowedOrigins = process.env.UNITY_AGENT_ORIGINS?.split(',')
+const host =
+	process.env.GIZMO_HOST ?? process.env.UNITY_AGENT_HOST ?? '127.0.0.1';
+const port = parsePort(process.env.GIZMO_PORT ?? process.env.UNITY_AGENT_PORT);
+const allowedOrigins = (
+	process.env.GIZMO_ORIGINS ?? process.env.UNITY_AGENT_ORIGINS
+)
+	?.split(',')
 	.map((origin) => origin.trim())
 	.filter(Boolean);
 const agentServer = await createAgentWebSocketServer({
@@ -31,7 +35,7 @@ function parsePort(value: string | undefined): number {
 	if (value === undefined) return 8787;
 	const port = Number(value);
 	if (!Number.isInteger(port) || port < 1 || port > 65535) {
-		throw new Error(`Invalid UNITY_AGENT_PORT: ${value}`);
+		throw new Error(`Invalid GIZMO_PORT: ${value}`);
 	}
 	return port;
 }

@@ -16,7 +16,8 @@ import {
 	type SessionTree,
 	type UnityExtensionDescriptor,
 	type UnityOpenProjectResult,
-	type UnityProject,
+	type StoredProject,
+	type ProjectDomains,
 	type UnityStatus,
 } from '@unity-agent/protocol';
 import type {
@@ -104,7 +105,8 @@ export class FakeAgentClient implements AgentClient {
 			summary: {
 				id: sessionId,
 				title: 'New session',
-				projectPath: options.cwd ?? fakeProjects[0]!.path,
+				workspacePath: options.cwd ?? fakeProjects[0]!.path,
+				domainId: options.domainId ?? 'unity',
 				createdAt: now,
 				lastActiveAt: now,
 				messageCount: 0,
@@ -518,9 +520,42 @@ export class FakeAgentClient implements AgentClient {
 		return this.#modelCatalog(session);
 	}
 
-	async listProjects(): Promise<UnityProject[]> {
+	async listProjects(): Promise<StoredProject[]> {
 		this.#assertConnected();
 		return fakeProjects;
+	}
+
+	async detectProject(_projectPath: string): Promise<ProjectDomains> {
+		return {
+			domains: [
+				{ id: 'unity', name: 'Unity', detected: true },
+				{ id: 'generic', name: 'Generic', detected: true },
+			],
+		};
+	}
+
+	async addProject(
+		projectPath: string,
+		domainId: string,
+	): Promise<StoredProject> {
+		const project = {
+			title: projectPath.split('/').at(-1) ?? projectPath,
+			path: projectPath,
+			domainId,
+			addedAt: Date.now(),
+		};
+		fakeProjects.splice(
+			0,
+			fakeProjects.length,
+			project,
+			...fakeProjects.filter(({ path }) => path !== projectPath),
+		);
+		return project;
+	}
+
+	async removeProject(projectPath: string): Promise<void> {
+		const index = fakeProjects.findIndex(({ path }) => path === projectPath);
+		if (index >= 0) fakeProjects.splice(index, 1);
 	}
 
 	async getProjectStatus(projectPath: string): Promise<UnityStatus> {
@@ -640,6 +675,10 @@ export class FakeAgentClient implements AgentClient {
 				thinkingLevel: session.thinkingLevel,
 			},
 			tools: [...agentToolPolicy.tools],
+			domains:
+				session.summary.domainId === 'generic'
+					? []
+					: [session.summary.domainId ?? 'unity'],
 		});
 		this.#emit({
 			type: 'session.state',
@@ -692,22 +731,18 @@ const fakeModels = [
 
 const fakeThinkingLevels = ['off', 'low', 'medium', 'high', 'xhigh'];
 
-const fakeProjects: UnityProject[] = [
+const fakeProjects: StoredProject[] = [
 	{
 		title: 'ThirdPersonSandbox',
 		path: '/projects/ThirdPersonSandbox',
-		version: '6000.3.7f1',
-		lastModified: 1,
-		isFavorite: true,
-		buildTarget: 'StandaloneLinux64',
-		renderPipeline: 'Universal',
+		domainId: 'unity',
+		addedAt: 1,
 	},
 	{
 		title: 'RenderingPlayground',
 		path: '/projects/RenderingPlayground',
-		version: '6000.3.7f1',
-		lastModified: 0,
-		isFavorite: false,
+		domainId: 'unity',
+		addedAt: 0,
 	},
 ];
 

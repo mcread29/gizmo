@@ -161,7 +161,7 @@
 		rows="1"
 		placeholder={streaming
 			? 'Steer the response while it runs…'
-			: 'Ask about your Unity project…'}></textarea>
+			: 'Ask about your workspace…'}></textarea>
 	<div data-ui="composer-toolbar">
 		<Tooltip text="Attach files or images">
 			{#snippet children(props)}

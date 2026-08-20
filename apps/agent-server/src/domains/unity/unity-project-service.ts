@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { access, readFile, writeFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 import {
 	getUnityStatus,
@@ -15,7 +15,7 @@ import {
 	type UnityProject,
 	type UnityStatusDetails,
 } from '@unity-agent/unity-tools';
-import { revertPatch } from '../tools/patch';
+import { revertPatch } from '../../tools/patch';
 
 export interface ProjectWatchListeners {
 	status: (status: UnityStatusDetails) => void;
@@ -255,9 +255,16 @@ export class UnityProjectService {
 	}
 
 	async #requireProject(projectPath: string): Promise<void> {
-		const projects = this.#projects ?? (await this.listProjects());
-		if (!projects.some((project) => project.path === projectPath)) {
-			throw new Error('The selected path is not a registered Unity project');
+		try {
+			const projects = this.#projects ?? (await this.listProjects());
+			if (projects.some((project) => project.path === projectPath)) return;
+		} catch {
+			// A user-selected project does not have to be in the Hub registry.
+		}
+		try {
+			await access(resolve(projectPath, 'ProjectSettings'));
+		} catch {
+			throw new Error('The selected path is not a Unity project');
 		}
 	}
 

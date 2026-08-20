@@ -19,7 +19,9 @@ export function matchesQuery(
 	if (!needle) return true;
 	return (
 		threadTitle(session.title).toLowerCase().includes(needle) ||
-		workspaceName(session.projectPath).toLowerCase().includes(needle)
+		workspaceName(session.workspacePath ?? session.projectPath)
+			.toLowerCase()
+			.includes(needle)
 	);
 }
 

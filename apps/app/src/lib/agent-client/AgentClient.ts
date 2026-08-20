@@ -9,9 +9,10 @@ import type {
 	SessionOptions,
 	SessionSnapshot,
 	SessionTree,
+	StoredProject,
+	ProjectDomains,
 	UnityExtensions,
 	UnityOpenProjectResult,
-	UnityProject,
 	UnityStatus,
 } from '@unity-agent/protocol';
 
@@ -75,7 +76,10 @@ export interface AgentClient {
 		sessionId: string,
 		level: string,
 	): Promise<AgentModelCatalog>;
-	listProjects(): Promise<UnityProject[]>;
+	listProjects(): Promise<StoredProject[]>;
+	detectProject(projectPath: string): Promise<ProjectDomains>;
+	addProject(projectPath: string, domainId: string): Promise<StoredProject>;
+	removeProject(projectPath: string): Promise<void>;
 	getProjectStatus(projectPath: string): Promise<UnityStatus>;
 	watchProjectStatus(
 		sessionId: string,

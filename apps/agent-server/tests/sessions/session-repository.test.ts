@@ -43,12 +43,12 @@ describe('PiSessionRepository', () => {
 			expect.arrayContaining([
 				expect.objectContaining({
 					id: game.getSessionId(),
-					projectPath: '/projects/game',
+					workspacePath: '/projects/game',
 					title: 'Scene inspection',
 				}),
 				expect.objectContaining({
 					id: tools.getSessionId(),
-					projectPath: '/projects/tools',
+					workspacePath: '/projects/tools',
 				}),
 			]),
 		);

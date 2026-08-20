@@ -81,6 +81,13 @@ class InvalidEventClient implements AgentClient {
 	async listProjects() {
 		return [];
 	}
+	async detectProject() {
+		return { domains: [{ id: 'generic', name: 'Generic', detected: true }] };
+	}
+	async addProject(projectPath: string, domainId: string) {
+		return { title: 'project', path: projectPath, domainId, addedAt: 0 };
+	}
+	async removeProject() {}
 	async getProjectStatus(): Promise<UnityStatus> {
 		throw new Error('No selected project');
 	}
@@ -265,7 +272,7 @@ describe('AgentStore', () => {
 
 		await store.newSession('/projects/RenderingPlayground');
 		expect(store.sessions[0]).toMatchObject({
-			projectPath: '/projects/RenderingPlayground',
+			workspacePath: '/projects/RenderingPlayground',
 		});
 
 		await store.selectModel('openai-codex', 'gpt-5.6-terra');

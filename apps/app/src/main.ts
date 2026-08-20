@@ -5,7 +5,7 @@ import './app.css';
 
 /*
  * `?fake` runs the workspace against the in-memory agent, so the interface can
- * be exercised in a browser without a Unity Editor or the sidecar running. The
+ * be exercised in a browser without a domain runtime or the sidecar running. The
  * import is dev-only and dynamic, so it never reaches a production bundle.
  */
 const useFakeAgent =

@@ -11,6 +11,7 @@ import type {
 export interface AgentEventState {
 	model?: { provider: string; id: string; thinkingLevel: string };
 	activeTools: string[];
+	activeDomains?: string[];
 	sessionState: SessionState;
 	compacting: boolean;
 	usage?: SessionUsage;
@@ -31,6 +32,7 @@ export function applyAgentEvent(
 	switch (event.type) {
 		case 'session.created':
 			state.model = event.model;
+			state.activeDomains = event.domains ?? [];
 			state.activeTools = event.tools ?? [];
 			break;
 		case 'session.state':

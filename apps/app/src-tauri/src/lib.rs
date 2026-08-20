@@ -30,21 +30,33 @@ async fn save_text_file(
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
+#[tauri::command]
+async fn pick_workspace_directory(app: AppHandle) -> Result<Option<String>, String> {
+    let Some(path) = app.dialog().file().blocking_pick_folder() else {
+        return Ok(None);
+    };
+    let path = path.into_path().map_err(|error| error.to_string())?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![save_text_file])
+        .invoke_handler(tauri::generate_handler![
+            save_text_file,
+            pick_workspace_directory
+        ])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
             let (_events, child) = app
                 .shell()
                 .sidecar("unity-agent-server")?
-                .env("UNITY_AGENT_DATA_DIR", data_dir)
-                .env("UNITY_AGENT_HOST", "127.0.0.1")
-                .env("UNITY_AGENT_PORT", "8787")
+                .env("GIZMO_DATA_DIR", data_dir)
+                .env("GIZMO_HOST", "127.0.0.1")
+                .env("GIZMO_PORT", "8787")
                 .spawn()?;
             if !wait_for_agent() {
                 let _ = child.kill();

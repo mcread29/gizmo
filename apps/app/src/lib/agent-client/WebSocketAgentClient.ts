@@ -9,8 +9,9 @@ import {
 	parseSessionSnapshot,
 	parseSessionTree,
 	parseUnityOpenProjectResult,
-	parseUnityProjects,
 	parseUnityStatus,
+	parseStoredProjects,
+	parseProjectDomains,
 	protocolVersion,
 	type AgentRequest,
 	type AgentAttachment,
@@ -26,8 +27,9 @@ import {
 	type SessionTree,
 	type UnityExtensions,
 	type UnityOpenProjectResult,
-	type UnityProject,
 	type UnityStatus,
+	type StoredProject,
+	type ProjectDomains,
 } from '@unity-agent/protocol';
 import type {
 	AgentClient,
@@ -289,9 +291,33 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseAgentModelCatalog(response.result);
 	}
 
-	async listProjects(): Promise<UnityProject[]> {
+	async listProjects(): Promise<StoredProject[]> {
 		const response = await this.#request({ type: 'project.list' });
-		return parseUnityProjects(response.result);
+		return parseStoredProjects(response.result);
+	}
+
+	async detectProject(projectPath: string): Promise<ProjectDomains> {
+		const response = await this.#request({
+			type: 'project.detect',
+			projectPath,
+		});
+		return parseProjectDomains(response.result);
+	}
+
+	async addProject(
+		projectPath: string,
+		domainId: string,
+	): Promise<StoredProject> {
+		const response = await this.#request({
+			type: 'project.add',
+			projectPath,
+			domainId,
+		});
+		return parseStoredProjects([response.result])[0]!;
+	}
+
+	async removeProject(projectPath: string): Promise<void> {
+		await this.#request({ type: 'project.remove', projectPath });
 	}
 
 	async getProjectStatus(projectPath: string): Promise<UnityStatus> {

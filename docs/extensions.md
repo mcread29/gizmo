@@ -1,4 +1,7 @@
-# Project extensions
+# Unity project extensions
+
+These are extensions hosted inside the Unity domain. For product-level
+integrations such as Unity and Svelte, see [domains.md](domains.md).
 
 Project extensions add optional Unity Editor integrations without teaching the
 Gizmo core about their data or behavior. Core discovers extensions, validates

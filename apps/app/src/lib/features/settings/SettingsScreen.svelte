@@ -3,7 +3,6 @@
 	import { Slider, Switch } from 'bits-ui';
 	import {
 		appColorSchemes,
-		compilePlayModePolicies,
 		getColorScheme,
 		getThemeMode,
 		getThemeVariant,
@@ -11,6 +10,7 @@
 		type ThemeMode,
 	} from '../../app-settings';
 	import type { AgentStore } from '../../agent-client';
+	import DomainSettings from '../../domains/DomainSettings.svelte';
 	import {
 		Button,
 		ScrollPanel,
@@ -201,25 +201,7 @@
 					</div>
 				</SettingsSection>
 
-				<SettingsSection
-					title="Unity compilation"
-					description="Choose what happens when an agent needs to compile while the Editor is in Play Mode."
-				>
-					<SelectField
-						value={layout.compilePlayModePolicy}
-						label="When Play Mode is active"
-						options={[...compilePlayModePolicies]}
-						onValueChange={(value) => {
-							if (
-								value === 'ask' ||
-								value === 'stop' ||
-								value === 'keep_playing'
-							) {
-								layout.compilePlayModePolicy = value;
-							}
-						}}
-					/>
-				</SettingsSection>
+				<DomainSettings {layout} activeDomains={store.activeDomains} />
 
 				<SettingsSection
 					title="Reasoning"
@@ -243,8 +225,8 @@
 					/>
 					<SwitchField
 						bind:checked={layout.showUnityInspector}
-						label="Unity inspector"
-						description="Show Editor status, diagnostics, and activity."
+						label="Workspace inspector"
+						description="Show workspace status, changes, and activity."
 					/>
 				</SettingsSection>
 

@@ -7,7 +7,7 @@
 export const layoutBreakpoints = {
 	/** Below this the thread sidebar becomes an overlay drawer. */
 	sidebar: 720,
-	/** Below this the Unity inspector becomes an overlay drawer. */
+	/** Below this the workspace inspector becomes an overlay drawer. */
 	inspector: 1040,
 } as const;
 
