@@ -14,6 +14,7 @@ import {
 	parseProjectDomains,
 	parseResourceCatalog,
 	parseWorkspaceDirectoryListing,
+	parseProviderStatuses,
 	protocolVersion,
 	type AgentRequest,
 	type AgentAttachment,
@@ -35,6 +36,7 @@ import {
 	type ResourceCatalog,
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
+	type ProviderStatus,
 } from '@unity-agent/protocol';
 import type {
 	AgentClient,
@@ -63,6 +65,15 @@ type AgentRequestBody = AgentRequest extends infer Request
 	: never;
 
 export class WebSocketAgentClient implements AgentClient {
+	async listProviders(): Promise<ProviderStatus[]> {
+		const response = await this.#request({ type: 'providers.list' });
+		return parseProviderStatuses(response.result);
+	}
+
+	async reimportPiAuth(): Promise<ProviderStatus[]> {
+		const response = await this.#request({ type: 'providers.import-pi-auth' });
+		return parseProviderStatuses(response.result);
+	}
 	#url: string;
 	readonly #createSocket: (url: string) => WebSocket;
 	readonly #listeners = new Set<AgentEventListener>();

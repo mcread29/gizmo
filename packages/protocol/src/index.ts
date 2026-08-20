@@ -568,7 +568,33 @@ export type UnityOpenProjectResult = Static<
 	typeof unityOpenProjectResultSchema
 >;
 
+export const providerStatusSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1 }),
+		name: Type.String({ minLength: 1 }),
+		authenticated: Type.Boolean(),
+		source: Type.Optional(Type.String({ minLength: 1 })),
+		credentialType: Type.Optional(
+			Type.Union([Type.Literal('api_key'), Type.Literal('oauth')]),
+		),
+		supportsApiKey: Type.Boolean(),
+		supportsOAuth: Type.Boolean(),
+		modelCount: Type.Integer({ minimum: 0 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type ProviderStatus = Static<typeof providerStatusSchema>;
+
 export const agentRequestSchema = Type.Union([
+	Type.Object(
+		{ ...envelope, type: Type.Literal('providers.list') },
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{ ...envelope, type: Type.Literal('providers.import-pi-auth') },
+		{ additionalProperties: false },
+	),
 	Type.Object(
 		{
 			...envelope,
@@ -1128,6 +1154,14 @@ export function parseUnityProjects(input: unknown): UnityProject[] {
 
 export function parseStoredProjects(input: unknown): StoredProject[] {
 	const schema = Type.Array(storedProjectSchema);
+	if (!Value.Check(schema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseProviderStatuses(input: unknown): ProviderStatus[] {
+	const schema = Type.Array(providerStatusSchema);
 	if (!Value.Check(schema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}

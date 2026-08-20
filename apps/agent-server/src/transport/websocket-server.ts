@@ -190,6 +190,10 @@ async function dispatch(
 	request: AgentRequest,
 ): Promise<{ sessionId?: string; result?: unknown }> {
 	switch (request.type) {
+		case 'providers.list':
+			return { result: await service.listProviders() };
+		case 'providers.import-pi-auth':
+			return { result: await service.reimportPiAuth() };
 		case 'attachment.read':
 			return {
 				result: await service.readAttachment(

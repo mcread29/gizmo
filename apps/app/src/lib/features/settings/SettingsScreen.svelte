@@ -8,6 +8,7 @@
 		Plug,
 		Layers,
 		Sparkles,
+		KeyRound,
 	} from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { ScrollPanel } from '../../components';
@@ -20,6 +21,7 @@
 	import ContextSettings from './ContextSettings.svelte';
 	import SettingsNav, { type SettingsNavItem } from './SettingsNav.svelte';
 	import AgentSettings from './AgentSettings.svelte';
+	import ProvidersSettings from './ProvidersSettings.svelte';
 
 	interface Props {
 		open?: boolean;
@@ -61,6 +63,7 @@
 				{ page: 'chat', label: 'Chat', icon: MessageSquare },
 				{ page: 'context', label: 'Context', icon: Layers },
 				{ page: 'connection', label: 'Connection', icon: Plug },
+				{ page: 'providers', label: 'Providers', icon: KeyRound },
 			] satisfies SettingsNavItem[],
 		},
 		{
@@ -114,6 +117,8 @@
 						<ConnectionSettings {layout} {store} />
 					{:else if page === 'agent'}
 						<AgentSettings {store} />
+					{:else if page === 'providers'}
+						<ProvidersSettings {store} />
 					{:else}
 						<AboutSettings {layout} {version} />
 					{/if}

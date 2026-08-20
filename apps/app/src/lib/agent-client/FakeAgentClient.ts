@@ -24,6 +24,7 @@ import {
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
 	type UnityStatus,
+	type ProviderStatus,
 } from '@unity-agent/protocol';
 import type {
 	AgentClient,
@@ -52,6 +53,15 @@ export interface FakeAgentClientOptions {
 }
 
 export class FakeAgentClient implements AgentClient {
+	async listProviders(): Promise<ProviderStatus[]> {
+		this.#assertConnected();
+		return fakeProviders;
+	}
+
+	async reimportPiAuth(): Promise<ProviderStatus[]> {
+		this.#assertConnected();
+		return fakeProviders;
+	}
 	readonly #latencyMs: number;
 	readonly #listeners = new Set<AgentEventListener>();
 	readonly #disconnectListeners = new Set<AgentDisconnectListener>();
@@ -792,6 +802,19 @@ export class FakeAgentClient implements AgentClient {
 		});
 	}
 }
+
+const fakeProviders: ProviderStatus[] = [
+	{
+		id: 'openai-codex',
+		name: 'OpenAI Codex',
+		authenticated: true,
+		source: 'OAuth',
+		credentialType: 'oauth',
+		supportsApiKey: false,
+		supportsOAuth: true,
+		modelCount: 3,
+	},
+];
 
 const fakeModels = [
 	{

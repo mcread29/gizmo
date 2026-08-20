@@ -34,9 +34,12 @@ restores the last selected session and project on reconnect. Set
 `GIZMO_DATA_DIR` to use a different application-data directory. The older
 `UNITY_AGENT_DATA_DIR` name remains supported for migration.
 
-The backend uses Pi's selected model and authentication from
-`~/.pi/agent/settings.json` and `~/.pi/agent/auth.json`. Run `pi` and use
-`/login` or configure a provider API key before sending prompts.
+The backend keeps Pi SDK configuration in Gizmo's application-data directory:
+`auth.json`, `settings.json`, `models.json`, and `models-store.json` live beside
+the `sessions` directory. On first use, missing config files are copied from
+`~/.pi/agent` without overwriting anything Gizmo already owns. Until Gizmo has
+its own login UI, run `pi`, use `/login`, and remove Gizmo's `auth.json` to
+import the updated credentials on the next session creation.
 
 Browser WebSockets are restricted to the local Vite origin by default. Set a
 comma-separated `GIZMO_ORIGINS` value when intentionally serving the UI

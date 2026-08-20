@@ -14,6 +14,7 @@ import {
 	type SessionOptions,
 	type SessionSnapshot,
 	type SessionTree,
+	type ProviderStatus,
 } from '@unity-agent/protocol';
 import {
 	PiEventTranslator,
@@ -21,6 +22,7 @@ import {
 } from './pi-event-translator';
 import {
 	PiSessionRepository,
+	defaultDataDir,
 	type SessionRepository,
 } from './session-repository';
 import { sessionTree } from './session-transcript';
@@ -40,6 +42,11 @@ import {
 	revealStoredAttachment,
 	type PiImage,
 } from '../attachments/attachment-storage';
+import {
+	gizmoPiRuntimePaths,
+	importPiRuntimeConfig,
+	reimportPiAuth,
+} from '../config/pi-runtime-config';
 
 export interface PiSessionLike {
 	readonly sessionId: string;
@@ -114,6 +121,31 @@ export class PiAgentService {
 		this.#repository = repository;
 		this.#projects = projects;
 		this.#resources = resources;
+	}
+
+	async listProviders(): Promise<ProviderStatus[]> {
+		const runtime = await gizmoModelRuntime();
+		return Promise.all(
+			runtime.getProviders().map(async (provider) => {
+				const auth = await runtime.checkAuth(provider.id);
+				return {
+					id: provider.id,
+					name: provider.name,
+					authenticated: Boolean(auth),
+					...(auth?.source ? { source: auth.source } : {}),
+					...(auth?.type ? { credentialType: auth.type } : {}),
+					supportsApiKey: Boolean(provider.auth.apiKey),
+					supportsOAuth: Boolean(provider.auth.oauth),
+					modelCount: runtime.getModels(provider.id).length,
+				};
+			}),
+		);
+	}
+
+	async reimportPiAuth(): Promise<ProviderStatus[]> {
+		await reimportPiAuth();
+		modelRuntimePromise = undefined;
+		return this.listProviders();
 	}
 
 	async createSession(options: SessionOptions = {}): Promise<string> {
@@ -528,14 +560,11 @@ const createDefaultPiSession: PiSessionFactory = async (
 	sessionManager,
 	callbacks,
 ) => {
-	const {
-		createAgentSession,
-		DefaultResourceLoader,
-		getAgentDir,
-		SettingsManager,
-	} = await import('@earendil-works/pi-coding-agent');
+	const { createAgentSession, DefaultResourceLoader, SettingsManager } =
+		await import('@earendil-works/pi-coding-agent');
 	const cwd = options.cwd ?? process.cwd();
-	const agentDir = getAgentDir();
+	const agentDir = defaultDataDir();
+	const modelRuntime = await gizmoModelRuntime();
 	const settingsManager = SettingsManager.create(cwd, agentDir);
 	const activeDomains = await activateDomains(
 		{
@@ -580,6 +609,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 	const git = new GitService();
 	const { session } = await createAgentSession({
 		cwd,
+		agentDir,
 		customTools: [...activeDomains.tools, git.createStatusTool(cwd)],
 		tools: [
 			'read',
@@ -589,6 +619,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 			...activeDomains.tools.map(({ name }) => name),
 		],
 		resourceLoader,
+		modelRuntime,
 		sessionManager,
 		settingsManager,
 	});
@@ -678,6 +709,26 @@ const createDefaultPiSession: PiSessionFactory = async (
 		},
 	});
 };
+
+let modelRuntimePromise:
+	Promise<import('@earendil-works/pi-coding-agent').ModelRuntime> | undefined;
+
+function gizmoModelRuntime() {
+	if (!modelRuntimePromise) {
+		modelRuntimePromise = import('@earendil-works/pi-coding-agent').then(
+			async ({ ModelRuntime }) => {
+				const paths = gizmoPiRuntimePaths();
+				await importPiRuntimeConfig(paths.agentDir);
+				return ModelRuntime.create({
+					authPath: paths.authPath,
+					modelsPath: paths.modelsPath,
+					modelsStorePath: paths.modelsStorePath,
+				});
+			},
+		);
+	}
+	return modelRuntimePromise;
+}
 
 function validateCompactionPolicy(policy: CompactionPolicy): void {
 	if (policy.retainPercent >= policy.fillPercent) {

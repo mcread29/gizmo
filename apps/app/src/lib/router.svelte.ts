@@ -8,6 +8,7 @@ export const settingsPages = [
 	'chat',
 	'context',
 	'connection',
+	'providers',
 	'agent',
 	'about',
 ] as const;

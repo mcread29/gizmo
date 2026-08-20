@@ -14,6 +14,7 @@ import type {
 	ProjectDomains,
 	WorkspaceIntegration,
 	WorkspaceDirectoryListing,
+	ProviderStatus,
 	UnityExtensions,
 	UnityOpenProjectResult,
 	UnityStatus,
@@ -29,6 +30,8 @@ export interface AttachmentContent {
 }
 
 export interface AgentClient {
+	listProviders(): Promise<ProviderStatus[]>;
+	reimportPiAuth(): Promise<ProviderStatus[]>;
 	connect(): Promise<void>;
 	disconnect(): Promise<void>;
 	listSessions(): Promise<SessionCatalog>;

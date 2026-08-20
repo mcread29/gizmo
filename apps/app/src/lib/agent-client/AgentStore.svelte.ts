@@ -21,6 +21,7 @@ import {
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
 	type UnityStatus,
+	type ProviderStatus,
 } from '@unity-agent/protocol';
 import type { AgentClient } from './AgentClient';
 import { applyAgentEvent } from './agent-event-reducer';
@@ -106,6 +107,9 @@ export class AgentStore {
 	resources = $state<ResourceCatalog>();
 	resourcesLoading = $state(false);
 	resourceError = $state<string>();
+	providers = $state.raw<ProviderStatus[]>([]);
+	providersLoading = $state(false);
+	providerError = $state<string>();
 
 	readonly #client: AgentClient;
 	#unsubscribe?: () => void;
@@ -116,6 +120,34 @@ export class AgentStore {
 
 	constructor(client: AgentClient) {
 		this.#client = client;
+	}
+
+	async refreshProviders(): Promise<void> {
+		if (this.connection !== 'connected') return;
+		this.providersLoading = true;
+		this.providerError = undefined;
+		try {
+			this.providers = await this.#client.listProviders();
+		} catch (error) {
+			this.providerError = errorMessage(error);
+		} finally {
+			this.providersLoading = false;
+		}
+	}
+
+	async reimportPiAuth(): Promise<boolean> {
+		if (this.connection !== 'connected') return false;
+		this.providersLoading = true;
+		this.providerError = undefined;
+		try {
+			this.providers = await this.#client.reimportPiAuth();
+			return true;
+		} catch (error) {
+			this.providerError = errorMessage(error);
+			return false;
+		} finally {
+			this.providersLoading = false;
+		}
 	}
 
 	async connect(): Promise<void> {

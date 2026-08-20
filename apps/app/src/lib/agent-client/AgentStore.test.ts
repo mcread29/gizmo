@@ -9,6 +9,7 @@ import type {
 	SessionTree,
 	UnityOpenProjectResult,
 	UnityStatus,
+	ProviderStatus,
 } from '@unity-agent/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentClient, AgentEventListener } from './AgentClient';
@@ -24,6 +25,12 @@ const emptyCatalog: ResourceCatalog = {
 
 class InvalidEventClient implements AgentClient {
 	#listener?: AgentEventListener;
+	async listProviders(): Promise<ProviderStatus[]> {
+		return [];
+	}
+	async reimportPiAuth(): Promise<ProviderStatus[]> {
+		return [];
+	}
 
 	async connect() {}
 	async disconnect() {}
