@@ -8,14 +8,15 @@ forking the product.
 
 ## Architecture
 
-Gizmo stores user-selected workspaces with any number of integrations and combines their
-prompts, tools, and UI with a generic coding, Git, session, and file core. It detects
-matching integrations when a folder is opened, then lets the user enable, disable, or
-relocate each integration for that workspace. Unity connects through the Unity CLI and
-Editor Pipeline; Svelte uses the same product shell with Svelte-aware guidance. See
-[`docs/domains.md`](docs/domains.md).
+Gizmo stores user-selected workspaces in its app data directory, while each
+workspace owns its agent profiles under `.gizmo/profiles.json`. A profile
+selects the prompt fragments, tools, skills, and extension contributions that
+shape new threads. Extension packages such as Unity and Svelte provide profile
+defaults, but the saved project profile is the source of truth once copied into
+the workspace. See [`docs/domains.md`](docs/domains.md).
 
-A folder with no integrations keeps Pi's default system prompt unchanged.
+The default profile keeps Pi's default system prompt unchanged, plus any skills
+enabled through Gizmo's global and profile-local settings.
 
 ## Development
 
@@ -89,16 +90,16 @@ inspector after the agent invokes them. The harness intentionally grants its
 configured tools full access without approval prompts and disables ambient Pi
 extensions. The Changes view is the review surface for project mutations.
 
-Unity-hosted project integrations use the generic extension boundary documented in
+Unity-hosted project extensions use the generic extension boundary documented in
 [`docs/extensions.md`](docs/extensions.md). Core discovers versioned descriptors
 and forwards declared operations without interpreting extension payloads.
-Candidate integrations are collected in
+Candidate extensions are collected in
 [`docs/extension-ideas.md`](docs/extension-ideas.md).
 
 Skills, `AGENTS.md` files, and prompt templates are loaded from Gizmo's own
 folders under `~/.gizmo/` and the cross-harness `~/.agents/`, never from Pi's
 agent directory. Skills are installed globally, start disabled, and can be
-overridden per workspace; see [`docs/resources.md`](docs/resources.md).
+overridden per workspace profile; see [`docs/resources.md`](docs/resources.md).
 
 ```sh
 pnpm check

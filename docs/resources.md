@@ -2,7 +2,7 @@
 
 Gizmo manages the Pi resources that shape a session: skills, `AGENTS.md`
 context files, prompt templates, and Pi extensions. These are separate from
-workspace integrations ([domains.md](domains.md)) and from Unity project
+workspace profiles and domains ([domains.md](domains.md)) and from Unity project
 extensions ([extensions.md](extensions.md)).
 
 ## Model
@@ -14,9 +14,9 @@ whether a skill reaches a session:
   installed globally, so a skill is managed in one place no matter which
   directory it came from. A newly discovered skill is **off**: installing it
   makes it manageable, not active.
-- **Workspace (enabled here).** A workspace may override the global setting for
-  one skill, in either direction. Clearing the override restores the global
-  setting.
+- **Profile (enabled here).** A workspace profile may override the global
+  setting for one skill, in either direction. Clearing the override restores the
+  global setting.
 
 Effective state is therefore `override ?? enabledGlobally`, and an uninstalled
 skill is off everywhere regardless of any override.
@@ -29,10 +29,11 @@ next listing, so explicitly uninstalled IDs are recorded and skipped.
 | State                                                  | Location                                   |
 | ------------------------------------------------------ | ------------------------------------------ |
 | Installed, globally enabled, and uninstalled skill IDs | `resources.json` in Gizmo's data directory |
-| Per-workspace overrides                                | `skills` on each entry in `projects.json`  |
+| Profile-local overrides                                | `.gizmo/profiles.json` in the workspace    |
 
-Nothing is written into the user's repository. A workspace must be registered
-with Gizmo before it can hold overrides.
+Global state stays in Gizmo's data directory. Profile overrides are project
+configuration and are written into the workspace's `.gizmo/profiles.json`. A
+workspace must be registered with Gizmo before it can hold overrides.
 
 ## Locations
 
@@ -48,7 +49,8 @@ there is put in front of the model.
 `~/.agents/` is the cross-harness [Agent Skills](https://agentskills.io)
 location, so skills shared with other tools work without being copied.
 `~/.gizmo/` is also Gizmo's data directory, holding sessions, `projects.json`,
-and `resources.json`; `GIZMO_DATA_DIR` moves all of it.
+and `resources.json`; `GIZMO_DATA_DIR` moves all of that app data. Workspace
+profiles remain in the selected project under `.gizmo/profiles.json`.
 
 The first time Gizmo runs without a `~/.gizmo/skills/` directory, it copies
 `~/.pi/agent/skills` and `~/.pi/agent/AGENTS.md` across, leaving the originals
@@ -101,8 +103,8 @@ an on/off filter, and grouping by scope; then prompts. Only skills are
 editable in the UI — the rest is reported so you can see what is influencing a
 session, and edited on disk.
 
-**Workspace settings** is its own screen (`#workspace-settings`), covering
-integrations, per-workspace skill overrides, domain settings, and removal.
+**Workspace settings** is part of the workspace screen, covering profiles,
+profile-local skill overrides, domain settings, and removal.
 
 Pages are addressable: `#settings/agent` opens straight to Agent, and moving
 between pages replaces the history entry rather than stacking one per click.

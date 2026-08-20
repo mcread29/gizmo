@@ -1,5 +1,20 @@
 # Work log
 
+## 2026-08-20 — Workspace profiles own agent configuration
+
+- Replaced workspace integrations as the user-facing configuration model with
+  project-owned profiles stored in `.gizmo/profiles.json`.
+- Kept bundled Unity and Svelte domains as extension contribution boundaries:
+  they now provide profile defaults, prompt fragments, tools, and UI, while the
+  copied workspace profile is the editable source of truth.
+- Left `projects.json` as catalog metadata and compatibility state only. The
+  active profile's extension roots are still exposed as `integrations` to older
+  session and UI code while the migration continues.
+- Moved skill overrides onto the active profile, so the Default profile can
+  remain Pi-default plus Gizmo-managed global/profile skill state.
+- Changed Workspace settings to select/add profiles, edit active profile
+  extension roots, and use the shared select component for the profile picker.
+
 ## 2026-08-19 — Project extension boundary
 
 Replaced the Console-specific project integration with a generic extension host
@@ -505,8 +520,8 @@ project was recompiled or modified during this verification.
   thread. Browsing workspaces no longer creates empty threads, and switching
   workspace and opening a thread are now separate acts.
 - Moved the workspace overview out of the empty-thread state onto its own
-  `#overview` route beside the sidebar, so a workspace's threads, integrations,
-  and settings stay reachable while a thread is open.
+  `#overview` route beside the sidebar, so a workspace's threads, profiles, and
+  settings stay reachable while a thread is open.
 - Listed every workspace's threads in one grouped sidebar list with the current
   workspace first, which also makes cross-workspace search find something.
 - Split the sidebar switcher: the workspace name opens the overview, the

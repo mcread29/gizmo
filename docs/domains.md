@@ -1,27 +1,34 @@
-# Workspace domains
+# Workspace profiles and domains
 
-Gizmo's core is a general coding workbench. A workspace integration teaches it how
-to recognize and work with a particular project ecosystem, such as Unity or
-Svelte. Integrations are bundled and detected from the workspace contents;
-they are separate from the smaller project-side extensions described in
-[extensions.md](extensions.md).
+Gizmo's core is a general coding workbench. A workspace profile is the saved
+agent configuration for a workspace: the prompt mode, extension roots, tool
+policy, and profile-local skill overrides that should apply to new threads.
+Domains are the lower-level capabilities that bundled extensions contribute,
+such as Unity tools or Svelte guidance.
+
+Bundled extensions can provide profile defaults. When a workspace adds one of
+those profiles, Gizmo copies the definition into `.gizmo/profiles.json`; later
+edits are project-owned and do not mutate the bundled default. Project-side
+Unity extensions are separate and are described in [extensions.md](extensions.md).
 
 ## Boundary
 
-Core owns sessions, messages, coding tools, Git, files, models, layout, and the
-extension lifecycle. A domain owns:
+Core owns sessions, messages, coding tools, Git, files, models, layout, saved
+profile files, and the extension lifecycle. A domain owns:
 
 - workspace detection;
+- a default profile definition for that extension;
 - domain-specific system instructions;
 - domain tools and confirmations;
 - inspector UI, dialogs, and settings; and
 - adapters to an external runtime such as the Unity Editor.
 
-Workspaces are added explicitly and stored in `projects.json` with their enabled
-integrations and per-integration roots. Detection supplies the initial setup. Users can
-then enable, disable, or relocate integrations in Workspace settings. New and resumed
-threads activate the stored setup, so the same folder is not reinterpreted differently
-between sessions.
+Workspaces are added explicitly. `projects.json` stores catalog metadata such as
+path, title, and added time. Agent behavior is stored in
+`.gizmo/profiles.json` inside the workspace. Detection supplies the initial
+profile defaults, then Workspace settings lets users choose the active profile,
+add detected extension profiles, and relocate each extension root for the active
+profile.
 
 Core coding and Git tools are always available and are not repeated by domains.
 
@@ -29,10 +36,11 @@ Core coding and Git tools are always available and are not repeated by domains.
 workspace folder
       │
       ▼
-integration registry ── detect/configure ──┬─ Unity: Editor tools + prompt
-                                          └─ Svelte: conventions + inspector
+extension registry ── detect/templates ──┬─ Unity: profile + tools + prompt
+                                        └─ Svelte: profile + guidance + inspector
       │
-      ├─ composed Pi session, or Pi defaults when none are enabled
+      ├─ .gizmo/profiles.json
+      ├─ active profile composes a Pi session, or Pi defaults for Default
       └─ contributed web UI
 ```
 
@@ -46,6 +54,7 @@ interface WorkspaceDomain {
 	id: string;
 	name: string;
 	detect(workspacePath: string): Promise<boolean>;
+	profile(root: string): WorkspaceProfile;
 	systemPrompt: string;
 	createTools(context: DomainContext): ToolDefinition[];
 }
@@ -70,11 +79,11 @@ feature directory while code is migrated). They may contribute the inspector,
 dialogs, and settings. Keep runtime-specific state and polling behind that
 boundary.
 
-The new-thread dialog accepts any folder, enables detected integrations, and stores
-the setup. The desktop build uses a native folder picker; browser
-development accepts an absolute path. Stored projects appear in the dialog on
-later launches. The server announces the active domain ID with the
-session-created event.
+The new-thread dialog accepts any folder, seeds profiles from detected
+extensions, and stores the initial profile setup. The desktop build uses a
+native folder picker; browser development accepts an absolute path. Stored
+projects appear in the dialog on later launches. The server announces the active
+domain ID with the session-created event.
 
 There is no current workspace. The sidebar lists every workspace as a row that
 expands to its own threads, and the centre column shows either a thread or a
@@ -86,10 +95,12 @@ where it is shown rather than on a separate screen.
 Threads do not exist outside a workspace: creating one requires a workspace, and
 the row's `+` starts a thread in that workspace.
 
-Workspace settings can toggle each integration, set its root within the workspace, or
-remove the workspace from Gizmo. Removal does not touch project files or existing threads. The thread
-sidebar groups sessions by project, sorted by project name, while keeping each
-project's threads in most-recent-first order.
+Workspace settings can select the active profile, add detected extension
+profiles, toggle extension contributions for the active profile, set their roots
+within the workspace, and remove the workspace from Gizmo. Removal does not
+touch project files or existing threads. The thread sidebar groups sessions by
+project, sorted by project name, while keeping each project's threads in
+most-recent-first order.
 
 ## Included domains
 
@@ -106,15 +117,16 @@ dependencies. It contributes Svelte-specific working guidance and a lightweight
 changes/activity inspector. It intentionally has no custom tools yet; normal
 coding and project scripts already cover the useful baseline.
 
-### No integrations
+### Default profile
 
-Every folder can run without an integration. This preserves Pi's normal default
-coding-agent prompt and tool behavior. Generic coding is core behavior rather than a
-separate integration.
+Every folder can run with the Default profile. This preserves Pi's normal
+default coding-agent prompt and tool behavior, with only Gizmo-managed skills
+added according to global and profile-local settings. Generic coding is core
+behavior rather than a separate extension.
 
-## Adding a domain
+## Adding a domain/profile default
 
-1. Add detection, prompt, and tools in a server domain directory.
+1. Add detection, a profile default, prompt, and tools in a server domain directory.
 2. Register it in the server registry.
 3. Add its web view and contribution components to the web domain registry.
 4. Add one focused detection/composition test and tests for any custom tools.

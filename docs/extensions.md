@@ -1,9 +1,10 @@
 # Unity project extensions
 
-These are extensions hosted inside the Unity domain. For product-level
-integrations such as Unity and Svelte, see [domains.md](domains.md).
+These are extensions hosted inside the Unity domain. For workspace profiles and
+bundled domain contributions such as Unity and Svelte, see
+[domains.md](domains.md).
 
-Project extensions add optional Unity Editor integrations without teaching the
+Project extensions add optional Unity Editor capabilities without teaching the
 Gizmo core about their data or behavior. Core discovers extensions, validates
 their declared operations, forwards opaque payloads, and renders generic UI
 contributions. Each extension owns everything else.
