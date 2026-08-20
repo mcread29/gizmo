@@ -1,5 +1,28 @@
 # Work log
 
+## 2026-08-20 — A workspace profile is edited where it lives
+
+- Made the workspace screen's tabs a column ending in one scrolling panel: the
+  panel had sized itself to its content, so a long tab ran off the bottom of
+  the window with no way to scroll it.
+
+- Gave the workspace screen a Profile tab: the whole profile is editable there,
+  not just the active profile's extension checkboxes. Name, base, active state,
+  extensions and roots, tool and prompt modes, and skill overrides all belong to
+  the profile being edited, and profiles can be created, duplicated from the
+  list, and deleted.
+- Made editing explicit rather than half-live: changes stay local until Save,
+  Revert restores the last saved state, and the header states when there is
+  unsaved work. Skill switches previously wrote through immediately while every
+  other control waited for Save.
+- Read a profile as its departures from the profile it starts at: the base is
+  stated instead of being another select, rows that differ from it are marked,
+  and each one reverts from its own menu (or all at once). Nothing else said
+  which settings were the profile's own and which came from the base.
+- Left Settings with what is not part of a profile — domain settings and
+  removal — plus a link to the Profile tab, so one screen no longer mixed
+  workspace removal with per-profile skill toggles.
+
 ## 2026-08-20 — Workspace profiles own agent configuration
 
 - Replaced workspace integrations as the user-facing configuration model with

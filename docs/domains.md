@@ -89,16 +89,24 @@ There is no current workspace. The sidebar lists every workspace as a row that
 expands to its own threads, and the centre column shows either a thread or a
 workspace. Opening a workspace (`#workspace/<path>`) replaces the thread column
 while the sidebar and inspector stay put; it never opens or creates a thread.
-A workspace screen has Overview and Settings tabs, so a workspace is configured
-where it is shown rather than on a separate screen.
+A workspace screen has Overview, Profile and Settings tabs, so a workspace is
+configured where it is shown rather than on a separate screen.
 
 Threads do not exist outside a workspace: creating one requires a workspace, and
 the row's `+` starts a thread in that workspace.
 
-Workspace settings can select the active profile, add detected extension
-profiles, toggle extension contributions for the active profile, set their roots
-within the workspace, and remove the workspace from Gizmo. Removal does not
-touch project files or existing threads. The thread sidebar groups sessions by
+The Profile tab edits every part of a workspace's profiles: the list of
+profiles on the left, and for the selected one its name, active state,
+extension contributions and their roots, tool and system-prompt modes, and
+profile-local skill overrides. A profile is shown as its departures from the
+profile it starts at — the base is stated rather than chosen, every row that
+differs from it is marked, and each marked row can be reverted to the base
+individually or all at once. Profiles can be created, duplicated from
+detected extension templates or from each other, and deleted; `default` stays
+because every other profile falls back to it. Edits are local until Save, and
+Revert restores the last saved state. Settings keeps what is not part of a
+profile: domain settings and removing the workspace from Gizmo. Removal does
+not touch project files or existing threads. The thread sidebar groups sessions by
 project, sorted by project name, while keeping each project's threads in
 most-recent-first order.
 

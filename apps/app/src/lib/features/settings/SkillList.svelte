@@ -12,6 +12,10 @@
 		 */
 		mode: 'global' | 'workspace';
 		busy?: boolean;
+		/** Skills that depart from what the row's baseline would give. */
+		changed?: ReadonlySet<string>;
+		/** What resetting a row goes back to; defaults to the global setting. */
+		resetLabel?: string;
 		onToggle: (skill: SkillResource, enabled: boolean) => void;
 		onReset?: (skill: SkillResource) => void;
 		onInstall?: (skill: SkillResource, installed: boolean) => void;
@@ -21,6 +25,8 @@
 		skills,
 		mode,
 		busy = false,
+		changed,
+		resetLabel = 'Use global setting',
 		onToggle,
 		onReset,
 		onInstall,
@@ -33,6 +39,11 @@
 		const next = new Set(expanded);
 		if (!next.delete(id)) next.add(id);
 		expanded = next;
+	}
+
+	/** A row resets when it overrides the global setting or its baseline. */
+	function resettable(skill: SkillResource) {
+		return skill.override !== undefined || (changed?.has(skill.id) ?? false);
 	}
 
 	function stateLabel(skill: SkillResource) {
@@ -56,9 +67,9 @@
 
 	function menuItems(skill: SkillResource): MenuItem[] {
 		const items: MenuItem[] = [];
-		if (mode === 'workspace' && skill.override !== undefined && onReset) {
+		if (mode === 'workspace' && resettable(skill) && onReset) {
 			items.push({
-				label: 'Use global setting',
+				label: resetLabel,
 				onSelect: () => onReset(skill),
 			});
 		}
@@ -86,6 +97,7 @@
 			<div
 				data-ui="skill-row"
 				data-state={skill.installed ? 'installed' : 'uninstalled'}
+				data-changed={changed?.has(skill.id) || undefined}
 			>
 				<div data-ui="skill-row-main">
 					<div data-ui="skill-row-title">

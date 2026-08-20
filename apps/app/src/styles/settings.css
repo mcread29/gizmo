@@ -659,3 +659,196 @@
 	box-shadow: var(--shadow-sm);
 	transition: transform 120ms ease;
 }
+
+/* Workspace profile editor: the profile list beside the profile it edits. */
+[data-ui='workspace-profile'] {
+	display: grid;
+	gap: var(--space-6);
+}
+
+[data-ui='profile-editor'] {
+	display: grid;
+	grid-template-columns: 216px minmax(0, 1fr);
+	gap: var(--space-4);
+	align-items: start;
+}
+
+[data-ui='profile-list'] {
+	display: grid;
+	gap: 2px;
+	align-content: start;
+	position: sticky;
+	top: 0;
+}
+
+[data-ui='profile-entry'] {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	width: 100%;
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	background: none;
+	color: var(--color-text-muted);
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='profile-entry']:hover {
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+}
+
+[data-ui='profile-entry'][data-state='selected'] {
+	border-color: var(--color-border);
+	background: var(--color-surface);
+	color: var(--color-text);
+}
+
+[data-ui='profile-entry'] > span {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
+[data-ui='profile-entry'] strong {
+	overflow: hidden;
+	font-size: var(--text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='profile-entry'] small {
+	overflow: hidden;
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.35 var(--font-mono);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='profile-active-pill'] {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 3px;
+	border-radius: var(--radius-sm);
+	padding: 1px 6px;
+	background: var(--color-surface-soft);
+	color: var(--color-accent, var(--color-text));
+	font-size: var(--text-2xs);
+	font-style: normal;
+	font-weight: 600;
+}
+
+[data-ui='profile-list-actions'] {
+	display: grid;
+	gap: 2px;
+	justify-items: stretch;
+	margin-top: var(--space-2);
+	padding-top: var(--space-2);
+	border-top: 1px solid var(--color-border);
+}
+
+[data-ui='profile-detail'] {
+	display: grid;
+	gap: var(--space-4);
+	min-width: 0;
+}
+
+[data-ui='profile-detail'] [data-ui='settings-subhead'] {
+	margin-top: 0;
+	padding-top: 0;
+	border-top: 0;
+}
+
+[data-ui='profile-id'] {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	padding: 3px 7px;
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.4 var(--font-mono);
+}
+
+[data-ui='text-input'] {
+	min-width: 0;
+	width: 220px;
+	padding: 7px 9px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	font-size: var(--text-xs);
+}
+
+[data-ui='text-input']:focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+}
+
+@media (max-width: 780px) {
+	[data-ui='profile-editor'] {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	[data-ui='profile-list'] {
+		position: static;
+	}
+}
+
+/*
+ * Segmented controls sit beside a field's label, so they have to stay a row:
+ * `[data-ui='setting-field'] > div` otherwise stacks them into a grid.
+ */
+[data-ui='setting-field'] > [data-ui='segmented'] {
+	display: flex;
+	flex: 0 0 auto;
+}
+
+[data-ui='segmented-option'] {
+	white-space: nowrap;
+}
+
+/* A profile is read as its departures from the profile it starts at. */
+[data-ui='setting-field'][data-changed='true'],
+[data-ui='skill-row'][data-changed='true'],
+[data-ui='integration-row'][data-changed='true'] {
+	box-shadow: inset 3px 0 0 var(--color-accent, var(--color-text));
+}
+
+[data-ui='setting-field'][data-changed='true'],
+[data-ui='skill-row'][data-changed='true'] {
+	background: color-mix(
+		in srgb,
+		var(--color-accent, var(--color-text)) 5%,
+		transparent
+	);
+}
+
+[data-ui='integration-row'][data-changed='true'] {
+	margin-inline: calc(-1 * var(--space-3));
+	padding-inline: var(--space-3);
+	background: color-mix(
+		in srgb,
+		var(--color-accent, var(--color-text)) 5%,
+		transparent
+	);
+}
+
+/*
+ * An extension row now ends in a revert menu, so the row itself is the grid and
+ * the label only groups the checkbox with its text.
+ */
+[data-ui='integration-row'] > label {
+	display: contents;
+}
+
+[data-ui='integration-row'] input:not([type='checkbox']) {
+	min-width: 0;
+	padding: 7px 9px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+}

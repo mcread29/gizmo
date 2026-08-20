@@ -22,6 +22,34 @@
 	font-size: var(--text-lg);
 }
 
+/*
+ * The tabs are the screen's second row, so they have to be a column that ends
+ * in one scrolling panel; without this the panel sizes to its content and a
+ * long tab runs off the bottom of the window instead of scrolling.
+ */
+[data-ui='workspace-screen'] > [data-ui='tabs'] {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+[data-ui='workspace-screen']
+	> [data-ui='tabs']
+	> [data-ui='tabs-content']:not([hidden]) {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+}
+
+[data-ui='workspace-screen']
+	> [data-ui='tabs']
+	> [data-ui='tabs-content']
+	> [data-ui='scroll-area'] {
+	flex: 1;
+	min-height: 0;
+}
+
 [data-ui='workspace-screen-body'] {
 	padding: var(--space-5) clamp(20px, 4vw, 48px);
 }

@@ -5,6 +5,7 @@
 	import type { WorkspaceTab } from '../../router.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import WorkspaceHome from './WorkspaceHome.svelte';
+	import WorkspaceProfilePanel from './WorkspaceProfilePanel.svelte';
 	import WorkspaceSettingsPanel from './WorkspaceSettingsPanel.svelte';
 
 	interface Props {
@@ -35,6 +36,7 @@
 
 	const tabs = [
 		{ value: 'overview', label: 'Overview' },
+		{ value: 'profile', label: 'Profile' },
 		{ value: 'settings', label: 'Settings' },
 	];
 
@@ -84,11 +86,14 @@
 			{#snippet children(value)}
 				<ScrollPanel name={`workspace-${value}`}>
 					<div data-ui="workspace-screen-body">
-						{#if value === 'settings'}
+						{#if value === 'profile'}
+							<WorkspaceProfilePanel {store} workspacePath={project.path} />
+						{:else if value === 'settings'}
 							<WorkspaceSettingsPanel
 								{store}
 								{layout}
 								workspacePath={project.path}
+								onSelectProfile={() => (active = 'profile')}
 								{onRemoved}
 							/>
 						{:else}

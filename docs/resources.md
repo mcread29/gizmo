@@ -103,8 +103,9 @@ an on/off filter, and grouping by scope; then prompts. Only skills are
 editable in the UI — the rest is reported so you can see what is influencing a
 session, and edited on disk.
 
-**Workspace settings** is part of the workspace screen, covering profiles,
-profile-local skill overrides, domain settings, and removal.
+**Workspace settings** is part of the workspace screen: the Profile tab edits
+the workspace's profiles, including profile-local skill overrides, and the
+Settings tab covers domain settings and removal.
 
 Pages are addressable: `#settings/agent` opens straight to Agent, and moving
 between pages replaces the history entry rather than stacking one per click.

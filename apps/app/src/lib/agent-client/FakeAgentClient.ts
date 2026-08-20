@@ -605,6 +605,12 @@ export class FakeAgentClient implements AgentClient {
 		};
 		const index = fakeProjects.findIndex(({ path }) => path === projectPath);
 		fakeProjects.splice(index, 1, project);
+		// The server resolves skill overrides from the active profile, so the
+		// catalog has to follow a save the same way.
+		this.#skillOverrides.set(
+			projectPath,
+			new Map((active?.skills ?? []).map(({ id, enabled }) => [id, enabled])),
+		);
 		return project;
 	}
 
