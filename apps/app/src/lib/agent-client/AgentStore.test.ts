@@ -10,6 +10,7 @@ import type {
 	UnityOpenProjectResult,
 	UnityStatus,
 	ProviderStatus,
+	WorkspaceProfiles,
 } from '@unity-agent/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentClient, AgentEventListener } from './AgentClient';
@@ -118,6 +119,19 @@ class InvalidEventClient implements AgentClient {
 		integrations: { id: string; root: string }[],
 	) {
 		return { title: 'project', path: projectPath, integrations, addedAt: 0 };
+	}
+	async saveProjectProfiles(projectPath: string, profiles: WorkspaceProfiles) {
+		const active = profiles.profiles.find(
+			({ id }) => id === profiles.activeProfileId,
+		);
+		return {
+			title: 'project',
+			path: projectPath,
+			integrations: active?.extensions ?? [],
+			activeProfileId: profiles.activeProfileId,
+			profiles: profiles.profiles,
+			addedAt: 0,
+		};
 	}
 	async removeProject() {}
 	async listResources(): Promise<ResourceCatalog> {

@@ -3,9 +3,11 @@
 		ProjectDomains,
 		SkillResource,
 		WorkspaceIntegration,
+		WorkspaceProfile,
+		WorkspaceProfiles,
 	} from '@unity-agent/protocol';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, ConfirmDialog } from '../../components';
+	import { Button, ConfirmDialog, SelectField } from '../../components';
 	import DomainSettings from '../../domains/DomainSettings.svelte';
 	import SettingsPage from '../settings/SettingsPage.svelte';
 	import SkillList from '../settings/SkillList.svelte';
@@ -20,7 +22,8 @@
 
 	type Setup = {
 		available: ProjectDomains['domains'];
-		integrations: WorkspaceIntegration[];
+		templates: WorkspaceProfile[];
+		profiles: WorkspaceProfiles;
 	};
 
 	let { layout, store, workspacePath, onRemoved }: Props = $props();
@@ -42,13 +45,27 @@
 		void store.refreshResources(selected.path);
 		void store
 			.detectProject(selected.path)
-			.then(({ domains }) => {
+			.then(({ domains, profiles }) => {
 				if (current) {
 					setup = {
 						available: domains,
-						integrations: selected.integrations.map((integration) => ({
-							...integration,
-						})),
+						templates: profiles ?? [],
+						profiles: cloneProfiles(
+							selected.profiles
+								? {
+										version: 1,
+										activeProfileId:
+											selected.activeProfileId ??
+											selected.profiles[0]?.id ??
+											'default',
+										profiles: selected.profiles,
+									}
+								: profilesFromIntegrations(
+										selected.integrations,
+										profiles ?? [],
+										selected.skills ?? [],
+									),
+						),
 					};
 				}
 			})
@@ -67,31 +84,63 @@
 			: [],
 	);
 	let activeSkills = $derived(skills.filter((skill) => skill.enabled).length);
+	let activeProfile = $derived(
+		setup?.profiles.profiles.find(
+			({ id }) => id === setup?.profiles.activeProfileId,
+		),
+	);
+	let missingProfileTemplates = $derived(
+		(setup?.templates ?? []).filter(
+			(template) =>
+				!setup?.profiles.profiles.some((profile) => profile.id === template.id),
+		),
+	);
+	let profileOptions = $derived(
+		(setup?.profiles.profiles ?? []).map((profile) => ({
+			value: profile.id,
+			label: profile.name,
+			hint: profile.source?.replace('extension:', '') ?? profile.id,
+		})),
+	);
 
 	function enabled(id: string) {
 		return (
-			setup?.integrations.some((integration) => integration.id === id) ?? false
+			activeProfile?.extensions.some((extension) => extension.id === id) ??
+			false
 		);
 	}
 
-	function toggleIntegration(id: string, checked: boolean) {
-		if (!setup) return;
+	function toggleExtension(id: string, checked: boolean) {
+		if (!setup || !activeProfile) return;
 		if (checked) {
 			const root =
 				setup.available.find((candidate) => candidate.id === id)?.root ?? '.';
-			setup.integrations = [...setup.integrations, { id, root }];
+			activeProfile.extensions = [...activeProfile.extensions, { id, root }];
 		} else {
-			setup.integrations = setup.integrations.filter(
-				(integration) => integration.id !== id,
+			activeProfile.extensions = activeProfile.extensions.filter(
+				(extension) => extension.id !== id,
 			);
 		}
 	}
 
 	function changeRoot(id: string, root: string) {
-		const integration = setup?.integrations.find(
+		const integration = activeProfile?.extensions.find(
 			(candidate) => candidate.id === id,
 		);
 		if (integration) integration.root = root;
+	}
+
+	function selectProfile(id: string) {
+		if (setup) setup.profiles.activeProfileId = id;
+	}
+
+	function addProfile(template: WorkspaceProfile) {
+		if (!setup) return;
+		setup.profiles.profiles = [
+			...setup.profiles.profiles,
+			cloneProfile(template),
+		];
+		setup.profiles.activeProfileId = template.id;
 	}
 
 	function toggleSkill(skill: SkillResource, value: boolean) {
@@ -104,12 +153,16 @@
 		void store.setProjectSkill(project.path, skill.id, null);
 	}
 
-	async function saveIntegrations() {
+	async function saveProfiles() {
 		if (!project || !setup) return;
 		saving = true;
 		error = undefined;
 		try {
-			await store.addProject(project.path, setup.integrations);
+			await store.saveProjectProfiles(
+				project.path,
+				cloneProfiles(setup.profiles),
+			);
+			await store.refreshResources(project.path);
 		} catch (cause) {
 			error = message(cause);
 		} finally {
@@ -126,6 +179,109 @@
 	function message(value: unknown) {
 		return value instanceof Error ? value.message : String(value);
 	}
+
+	function profilesFromIntegrations(
+		integrations: WorkspaceIntegration[],
+		templates: WorkspaceProfile[],
+		skills: WorkspaceProfile['skills'] = [],
+	): WorkspaceProfiles {
+		const defaultProfile =
+			templates.find(({ id }) => id === 'default') ?? builtinDefaultProfile();
+		const selected =
+			integrations.length === 1
+				? {
+						...(templates.find(({ id }) => id === integrations[0]!.id) ??
+							profileFromExtensions(integrations)),
+						extensions: integrations.map((extension) => ({ ...extension })),
+						...(skills?.length
+							? { skills: skills.map((skill) => ({ ...skill })) }
+							: {}),
+					}
+				: integrations.length
+					? profileFromExtensions(integrations, skills)
+					: {
+							...defaultProfile,
+							...(skills?.length
+								? { skills: skills.map((skill) => ({ ...skill })) }
+								: {}),
+						};
+		return {
+			version: 1,
+			activeProfileId: selected.id,
+			profiles: uniqueProfiles([
+				cloneProfile(defaultProfile),
+				...templates
+					.filter(({ id }) => id !== 'default')
+					.map((profile) => cloneProfile(profile)),
+				cloneProfile(selected),
+			]),
+		};
+	}
+
+	function profileFromExtensions(
+		extensions: WorkspaceIntegration[],
+		skills: WorkspaceProfile['skills'] = [],
+	): WorkspaceProfile {
+		const id =
+			extensions.map((extension) => extension.id).join('-') || 'default';
+		return {
+			id,
+			name: id
+				.split('-')
+				.map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
+				.join(' + '),
+			source: 'workspace',
+			base: 'default',
+			extensions: extensions.map((extension) => ({ ...extension })),
+			...(skills?.length
+				? { skills: skills.map((skill) => ({ ...skill })) }
+				: {}),
+			tools: { mode: 'default-plus-extension' },
+			prompt: { mode: 'default-plus-extension-fragments' },
+		};
+	}
+
+	function builtinDefaultProfile(): WorkspaceProfile {
+		return {
+			id: 'default',
+			name: 'Default',
+			source: 'builtin:default',
+			base: null,
+			extensions: [],
+			tools: { mode: 'default' },
+			prompt: { mode: 'pi-default' },
+		};
+	}
+
+	function cloneProfiles(profiles: WorkspaceProfiles): WorkspaceProfiles {
+		return {
+			version: 1,
+			activeProfileId: profiles.activeProfileId,
+			profiles: profiles.profiles.map(cloneProfile),
+		};
+	}
+
+	function cloneProfile(profile: WorkspaceProfile): WorkspaceProfile {
+		return {
+			...profile,
+			extensions: profile.extensions.map((extension) => ({ ...extension })),
+			...(profile.skills
+				? { skills: profile.skills.map((skill) => ({ ...skill })) }
+				: {}),
+		};
+	}
+
+	function uniqueProfiles(profiles: WorkspaceProfile[]): WorkspaceProfile[] {
+		const unique: WorkspaceProfile[] = [];
+		for (const profile of profiles) {
+			const index = unique.findIndex(
+				(candidate) => candidate.id === profile.id,
+			);
+			if (index >= 0) unique[index] = profile;
+			else unique.push(profile);
+		}
+		return unique;
+	}
 </script>
 
 <div data-ui="workspace-settings">
@@ -134,17 +290,44 @@
 	{:else}
 		{#if error}<p data-ui="resource-error">{error}</p>{/if}
 
-		<SettingsPage title="Integrations" scope="Applies to this workspace only">
+		<SettingsPage title="Profiles" scope="Stored in this workspace">
 			{#snippet actions()}
 				<Button
 					size="sm"
 					disabled={saving || !setup}
-					onclick={() => void saveIntegrations()}
+					onclick={() => void saveProfiles()}
 					>{saving ? 'Saving…' : 'Save'}</Button
 				>
 			{/snippet}
 			{#if setup}
 				<div data-ui="settings-card">
+					<div data-ui="setting-field">
+						<div>
+							<strong>Active profile</strong>
+							<span>New threads use this profile by default.</span>
+						</div>
+						<SelectField
+							value={setup.profiles.activeProfileId}
+							label="Active profile"
+							options={profileOptions}
+							onValueChange={selectProfile}
+						/>
+					</div>
+					{#if missingProfileTemplates.length}
+						<div data-ui="setting-field">
+							<div>
+								<strong>Add profile</strong>
+								<span>Detected extensions can add project-owned profiles.</span>
+							</div>
+							<div data-ui="settings-actions">
+								{#each missingProfileTemplates as profile (profile.id)}
+									<Button size="sm" onclick={() => addProfile(profile)}
+										>{profile.name}</Button
+									>
+								{/each}
+							</div>
+						</div>
+					{/if}
 					<div data-ui="integration-list" data-layout="workspace-setup">
 						{#each setup.available as integration (integration.id)}
 							<label data-ui="integration-row">
@@ -152,7 +335,7 @@
 									type="checkbox"
 									checked={enabled(integration.id)}
 									onchange={(event) =>
-										toggleIntegration(
+										toggleExtension(
 											integration.id,
 											event.currentTarget.checked,
 										)}
@@ -168,7 +351,7 @@
 								{#if enabled(integration.id)}
 									<input
 										aria-label={`${integration.name} root`}
-										value={setup.integrations.find(
+										value={activeProfile?.extensions.find(
 											({ id }) => id === integration.id,
 										)?.root ?? '.'}
 										oninput={(event) =>
@@ -184,7 +367,7 @@
 			{/if}
 		</SettingsPage>
 
-		<SettingsPage title="Skills" scope="Overrides for this workspace">
+		<SettingsPage title="Skills" scope="Overrides for the active profile">
 			{#snippet actions()}
 				<span data-ui="settings-page-count"
 					>{activeSkills} of {skills.length} on</span

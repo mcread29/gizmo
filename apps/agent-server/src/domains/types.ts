@@ -1,4 +1,5 @@
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
+import type { WorkspaceProfile } from '@unity-agent/protocol';
 
 export interface DomainContext {
 	workspacePath: string;
@@ -11,6 +12,7 @@ export interface WorkspaceDomain {
 	name: string;
 	detect(workspacePath: string): Promise<boolean>;
 	detectRoots?(workspacePath: string): Promise<string[]>;
+	profile(root: string): WorkspaceProfile;
 	systemPrompt: string;
 	createTools(context: DomainContext): ToolDefinition[];
 }

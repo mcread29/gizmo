@@ -23,6 +23,7 @@ import {
 	type ProjectDomains,
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
+	type WorkspaceProfiles,
 	type UnityStatus,
 	type ProviderStatus,
 } from '@unity-agent/protocol';
@@ -569,10 +570,13 @@ export class FakeAgentClient implements AgentClient {
 		projectPath: string,
 		integrations: WorkspaceIntegration[],
 	): Promise<StoredProject> {
+		const profiles = fakeProfiles(integrations);
 		const project = {
 			title: projectPath.split('/').at(-1) ?? projectPath,
 			path: projectPath,
 			integrations,
+			activeProfileId: profiles.activeProfileId,
+			profiles: profiles.profiles,
 			addedAt: Date.now(),
 		};
 		fakeProjects.splice(
@@ -581,6 +585,26 @@ export class FakeAgentClient implements AgentClient {
 			project,
 			...fakeProjects.filter(({ path }) => path !== projectPath),
 		);
+		return project;
+	}
+
+	async saveProjectProfiles(
+		projectPath: string,
+		profiles: WorkspaceProfiles,
+	): Promise<StoredProject> {
+		const existing = fakeProjects.find(({ path }) => path === projectPath);
+		if (!existing) throw new Error(`Unknown workspace: ${projectPath}`);
+		const active = profiles.profiles.find(
+			({ id }) => id === profiles.activeProfileId,
+		);
+		const project = {
+			...existing,
+			integrations: active?.extensions ?? [],
+			activeProfileId: profiles.activeProfileId,
+			profiles: profiles.profiles,
+		};
+		const index = fakeProjects.findIndex(({ path }) => path === projectPath);
+		fakeProjects.splice(index, 1, project);
 		return project;
 	}
 
@@ -833,6 +857,38 @@ const fakeModels = [
 
 const fakeThinkingLevels = ['off', 'low', 'medium', 'high', 'xhigh'];
 
+function fakeProfiles(integrations: WorkspaceIntegration[]): WorkspaceProfiles {
+	const defaultProfile = {
+		id: 'default',
+		name: 'Default',
+		source: 'builtin:default',
+		base: null,
+		extensions: [],
+		tools: { mode: 'default' },
+		prompt: { mode: 'pi-default' },
+	} satisfies WorkspaceProfiles['profiles'][number];
+	const profile =
+		integrations.length === 0
+			? defaultProfile
+			: ({
+					id: integrations.map(({ id }) => id).join('-'),
+					name: integrations.map(({ id }) => id).join(' + '),
+					source: 'workspace:fake',
+					base: 'default',
+					extensions: integrations,
+					tools: { mode: 'default-plus-extension' },
+					prompt: { mode: 'default-plus-extension-fragments' },
+				} satisfies WorkspaceProfiles['profiles'][number]);
+	return {
+		version: 1,
+		activeProfileId: profile.id,
+		profiles:
+			profile.id === defaultProfile.id
+				? [defaultProfile]
+				: [defaultProfile, profile],
+	};
+}
+
 const fakeProjects: StoredProject[] = [
 	{
 		title: 'ThirdPersonSandbox',
@@ -841,12 +897,19 @@ const fakeProjects: StoredProject[] = [
 			{ id: 'unity', root: '.' },
 			{ id: 'svelte', root: 'WebFrontend' },
 		],
+		activeProfileId: 'unity-svelte',
+		profiles: fakeProfiles([
+			{ id: 'unity', root: '.' },
+			{ id: 'svelte', root: 'WebFrontend' },
+		]).profiles,
 		addedAt: 1,
 	},
 	{
 		title: 'RenderingPlayground',
 		path: '/projects/RenderingPlayground',
 		integrations: [{ id: 'unity', root: '.' }],
+		activeProfileId: 'unity',
+		profiles: fakeProfiles([{ id: 'unity', root: '.' }]).profiles,
 		addedAt: 0,
 	},
 ];

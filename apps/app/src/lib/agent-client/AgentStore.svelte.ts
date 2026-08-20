@@ -20,6 +20,7 @@ import {
 	type ProjectDomains,
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
+	type WorkspaceProfiles,
 	type UnityStatus,
 	type ProviderStatus,
 } from '@unity-agent/protocol';
@@ -381,6 +382,23 @@ export class AgentStore {
 			project,
 			...this.projects.filter(({ path }) => path !== project.path),
 		];
+		return project;
+	}
+
+	async saveProjectProfiles(
+		projectPath: string,
+		profiles: WorkspaceProfiles,
+	): Promise<StoredProject> {
+		const project = await this.#client.saveProjectProfiles(
+			projectPath,
+			profiles,
+		);
+		this.projects = this.projects.map((candidate) =>
+			candidate.path === project.path ? project : candidate,
+		);
+		if (this.selectedProjectPath === project.path) {
+			this.activeDomains = project.integrations.map(({ id }) => id);
+		}
 		return project;
 	}
 

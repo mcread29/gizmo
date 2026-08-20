@@ -14,6 +14,7 @@ import type {
 	ProjectDomains,
 	WorkspaceIntegration,
 	WorkspaceDirectoryListing,
+	WorkspaceProfiles,
 	ProviderStatus,
 	UnityExtensions,
 	UnityOpenProjectResult,
@@ -88,6 +89,10 @@ export interface AgentClient {
 	addProject(
 		projectPath: string,
 		integrations: WorkspaceIntegration[],
+	): Promise<StoredProject>;
+	saveProjectProfiles(
+		projectPath: string,
+		profiles: WorkspaceProfiles,
 	): Promise<StoredProject>;
 	removeProject(projectPath: string): Promise<void>;
 	listResources(workspacePath?: string): Promise<ResourceCatalog>;

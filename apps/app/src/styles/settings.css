@@ -434,8 +434,81 @@
 	border-radius: var(--radius-md);
 	background: var(--color-surface);
 }
-[data-ui='settings-section'] [data-ui='select-trigger'] {
+[data-ui='settings-section'] [data-ui='select-trigger'],
+[data-ui='setting-field'] [data-ui='select-trigger'] {
 	min-width: 168px;
+}
+[data-ui='select-trigger']:not([data-size='compact']) {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	min-height: 36px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	padding: 0 var(--space-3);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	font: 600 var(--text-xs) / 1 var(--font-sans);
+	cursor: pointer;
+}
+[data-ui='select-trigger']:not([data-size='compact']):hover,
+[data-ui='select-trigger']:not([data-size='compact'])[data-state='open'] {
+	border-color: var(--color-border-strong);
+	background: var(--color-surface);
+}
+[data-ui='select-trigger']:not([data-size='compact']):focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+}
+[data-ui='select-trigger'] > span {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	gap: var(--space-2);
+}
+[data-ui='select-label'] {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+[data-ui='select-hint'] {
+	color: var(--color-text-muted);
+	font: 500 var(--text-2xs) / 1 var(--font-mono);
+}
+[data-ui='select-content'] {
+	z-index: 60;
+	overflow: hidden;
+	min-width: var(--bits-select-anchor-width, 168px);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface);
+	box-shadow: var(--shadow-md);
+}
+[data-ui='select-item'] {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-height: 30px;
+	padding: 0 32px 0 var(--space-3);
+	color: var(--color-text);
+	font-size: var(--text-xs);
+	cursor: pointer;
+	outline: none;
+}
+[data-ui='select-item'][data-highlighted],
+[data-ui='select-item']:hover {
+	background: var(--color-surface-soft);
+}
+[data-ui='select-item'][data-state='checked'] {
+	color: var(--color-text);
+	font-weight: 600;
+}
+[data-ui='select-indicator'] {
+	position: absolute;
+	right: var(--space-3);
+	color: var(--color-accent);
 }
 [data-ui='settings-section-header'] {
 	display: grid;
@@ -468,6 +541,12 @@
 	display: grid;
 	gap: 3px;
 	min-width: 0;
+}
+[data-ui='settings-actions'] {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-2);
 }
 [data-ui='setting-field'][data-layout='stacked'] {
 	display: grid;

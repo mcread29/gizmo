@@ -288,6 +288,13 @@ async function dispatch(
 					request.integrations,
 				),
 			};
+		case 'project.profiles.save':
+			return {
+				result: await service.saveProjectProfiles(
+					request.projectPath,
+					request.profiles,
+				),
+			};
 		case 'project.remove':
 			await service.removeProject(request.projectPath);
 			return {};

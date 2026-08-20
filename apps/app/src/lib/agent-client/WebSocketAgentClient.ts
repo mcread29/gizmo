@@ -36,6 +36,7 @@ import {
 	type ResourceCatalog,
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
+	type WorkspaceProfiles,
 	type ProviderStatus,
 } from '@unity-agent/protocol';
 import type {
@@ -336,6 +337,18 @@ export class WebSocketAgentClient implements AgentClient {
 			type: 'project.add',
 			projectPath,
 			integrations,
+		});
+		return parseStoredProjects([response.result])[0]!;
+	}
+
+	async saveProjectProfiles(
+		projectPath: string,
+		profiles: WorkspaceProfiles,
+	): Promise<StoredProject> {
+		const response = await this.#request({
+			type: 'project.profiles.save',
+			projectPath,
+			profiles,
 		});
 		return parseStoredProjects([response.result])[0]!;
 	}

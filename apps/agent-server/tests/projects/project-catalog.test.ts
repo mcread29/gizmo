@@ -32,6 +32,17 @@ describe('ProjectCatalog', () => {
 		expect(
 			JSON.parse(await readFile(join(data, 'projects.json'), 'utf8')),
 		).toHaveLength(1);
+		expect(
+			JSON.parse(
+				await readFile(join(project, '.gizmo', 'profiles.json'), 'utf8'),
+			),
+		).toMatchObject({
+			activeProfileId: 'svelte',
+			profiles: [
+				{ id: 'default', extensions: [] },
+				{ id: 'svelte', extensions: [{ id: 'svelte', root: '.' }] },
+			],
+		});
 		await catalog.remove(project);
 		expect(await catalog.list()).toEqual([]);
 	});
@@ -70,11 +81,16 @@ describe('ProjectCatalog', () => {
 			]),
 		);
 
-		expect(await new ProjectCatalog(data).list()).toEqual([
+		expect(await new ProjectCatalog(data).list()).toMatchObject([
 			{
 				title: 'Legacy game',
 				path: project,
 				integrations: [{ id: 'unity', root: '.' }],
+				activeProfileId: 'unity',
+				profiles: [
+					{ id: 'default', extensions: [] },
+					{ id: 'unity', extensions: [{ id: 'unity', root: '.' }] },
+				],
 				addedAt: 1,
 			},
 		]);

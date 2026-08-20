@@ -41,30 +41,28 @@ const responseEnvelope = {
 	requestId: Type.String({ minLength: 1 }),
 };
 
+export const workspaceProfileExtensionSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1, maxLength: 64 }),
+		root: Type.String({ minLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type WorkspaceIntegration = Static<
+	typeof workspaceProfileExtensionSchema
+>;
+
 export const sessionOptionsSchema = Type.Object(
 	{
 		cwd: Type.Optional(Type.String({ minLength: 1 })),
-		integrations: Type.Optional(
-			Type.Array(
-				Type.Object(
-					{
-						id: Type.String({ minLength: 1, maxLength: 64 }),
-						root: Type.String({ minLength: 1 }),
-					},
-					{ additionalProperties: false },
-				),
-			),
-		),
+		integrations: Type.Optional(Type.Array(workspaceProfileExtensionSchema)),
 		domainId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
 	},
 	{ additionalProperties: false },
 );
 
 export type SessionOptions = Static<typeof sessionOptionsSchema>;
-
-export type WorkspaceIntegration = NonNullable<
-	SessionOptions['integrations']
->[number];
 
 export const toolCallViewSchema = Type.Object(
 	{
@@ -315,19 +313,65 @@ export const projectSkillSchema = Type.Object(
 	{ additionalProperties: false },
 );
 
-export const storedProjectSchema = Type.Object(
+export const workspaceProfileSchema = Type.Object(
 	{
-		title: Type.String({ minLength: 1 }),
-		path: Type.String({ minLength: 1 }),
-		integrations: Type.Array(
+		id: Type.String({ minLength: 1, maxLength: 64 }),
+		name: Type.String({ minLength: 1, maxLength: 80 }),
+		source: Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
+		base: Type.Optional(
+			Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+		),
+		extensions: Type.Array(workspaceProfileExtensionSchema),
+		/** Overrides of global skill enablement for this profile. */
+		skills: Type.Optional(Type.Array(projectSkillSchema)),
+		tools: Type.Optional(
 			Type.Object(
 				{
-					id: Type.String({ minLength: 1, maxLength: 64 }),
-					root: Type.String({ minLength: 1 }),
+					mode: Type.Union([
+						Type.Literal('default'),
+						Type.Literal('default-plus-extension'),
+					]),
 				},
 				{ additionalProperties: false },
 			),
 		),
+		prompt: Type.Optional(
+			Type.Object(
+				{
+					mode: Type.Union([
+						Type.Literal('pi-default'),
+						Type.Literal('default-plus-extension-fragments'),
+					]),
+				},
+				{ additionalProperties: false },
+			),
+		),
+	},
+	{ additionalProperties: false },
+);
+
+export const workspaceProfilesSchema = Type.Object(
+	{
+		version: Type.Literal(1),
+		activeProfileId: Type.String({ minLength: 1, maxLength: 64 }),
+		profiles: Type.Array(workspaceProfileSchema),
+	},
+	{ additionalProperties: false },
+);
+
+export type WorkspaceProfile = Static<typeof workspaceProfileSchema>;
+export type WorkspaceProfiles = Static<typeof workspaceProfilesSchema>;
+
+export const storedProjectSchema = Type.Object(
+	{
+		title: Type.String({ minLength: 1 }),
+		path: Type.String({ minLength: 1 }),
+		/** Compatibility alias for the active profile's extensions. */
+		integrations: Type.Array(workspaceProfileExtensionSchema),
+		activeProfileId: Type.Optional(
+			Type.String({ minLength: 1, maxLength: 64 }),
+		),
+		profiles: Type.Optional(Type.Array(workspaceProfileSchema)),
 		/** Per-workspace overrides of each skill's global enablement. */
 		skills: Type.Optional(Type.Array(projectSkillSchema)),
 		addedAt: Type.Integer({ minimum: 0 }),
@@ -351,6 +395,7 @@ export const projectDomainsSchema = Type.Object(
 				{ additionalProperties: false },
 			),
 		),
+		profiles: Type.Optional(Type.Array(workspaceProfileSchema)),
 	},
 	{ additionalProperties: false },
 );
@@ -789,15 +834,16 @@ export const agentRequestSchema = Type.Union([
 			...envelope,
 			type: Type.Literal('project.add'),
 			projectPath: Type.String({ minLength: 1 }),
-			integrations: Type.Array(
-				Type.Object(
-					{
-						id: Type.String({ minLength: 1, maxLength: 64 }),
-						root: Type.String({ minLength: 1 }),
-					},
-					{ additionalProperties: false },
-				),
-			),
+			integrations: Type.Array(workspaceProfileExtensionSchema),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.profiles.save'),
+			projectPath: Type.String({ minLength: 1 }),
+			profiles: workspaceProfilesSchema,
 		},
 		{ additionalProperties: false },
 	),

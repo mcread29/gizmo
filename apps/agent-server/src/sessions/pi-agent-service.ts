@@ -15,6 +15,7 @@ import {
 	type SessionSnapshot,
 	type SessionTree,
 	type ProviderStatus,
+	type WorkspaceProfiles,
 } from '@unity-agent/protocol';
 import {
 	PiEventTranslator,
@@ -222,6 +223,10 @@ export class PiAgentService {
 		integrations: NonNullable<SessionOptions['integrations']>,
 	) {
 		return this.#projects.add(projectPath, integrations);
+	}
+
+	saveProjectProfiles(projectPath: string, profiles: WorkspaceProfiles) {
+		return this.#projects.saveProfiles(projectPath, profiles);
 	}
 
 	removeProject(projectPath: string) {

@@ -1,13 +1,16 @@
 import { svelteDomain } from './svelte/svelte-domain';
 import { relative, resolve } from 'node:path';
-import type { WorkspaceIntegration } from '@unity-agent/protocol';
+import type {
+	WorkspaceIntegration,
+	WorkspaceProfile,
+} from '@unity-agent/protocol';
 import type { ActiveDomains, DomainContext, WorkspaceDomain } from './types';
 import { unityDomain } from './unity/unity-domain';
 
 const domains: readonly WorkspaceDomain[] = [unityDomain, svelteDomain];
 
 export async function detectDomains(workspacePath: string) {
-	return Promise.all(
+	const detected = await Promise.all(
 		domains.map(async (domain) => {
 			const roots = domain.detectRoots
 				? await domain.detectRoots(workspacePath)
@@ -23,6 +26,15 @@ export async function detectDomains(workspacePath: string) {
 			};
 		}),
 	);
+	return {
+		domains: detected,
+		profiles: [
+			defaultProfile(),
+			...detected
+				.filter(({ detected }) => detected)
+				.map(({ id, root }) => domainFor(id).profile(root)),
+		],
+	};
 }
 
 export async function activateDomains(
@@ -66,3 +78,21 @@ export async function activateDomains(
 const coreSystemPrompt = `You are an expert software development assistant operating inside Gizmo. You help users understand and modify the selected workspace.
 
 Use the available tools to inspect the workspace before making assumptions. Keep changes focused, preserve existing conventions, and report verification results clearly.`;
+
+export function defaultProfile(): WorkspaceProfile {
+	return {
+		id: 'default',
+		name: 'Default',
+		source: 'builtin:default',
+		base: null,
+		extensions: [],
+		tools: { mode: 'default' },
+		prompt: { mode: 'pi-default' },
+	};
+}
+
+function domainFor(id: string): WorkspaceDomain {
+	const domain = domains.find((candidate) => candidate.id === id);
+	if (!domain) throw new Error(`Unknown extension: ${id}`);
+	return domain;
+}

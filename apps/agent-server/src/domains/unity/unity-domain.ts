@@ -8,6 +8,15 @@ export const unityDomain: WorkspaceDomain = {
 	id: 'unity',
 	name: 'Unity',
 	detect: (workspacePath) => exists(join(workspacePath, 'ProjectSettings')),
+	profile: (root) => ({
+		id: 'unity',
+		name: 'Unity',
+		source: 'extension:unity',
+		base: 'default',
+		extensions: [{ id: 'unity', root }],
+		tools: { mode: 'default-plus-extension' },
+		prompt: { mode: 'default-plus-extension-fragments' },
+	}),
 	systemPrompt: unitySystemPrompt,
 	createTools: ({ workspacePath, confirm }) =>
 		createUnityTools({
