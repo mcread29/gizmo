@@ -76,6 +76,16 @@ development accepts an absolute path. Stored projects appear in the dialog on
 later launches. The server announces the active domain ID with the
 session-created event.
 
+There is no current workspace. The sidebar lists every workspace as a row that
+expands to its own threads, and the centre column shows either a thread or a
+workspace. Opening a workspace (`#workspace/<path>`) replaces the thread column
+while the sidebar and inspector stay put; it never opens or creates a thread.
+A workspace screen has Overview and Settings tabs, so a workspace is configured
+where it is shown rather than on a separate screen.
+
+Threads do not exist outside a workspace: creating one requires a workspace, and
+the row's `+` starts a thread in that workspace.
+
 Workspace settings can toggle each integration, set its root within the workspace, or
 remove the workspace from Gizmo. Removal does not touch project files or existing threads. The thread
 sidebar groups sessions by project, sorted by project name, while keeping each

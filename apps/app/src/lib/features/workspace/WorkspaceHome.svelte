@@ -4,7 +4,7 @@
 		Boxes,
 		GitBranch,
 		MessageSquare,
-		Settings2,
+		Plus,
 	} from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
@@ -12,55 +12,54 @@
 
 	interface Props {
 		store: AgentStore;
+		workspacePath: string;
 		onOpenThread: (sessionId: string) => void;
-		onManageWorkspace: () => void;
+		onNewThread: () => void;
 	}
 
-	let { store, onOpenThread, onManageWorkspace }: Props = $props();
+	let { store, workspacePath, onOpenThread, onNewThread }: Props = $props();
 	let project = $derived(
-		store.projects.find(({ path }) => path === store.selectedProjectPath),
+		store.projects.find(({ path }) => path === workspacePath),
 	);
 	let workspaceSessions = $derived(
 		store.sessions.filter(
 			(session) =>
-				(session.workspacePath ?? session.projectPath) ===
-				store.selectedProjectPath,
+				(session.workspacePath ?? session.projectPath) === workspacePath,
 		),
 	);
-	let recentSessions = $derived(workspaceSessions.slice(0, 5));
+	// The home is where a workspace's threads live, so it lists all of them.
 	let integrationCount = $derived(project?.integrations.length ?? 0);
 	let changedFiles = $derived(store.gitStatus?.files.length ?? 0);
+	// Until Git answers there is nothing true to say about the repository.
+	let gitPending = $derived(!store.gitStatus && store.gitLoading);
 
 	function name(id: string) {
 		return id.charAt(0).toUpperCase() + id.slice(1);
 	}
 </script>
 
-<div data-ui="workspace-dashboard">
-	<header data-ui="workspace-dashboard-heading">
-		<div>
-			<span data-ui="eyebrow">Workspace overview</span>
-			<h2>{project?.title ?? 'Workspace'}</h2>
-			{#if project}<p title={project.path}>{project.path}</p>{/if}
-		</div>
-		<Button variant="secondary" size="sm" onclick={onManageWorkspace}
-			><Settings2 size={14} /> Workspace settings</Button
-		>
-	</header>
-
+<div data-ui="workspace-home">
 	<div data-ui="workspace-summary">
 		<section data-ui="workspace-summary-card">
 			<GitBranch size={18} />
 			<div>
 				<span>Source control</span>
-				<strong>{store.gitStatus?.branch ?? 'Not available'}</strong>
-				<small
-					>{store.gitLoading
-						? 'Checking repository'
-						: changedFiles === 0
+				{#if gitPending}
+					<div
+						data-ui="skeleton"
+						data-shape="line"
+						data-width="short"
+						aria-label="Loading source control"
+					></div>
+					<div data-ui="skeleton" data-shape="line"></div>
+				{:else}
+					<strong>{store.gitStatus?.branch ?? 'Not available'}</strong>
+					<small
+						>{changedFiles === 0
 							? 'Working tree clean'
 							: `${changedFiles} changed ${changedFiles === 1 ? 'file' : 'files'}`}</small
-				>
+					>
+				{/if}
 			</div>
 		</section>
 
@@ -91,11 +90,16 @@
 
 	<section data-ui="workspace-recent">
 		<div data-ui="workspace-dashboard-section-heading">
-			<h3>Recent threads</h3>
+			<h3>Threads</h3>
 			<span>Continue previous work</span>
 		</div>
 		<div data-ui="workspace-recent-list">
-			{#each recentSessions as session (session.id)}
+			{#if workspaceSessions.length === 0}
+				<p data-ui="workspace-dashboard-hint">
+					No threads here yet. Start one to begin work in this workspace.
+				</p>
+			{/if}
+			{#each workspaceSessions as session (session.id)}
 				<button onclick={() => onOpenThread(session.id)}>
 					<MessageSquare size={15} />
 					<span>
@@ -111,8 +115,4 @@
 			{/each}
 		</div>
 	</section>
-
-	<p data-ui="workspace-dashboard-hint">
-		Use the prompt below to start work in this workspace.
-	</p>
 </div>

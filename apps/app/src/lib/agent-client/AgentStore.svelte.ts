@@ -100,6 +100,8 @@ export class AgentStore {
 	pendingConfirmations = $state<PendingConfirmation[]>([]);
 	gitStatus = $state<GitStatus>();
 	gitLoading = $state(false);
+	/** True from the moment a workspace is selected until its status lands. */
+	statusLoading = $state(false);
 	gitCommitting = $state(false);
 	resources = $state<ResourceCatalog>();
 	resourcesLoading = $state(false);
@@ -152,6 +154,7 @@ export class AgentStore {
 				this.sessions.find(({ id }) => id === resumeId) ??
 				this.sessions.find(({ id }) => id === catalog.lastSessionId) ??
 				this.sessions[0];
+			// Projects load first, so an opening thread always has a workspace.
 			if (session) await this.switchSession(session.id);
 			else await this.newSession();
 		} catch (error) {
@@ -244,6 +247,8 @@ export class AgentStore {
 			if (this.selectedProjectPath === projectPath) {
 				this.projectError = errorMessage(error);
 			}
+		} finally {
+			if (this.selectedProjectPath === projectPath) this.statusLoading = false;
 		}
 	}
 
@@ -276,9 +281,13 @@ export class AgentStore {
 		integrations?: WorkspaceIntegration[],
 	): Promise<void> {
 		if (this.connection !== 'connected') return;
+		const workspacePath = projectPath ?? this.selectedProjectPath;
+		// Threads do not exist outside a workspace; without one there is nothing
+		// to create the thread in.
+		if (!workspacePath) return;
 		const previous = this.#captureSelection();
-		if (projectPath) {
-			this.selectedProjectPath = projectPath;
+		if (workspacePath !== this.selectedProjectPath) {
+			this.selectedProjectPath = workspacePath;
 			this.projectStatus = undefined;
 		}
 		const selectedIntegrations =
@@ -399,6 +408,38 @@ export class AgentStore {
 		this.projects = this.projects.filter(({ path }) => path !== projectPath);
 	}
 
+	/**
+	 * Makes a workspace current without touching threads. Selecting a workspace
+	 * and opening a thread are separate acts, so browsing never creates one.
+	 */
+	async selectWorkspace(projectPath: string): Promise<void> {
+		if (this.selectedProjectPath === projectPath) return;
+		this.#enterWorkspace(projectPath);
+		await Promise.all([this.refreshProjectStatus(), this.refreshGitStatus()]);
+	}
+
+	/**
+	 * Everything derived from a workspace flips in one synchronous step, so no
+	 * panel can render another workspace's data and every loading flag is true
+	 * before the first await yields a frame.
+	 */
+	#enterWorkspace(projectPath: string, domains?: string[]): void {
+		this.selectedProjectPath = projectPath;
+		this.projectStatus = undefined;
+		this.gitStatus = undefined;
+		this.projectError = undefined;
+		this.projectExtensions = [];
+		this.gitLoading = true;
+		this.statusLoading = true;
+		// The inspector follows the workspace in view, not the last thread's.
+		this.activeDomains =
+			domains ??
+			this.projects
+				.find(({ path }) => path === projectPath)
+				?.integrations.map(({ id }) => id) ??
+			[];
+	}
+
 	async switchSession(sessionId: string): Promise<void> {
 		if (sessionId === this.sessionId) return;
 		const session = this.sessions.find(
@@ -411,6 +452,19 @@ export class AgentStore {
 		this.messagesLoading = true;
 		this.sessionState = this.sessionStates[sessionId] ?? 'idle';
 		this.usage = undefined;
+		// The summary already knows where the thread lives, so the workspace can
+		// follow now rather than after the transcript arrives.
+		const summaryPath = session.workspacePath ?? session.projectPath;
+		const movedWorkspace = Boolean(
+			summaryPath && summaryPath !== this.selectedProjectPath,
+		);
+		if (movedWorkspace && summaryPath) {
+			this.#enterWorkspace(
+				summaryPath,
+				session.integrations?.map(({ id }) => id),
+			);
+			void this.refreshGitStatus();
+		}
 		try {
 			const snapshot = await this.#client.resumeSession(sessionId);
 			this.messages = snapshot.messages;
@@ -422,9 +476,9 @@ export class AgentStore {
 					? [session.domainId]
 					: []);
 			const workspacePath = session.workspacePath ?? session.projectPath;
-			if (workspacePath !== this.selectedProjectPath) {
-				this.selectedProjectPath = workspacePath;
-				this.projectStatus = undefined;
+			if (workspacePath && workspacePath !== this.selectedProjectPath) {
+				this.#enterWorkspace(workspacePath);
+				void this.refreshGitStatus();
 			}
 			await Promise.all([
 				this.refreshModelCatalog(),

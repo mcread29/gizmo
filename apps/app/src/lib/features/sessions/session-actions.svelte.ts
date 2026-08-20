@@ -49,17 +49,10 @@ export class SessionActions {
 		await this.#store.newSession(projectPath, integrations);
 	}
 
-	async openWorkspace(
-		projectPath: string,
-		integrations?: WorkspaceIntegration[],
-	): Promise<void> {
+	/** Selecting a workspace shows it; it never opens or creates a thread. */
+	async selectWorkspace(projectPath: string): Promise<void> {
 		this.projectPickerOpen = false;
-		const latest = this.#store.sessions.find(
-			(session) =>
-				(session.workspacePath ?? session.projectPath) === projectPath,
-		);
-		if (latest) await this.#store.switchSession(latest.id);
-		else await this.#store.newSession(projectPath, integrations);
+		await this.#store.selectWorkspace(projectPath);
 	}
 
 	beginRename(sessionId = this.#store.sessionId): void {

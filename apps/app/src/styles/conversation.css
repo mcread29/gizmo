@@ -158,3 +158,47 @@
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
 }
+
+/* An empty thread is just a thread: the workspace overview is its own screen. */
+[data-ui='thread-empty'] {
+	display: grid;
+	align-content: center;
+	justify-items: center;
+	gap: var(--space-1);
+	min-height: 0;
+	padding: var(--space-6);
+	text-align: center;
+}
+
+[data-ui='thread-empty'] strong {
+	font-size: var(--text-sm);
+}
+
+[data-ui='thread-empty'] span {
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}
+
+[data-ui='transcript-skeleton'] {
+	display: grid;
+	align-content: start;
+	gap: var(--space-6);
+	min-height: 0;
+	overflow: hidden;
+	padding: var(--space-5) clamp(16px, 4vw, 40px);
+}
+
+[data-ui='transcript-skeleton-block'] {
+	display: grid;
+	gap: var(--space-2);
+	width: min(720px, 100%);
+	margin-inline: auto;
+}
+
+[data-ui='transcript-skeleton-block']:nth-child(even) {
+	opacity: 0.6;
+}
+
+[data-ui='transcript-skeleton-block'] [data-ui='skeleton']:last-child {
+	width: 80%;
+}

@@ -10,16 +10,20 @@
 		store: AgentStore;
 		sessions: SessionActions;
 		layout: WorkspaceLayout;
+		/** A workspace added from the picker is shown, not opened in a thread. */
+		onOpenWorkspace: (projectPath: string) => void;
 	}
 
-	let { store, sessions, layout }: Props = $props();
+	let { store, sessions, layout, onOpenWorkspace }: Props = $props();
 </script>
 
 <ProjectPickerDialog
 	bind:open={sessions.projectPickerOpen}
 	{store}
-	onSelect={(projectPath, integrations) =>
-		void sessions.openWorkspace(projectPath, integrations)}
+	onSelect={(projectPath) => {
+		sessions.projectPickerOpen = false;
+		onOpenWorkspace(projectPath);
+	}}
 />
 <ThreadDialogs {sessions} />
 <DomainDialogs {store} {layout} />

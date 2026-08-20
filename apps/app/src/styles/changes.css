@@ -277,3 +277,17 @@
 		gap: var(--space-2);
 	}
 }
+
+[data-ui='change-skeleton'] {
+	display: grid;
+	gap: var(--space-3);
+	padding: var(--space-4);
+}
+
+[data-ui='change-skeleton'] [data-ui='skeleton']:nth-child(2) {
+	width: 70%;
+}
+
+[data-ui='change-skeleton'] [data-ui='skeleton']:nth-child(4) {
+	width: 55%;
+}

@@ -8,7 +8,7 @@
 		type AgentClient,
 	} from './lib/agent-client';
 	import { saveAppSettings } from './lib/app-settings';
-	import { AppRouter } from './lib/router.svelte';
+	import { AppRouter, type WorkspaceTab } from './lib/router.svelte';
 	import { Toast } from './lib/components';
 	import { toasts } from './lib/toasts.svelte';
 	import Conversation from './lib/features/conversation/Conversation.svelte';
@@ -19,13 +19,13 @@
 	import AppDialogs from './lib/features/shell/AppDialogs.svelte';
 	import AppContextMenu from './lib/features/shell/AppContextMenu.svelte';
 	import SettingsScreen from './lib/features/settings/SettingsScreen.svelte';
-	import WorkspaceSettingsScreen from './lib/features/workspace/WorkspaceSettingsScreen.svelte';
 	import SessionTreeScreen from './lib/features/tree/SessionTreeScreen.svelte';
 	import PanelResizeHandle from './lib/features/shell/PanelResizeHandle.svelte';
 	import PanelToggle from './lib/features/shell/PanelToggle.svelte';
 	import Titlebar from './lib/features/shell/Titlebar.svelte';
 	import { handleShortcut } from './lib/features/shell/shortcuts';
 	import { WorkspaceLayout } from './lib/features/shell/workspace.svelte';
+	import WorkspaceScreen from './lib/features/workspace/WorkspaceScreen.svelte';
 	import WorkspaceInspector from './lib/domains/WorkspaceInspector.svelte';
 	import { createWorkspaceView } from './lib/domains/workspace-view';
 
@@ -64,6 +64,10 @@
 		store.sessions.find((session) => session.id === store.sessionId),
 	);
 	let workspaceView = $derived(createWorkspaceView(store));
+	/** Settings and the tree cover the workspace; the workspace screen is in it. */
+	let overlayOpen = $derived(
+		router.current === 'settings' || router.current === 'tree',
+	);
 
 	onMount(() => {
 		const measure = () => layout.measure();
@@ -106,7 +110,7 @@
 
 	function onKeydown(event: KeyboardEvent) {
 		handleShortcut(event, {
-			newThread: () => void sessions.startThread(),
+			newThread: () => void startThread(),
 			openSettings: () => router.go('settings'),
 			openTree: () => router.go('tree'),
 			focusComposer: () => focusComposer?.(),
@@ -122,6 +126,31 @@
 				else router.close();
 			},
 		});
+	}
+
+	/**
+	 * Opening a workspace shows its screen; it never opens or creates a thread.
+	 * The view switches first and the data is fetched behind it, so the whole
+	 * shell changes in one frame rather than panel by panel.
+	 */
+	function showWorkspace(projectPath: string, tab?: WorkspaceTab) {
+		router.go('workspace', {
+			workspacePath: projectPath,
+			...(tab ? { tab } : {}),
+		});
+		void sessions.selectWorkspace(projectPath);
+	}
+
+	/** Opening a thread shows that thread, whatever the centre column was on. */
+	async function openThread(sessionId: string) {
+		router.go('thread');
+		await store.switchSession(sessionId);
+	}
+
+	async function startThread(projectPath?: string) {
+		router.go('thread');
+		if (projectPath) void sessions.selectWorkspace(projectPath);
+		await sessions.startThread();
 	}
 
 	function contextText(kind: 'message' | 'tool', id: string) {
@@ -151,8 +180,8 @@
 		canDeleteThread={(sessionId) => !store.isSessionStreaming(sessionId)}
 		canOpenEditor={workspaceView.canOpen}
 		getContextText={contextText}
-		onNewThread={() => void sessions.startThread()}
-		onOpenThread={(sessionId) => void store.switchSession(sessionId)}
+		onNewThread={() => void startThread()}
+		onOpenThread={(sessionId) => void openThread(sessionId)}
 		onRenameThread={(sessionId) => sessions.beginRename(sessionId)}
 		onCopyTranscript={(sessionId) => void sessions.copyTranscript(sessionId)}
 		onExportTranscript={(sessionId) =>
@@ -168,7 +197,7 @@
 			data-right-mode={layout.rightMode}
 			data-left-visible={layout.leftVisible}
 			data-right-visible={layout.rightVisible}
-			inert={router.current !== 'workspace' || undefined}
+			inert={overlayOpen || undefined}
 			style={`--sidebar-width:${layout.sidebarWidth}px;--inspector-width:${layout.inspectorWidth}px`}
 		>
 			<Titlebar
@@ -176,7 +205,7 @@
 				{layout}
 				{store}
 				view={workspaceView}
-				screenOpen={router.current !== 'workspace'}
+				screenOpen={overlayOpen}
 				onOpenSettings={() => router.go('settings')}
 			/>
 
@@ -200,11 +229,15 @@
 				{store}
 				{layout}
 				bind:focusSearch={focusThreadSearch}
+				openWorkspacePath={router.current === 'workspace'
+					? router.workspacePath
+					: undefined}
 				onOpenWorkspacePicker={() => (sessions.projectPickerOpen = true)}
-				onOpenWorkspace={(projectPath, integrations) =>
-					void sessions.openWorkspace(projectPath, integrations)}
-				onNewThread={() => void sessions.startThread()}
-				onManageProjects={() => router.go('workspace-settings')}
+				onOpenWorkspace={(projectPath) => showWorkspace(projectPath)}
+				onOpenWorkspaceSettings={(projectPath) =>
+					showWorkspace(projectPath, 'settings')}
+				onNewThread={(projectPath) => void startThread(projectPath)}
+				onOpenThread={(sessionId) => void openThread(sessionId)}
 			/>
 			{#if layout.leftVisible && layout.leftMode === 'docked'}
 				<PanelResizeHandle
@@ -216,22 +249,33 @@
 				/>
 			{/if}
 
-			<Conversation
-				{store}
-				{layout}
-				{drafts}
-				agentName={agent.name}
-				{currentSession}
-				bind:focusComposer
-				bind:findInThread
-				onRename={() => sessions.beginRename()}
-				onCopy={() => void sessions.copyTranscript()}
-				onExport={() => void sessions.exportTranscript()}
-				onDelete={() => sessions.beginDelete()}
-				onOpenTree={() => router.go('tree')}
-				onOpenThread={(sessionId) => void store.switchSession(sessionId)}
-				onManageWorkspace={() => router.go('workspace-settings')}
-			/>
+			{#if router.current === 'workspace'}
+				<WorkspaceScreen
+					{store}
+					{layout}
+					workspacePath={router.workspacePath}
+					tab={router.workspaceTab}
+					onSelectTab={(tab) => router.showWorkspaceTab(tab)}
+					onOpenThread={(sessionId) => void openThread(sessionId)}
+					onNewThread={(projectPath) => void startThread(projectPath)}
+					onRemoved={() => router.close()}
+				/>
+			{:else}
+				<Conversation
+					{store}
+					{layout}
+					{drafts}
+					agentName={agent.name}
+					{currentSession}
+					bind:focusComposer
+					bind:findInThread
+					onRename={() => sessions.beginRename()}
+					onCopy={() => void sessions.copyTranscript()}
+					onExport={() => void sessions.exportTranscript()}
+					onDelete={() => sessions.beginDelete()}
+					onOpenTree={() => router.go('tree')}
+				/>
+			{/if}
 
 			{#if layout.rightMode === 'docked' && !layout.rightVisible}
 				<div data-ui="panel-rail" data-side="right">
@@ -261,7 +305,12 @@
 				/>
 			{/if}
 
-			<AppDialogs {store} {sessions} {layout} />
+			<AppDialogs
+				{store}
+				{sessions}
+				{layout}
+				onOpenWorkspace={(projectPath) => showWorkspace(projectPath)}
+			/>
 		</div>
 	</AppContextMenu>
 
@@ -272,14 +321,10 @@
 		{store}
 		version={agent.version}
 		onSelectPage={(page) => router.showSettingsPage(page)}
-		onOpenWorkspace={() => router.go('workspace-settings')}
-		onClose={() => router.close()}
-	/>
-
-	<WorkspaceSettingsScreen
-		open={router.current === 'workspace-settings'}
-		{layout}
-		{store}
+		onOpenWorkspace={() => {
+			const path = store.selectedProjectPath;
+			if (path) showWorkspace(path, 'settings');
+		}}
 		onClose={() => router.close()}
 	/>
 

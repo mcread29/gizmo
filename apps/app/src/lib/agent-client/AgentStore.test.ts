@@ -87,7 +87,16 @@ class InvalidEventClient implements AgentClient {
 		return { models: [], thinkingLevels: [] };
 	}
 	async listProjects() {
-		return [];
+		// A thread cannot exist outside a workspace, so one must be known before
+		// connect() will open the session this test inspects.
+		return [
+			{
+				title: 'Sandbox',
+				path: '/projects/Sandbox',
+				integrations: [],
+				addedAt: 0,
+			},
+		];
 	}
 	async detectProject() {
 		return {

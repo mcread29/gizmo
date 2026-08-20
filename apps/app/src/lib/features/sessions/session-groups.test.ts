@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-	groupSessions,
-	groupSessionsByProject,
-	matchesQuery,
-} from './session-groups';
+import { groupSessions, matchesQuery } from './session-groups';
 
 const now = new Date('2026-08-17T12:00:00Z').getTime();
 const day = 86_400_000;
@@ -48,22 +44,5 @@ describe('matchesQuery', () => {
 		expect(matchesQuery(thread, 'SHADER', workspace)).toBe(true);
 		expect(matchesQuery(thread, 'rendering', workspace)).toBe(true);
 		expect(matchesQuery(thread, 'physics', workspace)).toBe(false);
-	});
-});
-
-describe('groupSessionsByProject', () => {
-	it('sorts projects alphabetically and preserves thread recency', () => {
-		const alpha = { ...session('new', now), workspacePath: '/projects/alpha' };
-		const older = {
-			...session('old', now - day),
-			workspacePath: '/projects/alpha',
-		};
-		const beta = { ...session('beta', now), workspacePath: '/projects/beta' };
-		const names = (path: string | undefined) =>
-			path?.split('/').at(-1) ?? 'No project';
-
-		const groups = groupSessionsByProject([beta, alpha, older], names);
-		expect(groups.map(({ label }) => label)).toEqual(['alpha', 'beta']);
-		expect(groups[0]?.sessions.map(({ id }) => id)).toEqual(['new', 'old']);
 	});
 });

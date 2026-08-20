@@ -1,7 +1,6 @@
 <script lang="ts">
 	import {
-		Check,
-		ChevronsUpDown,
+		ChevronRight,
 		FolderPlus,
 		FolderOpen,
 		MessageSquare,
@@ -9,17 +8,15 @@
 		Search,
 		Settings2,
 	} from '@lucide/svelte';
-	import type { WorkspaceIntegration } from '@unity-agent/protocol';
-	import { DropdownMenu } from 'bits-ui';
+	import type { StoredProject } from '@unity-agent/protocol';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, ScrollPanel } from '../../components';
+	import { Button, ScrollPanel, Tooltip } from '../../components';
 	import ComponentGallery from '../../components/ComponentGallery.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import PanelToggle from '../shell/PanelToggle.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
 	import {
 		formatSessionTime,
-		groupSessionsByProject,
 		matchesQuery,
 		threadTitle,
 	} from './session-groups';
@@ -27,40 +24,34 @@
 	interface Props {
 		store: AgentStore;
 		layout: WorkspaceLayout;
+		/** The workspace whose screen is open, if one is. */
+		openWorkspacePath?: string;
 		focusSearch?: () => void;
 		onOpenWorkspacePicker: () => void;
-		onOpenWorkspace: (
-			projectPath: string,
-			integrations: WorkspaceIntegration[],
-		) => void;
-		onNewThread: () => void;
-		onManageProjects: () => void;
+		onOpenWorkspace: (projectPath: string) => void;
+		onOpenWorkspaceSettings: (projectPath: string) => void;
+		onNewThread: (projectPath: string) => void;
+		onOpenThread: (sessionId: string) => void;
 	}
 
 	let {
 		store,
 		layout,
+		openWorkspacePath,
 		focusSearch = $bindable(),
 		onOpenWorkspacePicker,
 		onOpenWorkspace,
+		onOpenWorkspaceSettings,
 		onNewThread,
-		onManageProjects,
+		onOpenThread,
 	}: Props = $props();
 
 	let query = $state('');
 	let searchElement = $state<HTMLInputElement>();
+	/** Workspaces the user collapsed. Everything else stays open. */
+	let collapsed = $state(new Set<string>());
 
 	focusSearch = () => searchElement?.focus();
-
-	let matches = $derived(
-		store.sessions.filter(
-			(session) =>
-				(session.workspacePath ?? session.projectPath) ===
-					store.selectedProjectPath &&
-				matchesQuery(session, query, workspaceName),
-		),
-	);
-	let groups = $derived(groupSessionsByProject(matches, workspaceName));
 
 	function workspaceName(projectPath: string | undefined) {
 		return (
@@ -70,7 +61,35 @@
 		);
 	}
 
-	let currentWorkspace = $derived(workspaceName(store.selectedProjectPath));
+	let matches = $derived(
+		store.sessions.filter((session) =>
+			matchesQuery(session, query, workspaceName),
+		),
+	);
+
+	function threadsOf(project: StoredProject) {
+		return matches.filter(
+			(session) =>
+				(session.workspacePath ?? session.projectPath) === project.path,
+		);
+	}
+
+	/**
+	 * Exactly one thing is selected: a workspace screen or a thread. Both
+	 * highlights derive from that so they can never appear together.
+	 */
+	let workspaceSelected = $derived(Boolean(openWorkspacePath));
+
+	function isOpen(project: StoredProject) {
+		// A search should reveal matches wherever they are.
+		return query.trim() !== '' || !collapsed.has(project.path);
+	}
+
+	function toggle(project: StoredProject) {
+		const next = new Set(collapsed);
+		if (!next.delete(project.path)) next.add(project.path);
+		collapsed = next;
+	}
 </script>
 
 <aside
@@ -78,158 +97,164 @@
 	aria-label="Threads"
 	inert={!layout.leftVisible || undefined}
 >
-	{#if !store.selectedProjectPath}
-		<div data-ui="sidebar-open-workspace">
-			<Button
-				disabled={store.connection !== 'connected'}
-				onclick={onOpenWorkspacePicker}
-				><FolderOpen size={15} /> Open workspace</Button
-			>
-		</div>
-	{:else}
-		<div data-ui="sidebar-header">
-			{#if layout.leftVisible}
-				<PanelToggle
-					side="left"
-					expanded
-					onToggle={() => layout.toggleLeft()}
-				/>
-			{/if}
-			<span data-ui="eyebrow">Threads</span>
-			<Button
-				variant="secondary"
-				size="sm"
-				disabled={store.connection !== 'connected' ||
-					!store.selectedProjectPath}
-				onclick={onNewThread}><Plus size={14} /> New thread</Button
-			>
-		</div>
-
-		<DropdownMenu.Root>
-			<DropdownMenu.Trigger>
-				{#snippet child({ props })}
-					<button
-						{...props}
-						data-ui="workspace-switcher"
-						aria-label={`Workspace menu, ${currentWorkspace}`}
-					>
-						<span data-ui="workspace-switcher-icon"
-							><FolderOpen size={16} /></span
-						>
-						<span
-							><small>Workspace</small><strong>{currentWorkspace}</strong></span
-						>
-						<ChevronsUpDown size={14} />
-					</button>
-				{/snippet}
-			</DropdownMenu.Trigger>
-			<DropdownMenu.Portal>
-				<DropdownMenu.Content
-					data-ui="workspace-menu"
-					sideOffset={6}
-					align="start"
+	<div data-ui="sidebar-header">
+		{#if layout.leftVisible}
+			<PanelToggle side="left" expanded onToggle={() => layout.toggleLeft()} />
+		{/if}
+		<span data-ui="eyebrow">Workspaces</span>
+		<Tooltip text="Open workspace">
+			{#snippet children(props)}
+				<Button
+					{...props}
+					variant="ghost"
+					size="icon"
+					aria-label="Open workspace"
+					disabled={store.connection !== 'connected'}
+					onclick={onOpenWorkspacePicker}><FolderPlus size={16} /></Button
 				>
-					<div data-ui="workspace-menu-label">Workspaces</div>
-					{#each store.projects as project (project.path)}
-						<DropdownMenu.Item
-							data-ui="workspace-menu-item"
-							onSelect={() =>
-								onOpenWorkspace(project.path, project.integrations)}
-						>
-							<FolderOpen size={15} />
-							<span>
-								<strong>{project.title}</strong>
-								<small>{project.path}</small>
-							</span>
-							{#if project.path === store.selectedProjectPath}<Check
-									size={15}
-									aria-label="Current workspace"
-								/>{/if}
-						</DropdownMenu.Item>
-					{/each}
-					<DropdownMenu.Separator data-ui="workspace-menu-separator" />
-					<DropdownMenu.Item
-						data-ui="workspace-menu-action"
-						onSelect={onOpenWorkspacePicker}
-					>
-						<FolderPlus size={15} /> Open workspace…
-					</DropdownMenu.Item>
-					<DropdownMenu.Item
-						data-ui="workspace-menu-action"
-						onSelect={onManageProjects}
-					>
-						<Settings2 size={15} /> Workspace settings…
-					</DropdownMenu.Item>
-				</DropdownMenu.Content>
-			</DropdownMenu.Portal>
-		</DropdownMenu.Root>
+			{/snippet}
+		</Tooltip>
+	</div>
 
-		<div data-ui="sidebar-search">
-			<Search size={14} />
-			<label for="thread-search" data-ui="sr-only">Search threads</label>
-			<input
-				id="thread-search"
-				bind:this={searchElement}
-				bind:value={query}
-				type="search"
-				placeholder="Search threads"
-				autocomplete="off"
-			/>
-		</div>
+	<div data-ui="sidebar-search">
+		<Search size={14} />
+		<label for="thread-search" data-ui="sr-only">Search threads</label>
+		<input
+			id="thread-search"
+			bind:this={searchElement}
+			bind:value={query}
+			type="search"
+			placeholder="Search threads"
+			autocomplete="off"
+		/>
+	</div>
 
-		<ScrollPanel name="threads">
-			<nav data-ui="session-list" aria-label="Recent threads">
-				{#if matches.length === 0 && !query}
-					<div data-ui="sidebar-empty">
-						<strong>No threads yet</strong>
-						<span>Start one in a workspace.</span>
-						<Button
-							variant="secondary"
-							size="sm"
-							disabled={store.connection !== 'connected' ||
-								!store.selectedProjectPath}
-							onclick={onNewThread}><Plus size={14} /> New thread</Button
-						>
-					</div>
-				{:else if matches.length === 0}
-					<p data-ui="sidebar-empty">
-						<span>No threads match “{query}”.</span>
-					</p>
-				{/if}
-				{#each groups as group (group.sessions[0]?.workspacePath ?? group.sessions[0]?.projectPath ?? group.label)}
-					<div data-ui="section-label">
-						<span>{group.label}</span><span>{group.sessions.length}</span>
-					</div>
-					{#each group.sessions as session (session.id)}
-						<button
-							type="button"
-							data-ui="session-item"
-							data-context-kind="thread"
-							data-context-id={session.id}
-							data-active={session.id === store.sessionId || undefined}
-							data-running={store.isSessionStreaming(session.id) || undefined}
-							aria-current={session.id === store.sessionId ? 'page' : undefined}
-							onclick={() => store.switchSession(session.id)}
-						>
-							<span data-ui="session-icon"
-								><MessageSquare size={15} />
-								{#if store.isSessionStreaming(session.id)}<span
-										data-ui="session-running"
-										aria-label="Agent working"
-									></span>{/if}</span
+	<ScrollPanel name="threads">
+		<nav data-ui="workspace-list" aria-label="Workspaces and threads">
+			{#if store.projects.length === 0}
+				<div data-ui="sidebar-empty">
+					<strong>No workspaces yet</strong>
+					<span>Open a folder to start working in it.</span>
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={store.connection !== 'connected'}
+						onclick={onOpenWorkspacePicker}
+						><FolderOpen size={15} /> Open workspace</Button
+					>
+				</div>
+			{/if}
+
+			{#each store.projects as project (project.path)}
+				{@const threads = threadsOf(project)}
+				{@const open = isOpen(project)}
+				<div
+					data-ui="workspace-row"
+					data-active={(workspaceSelected &&
+						project.path === openWorkspacePath) ||
+						undefined}
+				>
+					<button
+						data-ui="workspace-disclosure"
+						data-open={open || undefined}
+						aria-label={`${open ? 'Collapse' : 'Expand'} ${project.title}`}
+						aria-expanded={open}
+						onclick={() => toggle(project)}
+					>
+						<ChevronRight size={14} />
+					</button>
+					<button
+						data-ui="workspace-entry"
+						data-context-kind="workspace"
+						data-context-value={project.path}
+						aria-label={`Open ${project.title}`}
+						aria-current={project.path === openWorkspacePath
+							? 'page'
+							: undefined}
+						onclick={() => onOpenWorkspace(project.path)}
+					>
+						<FolderOpen size={15} />
+						<span>
+							<strong>{project.title}</strong>
+							<small title={project.path}
+								>{`${threads.length} ${threads.length === 1 ? 'thread' : 'threads'}`}</small
 							>
-							<span>
-								<strong>{threadTitle(session.title)}</strong>
-								<small title={session.workspacePath ?? session.projectPath}
-									>{formatSessionTime(session.lastActiveAt)}</small
+						</span>
+					</button>
+					<div data-ui="workspace-row-actions">
+						<Tooltip text={`New thread in ${project.title}`}>
+							{#snippet children(props)}
+								<Button
+									{...props}
+									variant="ghost"
+									size="icon"
+									aria-label={`New thread in ${project.title}`}
+									disabled={store.connection !== 'connected'}
+									onclick={() => onNewThread(project.path)}
+									><Plus size={15} /></Button
 								>
-							</span>
-						</button>
-					{/each}
-				{/each}
-			</nav>
-		</ScrollPanel>
-	{/if}
+							{/snippet}
+						</Tooltip>
+						<Tooltip text={`${project.title} settings`}>
+							{#snippet children(props)}
+								<Button
+									{...props}
+									variant="ghost"
+									size="icon"
+									aria-label={`${project.title} settings`}
+									onclick={() => onOpenWorkspaceSettings(project.path)}
+									><Settings2 size={15} /></Button
+								>
+							{/snippet}
+						</Tooltip>
+					</div>
+				</div>
+
+				{#if open}
+					<div data-ui="workspace-threads">
+						{#if threads.length === 0}
+							<p data-ui="workspace-threads-empty">
+								{query.trim() ? 'No matching threads' : 'No threads yet'}
+							</p>
+						{/if}
+						{#each threads as session (session.id)}
+							<button
+								type="button"
+								data-ui="session-item"
+								data-context-kind="thread"
+								data-context-id={session.id}
+								data-active={(!workspaceSelected &&
+									session.id === store.sessionId) ||
+									undefined}
+								data-running={store.isSessionStreaming(session.id) || undefined}
+								aria-current={!workspaceSelected &&
+								session.id === store.sessionId
+									? 'page'
+									: undefined}
+								onclick={() => onOpenThread(session.id)}
+							>
+								<span data-ui="session-icon"
+									><MessageSquare size={15} />
+									{#if store.isSessionStreaming(session.id)}<span
+											data-ui="session-running"
+											aria-label="Agent working"
+										></span>{/if}</span
+								>
+								<span>
+									<strong>{threadTitle(session.title)}</strong>
+									<small
+										>{`${session.messageCount} ${
+											session.messageCount === 1 ? 'message' : 'messages'
+										} · ${formatSessionTime(session.lastActiveAt)}`}</small
+									>
+								</span>
+							</button>
+						{/each}
+					</div>
+				{/if}
+			{/each}
+		</nav>
+	</ScrollPanel>
 
 	<div data-ui="sidebar-footer">
 		{#if import.meta.env.DEV}<ComponentGallery />{/if}

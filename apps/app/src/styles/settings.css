@@ -422,3 +422,161 @@
 		display: none;
 	}
 }
+
+/*
+ * Settings controls. These lived in dialogs.css from when Settings was a
+ * dialog; they belong with the screen that renders them.
+ */
+[data-ui='settings-section'] {
+	display: grid;
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-surface);
+}
+[data-ui='settings-section'] [data-ui='select-trigger'] {
+	min-width: 168px;
+}
+[data-ui='settings-section-header'] {
+	display: grid;
+	gap: 3px;
+	padding: var(--space-3) var(--space-4);
+	border-bottom: 1px solid var(--color-border);
+}
+[data-ui='settings-section-header'] strong,
+[data-ui='setting-field'] strong {
+	font-size: var(--text-sm);
+}
+[data-ui='settings-section-header'] span,
+[data-ui='setting-field'] span {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	line-height: 1.45;
+}
+[data-ui='setting-field'] {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-4);
+	min-height: 62px;
+	padding: var(--space-3) var(--space-4);
+}
+[data-ui='setting-field'] + [data-ui='setting-field'] {
+	border-top: 1px solid var(--color-border);
+}
+[data-ui='setting-field'] > div {
+	display: grid;
+	gap: 3px;
+	min-width: 0;
+}
+[data-ui='setting-field'][data-layout='stacked'] {
+	display: grid;
+	align-items: stretch;
+}
+[data-ui='context-range'] {
+	position: relative;
+	display: flex;
+	align-items: center;
+	width: 100%;
+	height: 20px;
+	border-radius: 999px;
+	background: var(--color-surface-soft);
+}
+[data-ui='context-range'][data-disabled] {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+[data-ui='context-range-values'] {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+[data-ui='context-range-values'] span {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--color-text-muted);
+}
+[data-ui='context-range-values'] i {
+	width: 7px;
+	height: 7px;
+	border-radius: 999px;
+	background: var(--color-text-muted);
+}
+[data-ui='context-range-values'] i[data-kind='trigger'] {
+	background: var(--color-accent);
+}
+[data-ui='context-range-fill'] {
+	position: absolute;
+	height: 4px;
+	border-radius: 999px;
+	background: var(--color-accent-soft);
+}
+[data-ui='context-range-thumb'] {
+	position: relative;
+	z-index: 1;
+	display: block;
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--color-surface);
+	border-radius: 999px;
+	background: var(--color-accent);
+	box-shadow: 0 0 0 1px var(--color-border-strong);
+}
+[data-ui='context-range-thumb']:first-of-type {
+	background: var(--color-text-muted);
+}
+[data-ui='context-range-thumb']:focus-visible {
+	outline: 2px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+	outline-offset: 2px;
+}
+[data-ui='shortcut-list'] {
+	display: grid;
+	margin: 0;
+}
+[data-ui='shortcut-list'] > div {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-4);
+	padding: 9px var(--space-4);
+	font-size: var(--text-xs);
+}
+[data-ui='shortcut-list'] > div + div {
+	border-top: 1px solid var(--color-border);
+}
+[data-ui='shortcut-list'] dt {
+	color: var(--color-text-muted);
+}
+[data-ui='shortcut-list'] dd {
+	margin: 0;
+}
+[data-ui='switch'] {
+	position: relative;
+	flex: 0 0 auto;
+	width: 36px;
+	height: 20px;
+	padding: 2px;
+	border: 0;
+	border-radius: var(--radius-full);
+	background: var(--color-border-strong);
+	cursor: pointer;
+}
+[data-ui='switch'][data-state='checked'] {
+	background: var(--color-accent);
+}
+[data-ui='switch'][data-state='checked'] [data-ui='switch-thumb'] {
+	transform: translateX(16px);
+}
+[data-ui='switch-thumb'] {
+	display: block;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: var(--color-surface-raised);
+	box-shadow: var(--shadow-sm);
+	transition: transform 120ms ease;
+}

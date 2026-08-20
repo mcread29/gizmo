@@ -11,7 +11,6 @@
 	import ConversationError from './ConversationError.svelte';
 	import MessageList from './MessageList.svelte';
 	import TranscriptSearch from './TranscriptSearch.svelte';
-	import WorkspaceDashboard from '../workspace/WorkspaceDashboard.svelte';
 	import { findMatches, stepIndex } from './transcript-search';
 
 	interface Props {
@@ -27,8 +26,6 @@
 		onExport: () => void;
 		onDelete: () => void;
 		onOpenTree: () => void;
-		onOpenThread: (sessionId: string) => void;
-		onManageWorkspace: () => void;
 	}
 
 	let {
@@ -44,8 +41,6 @@
 		onExport,
 		onDelete,
 		onOpenTree,
-		onOpenThread,
-		onManageWorkspace,
 	}: Props = $props();
 
 	let searchOpen = $state(false);
@@ -56,9 +51,8 @@
 	let revealMessage = $state<(id: string) => Promise<void>>();
 
 	let matches = $derived(findMatches(store.messages, query));
-	let showDashboard = $derived(
-		!store.messagesLoading && store.messages.length === 0,
-	);
+	// The workspace overview is its own screen now; an empty thread is a thread.
+	let empty = $derived(!store.messagesLoading && store.messages.length === 0);
 
 	// A shrinking result set must not leave the cursor past the end.
 	$effect(() => {
@@ -98,14 +92,8 @@
 >
 	<div data-ui="conversation-header">
 		<div>
-			<span data-ui="eyebrow">{showDashboard ? 'Workspace' : 'Thread'}</span>
-			<h1>
-				{showDashboard
-					? (store.projects.find(
-							({ path }) => path === store.selectedProjectPath,
-						)?.title ?? 'Workspace')
-					: threadTitle(currentSession?.title ?? 'New thread')}
-			</h1>
+			<span data-ui="eyebrow">Thread</span>
+			<h1>{threadTitle(currentSession?.title ?? 'New thread')}</h1>
 		</div>
 		<div data-ui="conversation-header-actions">
 			<Button
@@ -157,8 +145,22 @@
 
 	<ConversationError {store} />
 
-	{#if showDashboard}
-		<WorkspaceDashboard {store} {onOpenThread} {onManageWorkspace} />
+	{#if store.messagesLoading}
+		<!-- A blank transcript would read as an empty thread, so say nothing. -->
+		<div data-ui="transcript-skeleton" aria-label="Loading thread">
+			{#each [0, 1, 2] as block (block)}
+				<div data-ui="transcript-skeleton-block">
+					<div data-ui="skeleton" data-shape="line" data-width="short"></div>
+					<div data-ui="skeleton" data-shape="line"></div>
+					<div data-ui="skeleton" data-shape="line"></div>
+				</div>
+			{/each}
+		</div>
+	{:else if empty}
+		<div data-ui="thread-empty">
+			<strong>New thread</strong>
+			<span>Ask about your workspace to start.</span>
+		</div>
 	{:else}
 		<MessageList
 			{store}

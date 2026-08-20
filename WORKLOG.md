@@ -498,3 +498,53 @@ project was recompiled or modified during this verification.
 - Fixed an intermittent app test-run failure: bits-ui restores the body scroll
   lock 24ms after a dialog unmounts, which threw against a torn-down jsdom when
   a file ended first. Tests now wait out that timer when a lock is outstanding.
+
+## 2026-08-20 — Workspaces are places
+
+- Made selecting a workspace open its overview instead of resolving to a
+  thread. Browsing workspaces no longer creates empty threads, and switching
+  workspace and opening a thread are now separate acts.
+- Moved the workspace overview out of the empty-thread state onto its own
+  `#overview` route beside the sidebar, so a workspace's threads, integrations,
+  and settings stay reachable while a thread is open.
+- Listed every workspace's threads in one grouped sidebar list with the current
+  workspace first, which also makes cross-workspace search find something.
+- Split the sidebar switcher: the workspace name opens the overview, the
+  chevron only switches, and the admin actions it used to carry live on the
+  overview and in Settings.
+
+## 2026-08-20 — Workspaces without a current one
+
+- Removed the ambient current workspace. The sidebar lists every workspace as a
+  row that expands to its threads, with the workspace's own new-thread and
+  settings buttons on the row, replacing the switcher dropdown.
+- Made the workspace screen replace the thread column instead of covering the
+  window: the previous version rendered inside the shell's inert overlay, so
+  its buttons could not be clicked and the sidebar disappeared.
+- Merged Workspace settings into that screen as a tab, so a workspace is
+  configured where it is shown, and dropped the separate route.
+- Required a workspace to create a thread, so a thread can no longer exist
+  outside one.
+
+## 2026-08-20 — One name per component
+
+- Renamed the sidebar's workspace button to `workspace-entry`: it had reused
+  `workspace-open`, already the workspace picker's card, so import order alone
+  decided which rules applied and the sidebar's had no effect.
+- Moved the Settings controls out of `dialogs.css`, where they had been left
+  when Settings stopped being a dialog, and deleted the rules for markup that
+  no longer exists.
+
+## 2026-08-20 — Transitions land in one frame
+
+- Navigate first and fetch behind: opening a workspace routes immediately
+  instead of awaiting its status and Git, which was why the header, sidebar and
+  inspector arrived one after another.
+- Gave the store one `#enterWorkspace` step that flips every workspace-derived
+  value synchronously, used by both workspace selection and thread switching,
+  so a thread in another workspace moves the sidebar and inspector at once
+  rather than after its transcript resolves.
+- Replaced claims made before data arrives with skeletons: the Changes panel no
+  longer reports a clean working tree while Git is still loading, the workspace
+  overview skeletons its source-control card, and a switching transcript shows
+  placeholder blocks instead of reading as an empty thread.

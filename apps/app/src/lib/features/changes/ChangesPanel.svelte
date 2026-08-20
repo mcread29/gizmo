@@ -203,7 +203,14 @@
 	</div>
 </div>
 
-{#if files.length === 0}
+{#if store.gitLoading && !store.gitStatus}
+	<!-- Claiming a clean tree before Git answers is a false statement. -->
+	<div data-ui="change-skeleton" aria-label="Loading repository changes">
+		{#each [0, 1, 2, 3] as row (row)}
+			<div data-ui="skeleton" data-shape="line"></div>
+		{/each}
+	</div>
+{:else if files.length === 0}
 	<div data-ui="empty-state">
 		<Check size={22} /><strong>No file changes</strong><span
 			>The repository working tree is clean.</span

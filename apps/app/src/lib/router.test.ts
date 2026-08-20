@@ -10,38 +10,36 @@ describe('routeFromHash', () => {
 	it('reads a known view and ignores anything else', () => {
 		expect(routeFromHash('#settings')).toBe('settings');
 		expect(routeFromHash('#/settings')).toBe('settings');
-		expect(routeFromHash('#nonsense')).toBe('workspace');
-		expect(routeFromHash('')).toBe('workspace');
+		expect(routeFromHash('#nonsense')).toBe('thread');
+		expect(routeFromHash('')).toBe('thread');
 	});
 
 	it('round-trips through hashForRoute', () => {
 		expect(routeFromHash(hashForRoute('settings'))).toBe('settings');
-		expect(routeFromHash(hashForRoute('workspace'))).toBe('workspace');
-		expect(routeFromHash(hashForRoute('workspace-settings'))).toBe(
-			'workspace-settings',
-		);
+		expect(routeFromHash(hashForRoute('thread'))).toBe('thread');
 	});
 
 	it('reads the settings page from the fragment', () => {
 		expect(locationFromHash('#settings/agent')).toEqual({
 			route: 'settings',
 			page: 'agent',
+			tab: 'overview',
 		});
 		// An unknown page still opens Settings rather than dropping the route.
 		expect(locationFromHash('#settings/nonsense')).toEqual({
 			route: 'settings',
 			page: 'appearance',
+			tab: 'overview',
 		});
-		expect(locationFromHash(hashForRoute('settings', 'chat'))).toEqual({
-			route: 'settings',
-			page: 'chat',
-		});
+		expect(
+			locationFromHash(hashForRoute('settings', { page: 'chat' })),
+		).toEqual({ route: 'settings', page: 'chat', tab: 'overview' });
 		// Agent absorbed the old Skills and Resources pages.
-		expect(locationFromHash('#settings/resources')).toEqual({
+		expect(locationFromHash('#settings/resources')).toMatchObject({
 			route: 'settings',
 			page: 'agent',
 		});
-		expect(locationFromHash('#settings/skills')).toEqual({
+		expect(locationFromHash('#settings/skills')).toMatchObject({
 			route: 'settings',
 			page: 'agent',
 		});
@@ -60,7 +58,7 @@ describe('AppRouter', () => {
 			addEventListener(
 				'popstate',
 				() => {
-					expect(router.current).toBe('workspace');
+					expect(router.current).toBe('thread');
 					stop();
 					resolve();
 				},
@@ -74,7 +72,7 @@ describe('AppRouter', () => {
 		const router = new AppRouter('#settings');
 		expect(router.current).toBe('settings');
 		router.close();
-		expect(router.current).toBe('workspace');
+		expect(router.current).toBe('thread');
 		expect(location.hash).not.toBe('#settings');
 	});
 
@@ -90,5 +88,23 @@ describe('AppRouter', () => {
 		expect(location.hash).toBe('#settings/agent');
 		expect(history.length).toBe(depth);
 		stop();
+	});
+
+	it('carries the workspace and tab through the fragment', () => {
+		const hash = hashForRoute('workspace', {
+			workspacePath: '/home/dev/my repo',
+			tab: 'settings',
+		});
+
+		expect(hash).toBe('#workspace/%2Fhome%2Fdev%2Fmy%20repo/settings');
+		expect(locationFromHash(hash)).toMatchObject({
+			route: 'workspace',
+			workspacePath: '/home/dev/my repo',
+			tab: 'settings',
+		});
+		// The overview is the default tab, so it stays out of the fragment.
+		expect(hashForRoute('workspace', { workspacePath: '/home/dev/repo' })).toBe(
+			'#workspace/%2Fhome%2Fdev%2Frepo',
+		);
 	});
 });

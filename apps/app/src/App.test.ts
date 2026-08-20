@@ -37,7 +37,7 @@ describe('application shell', () => {
 
 		expect(getByRole('main')).toBeInTheDocument();
 		expect(
-			await findByRole('navigation', { name: 'Recent threads' }),
+			await findByRole('navigation', { name: 'Workspaces and threads' }),
 		).toBeInTheDocument();
 		expect(
 			getByRole('complementary', { name: 'Workspace inspector' }),
@@ -104,8 +104,15 @@ describe('application shell', () => {
 
 	it('applies thread context actions to the right-clicked thread', async () => {
 		const { container, findByRole, getByRole } = renderApp();
-		await findByRole('button', { name: 'New thread' });
-		await fireEvent.click(getByRole('button', { name: 'New thread' }));
+		const newThread = await findByRole('button', {
+			name: 'New thread in ThirdPersonSandbox',
+		});
+		await waitFor(() =>
+			expect(
+				container.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
+		await fireEvent.click(newThread);
 
 		await waitFor(() =>
 			expect(
@@ -300,36 +307,11 @@ describe('application shell', () => {
 		});
 	});
 
-	it('switches workspaces separately from starting a thread', async () => {
-		const { findAllByText, findByRole, getByRole } = renderApp();
-		await findByRole('button', { name: 'Model' });
-		expect(
-			await findByRole('button', { name: 'Thinking level' }),
-		).toBeInTheDocument();
-
-		await fireEvent.click(
-			getByRole('button', { name: /Workspace menu, ThirdPersonSandbox/ }),
-		);
-		await fireEvent.click(
-			await findByRole('menuitem', { name: /RenderingPlayground/ }),
-		);
-
-		expect((await findAllByText('RenderingPlayground')).length).toBeGreaterThan(
-			0,
-		);
-		expect((await findAllByText('Now')).length).toBeGreaterThan(0);
-	});
-
 	it('browses server folders without asking for a typed path', async () => {
 		const { findByRole, getByRole, queryByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		await fireEvent.click(
-			await findByRole('button', {
-				name: /Workspace menu, ThirdPersonSandbox/,
-			}),
-		);
-		await fireEvent.click(
-			await findByRole('menuitem', { name: 'Open workspace…' }),
+			await findByRole('button', { name: 'Open workspace' }),
 		);
 
 		expect(
@@ -341,22 +323,221 @@ describe('application shell', () => {
 		expect(queryByRole('textbox', { name: 'Workspace path' })).toBeNull();
 	});
 
-	it('opens workspace settings as its own screen', async () => {
+	it('opens a workspace without opening or creating a thread', async () => {
+		const { findAllByText, findByRole } = renderApp();
+		const list = await findByRole('navigation', {
+			name: 'Workspaces and threads',
+		});
+		await waitFor(() =>
+			expect(
+				list.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
+		const before = list.querySelectorAll('[data-ui="session-item"]').length;
+
+		await fireEvent.click(
+			await findByRole('button', { name: 'Open RenderingPlayground' }),
+		);
+
+		// A workspace is a place you open, not a thread you get dropped into.
+		const screen = await findByRole('main', { name: 'Workspace' });
+		expect(screen).toBeInTheDocument();
+		expect(location.hash).toContain('#workspace/');
+		expect((await findAllByText('RenderingPlayground')).length).toBeGreaterThan(
+			0,
+		);
+		expect(list.querySelectorAll('[data-ui="session-item"]')).toHaveLength(
+			before,
+		);
+		// It replaces the thread area rather than covering the whole window.
+		expect(list).toBeVisible();
+		expect(document.querySelector('[data-ui="app-shell"]')).not.toHaveAttribute(
+			'inert',
+		);
+	});
+
+	it('starts a thread in the workspace whose row was used', async () => {
+		const { findByRole } = renderApp();
+		const list = await findByRole('navigation', {
+			name: 'Workspaces and threads',
+		});
+		await waitFor(() =>
+			expect(
+				list.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
+
+		await fireEvent.click(
+			await findByRole('button', {
+				name: 'New thread in RenderingPlayground',
+			}),
+		);
+
+		await waitFor(() => {
+			const rows = [...list.querySelectorAll('[data-ui="workspace-row"]')];
+			const rendering = rows.find((row) =>
+				row.textContent?.includes('RenderingPlayground'),
+			);
+			expect(rendering?.textContent).toContain('1 thread');
+		});
+	});
+
+	it('switches the whole shell to a workspace before its data lands', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		// Hold the second Git call open so the loading window is observable.
+		let release = () => {};
+		const gate = new Promise<void>((resolve) => (release = resolve));
+		const realGitStatus = client.getGitStatus.bind(client);
+		let calls = 0;
+		vi.spyOn(client, 'getGitStatus').mockImplementation(async (path) => {
+			if (++calls > 1) await gate;
+			return realGitStatus(path);
+		});
+		const { container, findByRole, getByRole } = render(App, { client });
+		const list = await findByRole('navigation', {
+			name: 'Workspaces and threads',
+		});
+		await waitFor(() =>
+			expect(
+				list.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
+
+		await fireEvent.click(
+			getByRole('button', { name: 'Open RenderingPlayground' }),
+		);
+
+		// Screen, sidebar highlight and Git state all move together: the view is
+		// already the new workspace, and nothing claims to know its Git state.
+		expect(getByRole('main', { name: 'Workspace' })).toBeInTheDocument();
+		const active = list.querySelector('[data-ui="workspace-row"][data-active]');
+		expect(active?.textContent).toContain('RenderingPlayground');
+		expect(
+			container.querySelector('[aria-label="Loading source control"]'),
+		).toBeInTheDocument();
+		expect(container.textContent).not.toContain('Working tree clean');
+
+		release();
+		await waitFor(() =>
+			expect(
+				container.querySelector('[aria-label="Loading source control"]'),
+			).toBeNull(),
+		);
+	});
+
+	it('moves the whole shell when a thread in another workspace opens', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		let release = () => {};
+		const gate = new Promise<void>((resolve) => (release = resolve));
+		// Nothing resumes until the click below, so every call can be gated.
+		const realResume = client.resumeSession.bind(client);
+		vi.spyOn(client, 'resumeSession').mockImplementation(async (id) => {
+			await gate;
+			return realResume(id);
+		});
+		const { container, findByRole, getByRole } = render(App, { client });
+		const list = await findByRole('navigation', {
+			name: 'Workspaces and threads',
+		});
+		await waitFor(() =>
+			expect(
+				list.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
+		// A second thread, in the other workspace.
+		await fireEvent.click(
+			getByRole('button', { name: 'New thread in RenderingPlayground' }),
+		);
+		await waitFor(() =>
+			expect(
+				list.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(1),
+		);
+		const first = list.querySelector<HTMLElement>('[data-ui="session-item"]')!;
+
+		await fireEvent.click(first);
+
+		// Selection and transcript state move now; the transcript itself waits.
+		expect(first).toHaveAttribute('data-active');
+		expect(
+			container.querySelector('[aria-label="Loading thread"]'),
+		).toBeInTheDocument();
+		expect(container.textContent).not.toContain('Ask about your workspace to');
+
+		release();
+		await waitFor(() =>
+			expect(
+				container.querySelector('[aria-label="Loading thread"]'),
+			).toBeNull(),
+		);
+	});
+
+	it('never highlights a workspace and a thread at the same time', async () => {
+		const { findByRole } = renderApp();
+		const list = await findByRole('navigation', {
+			name: 'Workspaces and threads',
+		});
+		await waitFor(() =>
+			expect(
+				list.querySelectorAll('[data-ui="session-item"][data-active]').length,
+			).toBe(1),
+		);
+		expect(
+			list.querySelectorAll('[data-ui="workspace-row"][data-active]'),
+		).toHaveLength(0);
+
+		await fireEvent.click(
+			await findByRole('button', { name: 'Open ThirdPersonSandbox' }),
+		);
+		await findByRole('main', { name: 'Workspace' });
+
+		await waitFor(() =>
+			expect(
+				list.querySelectorAll('[data-ui="workspace-row"][data-active]').length,
+			).toBe(1),
+		);
+		expect(
+			list.querySelectorAll('[data-ui="session-item"][data-active]'),
+		).toHaveLength(0);
+	});
+
+	it('opens the thread itself when one is picked from a workspace screen', async () => {
+		const { findByRole, getByRole, queryByRole } = renderApp();
+		const list = await findByRole('navigation', {
+			name: 'Workspaces and threads',
+		});
+		await waitFor(() =>
+			expect(
+				list.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
+
+		await fireEvent.click(
+			await findByRole('button', { name: 'Open ThirdPersonSandbox' }),
+		);
+		await findByRole('main', { name: 'Workspace' });
+
+		// Picking a thread has to leave the workspace screen, not just swap
+		// which session is loaded behind it.
+		const thread = list.querySelector<HTMLElement>('[data-ui="session-item"]')!;
+		await fireEvent.click(thread);
+
+		await waitFor(() =>
+			expect(queryByRole('main', { name: 'Workspace' })).toBeNull(),
+		);
+		expect(getByRole('textbox', { name: 'Message Gizmo' })).toBeInTheDocument();
+		expect(location.hash).not.toContain('workspace');
+	});
+
+	it('opens workspace settings as a tab on the workspace screen', async () => {
 		const { findAllByRole, findByRole, getByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		await fireEvent.click(
-			await findByRole('button', {
-				name: /Workspace menu, ThirdPersonSandbox/,
-			}),
-		);
-		await fireEvent.click(
-			await findByRole('menuitem', { name: 'Workspace settings…' }),
+			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
 		);
 
-		expect(
-			await findByRole('region', { name: 'Workspace settings' }),
-		).toBeInTheDocument();
-		expect(location.hash).toBe('#workspace-settings');
+		expect(await findByRole('main', { name: 'Workspace' })).toBeInTheDocument();
+		expect(location.hash).toContain('/settings');
 		expect(
 			(await findAllByRole('textbox', { name: 'Unity root' }))[0],
 		).toHaveValue('.');
@@ -369,14 +550,9 @@ describe('application shell', () => {
 		const { findByRole, getByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		await fireEvent.click(
-			await findByRole('button', {
-				name: /Workspace menu, ThirdPersonSandbox/,
-			}),
+			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
 		);
-		await fireEvent.click(
-			await findByRole('menuitem', { name: 'Workspace settings…' }),
-		);
-		await findByRole('region', { name: 'Workspace settings' });
+		await findByRole('main', { name: 'Workspace' });
 
 		// On globally, so the workspace switch starts on and can be turned off.
 		const skill = await findByRole('switch', {
@@ -422,7 +598,9 @@ describe('application shell', () => {
 
 	it('filters threads by title from the sidebar search', async () => {
 		const { container, findByRole, getByRole } = renderApp();
-		await findByRole('button', { name: 'New thread' });
+		await findByRole('button', {
+			name: 'New thread in ThirdPersonSandbox',
+		});
 		await waitFor(() =>
 			expect(
 				container.querySelectorAll('[data-ui="session-item"]').length,
@@ -437,14 +615,21 @@ describe('application shell', () => {
 			0,
 		);
 		expect(
-			getByRole('navigation', { name: 'Recent threads' }),
-		).toHaveTextContent('No threads match');
+			getByRole('navigation', { name: 'Workspaces and threads' }),
+		).toHaveTextContent('No matching threads');
 	});
 
 	it('confirms thread deletion with a cancel path and reports the result', async () => {
 		const { container, findByRole, getByRole, queryByRole } = renderApp();
-		await findByRole('button', { name: 'New thread' });
-		await fireEvent.click(getByRole('button', { name: 'New thread' }));
+		const newThread = await findByRole('button', {
+			name: 'New thread in ThirdPersonSandbox',
+		});
+		await waitFor(() =>
+			expect(
+				container.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
+		await fireEvent.click(newThread);
 		await waitFor(() =>
 			expect(
 				container.querySelectorAll('[data-ui="session-item"]'),
@@ -474,7 +659,9 @@ describe('application shell', () => {
 	it('does not offer prompt retry when the agent connection drops', async () => {
 		const client = new FakeAgentClient({ latencyMs: 0 });
 		const { findByRole, findByText, queryByRole } = render(App, { client });
-		await findByRole('button', { name: 'New thread' });
+		await findByRole('button', {
+			name: 'New thread in ThirdPersonSandbox',
+		});
 		expect(queryByRole('button', { name: 'Retry' })).toBeNull();
 
 		client.dropConnection();
@@ -486,7 +673,9 @@ describe('application shell', () => {
 	it('opens the Pi session tree from the thread header', async () => {
 		const client = new FakeAgentClient({ latencyMs: 0 });
 		const { findByRole, getByRole, getByText } = render(App, { client });
-		await findByRole('button', { name: 'New thread' });
+		await findByRole('button', {
+			name: 'New thread in ThirdPersonSandbox',
+		});
 
 		const treeButton = getByRole('button', { name: 'Tree' });
 		expect(
@@ -602,10 +791,17 @@ describe('application shell', () => {
 		const composer = getByRole('textbox', {
 			name: 'Message Gizmo',
 		}) as HTMLTextAreaElement;
-		await findByRole('button', { name: 'New thread' });
+		const newThread = await findByRole('button', {
+			name: 'New thread in ThirdPersonSandbox',
+		});
+		await waitFor(() =>
+			expect(
+				container.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
 		await fireEvent.input(composer, { target: { value: 'First thread note' } });
 
-		await fireEvent.click(getByRole('button', { name: 'New thread' }));
+		await fireEvent.click(newThread);
 		await waitFor(() =>
 			expect(
 				container.querySelectorAll('[data-ui="session-item"]'),

@@ -1,9 +1,4 @@
-export const appRoutes = [
-	'workspace',
-	'settings',
-	'workspace-settings',
-	'tree',
-] as const;
+export const appRoutes = ['thread', 'workspace', 'settings', 'tree'] as const;
 
 export type AppRoute = (typeof appRoutes)[number];
 
@@ -21,27 +16,49 @@ export type SettingsPage = (typeof settingsPages)[number];
 
 export const defaultSettingsPage: SettingsPage = 'appearance';
 
-interface Location {
+/** A workspace screen shows one workspace; its tabs are addressable too. */
+export const workspaceTabs = ['overview', 'settings'] as const;
+
+export type WorkspaceTab = (typeof workspaceTabs)[number];
+
+export const defaultWorkspaceTab: WorkspaceTab = 'overview';
+
+export interface AppLocation {
 	route: AppRoute;
 	page: SettingsPage;
+	/** Which workspace the workspace route is showing. */
+	workspacePath?: string;
+	tab: WorkspaceTab;
 }
 
-/** Unknown or empty fragments fall back to the workspace. */
+/** Unknown or empty fragments fall back to the thread view. */
 export function routeFromHash(hash: string): AppRoute {
 	return locationFromHash(hash).route;
 }
 
-export function locationFromHash(hash: string): Location {
-	const [name, sub] = hash.replace(/^#\/?/, '').split('/');
+export function locationFromHash(hash: string): AppLocation {
+	const [name, ...rest] = hash.replace(/^#\/?/, '').split('/');
 	const route = appRoutes.includes(name as AppRoute)
 		? (name as AppRoute)
-		: 'workspace';
+		: 'thread';
+	if (route === 'workspace') {
+		const [encoded, tab] = rest;
+		return {
+			route,
+			page: defaultSettingsPage,
+			...(encoded ? { workspacePath: decode(encoded) } : {}),
+			tab: workspaceTabs.includes(tab as WorkspaceTab)
+				? (tab as WorkspaceTab)
+				: defaultWorkspaceTab,
+		};
+	}
 	return {
 		route,
 		page:
 			route === 'settings'
-				? (settingsPage(sub) ?? defaultSettingsPage)
+				? (settingsPage(rest[0]) ?? defaultSettingsPage)
 				: defaultSettingsPage,
+		tab: defaultWorkspaceTab,
 	};
 }
 
@@ -53,10 +70,36 @@ function settingsPage(name: string | undefined): SettingsPage | undefined {
 		: undefined;
 }
 
-export function hashForRoute(route: AppRoute, page?: SettingsPage): string {
-	if (route === 'workspace') return '#';
-	return route === 'settings' && page && page !== defaultSettingsPage
-		? `#settings/${page}`
+function decode(value: string): string | undefined {
+	try {
+		return decodeURIComponent(value) || undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+export interface RouteTarget {
+	page?: SettingsPage;
+	workspacePath?: string;
+	tab?: WorkspaceTab;
+}
+
+export function hashForRoute(
+	route: AppRoute,
+	target: RouteTarget = {},
+): string {
+	if (route === 'thread') return '#';
+	if (route === 'workspace') {
+		if (!target.workspacePath) return '#workspace';
+		const encoded = encodeURIComponent(target.workspacePath);
+		return target.tab && target.tab !== defaultWorkspaceTab
+			? `#workspace/${encoded}/${target.tab}`
+			: `#workspace/${encoded}`;
+	}
+	return route === 'settings' &&
+		target.page &&
+		target.page !== defaultSettingsPage
+		? `#settings/${target.page}`
 		: `#${route}`;
 }
 
@@ -68,60 +111,93 @@ export function hashForRoute(route: AppRoute, page?: SettingsPage): string {
  * the app entirely.
  */
 export class AppRouter {
-	current = $state<AppRoute>('workspace');
+	current = $state<AppRoute>('thread');
 	/** Which Settings page is showing. Meaningless on other routes. */
 	settingsPage = $state<SettingsPage>(defaultSettingsPage);
+	/** Which workspace the workspace route is showing, and which of its tabs. */
+	workspacePath = $state<string>();
+	workspaceTab = $state<WorkspaceTab>(defaultWorkspaceTab);
 	#pushed = false;
 
 	constructor(hash = typeof location === 'undefined' ? '' : location.hash) {
-		const initial = locationFromHash(hash);
-		this.current = initial.route;
-		this.settingsPage = initial.page;
+		this.#apply(locationFromHash(hash));
 	}
 
 	/** Binds to history events. Returns the matching unbind. */
 	start(): () => void {
 		const onPopState = () => {
-			const next = locationFromHash(location.hash);
-			this.current = next.route;
-			this.settingsPage = next.page;
-			this.#pushed = this.current !== 'workspace' && this.#pushed;
+			this.#apply(locationFromHash(location.hash));
+			this.#pushed = this.current !== 'thread' && this.#pushed;
 		};
 		addEventListener('popstate', onPopState);
 		return () => removeEventListener('popstate', onPopState);
 	}
 
-	go(route: AppRoute, page?: SettingsPage): void {
-		const nextPage = page ?? this.settingsPage;
-		if (
-			route === this.current &&
-			(route !== 'settings' || nextPage === this.settingsPage)
-		)
-			return;
-		history.pushState(null, '', hashForRoute(route, nextPage));
-		this.#pushed = route !== 'workspace';
+	go(route: AppRoute, target: RouteTarget = {}): void {
+		const next = {
+			page: target.page ?? this.settingsPage,
+			workspacePath: target.workspacePath ?? this.workspacePath,
+			tab: target.tab ?? defaultWorkspaceTab,
+		};
+		if (this.#matches(route, next)) return;
+		history.pushState(null, '', hashForRoute(route, next));
+		this.#pushed = route !== 'thread';
 		this.current = route;
-		if (route === 'settings') this.settingsPage = nextPage;
+		if (route === 'settings') this.settingsPage = next.page;
+		if (route === 'workspace') {
+			this.workspacePath = next.workspacePath;
+			this.workspaceTab = next.tab;
+		}
 	}
 
 	/** Moves between Settings pages without stacking a history entry each time. */
 	showSettingsPage(page: SettingsPage): void {
 		if (this.current !== 'settings') {
-			this.go('settings', page);
+			this.go('settings', { page });
 			return;
 		}
 		if (page === this.settingsPage) return;
 		this.settingsPage = page;
-		history.replaceState(null, '', hashForRoute('settings', page));
+		history.replaceState(null, '', hashForRoute('settings', { page }));
+	}
+
+	/** Workspace tabs behave the same way: a swap, not a new destination. */
+	showWorkspaceTab(tab: WorkspaceTab): void {
+		if (this.current !== 'workspace' || tab === this.workspaceTab) return;
+		this.workspaceTab = tab;
+		history.replaceState(
+			null,
+			'',
+			hashForRoute('workspace', { workspacePath: this.workspacePath, tab }),
+		);
 	}
 
 	close(): void {
-		if (this.current === 'workspace') return;
+		if (this.current === 'thread') return;
 		if (this.#pushed) {
 			history.back();
 			return;
 		}
-		history.replaceState(null, '', hashForRoute('workspace'));
-		this.current = 'workspace';
+		history.replaceState(null, '', hashForRoute('thread'));
+		this.current = 'thread';
+	}
+
+	#matches(route: AppRoute, target: RouteTarget): boolean {
+		if (route !== this.current) return false;
+		if (route === 'settings') return target.page === this.settingsPage;
+		if (route === 'workspace') {
+			return (
+				target.workspacePath === this.workspacePath &&
+				target.tab === this.workspaceTab
+			);
+		}
+		return true;
+	}
+
+	#apply(location: AppLocation): void {
+		this.current = location.route;
+		this.settingsPage = location.page;
+		this.workspacePath = location.workspacePath;
+		this.workspaceTab = location.tab;
 	}
 }
