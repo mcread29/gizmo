@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 16 as const;
+export const protocolVersion = 18 as const;
 
 const sessionTitleLimit = 48;
 
@@ -307,6 +307,14 @@ export const unityProjectSchema = Type.Object(
 
 export type UnityProject = Static<typeof unityProjectSchema>;
 
+export const projectSkillSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1, maxLength: 200 }),
+		enabled: Type.Boolean(),
+	},
+	{ additionalProperties: false },
+);
+
 export const storedProjectSchema = Type.Object(
 	{
 		title: Type.String({ minLength: 1 }),
@@ -320,12 +328,15 @@ export const storedProjectSchema = Type.Object(
 				{ additionalProperties: false },
 			),
 		),
+		/** Per-workspace overrides of each skill's global enablement. */
+		skills: Type.Optional(Type.Array(projectSkillSchema)),
 		addedAt: Type.Integer({ minimum: 0 }),
 	},
 	{ additionalProperties: false },
 );
 
 export type StoredProject = Static<typeof storedProjectSchema>;
+export type ProjectSkill = Static<typeof projectSkillSchema>;
 
 export const projectDomainsSchema = Type.Object(
 	{
@@ -345,6 +356,66 @@ export const projectDomainsSchema = Type.Object(
 );
 
 export type ProjectDomains = Static<typeof projectDomainsSchema>;
+
+export const resourceScopeSchema = Type.Union([
+	Type.Literal('global'),
+	Type.Literal('project'),
+]);
+
+export type ResourceScope = Static<typeof resourceScopeSchema>;
+
+/**
+ * A skill Gizmo knows about. Discovery is global-first: every skill found on
+ * disk is installed globally, and enablement is decided separately so a new
+ * skill never starts influencing sessions on its own.
+ */
+export const skillResourceSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1, maxLength: 200 }),
+		name: Type.String({ minLength: 1, maxLength: 200 }),
+		description: Type.String({ maxLength: 2000 }),
+		scope: resourceScopeSchema,
+		path: Type.String({ minLength: 1 }),
+		source: Type.String({ minLength: 1 }),
+		installed: Type.Boolean(),
+		enabledGlobally: Type.Boolean(),
+		/** Effective state for the workspace the catalog was requested for. */
+		enabled: Type.Boolean(),
+		/** Present when the workspace overrides the global enablement. */
+		override: Type.Optional(Type.Boolean()),
+	},
+	{ additionalProperties: false },
+);
+
+export type SkillResource = Static<typeof skillResourceSchema>;
+
+/** Read-only companion resources: AGENTS.md files and prompt templates. */
+export const agentResourceSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1, maxLength: 400 }),
+		name: Type.String({ minLength: 1, maxLength: 200 }),
+		description: Type.Optional(Type.String({ maxLength: 2000 })),
+		scope: resourceScopeSchema,
+		path: Type.String({ minLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type AgentResource = Static<typeof agentResourceSchema>;
+
+export const resourceCatalogSchema = Type.Object(
+	{
+		/** Absolute path of the workspace the effective state was resolved for. */
+		workspacePath: Type.Optional(Type.String({ minLength: 1 })),
+		skills: Type.Array(skillResourceSchema),
+		agentsFiles: Type.Array(agentResourceSchema),
+		prompts: Type.Array(agentResourceSchema),
+		diagnostics: Type.Array(Type.String({ minLength: 1 })),
+	},
+	{ additionalProperties: false },
+);
+
+export type ResourceCatalog = Static<typeof resourceCatalogSchema>;
 
 export const workspaceDirectoryListingSchema = Type.Object(
 	{
@@ -759,6 +830,37 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('resources.list'),
+			/** Omitted lists global state only. */
+			workspacePath: Type.Optional(Type.String({ minLength: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('resources.skill.global'),
+			skillId: Type.String({ minLength: 1, maxLength: 200 }),
+			installed: Type.Optional(Type.Boolean()),
+			enabled: Type.Optional(Type.Boolean()),
+			workspacePath: Type.Optional(Type.String({ minLength: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('resources.skill.project'),
+			workspacePath: Type.String({ minLength: 1 }),
+			skillId: Type.String({ minLength: 1, maxLength: 200 }),
+			/** Null clears the override so the global setting applies again. */
+			enabled: Type.Union([Type.Boolean(), Type.Null()]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('git.status'),
 			projectPath: Type.String({ minLength: 1 }),
 		},
@@ -1115,6 +1217,13 @@ export function parseGitStatus(input: unknown): GitStatus {
 
 export function parseGitCommitResult(input: unknown): GitCommitResult {
 	if (!Value.Check(gitCommitResultSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseResourceCatalog(input: unknown): ResourceCatalog {
+	if (!Value.Check(resourceCatalogSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

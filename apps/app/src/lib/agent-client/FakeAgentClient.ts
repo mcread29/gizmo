@@ -16,6 +16,9 @@ import {
 	type SessionTree,
 	type UnityExtensionDescriptor,
 	type UnityOpenProjectResult,
+	type AgentResource,
+	type ResourceCatalog,
+	type SkillResource,
 	type StoredProject,
 	type ProjectDomains,
 	type WorkspaceIntegration,
@@ -522,6 +525,8 @@ export class FakeAgentClient implements AgentClient {
 		return this.#modelCatalog(session);
 	}
 
+	readonly #skillOverrides = new Map<string, Map<string, boolean>>();
+
 	async listProjects(): Promise<StoredProject[]> {
 		this.#assertConnected();
 		return fakeProjects;
@@ -572,6 +577,67 @@ export class FakeAgentClient implements AgentClient {
 	async removeProject(projectPath: string): Promise<void> {
 		const index = fakeProjects.findIndex(({ path }) => path === projectPath);
 		if (index >= 0) fakeProjects.splice(index, 1);
+	}
+
+	async listResources(workspacePath?: string): Promise<ResourceCatalog> {
+		this.#assertConnected();
+		return this.#catalog(workspacePath);
+	}
+
+	async setGlobalSkill(
+		skillId: string,
+		change: { installed?: boolean; enabled?: boolean },
+		workspacePath?: string,
+	): Promise<ResourceCatalog> {
+		const skill = this.#skill(skillId);
+		if (change.installed !== undefined) {
+			skill.installed = change.installed;
+			if (!change.installed) skill.enabledGlobally = false;
+		}
+		if (change.enabled !== undefined) {
+			skill.enabledGlobally = change.enabled;
+			if (change.enabled) skill.installed = true;
+		}
+		return this.#catalog(workspacePath);
+	}
+
+	async setProjectSkill(
+		workspacePath: string,
+		skillId: string,
+		enabled: boolean | null,
+	): Promise<ResourceCatalog> {
+		this.#skill(skillId);
+		const overrides = this.#skillOverrides.get(workspacePath) ?? new Map();
+		if (enabled === null) overrides.delete(skillId);
+		else overrides.set(skillId, enabled);
+		this.#skillOverrides.set(workspacePath, overrides);
+		return this.#catalog(workspacePath);
+	}
+
+	#skill(skillId: string) {
+		const skill = fakeSkills.find(({ id }) => id === skillId);
+		if (!skill) throw new Error(`Unknown skill: ${skillId}`);
+		return skill;
+	}
+
+	#catalog(workspacePath?: string): ResourceCatalog {
+		const overrides = workspacePath
+			? this.#skillOverrides.get(workspacePath)
+			: undefined;
+		return {
+			...(workspacePath ? { workspacePath } : {}),
+			skills: fakeSkills.map((skill) => {
+				const override = overrides?.get(skill.id);
+				return {
+					...skill,
+					enabled: skill.installed && (override ?? skill.enabledGlobally),
+					...(override === undefined ? {} : { override }),
+				};
+			}),
+			agentsFiles: fakeAgentsFiles,
+			prompts: fakePrompts,
+			diagnostics: [],
+		};
 	}
 
 	async getProjectStatus(projectPath: string): Promise<UnityStatus> {
@@ -759,6 +825,69 @@ const fakeProjects: StoredProject[] = [
 		path: '/projects/RenderingPlayground',
 		integrations: [{ id: 'unity', root: '.' }],
 		addedAt: 0,
+	},
+];
+
+const fakeSkills: SkillResource[] = [
+	{
+		id: 'global/svelte-code-writer',
+		name: 'svelte-code-writer',
+		description: 'Svelte 5 documentation lookup and component analysis.',
+		scope: 'global',
+		path: '/home/dev/.gizmo/skills/svelte-code-writer/SKILL.md',
+		source: 'user',
+		installed: true,
+		enabledGlobally: true,
+		enabled: true,
+	},
+	{
+		id: 'global/unity-shader-review',
+		name: 'unity-shader-review',
+		description: 'Review shader graphs and URP materials before a build.',
+		scope: 'global',
+		path: '/home/dev/.gizmo/skills/unity-shader-review/SKILL.md',
+		source: 'user',
+		installed: true,
+		enabledGlobally: false,
+		enabled: false,
+	},
+	{
+		id: 'project/release-checklist',
+		name: 'release-checklist',
+		description: 'Steps this workspace follows before tagging a release.',
+		scope: 'project',
+		path: '/projects/ThirdPersonSandbox/.gizmo/skills/release-checklist/SKILL.md',
+		source: 'project',
+		installed: true,
+		enabledGlobally: false,
+		enabled: false,
+	},
+];
+
+const fakeAgentsFiles: AgentResource[] = [
+	{
+		id: 'agents:/home/dev/.gizmo/AGENTS.md',
+		name: 'AGENTS.md',
+		description: 'Personal defaults applied to every workspace.',
+		scope: 'global',
+		path: '/home/dev/.gizmo/AGENTS.md',
+	},
+	{
+		id: 'agents:/projects/ThirdPersonSandbox/AGENTS.md',
+		name: 'AGENTS.md',
+		description: 'Conventions for this workspace.',
+		scope: 'project',
+		path: '/projects/ThirdPersonSandbox/AGENTS.md',
+	},
+];
+
+const fakePrompts: AgentResource[] = [
+	{
+		id: 'prompt:/home/dev/.gizmo/prompts/review.md',
+		name: 'review',
+		description: 'Review staged changes.',
+		scope: 'global',
+		path: '/home/dev/.gizmo/prompts/review.md',
 	},
 ];
 

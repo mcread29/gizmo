@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
+import {
+	cleanup,
+	fireEvent,
+	render,
+	waitFor,
+	within,
+} from '@testing-library/svelte';
 import { axe } from 'vitest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App.svelte';
@@ -6,7 +12,12 @@ import { FakeAgentClient } from './lib/agent-client';
 
 const initialInnerWidth = window.innerWidth;
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+	localStorage.clear();
+	// Routes live in the fragment, so a leftover page would open the next test
+	// on the wrong screen.
+	history.replaceState(null, '', '#');
+});
 
 afterEach(() => {
 	cleanup();
@@ -34,7 +45,7 @@ describe('application shell', () => {
 		expect(getByRole('textbox', { name: 'Message Gizmo' })).toBeInTheDocument();
 	});
 
-	it('collapses both docked sidebars and exposes resize handles', async () => {
+	it('collapses each docked panel to a rail that reopens it', async () => {
 		Object.defineProperty(window, 'innerWidth', {
 			configurable: true,
 			value: 1440,
@@ -48,7 +59,8 @@ describe('application shell', () => {
 			getByRole('slider', { name: 'Resize editor inspector' }),
 		).toBeInTheDocument();
 
-		const leftToggle = getByRole('button', {
+		// Each panel carries its own toggle while it is open.
+		const leftToggle = await findByRole('button', {
 			name: 'Toggle thread sidebar',
 		});
 		const rightToggle = getByRole('button', {
@@ -60,8 +72,18 @@ describe('application shell', () => {
 		await fireEvent.click(leftToggle);
 		await fireEvent.click(rightToggle);
 
-		expect(leftToggle).toHaveAttribute('aria-expanded', 'false');
-		expect(rightToggle).toHaveAttribute('aria-expanded', 'false');
+		// Collapsing hands the control to the rail, which reopens the panel.
+		const leftRail = getByRole('button', { name: 'Toggle thread sidebar' });
+		const rightRail = getByRole('button', {
+			name: 'Toggle workspace inspector',
+		});
+		expect(leftRail).toHaveAttribute('aria-expanded', 'false');
+		expect(rightRail).toHaveAttribute('aria-expanded', 'false');
+
+		await fireEvent.click(leftRail);
+		expect(
+			getByRole('button', { name: 'Toggle thread sidebar' }),
+		).toHaveAttribute('aria-expanded', 'true');
 	});
 
 	it('opens app actions from the global context menu', async () => {
@@ -182,44 +204,100 @@ describe('application shell', () => {
 		);
 	});
 
-	it('applies and persists app settings', async () => {
+	it('strips the title bar to what still works while a screen is up', async () => {
+		const { container, findByRole, getByRole } = renderApp();
+		await findByRole('button', { name: 'Model' });
+		const titlebar = () =>
+			within(container.querySelector<HTMLElement>('[data-ui="titlebar"]')!);
+		expect(
+			titlebar().getByRole('button', { name: 'Settings' }),
+		).toBeInTheDocument();
+		expect(
+			titlebar().getByRole('button', { name: 'Toggle color theme' }),
+		).toBeInTheDocument();
+
+		await fireEvent.click(getByRole('button', { name: 'Settings' }));
+		await findByRole('region', { name: 'Settings' });
+
+		// Nothing left in the bar acts on the covered workspace.
+		expect(
+			titlebar().queryByRole('button', { name: 'Settings' }),
+		).not.toBeInTheDocument();
+		expect(
+			titlebar().queryByRole('button', { name: 'Toggle color theme' }),
+		).not.toBeInTheDocument();
+		expect(titlebar().queryByText('Svelte')).not.toBeInTheDocument();
+
+		// Leaving the screen goes through history, so the bar restores async.
+		await fireEvent.click(getByRole('button', { name: 'Back' }));
+		await waitFor(() =>
+			expect(
+				titlebar().getByRole('button', { name: 'Settings' }),
+			).toBeInTheDocument(),
+		);
+	});
+
+	it('applies and persists device settings across its pages', async () => {
 		const { findByRole, getByRole, getByText } = renderApp();
 		await fireEvent.click(getByRole('button', { name: 'Settings' }));
 
 		expect(
 			await findByRole('region', { name: 'Settings' }),
 		).toBeInTheDocument();
-		const sendOnEnter = getByRole('switch', { name: 'Send with Enter' });
-		const showInspector = getByRole('switch', { name: 'Workspace inspector' });
+		// Settings opens on Appearance.
 		const scheme = getByRole('button', { name: 'Color scheme' });
 		expect(scheme).toHaveTextContent('Default');
+		await fireEvent.click(getByRole('button', { name: 'Light' }));
+		expect(document.documentElement).toHaveAttribute('data-theme', 'light');
 
+		await fireEvent.click(getByRole('button', { name: 'Chat' }));
+		const sendOnEnter = await findByRole('switch', {
+			name: 'Send with Enter',
+		});
 		const expandReasoning = getByRole('switch', { name: 'Expand reasoning' });
-
-		await fireEvent.click(getByRole('switch', { name: 'Dark appearance' }));
 		await fireEvent.click(sendOnEnter);
-		await fireEvent.click(showInspector);
 		await fireEvent.click(expandReasoning);
 
-		expect(document.documentElement).toHaveAttribute('data-theme', 'light');
 		expect(getByText('⌘/Ctrl Enter')).toBeInTheDocument();
-		expect(
-			getByRole('button', { name: 'Toggle workspace inspector' }),
-		).toHaveAttribute('aria-expanded', 'false');
 		await waitFor(() => {
 			const saved = JSON.parse(
 				localStorage.getItem('unity-agent.settings.v1') ?? '{}',
 			);
 			expect(saved.sendOnEnter).toBe(false);
-			expect(saved.showUnityInspector).toBe(false);
 			expect(saved.expandReasoning).toBe(true);
 			expect(saved.theme).toBe('light');
 		});
 
-		await fireEvent.click(getByRole('button', { name: 'Restore defaults' }));
-		expect(sendOnEnter).toHaveAttribute('aria-checked', 'true');
-		expect(showInspector).toHaveAttribute('aria-checked', 'true');
-		expect(expandReasoning).toHaveAttribute('aria-checked', 'false');
+		// Restoring defaults is destructive enough to confirm first.
+		await fireEvent.click(getByRole('button', { name: 'About' }));
+		await fireEvent.click(
+			await findByRole('button', { name: 'Restore defaults' }),
+		);
+		const confirm = await findByRole('dialog', {
+			name: 'Restore device settings?',
+		});
+		await fireEvent.click(
+			within(confirm).getByRole('button', { name: 'Restore defaults' }),
+		);
+		await fireEvent.click(getByRole('button', { name: 'Chat' }));
+		expect(
+			await findByRole('switch', { name: 'Send with Enter' }),
+		).toHaveAttribute('aria-checked', 'true');
+	});
+
+	it('tracks the system appearance when asked to', async () => {
+		const { findByRole, getByRole } = renderApp();
+		await fireEvent.click(getByRole('button', { name: 'Settings' }));
+		await findByRole('region', { name: 'Settings' });
+
+		await fireEvent.click(getByRole('button', { name: 'System' }));
+
+		await waitFor(() => {
+			const saved = JSON.parse(
+				localStorage.getItem('unity-agent.settings.v1') ?? '{}',
+			);
+			expect(saved.followSystemTheme).toBe(true);
+		});
 	});
 
 	it('switches workspaces separately from starting a thread', async () => {
@@ -263,7 +341,7 @@ describe('application shell', () => {
 		expect(queryByRole('textbox', { name: 'Workspace path' })).toBeNull();
 	});
 
-	it('opens workspace settings with independent integration controls', async () => {
+	it('opens workspace settings as its own screen', async () => {
 		const { findAllByRole, findByRole, getByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		await fireEvent.click(
@@ -276,13 +354,40 @@ describe('application shell', () => {
 		);
 
 		expect(
-			await findByRole('dialog', { name: 'ThirdPersonSandbox setup' }),
+			await findByRole('region', { name: 'Workspace settings' }),
 		).toBeInTheDocument();
+		expect(location.hash).toBe('#workspace-settings');
 		expect(
 			(await findAllByRole('textbox', { name: 'Unity root' }))[0],
 		).toHaveValue('.');
 		expect(getByRole('textbox', { name: 'Svelte root' })).toHaveValue(
 			'WebFrontend',
+		);
+	});
+
+	it('overrides a skill for the open workspace only', async () => {
+		const { findByRole, getByRole } = renderApp();
+		await findByRole('button', { name: 'Model' });
+		await fireEvent.click(
+			await findByRole('button', {
+				name: /Workspace menu, ThirdPersonSandbox/,
+			}),
+		);
+		await fireEvent.click(
+			await findByRole('menuitem', { name: 'Workspace settings…' }),
+		);
+		await findByRole('region', { name: 'Workspace settings' });
+
+		// On globally, so the workspace switch starts on and can be turned off.
+		const skill = await findByRole('switch', {
+			name: 'svelte-code-writer enabled',
+		});
+		expect(skill).toHaveAttribute('aria-checked', 'true');
+		await fireEvent.click(skill);
+		await waitFor(() =>
+			expect(
+				getByRole('switch', { name: 'svelte-code-writer enabled' }),
+			).toHaveAttribute('aria-checked', 'false'),
 		);
 	});
 

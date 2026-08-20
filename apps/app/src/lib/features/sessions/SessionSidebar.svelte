@@ -15,6 +15,7 @@
 	import { Button, ScrollPanel } from '../../components';
 	import ComponentGallery from '../../components/ComponentGallery.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
+	import PanelToggle from '../shell/PanelToggle.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
 	import {
 		formatSessionTime,
@@ -87,6 +88,13 @@
 		</div>
 	{:else}
 		<div data-ui="sidebar-header">
+			{#if layout.leftVisible}
+				<PanelToggle
+					side="left"
+					expanded
+					onToggle={() => layout.toggleLeft()}
+				/>
+			{/if}
 			<span data-ui="eyebrow">Threads</span>
 			<Button
 				variant="secondary"
@@ -108,7 +116,9 @@
 						<span data-ui="workspace-switcher-icon"
 							><FolderOpen size={16} /></span
 						>
-						<span><small>Workspace</small><strong>{currentWorkspace}</strong></span>
+						<span
+							><small>Workspace</small><strong>{currentWorkspace}</strong></span
+						>
 						<ChevronsUpDown size={14} />
 					</button>
 				{/snippet}

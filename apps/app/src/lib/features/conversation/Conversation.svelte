@@ -99,13 +99,13 @@
 	<div data-ui="conversation-header">
 		<div>
 			<span data-ui="eyebrow">{showDashboard ? 'Workspace' : 'Thread'}</span>
-			<h1
-				>{showDashboard
-					? store.projects.find(
+			<h1>
+				{showDashboard
+					? (store.projects.find(
 							({ path }) => path === store.selectedProjectPath,
-						)?.title ?? 'Workspace'
-					: threadTitle(currentSession?.title ?? 'New thread')}</h1
-			>
+						)?.title ?? 'Workspace')
+					: threadTitle(currentSession?.title ?? 'New thread')}
+			</h1>
 		</div>
 		<div data-ui="conversation-header-actions">
 			<Button

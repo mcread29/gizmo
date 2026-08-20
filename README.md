@@ -29,7 +29,7 @@ pnpm dev
 Open <http://localhost:5173>. The Vite development server proxies `/agent` to
 the local WebSocket server on port `8787`.
 
-Pi conversations are stored as JSONL under `~/.unity-agent/sessions`. The app
+Pi conversations are stored as JSONL under `~/.gizmo/sessions`. The app
 restores the last selected session and project on reconnect. Set
 `GIZMO_DATA_DIR` to use a different application-data directory. The older
 `UNITY_AGENT_DATA_DIR` name remains supported for migration.
@@ -91,6 +91,11 @@ Unity-hosted project integrations use the generic extension boundary documented 
 and forwards declared operations without interpreting extension payloads.
 Candidate integrations are collected in
 [`docs/extension-ideas.md`](docs/extension-ideas.md).
+
+Skills, `AGENTS.md` files, and prompt templates are loaded from Gizmo's own
+folders under `~/.gizmo/` and the cross-harness `~/.agents/`, never from Pi's
+agent directory. Skills are installed globally, start disabled, and can be
+overridden per workspace; see [`docs/resources.md`](docs/resources.md).
 
 ```sh
 pnpm check

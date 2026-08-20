@@ -12,6 +12,7 @@ import {
 	parseUnityStatus,
 	parseStoredProjects,
 	parseProjectDomains,
+	parseResourceCatalog,
 	parseWorkspaceDirectoryListing,
 	protocolVersion,
 	type AgentRequest,
@@ -31,6 +32,7 @@ import {
 	type UnityStatus,
 	type StoredProject,
 	type ProjectDomains,
+	type ResourceCatalog,
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
 } from '@unity-agent/protocol';
@@ -329,6 +331,45 @@ export class WebSocketAgentClient implements AgentClient {
 
 	async removeProject(projectPath: string): Promise<void> {
 		await this.#request({ type: 'project.remove', projectPath });
+	}
+
+	async listResources(workspacePath?: string): Promise<ResourceCatalog> {
+		const response = await this.#request({
+			type: 'resources.list',
+			...(workspacePath ? { workspacePath } : {}),
+		});
+		return parseResourceCatalog(response.result);
+	}
+
+	async setGlobalSkill(
+		skillId: string,
+		change: { installed?: boolean; enabled?: boolean },
+		workspacePath?: string,
+	): Promise<ResourceCatalog> {
+		const response = await this.#request({
+			type: 'resources.skill.global',
+			skillId,
+			...(change.installed === undefined
+				? {}
+				: { installed: change.installed }),
+			...(change.enabled === undefined ? {} : { enabled: change.enabled }),
+			...(workspacePath ? { workspacePath } : {}),
+		});
+		return parseResourceCatalog(response.result);
+	}
+
+	async setProjectSkill(
+		workspacePath: string,
+		skillId: string,
+		enabled: boolean | null,
+	): Promise<ResourceCatalog> {
+		const response = await this.#request({
+			type: 'resources.skill.project',
+			workspacePath,
+			skillId,
+			enabled,
+		});
+		return parseResourceCatalog(response.result);
 	}
 
 	async getProjectStatus(projectPath: string): Promise<UnityStatus> {

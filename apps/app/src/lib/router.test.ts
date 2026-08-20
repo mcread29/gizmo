@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { AppRouter, hashForRoute, routeFromHash } from './router.svelte';
+import {
+	AppRouter,
+	hashForRoute,
+	locationFromHash,
+	routeFromHash,
+} from './router.svelte';
 
 describe('routeFromHash', () => {
 	it('reads a known view and ignores anything else', () => {
@@ -12,6 +17,34 @@ describe('routeFromHash', () => {
 	it('round-trips through hashForRoute', () => {
 		expect(routeFromHash(hashForRoute('settings'))).toBe('settings');
 		expect(routeFromHash(hashForRoute('workspace'))).toBe('workspace');
+		expect(routeFromHash(hashForRoute('workspace-settings'))).toBe(
+			'workspace-settings',
+		);
+	});
+
+	it('reads the settings page from the fragment', () => {
+		expect(locationFromHash('#settings/agent')).toEqual({
+			route: 'settings',
+			page: 'agent',
+		});
+		// An unknown page still opens Settings rather than dropping the route.
+		expect(locationFromHash('#settings/nonsense')).toEqual({
+			route: 'settings',
+			page: 'appearance',
+		});
+		expect(locationFromHash(hashForRoute('settings', 'chat'))).toEqual({
+			route: 'settings',
+			page: 'chat',
+		});
+		// Agent absorbed the old Skills and Resources pages.
+		expect(locationFromHash('#settings/resources')).toEqual({
+			route: 'settings',
+			page: 'agent',
+		});
+		expect(locationFromHash('#settings/skills')).toEqual({
+			route: 'settings',
+			page: 'agent',
+		});
 	});
 });
 
@@ -43,5 +76,19 @@ describe('AppRouter', () => {
 		router.close();
 		expect(router.current).toBe('workspace');
 		expect(location.hash).not.toBe('#settings');
+	});
+
+	it('swaps settings pages without stacking history entries', () => {
+		history.replaceState(null, '', '#');
+		const router = new AppRouter('');
+		const stop = router.start();
+		router.go('settings');
+		const depth = history.length;
+
+		router.showSettingsPage('agent');
+		expect(router.settingsPage).toBe('agent');
+		expect(location.hash).toBe('#settings/agent');
+		expect(history.length).toBe(depth);
+		stop();
 	});
 });

@@ -10,6 +10,7 @@ import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import {
 	type ProjectDomains,
+	type ProjectSkill,
 	type StoredProject,
 	type WorkspaceIntegration,
 } from '@unity-agent/protocol';
@@ -32,6 +33,7 @@ export class ProjectCatalog {
 				title: project.title,
 				path: project.path,
 				addedAt: project.addedAt,
+				...(project.skills?.length ? { skills: project.skills } : {}),
 				integrations:
 					project.integrations ??
 					(project.domainId && project.domainId !== 'generic'
@@ -83,12 +85,13 @@ export class ProjectCatalog {
 				);
 		}
 		const projects = await this.list();
+		const existing = projects.find((item) => item.path === path);
 		const project = {
 			title: basename(path),
 			path,
 			integrations,
-			addedAt:
-				projects.find((item) => item.path === path)?.addedAt ?? Date.now(),
+			...(existing?.skills?.length ? { skills: existing.skills } : {}),
+			addedAt: existing?.addedAt ?? Date.now(),
 		};
 		await this.#write([
 			project,
@@ -102,6 +105,34 @@ export class ProjectCatalog {
 		await this.#write(
 			(await this.list()).filter((project) => project.path !== path),
 		);
+	}
+
+	/** Per-workspace overrides of the global skill enablement. */
+	async skillsFor(projectPath: string | undefined): Promise<ProjectSkill[]> {
+		if (!projectPath) return [];
+		return (
+			(await this.list()).find(({ path }) => path === resolve(projectPath))
+				?.skills ?? []
+		);
+	}
+
+	/** Passing null clears the override so the global setting applies again. */
+	async setSkill(
+		projectPath: string,
+		skillId: string,
+		enabled: boolean | null,
+	): Promise<ProjectSkill[]> {
+		const path = resolve(projectPath);
+		const projects = await this.list();
+		const project = projects.find((item) => item.path === path);
+		if (!project) {
+			throw new Error(`Workspace is not registered with Gizmo: ${path}`);
+		}
+		const skills = (project.skills ?? []).filter(({ id }) => id !== skillId);
+		if (enabled !== null) skills.push({ id: skillId, enabled });
+		project.skills = skills;
+		await this.#write(projects);
+		return skills;
 	}
 
 	async integrationsFor(
@@ -132,6 +163,7 @@ interface LegacyProject {
 	addedAt: number;
 	domainId?: string;
 	integrations?: WorkspaceIntegration[];
+	skills?: ProjectSkill[];
 }
 
 async function requireDirectory(input: string): Promise<string> {

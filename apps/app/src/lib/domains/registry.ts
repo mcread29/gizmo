@@ -13,6 +13,8 @@ export interface WebDomainDefinition {
 		store: AgentStore;
 		view: ActiveWorkspaceView;
 		hidden: boolean;
+		/** Collapses the inspector. Contributed to the panel's own header. */
+		onCollapse?: () => void;
 	}>;
 	dialog?: Component<{ store: AgentStore; layout: WorkspaceLayout }>;
 	settings?: Component<{ layout: WorkspaceLayout }>;

@@ -19,8 +19,10 @@
 	import AppDialogs from './lib/features/shell/AppDialogs.svelte';
 	import AppContextMenu from './lib/features/shell/AppContextMenu.svelte';
 	import SettingsScreen from './lib/features/settings/SettingsScreen.svelte';
+	import WorkspaceSettingsScreen from './lib/features/workspace/WorkspaceSettingsScreen.svelte';
 	import SessionTreeScreen from './lib/features/tree/SessionTreeScreen.svelte';
 	import PanelResizeHandle from './lib/features/shell/PanelResizeHandle.svelte';
+	import PanelToggle from './lib/features/shell/PanelToggle.svelte';
 	import Titlebar from './lib/features/shell/Titlebar.svelte';
 	import { handleShortcut } from './lib/features/shell/shortcuts';
 	import { WorkspaceLayout } from './lib/features/shell/workspace.svelte';
@@ -174,6 +176,7 @@
 				{layout}
 				{store}
 				view={workspaceView}
+				screenOpen={router.current !== 'workspace'}
 				onOpenSettings={() => router.go('settings')}
 			/>
 
@@ -183,6 +186,16 @@
 					onclick={() => layout.closeDrawers()}
 				></button>{/if}
 
+			{#if layout.leftMode === 'docked' && !layout.leftVisible}
+				<div data-ui="panel-rail" data-side="left">
+					<PanelToggle
+						side="left"
+						expanded={false}
+						onToggle={() => layout.toggleLeft()}
+					/>
+				</div>
+			{/if}
+
 			<SessionSidebar
 				{store}
 				{layout}
@@ -191,7 +204,7 @@
 				onOpenWorkspace={(projectPath, integrations) =>
 					void sessions.openWorkspace(projectPath, integrations)}
 				onNewThread={() => void sessions.startThread()}
-				onManageProjects={() => (sessions.projectManagerOpen = true)}
+				onManageProjects={() => router.go('workspace-settings')}
 			/>
 			{#if layout.leftVisible && layout.leftMode === 'docked'}
 				<PanelResizeHandle
@@ -217,13 +230,26 @@
 				onDelete={() => sessions.beginDelete()}
 				onOpenTree={() => router.go('tree')}
 				onOpenThread={(sessionId) => void store.switchSession(sessionId)}
-				onManageWorkspace={() => (sessions.projectManagerOpen = true)}
+				onManageWorkspace={() => router.go('workspace-settings')}
 			/>
+
+			{#if layout.rightMode === 'docked' && !layout.rightVisible}
+				<div data-ui="panel-rail" data-side="right">
+					<PanelToggle
+						side="right"
+						expanded={false}
+						onToggle={() => layout.toggleRight()}
+					/>
+				</div>
+			{/if}
 
 			<WorkspaceInspector
 				{store}
 				view={workspaceView}
 				hidden={!layout.rightVisible}
+				onCollapse={layout.rightVisible
+					? () => layout.toggleRight()
+					: undefined}
 			/>
 			{#if layout.rightVisible && layout.rightMode === 'docked'}
 				<PanelResizeHandle
@@ -241,6 +267,17 @@
 
 	<SettingsScreen
 		open={router.current === 'settings'}
+		page={router.settingsPage}
+		{layout}
+		{store}
+		version={agent.version}
+		onSelectPage={(page) => router.showSettingsPage(page)}
+		onOpenWorkspace={() => router.go('workspace-settings')}
+		onClose={() => router.close()}
+	/>
+
+	<WorkspaceSettingsScreen
+		open={router.current === 'workspace-settings'}
 		{layout}
 		{store}
 		onClose={() => router.close()}

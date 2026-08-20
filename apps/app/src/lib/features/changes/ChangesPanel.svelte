@@ -134,9 +134,7 @@
 
 	function normalize(path: string) {
 		const normalized = path.replaceAll('\\', '/').replace(/^\.\//, '');
-		const workspace = projectPath
-			?.replaceAll('\\', '/')
-			.replace(/\/$/, '');
+		const workspace = projectPath?.replaceAll('\\', '/').replace(/\/$/, '');
 		return workspace && normalized.startsWith(`${workspace}/`)
 			? normalized.slice(workspace.length + 1)
 			: normalized;
@@ -256,8 +254,8 @@
 							<small data-kind="removed">−{entry.removed}</small>
 						{:else if status}
 							{#if staged(status)}<small data-ui="change-stage" title="Staged"
-								>S</small
-							>{/if}
+									>S</small
+								>{/if}
 							<small
 								data-ui="change-status"
 								data-status={code(status)}

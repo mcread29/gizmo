@@ -4,6 +4,7 @@
 	import { activateProjectExtensions } from '../../extensions/registry';
 	import type { WebExtensionRuntime } from '../../extensions/types';
 	import ChangesPanel from '../changes/ChangesPanel.svelte';
+	import PanelToggle from '../shell/PanelToggle.svelte';
 	import ActivityPanel from './ActivityPanel.svelte';
 	import EditorPanel from './EditorPanel.svelte';
 	import type { UnityView } from './unity-view';
@@ -13,9 +14,10 @@
 		view: UnityView;
 		hidden: boolean;
 		onOpenProject: () => void;
+		onCollapse?: () => void;
 	}
 
-	let { store, view, hidden, onOpenProject }: Props = $props();
+	let { store, view, hidden, onOpenProject, onCollapse }: Props = $props();
 	let inspectorTab = $state('editor');
 	let changeCount = $derived(store.gitStatus?.files.length ?? 0);
 	let extensionRuntimes = $state<WebExtensionRuntime[]>([]);
@@ -81,6 +83,9 @@
 		<span data-ui="status-pill" data-state={view.lifecycle.state}
 			><span></span>{view.lifecycle.label}</span
 		>
+		{#if onCollapse}
+			<PanelToggle side="right" expanded onToggle={onCollapse} />
+		{/if}
 	</div>
 
 	<Tabs variant="inspector" lazy items={tabs} bind:value={inspectorTab}>

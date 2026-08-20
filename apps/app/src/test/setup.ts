@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/svelte';
+import { afterEach } from 'vitest';
 
 class ResizeObserverMock implements ResizeObserver {
 	disconnect() {}
@@ -84,3 +86,16 @@ if (!globalThis.localStorage) {
 		value: storage,
 	});
 }
+
+/*
+ * bits-ui restores the body scroll lock 24ms after a dialog unmounts. When a
+ * test file ends before that timer fires, it runs against a torn-down jsdom and
+ * throws `document is not defined`, failing the run while every test passes.
+ * Waiting out the timer only when a lock is actually outstanding keeps that
+ * cost off the tests that never opened a dialog.
+ */
+afterEach(async () => {
+	cleanup();
+	if (!document.body.getAttribute('style')?.includes('overflow')) return;
+	await new Promise((resolve) => setTimeout(resolve, 30));
+});

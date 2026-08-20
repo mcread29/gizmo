@@ -58,6 +58,8 @@ const themeSchemes: Record<AppTheme, ColorScheme> = {
 
 export interface AppSettings {
 	theme: AppTheme;
+	/** Keeps `theme` in step with the operating system's light/dark choice. */
+	followSystemTheme: boolean;
 	sendOnEnter: boolean;
 	autoFollowOutput: boolean;
 	/** Whether model reasoning starts expanded rather than folded away. */
@@ -89,6 +91,7 @@ export const panelWidthLimits: Record<PanelName, PanelWidthLimit> = {
 
 export const defaultAppSettings: AppSettings = {
 	theme: 'dark',
+	followSystemTheme: false,
 	sendOnEnter: true,
 	autoFollowOutput: true,
 	expandReasoning: false,
@@ -108,10 +111,14 @@ export const defaultAppSettings: AppSettings = {
  * operating system instead of forcing everyone into dark.
  */
 export function systemTheme(): AppTheme {
-	const prefersLight =
-		typeof matchMedia === 'function' &&
-		matchMedia('(prefers-color-scheme: light)').matches;
-	return prefersLight ? 'light' : 'dark';
+	return systemThemeMode() === 'light' ? 'light' : 'dark';
+}
+
+export function systemThemeMode(): ThemeMode {
+	return typeof matchMedia === 'function' &&
+		matchMedia('(prefers-color-scheme: light)').matches
+		? 'light'
+		: 'dark';
 }
 
 const settingsKey = 'unity-agent.settings.v1';
@@ -140,6 +147,10 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 		);
 		return {
 			theme: parseAppTheme(settings.theme) ?? fallback.theme,
+			followSystemTheme: boolean(
+				settings.followSystemTheme,
+				defaultAppSettings.followSystemTheme,
+			),
 			sendOnEnter: boolean(
 				settings.sendOnEnter,
 				defaultAppSettings.sendOnEnter,

@@ -436,3 +436,65 @@ project was recompiled or modified during this verification.
   release work.
 - Reconciled the documented tool inventory and product-hardening backlog with
   the implemented application and its Changes-based mutation review model.
+
+## 2026-08-20 — Skill and resource management
+
+- Added a resource catalog that discovers skills, `AGENTS.md` files, prompt
+  templates, and Pi extensions for the global agent directory and the open
+  workspace, listing extensions from disk so none of their code runs.
+- Made skills installed globally by default but disabled until enabled, with
+  per-workspace overrides in either direction and a remembered uninstall so
+  discovery does not reinstate a removed skill.
+- Gave sessions their skills explicitly through `additionalSkillPaths` instead
+  of letting Pi rediscover them, so a disabled skill cannot reach a session.
+- Added the skills section to Settings, per-workspace toggles to Workspace
+  settings, and `docs/resources.md`.
+
+## 2026-08-20 — Settings rework
+
+- Replaced the single scrolling Settings page with a two-pane screen whose left
+  nav groups pages by scope: device preferences, agent configuration, and About.
+  Every page states who it affects, which the old flat list left implicit.
+- Made Settings pages addressable as `#settings/<page>` and gave Workspace
+  settings its own screen at `#workspace-settings`, replacing the dialog.
+- Merged Composer and Reasoning into Chat, added a System appearance option that
+  tracks the operating system, moved the keyboard reference and a now-confirmed
+  Restore defaults into About, and dropped the panel toggles that duplicated the
+  title bar and its shortcuts.
+- Reworked skill rows: two-line descriptions with expansion, install and remove
+  behind a row menu, search and an on/off filter, and grouping by scope.
+
+## 2026-08-20 — Panel controls move into the panels
+
+- Gave each docked panel its own collapse control in its header and left a
+  40px rail behind when collapsed, so the control that reopens a panel stays
+  where the panel was instead of living in the title bar.
+- Kept title-bar toggles only for floating panels, which have no rail, and
+  hid the theme toggle along with the rest of the workspace controls while a
+  full screen covers the workspace.
+- Extended the domain inspector contract with an optional `onCollapse` that
+  the panel renders in its own header.
+
+## 2026-08-20 — Gizmo-owned resource folders
+
+- Moved skills, prompt templates, and `AGENTS.md` to `~/.gizmo/` and the
+  workspace's `.gizmo/`, plus the cross-harness `~/.agents/` locations, and
+  stopped reading anything Pi would load from its own agent directory.
+- Renamed the data directory to `~/.gizmo/`, so sessions, workspaces, and
+  resource state sit beside the resources they describe.
+- Kept Pi's agent directory for credentials and model configuration, and copy
+  its skills and `AGENTS.md` across once so existing setups keep working.
+- Dropped the Pi extensions list: sessions run with extensions disabled, so
+  showing them implied an influence they do not have.
+
+## 2026-08-20 — One Agent settings page
+
+- Collapsed Skills and Resources into a single Agent page and dropped the
+  now-redundant group heading above it in the settings nav.
+- Ordered the page by how directly each resource applies: `AGENTS.md` first
+  because it reaches every session, then skills, then prompts.
+- Kept the old `#settings/skills` and `#settings/resources` fragments working
+  by resolving both to the Agent page.
+- Fixed an intermittent app test-run failure: bits-ui restores the body scroll
+  lock 24ms after a dialog unmounts, which threw against a torn-down jsdom when
+  a file ended first. Tests now wait out that timer when a lock is outstanding.

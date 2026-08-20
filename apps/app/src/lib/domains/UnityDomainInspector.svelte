@@ -7,8 +7,13 @@
 		store,
 		view,
 		hidden,
-	}: { store: AgentStore; view: ActiveWorkspaceView; hidden: boolean } =
-		$props();
+		onCollapse,
+	}: {
+		store: AgentStore;
+		view: ActiveWorkspaceView;
+		hidden: boolean;
+		onCollapse?: () => void;
+	} = $props();
 </script>
 
 {#if view.unity}
@@ -16,6 +21,7 @@
 		{store}
 		view={view.unity}
 		{hidden}
+		{onCollapse}
 		onOpenProject={() => store.openSelectedProject()}
 	/>
 {/if}

@@ -25,10 +25,13 @@ describe('ChangesPanel', () => {
 			generateCommitMessage,
 			commitAll,
 		} as unknown as AgentStore;
-		const { findByRole, getByRole, getByText, getByTitle } = render(ChangesPanel, {
-			store,
-			projectPath: '/projects/game',
-		});
+		const { findByRole, getByRole, getByText, getByTitle } = render(
+			ChangesPanel,
+			{
+				store,
+				projectPath: '/projects/game',
+			},
+		);
 		expect(getByText('Player.cs')).toBeInTheDocument();
 		expect(getByTitle('Modified')).toBeInTheDocument();
 

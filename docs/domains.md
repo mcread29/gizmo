@@ -61,6 +61,10 @@ The web domain registry turns active domain IDs into a generic `WorkspaceView`
 and contributions. `App.svelte`, the title bar, and the shell render that
 contract; they do not import Unity components or interpret Unity status.
 
+An inspector receives an optional `onCollapse`. Render it in the panel header
+with `PanelToggle` so the inspector can be closed from itself; it is absent
+while the panel is collapsed, because the rail then owns that control.
+
 Domain components live under `apps/app/src/lib/domains/` (or a domain-owned
 feature directory while code is migrated). They may contribute the inspector,
 dialogs, and settings. Keep runtime-specific state and polling behind that

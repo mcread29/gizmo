@@ -2,6 +2,7 @@ import type {
 	AgentModelCatalog,
 	GitCommitResult,
 	GitStatus,
+	ResourceCatalog,
 	SessionCatalog,
 	SessionOptions,
 	SessionSnapshot,
@@ -13,6 +14,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentClient, AgentEventListener } from './AgentClient';
 import { AgentStore } from './AgentStore.svelte';
 import { FakeAgentClient } from './FakeAgentClient';
+
+const emptyCatalog: ResourceCatalog = {
+	skills: [],
+	agentsFiles: [],
+	prompts: [],
+	diagnostics: [],
+};
 
 class InvalidEventClient implements AgentClient {
 	#listener?: AgentEventListener;
@@ -96,6 +104,15 @@ class InvalidEventClient implements AgentClient {
 		return { title: 'project', path: projectPath, integrations, addedAt: 0 };
 	}
 	async removeProject() {}
+	async listResources(): Promise<ResourceCatalog> {
+		return emptyCatalog;
+	}
+	async setGlobalSkill(): Promise<ResourceCatalog> {
+		return emptyCatalog;
+	}
+	async setProjectSkill(): Promise<ResourceCatalog> {
+		return emptyCatalog;
+	}
 	async getProjectStatus(): Promise<UnityStatus> {
 		throw new Error('No selected project');
 	}
@@ -347,5 +364,47 @@ describe('AgentStore', () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+
+	it('resolves skill state globally and per workspace', async () => {
+		const store = new AgentStore(new FakeAgentClient({ latencyMs: 0 }));
+		await store.connect();
+		const workspace = '/projects/ThirdPersonSandbox';
+
+		await store.refreshResources();
+		expect(
+			store.resources?.skills.map(({ id, enabled }) => [id, enabled]),
+		).toEqual([
+			['global/svelte-code-writer', true],
+			['global/unity-shader-review', false],
+			['project/release-checklist', false],
+		]);
+
+		// A workspace override wins over the global default, in both directions.
+		await store.refreshResources(workspace);
+		await store.setProjectSkill(workspace, 'global/svelte-code-writer', false);
+		await store.setProjectSkill(workspace, 'project/release-checklist', true);
+		expect(
+			store.resources?.skills.map(({ id, enabled }) => [id, enabled]),
+		).toEqual([
+			['global/svelte-code-writer', false],
+			['global/unity-shader-review', false],
+			['project/release-checklist', true],
+		]);
+
+		// Clearing the override falls back to the global setting again.
+		await store.setProjectSkill(workspace, 'global/svelte-code-writer', null);
+		expect(store.resources?.skills[0]).toMatchObject({ enabled: true });
+
+		// Uninstalling removes it everywhere, whatever the workspace asked for.
+		await store.setGlobalSkill(
+			'project/release-checklist',
+			{ installed: false },
+			workspace,
+		);
+		expect(store.resources?.skills[2]).toMatchObject({
+			installed: false,
+			enabled: false,
+		});
 	});
 });

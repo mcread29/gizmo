@@ -1,9 +1,12 @@
 import {
 	clampPanelWidth,
 	defaultAppSettings,
+	getColorScheme,
 	isDarkTheme,
+	getThemeVariant,
 	loadAppSettings,
 	panelWidthLimits,
+	systemThemeMode,
 	type AppSettings,
 	type AppTheme,
 	type CompilePlayModePolicy,
@@ -27,6 +30,7 @@ const conversationFloor = 420;
  */
 export class WorkspaceLayout {
 	theme = $state<AppTheme>('dark');
+	followSystemTheme = $state(false);
 	sendOnEnter = $state(true);
 	autoFollowOutput = $state(true);
 	expandReasoning = $state(false);
@@ -76,6 +80,8 @@ export class WorkspaceLayout {
 
 	#applySettings(settings: AppSettings): void {
 		this.theme = settings.theme;
+		this.followSystemTheme = settings.followSystemTheme;
+		if (settings.followSystemTheme) this.applySystemThemeMode();
 		this.sendOnEnter = settings.sendOnEnter;
 		this.autoFollowOutput = settings.autoFollowOutput;
 		this.expandReasoning = settings.expandReasoning;
@@ -93,6 +99,7 @@ export class WorkspaceLayout {
 	get settings(): AppSettings {
 		return {
 			theme: this.theme,
+			followSystemTheme: this.followSystemTheme,
 			sendOnEnter: this.sendOnEnter,
 			autoFollowOutput: this.autoFollowOutput,
 			expandReasoning: this.expandReasoning,
@@ -150,7 +157,15 @@ export class WorkspaceLayout {
 	}
 
 	toggleTheme(): void {
+		// An explicit flip is a decision, so it stops tracking the system.
+		this.followSystemTheme = false;
 		this.theme = this.darkTheme ? 'light' : 'dark';
+	}
+
+	/** Re-reads the OS preference. Called on load and when the OS changes. */
+	applySystemThemeMode(): void {
+		if (!this.followSystemTheme) return;
+		this.theme = getThemeVariant(getColorScheme(this.theme), systemThemeMode());
 	}
 
 	resize(panel: PanelName, size: number): void {

@@ -21,12 +21,11 @@
 		store.projects.find(({ path }) => path === store.selectedProjectPath),
 	);
 	let workspaceSessions = $derived(
-		store.sessions
-			.filter(
-				(session) =>
-					(session.workspacePath ?? session.projectPath) ===
-					store.selectedProjectPath,
-			),
+		store.sessions.filter(
+			(session) =>
+				(session.workspacePath ?? session.projectPath) ===
+				store.selectedProjectPath,
+		),
 	);
 	let recentSessions = $derived(workspaceSessions.slice(0, 5));
 	let integrationCount = $derived(project?.integrations.length ?? 0);

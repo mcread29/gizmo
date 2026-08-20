@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import type {
 	AgentSessionEvent,
 	SessionManager,
@@ -27,6 +28,12 @@ import { activateDomains } from '../domains/registry';
 import { attachmentPrompt } from '../attachments/attachment-message';
 import { GitService } from '../git/git-service';
 import { ProjectCatalog } from '../projects/project-catalog';
+import { ResourceCatalogService } from '../resources/resource-catalog';
+import {
+	existingDirectories,
+	existingFiles,
+	resourceRoots,
+} from '../resources/resource-paths';
 import {
 	prepareAttachments,
 	readStoredAttachment,
@@ -87,6 +94,7 @@ export class PiAgentService {
 	readonly #factory: PiSessionFactory;
 	readonly #repository: SessionRepository;
 	readonly #projects: ProjectCatalog;
+	readonly #resources: ResourceCatalogService;
 	readonly #listeners = new Set<AgentEventListener>();
 	readonly #sessions = new Map<string, ActiveSession>();
 	readonly #confirmations = new Map<
@@ -100,10 +108,12 @@ export class PiAgentService {
 		factory: PiSessionFactory = createDefaultPiSession,
 		repository: SessionRepository = new PiSessionRepository(),
 		projects: ProjectCatalog = new ProjectCatalog(),
+		resources: ResourceCatalogService = new ResourceCatalogService(projects),
 	) {
 		this.#factory = factory;
 		this.#repository = repository;
 		this.#projects = projects;
+		this.#resources = resources;
 	}
 
 	async createSession(options: SessionOptions = {}): Promise<string> {
@@ -184,6 +194,26 @@ export class PiAgentService {
 
 	removeProject(projectPath: string) {
 		return this.#projects.remove(projectPath);
+	}
+
+	listResources(workspacePath?: string) {
+		return this.#resources.list(workspacePath);
+	}
+
+	setGlobalSkill(
+		skillId: string,
+		change: { installed?: boolean; enabled?: boolean },
+		workspacePath?: string,
+	) {
+		return this.#resources.setGlobalSkill(skillId, change, workspacePath);
+	}
+
+	setProjectSkill(
+		workspacePath: string,
+		skillId: string,
+		enabled: boolean | null,
+	) {
+		return this.#resources.setProjectSkill(workspacePath, skillId, enabled);
 	}
 
 	async renameSession(sessionId: string, title: string): Promise<void> {
@@ -522,11 +552,26 @@ const createDefaultPiSession: PiSessionFactory = async (
 				? [{ id: options.domainId, root: '.' }]
 				: []),
 	);
+	// Every resource is supplied explicitly from Gizmo-owned folders: Pi's own
+	// discovery locations contribute nothing, so what the model sees is exactly
+	// what Gizmo's settings say it should.
+	const catalog = new ResourceCatalogService();
+	const [skillPaths, promptPaths, agentsFiles] = await Promise.all([
+		catalog.enabledSkillPaths(cwd),
+		existingDirectories(resourceRoots(cwd).prompts),
+		readAgentsFiles(cwd),
+	]);
 	const resourceLoader = new DefaultResourceLoader({
 		cwd,
 		agentDir,
 		settingsManager,
 		noExtensions: true,
+		noSkills: true,
+		noPromptTemplates: true,
+		noContextFiles: true,
+		additionalSkillPaths: skillPaths,
+		additionalPromptTemplatePaths: promptPaths,
+		agentsFilesOverride: () => ({ agentsFiles }),
 		...(activeDomains.systemPrompt
 			? { systemPromptOverride: () => activeDomains.systemPrompt! }
 			: {}),
@@ -638,4 +683,17 @@ function validateCompactionPolicy(policy: CompactionPolicy): void {
 	if (policy.retainPercent >= policy.fillPercent) {
 		throw new Error('Retained context must be below the compaction threshold');
 	}
+}
+
+/** Gizmo's own AGENTS.md files, in the order Pi should apply them. */
+async function readAgentsFiles(
+	cwd: string,
+): Promise<Array<{ path: string; content: string }>> {
+	const paths = await existingFiles(resourceRoots(cwd).agentsFiles);
+	return Promise.all(
+		paths.map(async (path) => ({
+			path,
+			content: await readFile(path, 'utf8'),
+		})),
+	);
 }

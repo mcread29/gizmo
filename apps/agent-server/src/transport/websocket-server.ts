@@ -287,6 +287,31 @@ async function dispatch(
 		case 'project.remove':
 			await service.removeProject(request.projectPath);
 			return {};
+		case 'resources.list':
+			return { result: await service.listResources(request.workspacePath) };
+		case 'resources.skill.global':
+			return {
+				result: await service.setGlobalSkill(
+					request.skillId,
+					{
+						...(request.installed === undefined
+							? {}
+							: { installed: request.installed }),
+						...(request.enabled === undefined
+							? {}
+							: { enabled: request.enabled }),
+					},
+					request.workspacePath,
+				),
+			};
+		case 'resources.skill.project':
+			return {
+				result: await service.setProjectSkill(
+					request.workspacePath,
+					request.skillId,
+					request.enabled,
+				),
+			};
 		case 'project.status':
 			return { result: await projectService.getStatus(request.projectPath) };
 		case 'project.watch':

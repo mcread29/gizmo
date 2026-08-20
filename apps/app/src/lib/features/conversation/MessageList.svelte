@@ -161,12 +161,13 @@
 	}
 
 	reveal = async (id: string) => {
-		const index = rows.findIndex((row) =>
-			row.sourceMessageId === id ||
-			row.messages.some(
-				(message) =>
-					message.id === id || message.tools.some((tool) => tool.id === id),
-			),
+		const index = rows.findIndex(
+			(row) =>
+				row.sourceMessageId === id ||
+				row.messages.some(
+					(message) =>
+						message.id === id || message.tools.some((tool) => tool.id === id),
+				),
 		);
 		if (index < 0 || !viewport) return;
 		$virtualizer.scrollToIndex(index, { align: 'center' });
@@ -190,10 +191,10 @@
 		}> = [];
 		const hasMessageBody = Boolean(
 			message.content ||
-				message.reasoning ||
-				message.reasoningRedacted ||
-				message.attachments?.length ||
-				message.tools.length === 0,
+			message.reasoning ||
+			message.reasoningRedacted ||
+			message.attachments?.length ||
+			message.tools.length === 0,
 		);
 		if (hasMessageBody) {
 			rows.push({
@@ -219,7 +220,6 @@
 		}
 		return rows;
 	}
-
 </script>
 
 <ScrollPanel name="messages" bind:viewport>

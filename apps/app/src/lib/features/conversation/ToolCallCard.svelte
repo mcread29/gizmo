@@ -28,8 +28,13 @@
 		active?: boolean;
 	}
 
-	let { tool, projectPath, collapseToken, matched, active = false }: Props =
-		$props();
+	let {
+		tool,
+		projectPath,
+		collapseToken,
+		matched,
+		active = false,
+	}: Props = $props();
 	let open = $state(false);
 	let copied = $state(false);
 	/** Once the user has expressed a preference, status changes stop overriding it. */

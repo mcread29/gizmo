@@ -147,11 +147,9 @@
 					<Folder size={15} />
 					<strong>{folderName(directoryListing.path)}</strong>
 				</span>
-				<Button
-					disabled={detecting || browsing}
-					onclick={useCurrentFolder}
-				>
-					<Check size={14} /> {detecting ? 'Opening…' : 'Open folder'}
+				<Button disabled={detecting || browsing} onclick={useCurrentFolder}>
+					<Check size={14} />
+					{detecting ? 'Opening…' : 'Open folder'}
 				</Button>
 			</div>
 		{/if}

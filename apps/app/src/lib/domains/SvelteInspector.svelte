@@ -3,14 +3,20 @@
 	import { Tabs } from '../components';
 	import ChangesPanel from '../features/changes/ChangesPanel.svelte';
 	import ActivityPanel from '../features/unity/ActivityPanel.svelte';
+	import PanelToggle from '../features/shell/PanelToggle.svelte';
 	import type { ActiveWorkspaceView } from './workspace-view';
 
 	let {
 		store,
 		view,
 		hidden,
-	}: { store: AgentStore; view: ActiveWorkspaceView; hidden: boolean } =
-		$props();
+		onCollapse,
+	}: {
+		store: AgentStore;
+		view: ActiveWorkspaceView;
+		hidden: boolean;
+		onCollapse?: () => void;
+	} = $props();
 	let tab = $state('changes');
 	let tabs = $derived([
 		{
@@ -38,6 +44,9 @@
 			<h2>{view.workspaceName}</h2>
 		</div>
 		<span data-ui="status-pill" data-state="ready"><span></span>READY</span>
+		{#if onCollapse}
+			<PanelToggle side="right" expanded onToggle={onCollapse} />
+		{/if}
 	</div>
 	<Tabs variant="inspector" lazy items={tabs} bind:value={tab}>
 		{#snippet children(value)}

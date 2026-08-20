@@ -45,14 +45,14 @@ describe('ProjectCatalog', () => {
 			JSON.stringify({ dependencies: { svelte: '^5.0.0' } }),
 		);
 
-		expect((await new ProjectCatalog(data).detect(project)).domains).toContainEqual(
-			{
-				id: 'svelte',
-				name: 'Svelte',
-				detected: true,
-				root: join('apps', 'app'),
-			},
-		);
+		expect(
+			(await new ProjectCatalog(data).detect(project)).domains,
+		).toContainEqual({
+			id: 'svelte',
+			name: 'Svelte',
+			detected: true,
+			root: join('apps', 'app'),
+		});
 	});
 
 	it('reads projects saved with the old single-domain format', async () => {
@@ -94,6 +94,36 @@ describe('ProjectCatalog', () => {
 				{ name: 'WebFrontend', path: join(project, 'WebFrontend') },
 			],
 		});
+	});
+	it('stores per-workspace skill overrides and keeps them across edits', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		await writeFile(join(project, 'package.json'), '{}');
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project, []);
+
+		await catalog.setSkill(project, 'global/review', true);
+		expect(await catalog.skillsFor(project)).toEqual([
+			{ id: 'global/review', enabled: true },
+		]);
+
+		// Re-adding the workspace to change integrations keeps skill state.
+		await catalog.add(project, []);
+		expect(await catalog.skillsFor(project)).toEqual([
+			{ id: 'global/review', enabled: true },
+		]);
+
+		await catalog.setSkill(project, 'global/review', null);
+		expect(await catalog.skillsFor(project)).toEqual([]);
+	});
+
+	it('refuses skill overrides for a workspace it does not know', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+
+		await expect(
+			new ProjectCatalog(data).setSkill(project, 'global/review', true),
+		).rejects.toThrow('not registered');
 	});
 });
 

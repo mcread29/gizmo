@@ -25,7 +25,8 @@ async function findSvelteRoots(workspacePath: string): Promise<string[]> {
 		try {
 			const entries = await readdir(candidate.path, { withFileTypes: true });
 			for (const entry of entries) {
-				if (!entry.isDirectory() || ignoredDirectories.has(entry.name)) continue;
+				if (!entry.isDirectory() || ignoredDirectories.has(entry.name))
+					continue;
 				pending.push({
 					path: join(candidate.path, entry.name),
 					depth: candidate.depth + 1,

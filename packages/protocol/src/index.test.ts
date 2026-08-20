@@ -4,6 +4,7 @@ import {
 	parseAgentModelCatalog,
 	parseAgentEvent,
 	parseAgentRequest,
+	parseResourceCatalog,
 	parseAgentResponse,
 	parseSessionCatalog,
 	parseSessionSnapshot,
@@ -279,6 +280,56 @@ describe('agent protocol validation', () => {
 				sessionId: 'session-1',
 				type: 'unknown.event',
 			}),
+		).toThrow(ProtocolValidationError);
+	});
+
+	it('validates resource requests and the returned catalog', () => {
+		expect(
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'request-1',
+				type: 'resources.skill.project',
+				workspacePath: '/projects/game',
+				skillId: 'global/review',
+				enabled: null,
+			}),
+		).toMatchObject({ enabled: null });
+
+		expect(() =>
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'request-1',
+				type: 'resources.skill.project',
+				workspacePath: '/projects/game',
+				skillId: 'global/review',
+			}),
+		).toThrow(ProtocolValidationError);
+
+		expect(
+			parseResourceCatalog({
+				workspacePath: '/projects/game',
+				skills: [
+					{
+						id: 'global/review',
+						name: 'review',
+						description: 'Review changes',
+						scope: 'global',
+						path: '/skills/review/SKILL.md',
+						source: 'user',
+						installed: true,
+						enabledGlobally: false,
+						enabled: true,
+						override: true,
+					},
+				],
+				agentsFiles: [],
+				prompts: [],
+				diagnostics: [],
+			}).skills,
+		).toHaveLength(1);
+
+		expect(() =>
+			parseResourceCatalog({ skills: [], agentsFiles: [], prompts: [] }),
 		).toThrow(ProtocolValidationError);
 	});
 });

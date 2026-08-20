@@ -151,11 +151,7 @@ export class PiSessionRepository implements SessionRepository {
 }
 
 export function defaultDataDir(): string {
-	return (
-		process.env.GIZMO_DATA_DIR ??
-		process.env.UNITY_AGENT_DATA_DIR ??
-		join(homedir(), '.unity-agent')
-	);
+	return process.env.GIZMO_DATA_DIR ?? join(homedir(), '.gizmo');
 }
 
 function toSummary(info: SessionInfo): AgentSessionSummary {

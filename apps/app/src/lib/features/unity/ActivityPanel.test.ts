@@ -31,9 +31,9 @@ describe('ActivityPanel', () => {
 
 		const { container, getByText } = render(ActivityPanel, { view });
 
-		expect(container.querySelectorAll('[data-ui="activity-item"]')).toHaveLength(
-			21,
-		);
+		expect(
+			container.querySelectorAll('[data-ui="activity-item"]'),
+		).toHaveLength(21);
 		expect(getByText('Assets/File-0.cs')).toBeInTheDocument();
 	});
 });

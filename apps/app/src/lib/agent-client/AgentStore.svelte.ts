@@ -15,6 +15,7 @@ import {
 	type SessionTree,
 	type SessionUsage,
 	type UnityExtensionDescriptor,
+	type ResourceCatalog,
 	type StoredProject,
 	type ProjectDomains,
 	type WorkspaceIntegration,
@@ -100,6 +101,9 @@ export class AgentStore {
 	gitStatus = $state<GitStatus>();
 	gitLoading = $state(false);
 	gitCommitting = $state(false);
+	resources = $state<ResourceCatalog>();
+	resourcesLoading = $state(false);
+	resourceError = $state<string>();
 
 	readonly #client: AgentClient;
 	#unsubscribe?: () => void;
@@ -337,6 +341,57 @@ export class AgentStore {
 			...this.projects.filter(({ path }) => path !== project.path),
 		];
 		return project;
+	}
+
+	/**
+	 * Loads skills and the read-only Pi resources. Passing a workspace resolves
+	 * each skill's effective state for that directory.
+	 */
+	async refreshResources(workspacePath?: string): Promise<void> {
+		if (this.connection !== 'connected') return;
+		this.resourcesLoading = true;
+		this.resourceError = undefined;
+		try {
+			this.resources = await this.#client.listResources(workspacePath);
+		} catch (error) {
+			this.resourceError = errorMessage(error);
+		} finally {
+			this.resourcesLoading = false;
+		}
+	}
+
+	async setGlobalSkill(
+		skillId: string,
+		change: { installed?: boolean; enabled?: boolean },
+		workspacePath?: string,
+	): Promise<void> {
+		this.resourceError = undefined;
+		try {
+			this.resources = await this.#client.setGlobalSkill(
+				skillId,
+				change,
+				workspacePath,
+			);
+		} catch (error) {
+			this.resourceError = errorMessage(error);
+		}
+	}
+
+	async setProjectSkill(
+		workspacePath: string,
+		skillId: string,
+		enabled: boolean | null,
+	): Promise<void> {
+		this.resourceError = undefined;
+		try {
+			this.resources = await this.#client.setProjectSkill(
+				workspacePath,
+				skillId,
+				enabled,
+			);
+		} catch (error) {
+			this.resourceError = errorMessage(error);
+		}
 	}
 
 	async removeProject(projectPath: string): Promise<void> {

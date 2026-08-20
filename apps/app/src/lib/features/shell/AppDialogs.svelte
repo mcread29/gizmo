@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { AgentStore } from '../../agent-client';
 	import ProjectPickerDialog from '../sessions/ProjectPickerDialog.svelte';
-	import ProjectManagerDialog from '../sessions/ProjectManagerDialog.svelte';
 	import ThreadDialogs from '../sessions/ThreadDialogs.svelte';
 	import type { SessionActions } from '../sessions/session-actions.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
@@ -22,6 +21,5 @@
 	onSelect={(projectPath, integrations) =>
 		void sessions.openWorkspace(projectPath, integrations)}
 />
-<ProjectManagerDialog bind:open={sessions.projectManagerOpen} {store} />
 <ThreadDialogs {sessions} />
 <DomainDialogs {store} {layout} />

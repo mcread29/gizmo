@@ -9,6 +9,7 @@ import type {
 	SessionOptions,
 	SessionSnapshot,
 	SessionTree,
+	ResourceCatalog,
 	StoredProject,
 	ProjectDomains,
 	WorkspaceIntegration,
@@ -86,6 +87,17 @@ export interface AgentClient {
 		integrations: WorkspaceIntegration[],
 	): Promise<StoredProject>;
 	removeProject(projectPath: string): Promise<void>;
+	listResources(workspacePath?: string): Promise<ResourceCatalog>;
+	setGlobalSkill(
+		skillId: string,
+		change: { installed?: boolean; enabled?: boolean },
+		workspacePath?: string,
+	): Promise<ResourceCatalog>;
+	setProjectSkill(
+		workspacePath: string,
+		skillId: string,
+		enabled: boolean | null,
+	): Promise<ResourceCatalog>;
 	getProjectStatus(projectPath: string): Promise<UnityStatus>;
 	watchProjectStatus(
 		sessionId: string,
