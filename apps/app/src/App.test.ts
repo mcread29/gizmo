@@ -467,7 +467,7 @@ describe('application shell', () => {
 		);
 	});
 
-	it('collects the files the agent edited into the Changes tab', async () => {
+	it('shows the complete repository status in the Changes tab', async () => {
 		const { container, findByRole, getByRole } = renderApp();
 		const composer = getByRole('textbox', { name: 'Message Gizmo' });
 		await fireEvent.input(composer, {
@@ -488,7 +488,7 @@ describe('application shell', () => {
 		await fireEvent.click(changesTab);
 
 		expect(
-			await findByRole('button', { name: /PlayerController\.cs/ }),
+			await findByRole('button', { name: /Player\.cs/ }),
 		).toBeInTheDocument();
 	});
 

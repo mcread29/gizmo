@@ -2,7 +2,6 @@
 	import type { AgentStore } from '../agent-client';
 	import { Tabs } from '../components';
 	import ChangesPanel from '../features/changes/ChangesPanel.svelte';
-	import { threadChanges } from '../features/changes/thread-changes';
 	import ActivityPanel from '../features/unity/ActivityPanel.svelte';
 	import type { ActiveWorkspaceView } from './workspace-view';
 
@@ -18,7 +17,7 @@
 			value: 'changes',
 			label: 'Changes',
 			shortLabel: 'Files',
-			badge: threadChanges(store.messages).length,
+			badge: store.gitStatus?.files.length ?? 0,
 		},
 		{ value: 'activity', label: 'Activity', shortLabel: 'Runs' },
 	]);

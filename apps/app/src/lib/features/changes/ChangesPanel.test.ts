@@ -25,10 +25,12 @@ describe('ChangesPanel', () => {
 			generateCommitMessage,
 			commitAll,
 		} as unknown as AgentStore;
-		const { findByRole, getByRole } = render(ChangesPanel, {
+		const { findByRole, getByRole, getByText, getByTitle } = render(ChangesPanel, {
 			store,
 			projectPath: '/projects/game',
 		});
+		expect(getByText('Player.cs')).toBeInTheDocument();
+		expect(getByTitle('Modified')).toBeInTheDocument();
 
 		await fireEvent.click(getByRole('button', { name: 'Commit all' }));
 

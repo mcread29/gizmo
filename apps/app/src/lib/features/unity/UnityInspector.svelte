@@ -4,7 +4,6 @@
 	import { activateProjectExtensions } from '../../extensions/registry';
 	import type { WebExtensionRuntime } from '../../extensions/types';
 	import ChangesPanel from '../changes/ChangesPanel.svelte';
-	import { threadChanges } from '../changes/thread-changes';
 	import ActivityPanel from './ActivityPanel.svelte';
 	import EditorPanel from './EditorPanel.svelte';
 	import type { UnityView } from './unity-view';
@@ -18,7 +17,7 @@
 
 	let { store, view, hidden, onOpenProject }: Props = $props();
 	let inspectorTab = $state('editor');
-	let changeCount = $derived(threadChanges(store.messages).length);
+	let changeCount = $derived(store.gitStatus?.files.length ?? 0);
 	let extensionRuntimes = $state<WebExtensionRuntime[]>([]);
 	let extensionTabs = $derived(
 		extensionRuntimes.flatMap((runtime) => runtime.inspectorTabs),

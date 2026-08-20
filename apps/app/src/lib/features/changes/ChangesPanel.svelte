@@ -10,13 +10,15 @@
 		RefreshCw,
 		Undo2,
 	} from '@lucide/svelte';
+	import type { GitFileStatus } from '@unity-agent/protocol';
+	import { SvelteSet } from 'svelte/reactivity';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Dialog, Tooltip } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import DiffView from '../conversation/DiffView.svelte';
 	import { sourceHref } from '../unity/compiler-diagnostics';
-	import { changeTotals, threadChanges } from './thread-changes';
 	import { changeTree, changeTreeRows } from './change-tree';
+	import { threadChanges } from './thread-changes';
 
 	interface Props {
 		store: AgentStore;
@@ -25,12 +27,26 @@
 
 	let { store, projectPath }: Props = $props();
 
-	let files = $derived(threadChanges(store.messages));
-	let totals = $derived(changeTotals(files));
+	let agentFiles = $derived(threadChanges(store.messages));
+	let agentFilesByPath = $derived(
+		new Map(agentFiles.map((file) => [normalize(file.file), file])),
+	);
+	let statuses = $derived(store.gitStatus?.files ?? []);
+	let statusByPath = $derived(
+		new Map(statuses.map((status) => [normalize(status.path), status])),
+	);
+	let files = $derived(
+		statuses.map((status) => {
+			const authored = agentFilesByPath.get(normalize(status.path));
+			return authored
+				? { ...authored, file: status.path }
+				: { file: status.path, changes: [], added: 0, removed: 0 };
+		}),
+	);
 	let tree = $derived(changeTree(files, projectPath));
-	let collapsedFolders = $state(new Set<string>());
+	const collapsedFolders = new SvelteSet<string>();
 	let rows = $derived(changeTreeRows(tree, collapsedFolders));
-	let expanded = $state(new Set<string>());
+	const expanded = new SvelteSet<string>();
 	let reverting = $state<string>();
 	let commitDialogOpen = $state(false);
 	let commitMessage = $state('');
@@ -49,15 +65,11 @@
 	});
 
 	function toggle(file: string) {
-		const next = new Set(expanded);
-		if (!next.delete(file)) next.add(file);
-		expanded = next;
+		if (!expanded.delete(file)) expanded.add(file);
 	}
 
 	function toggleFolder(path: string) {
-		const next = new Set(collapsedFolders);
-		if (!next.delete(path)) next.add(path);
-		collapsedFolders = next;
+		if (!collapsedFolders.delete(path)) collapsedFolders.add(path);
 	}
 
 	async function copyPatch(patch: string) {
@@ -119,6 +131,39 @@
 			);
 		}
 	}
+
+	function normalize(path: string) {
+		const normalized = path.replaceAll('\\', '/').replace(/^\.\//, '');
+		const workspace = projectPath
+			?.replaceAll('\\', '/')
+			.replace(/\/$/, '');
+		return workspace && normalized.startsWith(`${workspace}/`)
+			? normalized.slice(workspace.length + 1)
+			: normalized;
+	}
+
+	function code(status: GitFileStatus) {
+		return status.workingTree !== ' ' ? status.workingTree : status.index;
+	}
+
+	function label(status: GitFileStatus) {
+		const value = code(status);
+		if (status.index === '?' && status.workingTree === '?') return 'Untracked';
+		return (
+			{
+				A: 'Added',
+				C: 'Copied',
+				D: 'Deleted',
+				M: 'Modified',
+				R: 'Renamed',
+				U: 'Conflict',
+			}[value] ?? 'Changed'
+		);
+	}
+
+	function staged(status: GitFileStatus) {
+		return status.index !== ' ' && status.index !== '?';
+	}
 </script>
 
 <div data-ui="git-summary">
@@ -163,14 +208,13 @@
 {#if files.length === 0}
 	<div data-ui="empty-state">
 		<Check size={22} /><strong>No file changes</strong><span
-			>Edits the agent makes in this thread are collected here.</span
+			>The repository working tree is clean.</span
 		>
 	</div>
 {:else}
 	<div data-ui="change-summary">
-		<span>{files.length} file{files.length === 1 ? '' : 's'}</span>
-		<span data-kind="added">+{totals.added}</span>
-		<span data-kind="removed">−{totals.removed}</span>
+		<span>{files.length} changed file{files.length === 1 ? '' : 's'}</span>
+		<span>{statuses.filter(staged).length} staged</span>
 	</div>
 	<div data-ui="change-list">
 		{#each rows as row (row.node.path)}
@@ -190,6 +234,8 @@
 				</button>
 			{:else}
 				{@const entry = row.node.entry}
+				{@const authored = agentFilesByPath.get(normalize(entry.file))}
+				{@const status = statusByPath.get(normalize(entry.file))}
 				<section
 					data-ui="change-file"
 					data-expanded={expanded.has(entry.file) || undefined}
@@ -198,17 +244,29 @@
 					<button
 						type="button"
 						data-ui="change-header"
-						aria-expanded={expanded.has(entry.file)}
-						onclick={() => toggle(entry.file)}
+						data-expandable={Boolean(authored) || undefined}
+						aria-expanded={authored ? expanded.has(entry.file) : undefined}
+						onclick={() => authored && toggle(entry.file)}
 					>
 						<span data-ui="change-tree-spacer"></span>
 						<FileCode2 size={14} />
 						<span title={entry.file}>{row.node.name}</span>
-						<small data-kind="added">+{entry.added}</small>
-						<small data-kind="removed">−{entry.removed}</small>
+						{#if authored}
+							<small data-kind="added">+{entry.added}</small>
+							<small data-kind="removed">−{entry.removed}</small>
+						{:else if status}
+							{#if staged(status)}<small data-ui="change-stage" title="Staged"
+								>S</small
+							>{/if}
+							<small
+								data-ui="change-status"
+								data-status={code(status)}
+								title={label(status)}>{code(status)}</small
+							>
+						{/if}
 					</button>
-					{#if expanded.has(entry.file)}
-						{#each entry.changes as change (change.toolCallId)}
+					{#if authored && expanded.has(entry.file)}
+						{#each authored.changes as change (change.toolCallId)}
 							<div data-ui="change-body">
 								<DiffView
 									diff={change.patch}
