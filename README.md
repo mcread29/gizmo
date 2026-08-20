@@ -82,6 +82,8 @@ extensions. The Changes view is the review surface for project mutations.
 Optional project integrations use the generic extension boundary documented in
 [`docs/extensions.md`](docs/extensions.md). Core discovers versioned descriptors
 and forwards declared operations without interpreting extension payloads.
+Candidate integrations are collected in
+[`docs/extension-ideas.md`](docs/extension-ideas.md).
 
 ```sh
 pnpm check
