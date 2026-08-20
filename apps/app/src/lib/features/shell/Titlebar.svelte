@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentIdentity } from '@unity-agent/protocol';
-	import { Moon, Settings, Sun } from '@lucide/svelte';
+	import { ArrowLeft, Moon, Settings, Sun } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { BrandMark, Button, Tooltip } from '../../components';
 	import StreamingIndicator from '../conversation/StreamingIndicator.svelte';
@@ -22,7 +22,9 @@
 		 * window controls.
 		 */
 		screenOpen?: boolean;
+		settingsOpen?: boolean;
 		onOpenSettings: () => void;
+		onCloseSettings: () => void;
 	}
 
 	let {
@@ -31,7 +33,9 @@
 		view,
 		store,
 		screenOpen = false,
+		settingsOpen = false,
 		onOpenSettings,
+		onCloseSettings,
 	}: Props = $props();
 
 	// Visible even when the conversation is scrolled away from the newest reply.
@@ -43,7 +47,21 @@
 <!-- The window has no native decorations, so the bar itself moves it. -->
 <header data-ui="titlebar" data-tauri-drag-region>
 	<div data-ui="titlebar-start">
-		{#if !screenOpen && layout.leftMode === 'overlay'}
+		{#if settingsOpen}
+			<Tooltip text="Back">
+				{#snippet children(props)}
+					<Button
+						{...props}
+						variant="ghost"
+						size="icon"
+						aria-label="Back"
+						onclick={onCloseSettings}
+					>
+						<ArrowLeft size={17} />
+					</Button>
+				{/snippet}
+			</Tooltip>
+		{:else if !screenOpen}
 			<PanelToggle
 				side="left"
 				expanded={layout.leftVisible}
@@ -97,13 +115,11 @@
 					>
 				{/snippet}
 			</Tooltip>
-			{#if layout.rightMode === 'overlay'}
-				<PanelToggle
-					side="right"
-					expanded={layout.rightVisible}
-					onToggle={() => layout.toggleRight()}
-				/>
-			{/if}
+			<PanelToggle
+				side="right"
+				expanded={layout.rightVisible}
+				onToggle={() => layout.toggleRight()}
+			/>
 		{/if}
 		<WindowControls />
 	</div>

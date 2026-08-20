@@ -21,7 +21,6 @@
 	import SettingsScreen from './lib/features/settings/SettingsScreen.svelte';
 	import SessionTreeScreen from './lib/features/tree/SessionTreeScreen.svelte';
 	import PanelResizeHandle from './lib/features/shell/PanelResizeHandle.svelte';
-	import PanelToggle from './lib/features/shell/PanelToggle.svelte';
 	import Titlebar from './lib/features/shell/Titlebar.svelte';
 	import { handleShortcut } from './lib/features/shell/shortcuts';
 	import { WorkspaceLayout } from './lib/features/shell/workspace.svelte';
@@ -197,7 +196,7 @@
 			data-right-mode={layout.rightMode}
 			data-left-visible={layout.leftVisible}
 			data-right-visible={layout.rightVisible}
-			inert={overlayOpen || undefined}
+			data-screen-open={overlayOpen || undefined}
 			style={`--sidebar-width:${layout.sidebarWidth}px;--inspector-width:${layout.inspectorWidth}px`}
 		>
 			<Titlebar
@@ -206,7 +205,9 @@
 				{store}
 				view={workspaceView}
 				screenOpen={overlayOpen}
+				settingsOpen={router.current === 'settings'}
 				onOpenSettings={() => router.go('settings')}
+				onCloseSettings={() => router.close()}
 			/>
 
 			{#if layout.drawerOpen}<button
@@ -214,16 +215,6 @@
 					aria-label="Close navigation panels"
 					onclick={() => layout.closeDrawers()}
 				></button>{/if}
-
-			{#if layout.leftMode === 'docked' && !layout.leftVisible}
-				<div data-ui="panel-rail" data-side="left">
-					<PanelToggle
-						side="left"
-						expanded={false}
-						onToggle={() => layout.toggleLeft()}
-					/>
-				</div>
-			{/if}
 
 			<SessionSidebar
 				{store}
@@ -277,23 +268,10 @@
 				/>
 			{/if}
 
-			{#if layout.rightMode === 'docked' && !layout.rightVisible}
-				<div data-ui="panel-rail" data-side="right">
-					<PanelToggle
-						side="right"
-						expanded={false}
-						onToggle={() => layout.toggleRight()}
-					/>
-				</div>
-			{/if}
-
 			<WorkspaceInspector
 				{store}
 				view={workspaceView}
 				hidden={!layout.rightVisible}
-				onCollapse={layout.rightVisible
-					? () => layout.toggleRight()
-					: undefined}
 			/>
 			{#if layout.rightVisible && layout.rightMode === 'docked'}
 				<PanelResizeHandle
@@ -325,7 +303,6 @@
 			const path = store.selectedProjectPath;
 			if (path) showWorkspace(path, 'settings');
 		}}
-		onClose={() => router.close()}
 	/>
 
 	<SessionTreeScreen

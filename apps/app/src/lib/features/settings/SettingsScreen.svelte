@@ -1,6 +1,5 @@
 <script lang="ts">
 	import {
-		ArrowLeft,
 		FolderCog,
 		Info,
 		MessageSquare,
@@ -31,7 +30,6 @@
 		version: string;
 		onSelectPage: (page: SettingsPageName) => void;
 		onOpenWorkspace: () => void;
-		onClose: () => void;
 	}
 
 	let {
@@ -42,14 +40,7 @@
 		version,
 		onSelectPage,
 		onOpenWorkspace,
-		onClose,
 	}: Props = $props();
-
-	let backButton = $state<HTMLButtonElement>();
-
-	$effect(() => {
-		if (open) backButton?.focus();
-	});
 
 	let skillCount = $derived(
 		store.resources?.skills.filter((skill) => skill.enabledGlobally).length,
@@ -88,10 +79,6 @@
 {#if open}
 	<section data-ui="settings-screen" aria-label="Settings">
 		<header data-ui="settings-screen-header">
-			<button bind:this={backButton} data-ui="settings-back" onclick={onClose}>
-				<ArrowLeft size={15} />
-				<span>Back</span>
-			</button>
 			<h1>Settings</h1>
 		</header>
 

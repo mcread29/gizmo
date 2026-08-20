@@ -6,10 +6,6 @@
 [data-ui='app-shell'] {
 	--left-column: var(--sidebar-width, 248px);
 	--right-column: var(--inspector-width, 288px);
-	/* A docked panel collapses to this rail rather than disappearing, so the
-	   control that reopens it stays where the panel was. */
-	--panel-rail: 40px;
-
 	position: relative;
 	display: grid;
 	grid-template:
@@ -30,20 +26,19 @@
 }
 
 [data-ui='app-shell'][data-left-mode='docked'][data-left-visible='false'] {
-	--left-column: var(--panel-rail);
+	--left-column: 0px;
 }
 
 [data-ui='app-shell'][data-right-mode='docked'][data-right-visible='false'] {
-	--right-column: var(--panel-rail);
+	--right-column: 0px;
 }
 
 /* Full-screen routes keep the titlebar but skip the covered workspace tree. */
-[data-ui='app-shell'][inert]
+[data-ui='app-shell'][data-screen-open='true']
 	> :is(
 		[data-ui='sidebar'],
 		[data-ui='conversation'],
 		[data-ui='inspector'],
-		[data-ui='panel-rail'],
 		[data-ui='panel-resize-handle'],
 		[data-ui='drawer-scrim']
 	) {
@@ -83,25 +78,6 @@
 [data-left-mode='overlay'][data-left-visible='true'] [data-ui='sidebar'],
 [data-right-mode='overlay'][data-right-visible='true'] [data-ui='inspector'] {
 	transform: translateX(0);
-}
-
-[data-ui='panel-rail'] {
-	z-index: 1;
-	display: flex;
-	justify-content: center;
-	padding: var(--space-2) 0;
-	background: var(--color-surface);
-	align-items: flex-start;
-}
-
-[data-ui='panel-rail'][data-side='left'] {
-	grid-area: sidebar;
-	border-right: 1px solid var(--color-border);
-}
-
-[data-ui='panel-rail'][data-side='right'] {
-	grid-area: inspector;
-	border-left: 1px solid var(--color-border);
 }
 
 [data-ui='drawer-scrim'] {
@@ -312,8 +288,6 @@ body[data-resizing='sidebar'] {
 }
 
 [data-ui='settings-screen-header'] {
-	display: grid;
-	gap: var(--space-1);
 	padding: var(--space-5) var(--space-6) var(--space-4);
 	border-bottom: 1px solid var(--color-border);
 }
@@ -326,24 +300,6 @@ body[data-resizing='sidebar'] {
 [data-ui='settings-screen-header'] > span {
 	color: var(--color-text-muted);
 	font-size: var(--text-xs);
-}
-
-[data-ui='settings-back'] {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	width: fit-content;
-	margin-bottom: var(--space-2);
-	padding: 0;
-	border: 0;
-	background: none;
-	color: var(--color-text-muted);
-	font-size: var(--text-xs);
-	cursor: pointer;
-}
-
-[data-ui='settings-back']:hover {
-	color: var(--color-text);
 }
 
 [data-ui='settings-screen-header'] > span {

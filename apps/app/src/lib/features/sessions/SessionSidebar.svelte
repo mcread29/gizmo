@@ -13,7 +13,6 @@
 	import { Button, ScrollPanel, Tooltip } from '../../components';
 	import ComponentGallery from '../../components/ComponentGallery.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
-	import PanelToggle from '../shell/PanelToggle.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
 	import {
 		formatSessionTime,
@@ -98,9 +97,6 @@
 	inert={!layout.leftVisible || undefined}
 >
 	<div data-ui="sidebar-header">
-		{#if layout.leftVisible}
-			<PanelToggle side="left" expanded onToggle={() => layout.toggleLeft()} />
-		{/if}
 		<span data-ui="eyebrow">Workspaces</span>
 		<Tooltip text="Open workspace">
 			{#snippet children(props)}
