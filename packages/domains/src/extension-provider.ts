@@ -14,4 +14,3 @@ export interface ExtensionProvider {
 		signal: AbortSignal,
 	): Promise<unknown>;
 }
-

@@ -2,25 +2,24 @@ import type { ExtensionDescriptor } from '@unity-agent/protocol';
 import { render, waitFor } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import type { AgentStore } from '../agent-client';
+import TestDomainPanel from './TestDomainPanel.svelte';
 import WorkspaceInspector from './WorkspaceInspector.svelte';
-import type { ActiveWorkspaceView } from './workspace-view';
+import type { WorkspaceView } from './types';
 
-const view: ActiveWorkspaceView = {
-	domainId: 'unity',
+const view: WorkspaceView = {
+	domainId: 'test-domain',
 	workspacePath: '/projects/game',
 	workspaceName: 'game',
-	subtitle: 'Unity',
+	subtitle: 'Test domain',
 	toolActivity: [],
 	canOpen: false,
 	open: () => {},
 	refresh: () => {},
-	unity: {
-		projectPath: '/projects/game',
-		projectName: 'game',
-		state: 'connected',
-		lifecycle: { state: 'ready', label: 'Ready', errors: [], pendingPaths: [] },
-		consoleDiagnostics: [],
-		toolActivity: [],
+	panel: {
+		id: 'test-domain',
+		label: 'Test domain',
+		component: TestDomainPanel,
+		props: {},
 	},
 };
 
@@ -39,16 +38,14 @@ function store(projectExtensions: ExtensionDescriptor[]): AgentStore {
 }
 
 describe('WorkspaceInspector', () => {
-	it('renders Unity capabilities inside the Unity extension panel', async () => {
+	it("renders a domain's contributed panel and the extension tabs it activates", async () => {
 		const fallback = render(WorkspaceInspector, {
 			store: store([]),
 			view,
 			hidden: false,
 		});
 		expect(
-			fallback.container.querySelector(
-				'[data-ui="unity-view-switch"] button:nth-child(2)',
-			),
+			fallback.container.querySelector('[data-ui="test-domain-panel-tab"]'),
 		).toBeNull();
 
 		const extras = render(WorkspaceInspector, {
@@ -73,16 +70,9 @@ describe('WorkspaceInspector', () => {
 		});
 		await waitFor(() =>
 			expect(
-				extras.container.querySelector(
-					'[data-ui="unity-view-switch"] button:nth-child(2)',
-				),
+				extras.container.querySelector('[data-ui="test-domain-panel-tab"]'),
 			).toBeTruthy(),
 		);
-		expect(
-			extras.container.querySelector(
-				'[data-ui="tabs-trigger"][data-value="extensions"]',
-			),
-		).toBeNull();
 		fallback.unmount();
 		extras.unmount();
 	});

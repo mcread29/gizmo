@@ -5,8 +5,8 @@
 	import type { WebExtensionRuntime } from '../extensions/types';
 	import ChangesPanel from '../features/changes/ChangesPanel.svelte';
 	import PanelToggle from '../features/shell/PanelToggle.svelte';
-	import { ActivityPanel, UnityPanel } from '@unity-agent/unity/web';
-	import type { ActiveWorkspaceView } from './workspace-view';
+	import ActivityPanel from './ActivityPanel.svelte';
+	import type { WorkspaceView } from './types';
 
 	let {
 		store,
@@ -15,7 +15,7 @@
 		onCollapse,
 	}: {
 		store: AgentStore;
-		view: ActiveWorkspaceView;
+		view: WorkspaceView;
 		hidden: boolean;
 		/** Absent while the inspector is collapsed: its rail owns the control. */
 		onCollapse?: () => void;
@@ -25,10 +25,10 @@
 	// The workspace a switch resets the inspector to its default tab, mirroring
 	// the per-domain inspector this replaced (which remounted on that switch).
 	let inspectorKey = $derived(
-		`${view.workspacePath ?? ''}:${view.unity ? 'unity' : (view.domainId ?? 'workspace')}`,
+		`${view.workspacePath ?? ''}:${view.panel?.id ?? view.domainId ?? 'workspace'}`,
 	);
-	let defaultTab = $derived(view.unity ? 'unity' : 'changes');
-	let activeUnityPanel = $state('status');
+	let defaultTab = $derived(view.panel?.id ?? 'changes');
+	let activeDomainPanel = $state('status');
 	let extensionRuntimes = $state<WebExtensionRuntime[]>([]);
 	let extensionTabs = $derived(
 		extensionRuntimes.flatMap((runtime) => runtime.inspectorTabs),
@@ -39,7 +39,7 @@
 	$effect(() => {
 		const projectPath = view.workspacePath;
 		const descriptors = store.projectExtensions;
-		const runtimes = projectPath && view.unity
+		const runtimes = projectPath
 			? activateProjectExtensions(descriptors, {
 					projectPath,
 					invoke: (extensionId, operation, input) =>
@@ -56,26 +56,26 @@
 	});
 
 	let tabs = $derived([
-		...(view.unity ? [{ value: 'unity', label: 'Unity' }] : []),
+		...(view.panel ? [{ value: view.panel.id, label: view.panel.label }] : []),
 		{ value: 'changes', label: 'Files', badge: changeCount },
 		{ value: 'activity', label: 'Activity' },
 	]);
 
-	let pill = $derived(view.unity?.lifecycle ?? { state: 'ready', label: 'Ready' });
+	let pill = $derived(view.pill ?? { state: 'ready', label: 'Ready' });
 
 	$effect(() => {
 		if (
-			activeUnityPanel !== 'status' &&
-			!extensionTabs.some((tab) => tab.id === activeUnityPanel)
+			activeDomainPanel !== 'status' &&
+			!extensionTabs.some((tab) => tab.id === activeDomainPanel)
 		)
-			activeUnityPanel = 'status';
+			activeDomainPanel = 'status';
 	});
 
 </script>
 
 <aside
 	data-ui="inspector"
-	data-context-kind={view.domainId === 'unity' ? 'unity' : 'workspace'}
+	data-context-kind={view.panel ? view.domainId : 'workspace'}
 	data-context-value={view.workspacePath}
 	aria-label="Workspace inspector"
 	inert={hidden || undefined}
@@ -99,14 +99,13 @@
 					data-ui="inspector-panel"
 					data-panel={value}
 				>
-					{#if value === 'unity' && view.unity}
-						<UnityPanel
-							view={view.unity}
-							{store}
+					{#if view.panel && value === view.panel.id}
+						{@const Panel = view.panel.component}
+						<Panel
+							{...view.panel.props}
 							{extensionTabs}
-							activePanel={activeUnityPanel}
-							onSelectPanel={(panel) => (activeUnityPanel = panel)}
-							onOpenProject={() => store.openSelectedProject()}
+							activePanel={activeDomainPanel}
+							onSelectPanel={(panel: string) => (activeDomainPanel = panel)}
 						/>
 					{:else if value === 'changes'}
 						<ChangesPanel {store} projectPath={view.workspacePath} />

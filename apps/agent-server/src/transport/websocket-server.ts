@@ -5,14 +5,11 @@ import {
 	type AgentRequest,
 	type AgentResponse,
 } from '@unity-agent/protocol';
-import type {
-	UnityStatusDetails,
-} from '@unity-agent/unity-tools';
+import type { ProjectService, ProjectStatus } from '@unity-agent/domains';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { PiAgentService } from '../sessions/pi-agent-service';
 import { GitService } from '../git/git-service';
 import { ExtensionHostService } from '../extensions/extension-host-service';
-import { UnityProjectService } from '@unity-agent/unity/server';
 
 export interface AgentWebSocketServerOptions {
 	host?: string;
@@ -20,10 +17,19 @@ export interface AgentWebSocketServerOptions {
 	path?: string;
 	allowedOrigins?: readonly string[];
 	createService?: () => PiAgentService;
-	createProjectService?: () => UnityProjectService;
+	createProjectService?: () => ProjectService;
 	createExtensionHost?: () => ExtensionHostService;
 	createGitService?: () => GitService;
 }
+
+/** Used when no domain's project service is configured for this connection. */
+const noProjectService: ProjectService = {
+	getStatus: () => Promise.reject(new Error('No project service is configured')),
+	watchStatus: () => Promise.reject(new Error('No project service is configured')),
+	openProject: () => Promise.reject(new Error('No project service is configured')),
+	revertFile: () => Promise.reject(new Error('No project service is configured')),
+	dispose: () => {},
+};
 
 export interface AgentWebSocketServer {
 	readonly server: WebSocketServer;
@@ -47,7 +53,7 @@ export async function createAgentWebSocketServer(
 		WebSocket,
 		{
 			agent: PiAgentService;
-			projects: UnityProjectService;
+			projects: ProjectService;
 			extensions: ExtensionHostService;
 			git: GitService;
 		}
@@ -56,8 +62,7 @@ export async function createAgentWebSocketServer(
 	server.on('connection', (socket) => {
 		let eventId = 0;
 		const service = options.createService?.() ?? new PiAgentService();
-		const projectService =
-			options.createProjectService?.() ?? new UnityProjectService();
+		const projectService = options.createProjectService?.() ?? noProjectService;
 		const extensionHost =
 			options.createExtensionHost?.() ??
 			new ExtensionHostService([]);
@@ -142,7 +147,7 @@ interface ProjectEmitters {
 	status(
 		sessionId: string,
 		projectPath: string,
-		status: UnityStatusDetails,
+		status: ProjectStatus,
 	): void;
 	extensions(
 		sessionId: string,
@@ -154,7 +159,7 @@ interface ProjectEmitters {
 async function handleMessage(
 	socket: WebSocket,
 	service: PiAgentService,
-	projectService: UnityProjectService,
+	projectService: ProjectService,
 	extensionHost: ExtensionHostService,
 	gitService: GitService,
 	emit: ProjectEmitters,
@@ -199,7 +204,7 @@ async function handleMessage(
 
 async function dispatch(
 	service: PiAgentService,
-	projectService: UnityProjectService,
+	projectService: ProjectService,
 	extensionHost: ExtensionHostService,
 	gitService: GitService,
 	emit: ProjectEmitters,

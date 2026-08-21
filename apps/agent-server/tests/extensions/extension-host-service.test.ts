@@ -1,7 +1,7 @@
 import type { ExtensionDescriptor } from '@unity-agent/protocol';
 import { describe, expect, it } from 'vitest';
 import { ExtensionHostService } from '../../src/extensions/extension-host-service';
-import type { ExtensionProvider } from '../../src/extensions/types';
+import type { ExtensionProvider } from '@unity-agent/domains';
 
 const descriptor: ExtensionDescriptor = {
 	id: 'com.example.notes',

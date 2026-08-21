@@ -10,13 +10,14 @@ import {
 	type UnityProject,
 	type UnityStatusDetails,
 } from '@unity-agent/unity-tools';
-import { revertPatch } from '../../../../../apps/agent-server/src/tools/patch';
+import type { ProjectService } from '@unity-agent/domains';
+import { revertPatch } from '@unity-agent/domains';
 
 export interface ProjectWatchListeners {
 	status: (status: UnityStatusDetails) => void;
 }
 
-export class UnityProjectService {
+export class UnityProjectService implements ProjectService {
 	readonly #runner: UnityCommandRunner;
 	readonly #watchIntervalMs: number;
 	readonly #controllers = new Set<AbortController>();

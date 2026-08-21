@@ -1,5 +1,5 @@
 import type { ExtensionDescriptor } from '@unity-agent/protocol';
-import type { ExtensionProvider } from './types';
+import type { ExtensionProvider } from '@unity-agent/domains';
 
 export class ExtensionHostService {
 	readonly #providers: readonly ExtensionProvider[];

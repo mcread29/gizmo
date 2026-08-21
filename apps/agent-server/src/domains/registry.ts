@@ -4,7 +4,11 @@ import type {
 	WorkspaceIntegration,
 	WorkspaceProfile,
 } from '@unity-agent/protocol';
-import type { ActiveDomains, DomainContext, WorkspaceDomain } from './types';
+import type {
+	ActiveDomains,
+	DomainContext,
+	WorkspaceDomain,
+} from '@unity-agent/domains';
 import { unityDomain } from '@unity-agent/unity/server';
 
 const domains: readonly WorkspaceDomain[] = [unityDomain, svelteDomain];

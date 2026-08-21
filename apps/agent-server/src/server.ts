@@ -3,7 +3,10 @@ import { promisify } from 'node:util';
 import { createAgentWebSocketServer } from './transport/websocket-server';
 import { configuredOrigins } from './server-config';
 import { ExtensionHostService } from './extensions/extension-host-service';
-import { UnityExtensionProvider } from '@unity-agent/unity/server';
+import {
+	UnityExtensionProvider,
+	UnityProjectService,
+} from '@unity-agent/unity/server';
 
 await restoreDesktopEnvironment();
 
@@ -16,6 +19,7 @@ const agentServer = await createAgentWebSocketServer({
 	port,
 	createExtensionHost: () =>
 		new ExtensionHostService([new UnityExtensionProvider()]),
+	createProjectService: () => new UnityProjectService(),
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),
 });
 

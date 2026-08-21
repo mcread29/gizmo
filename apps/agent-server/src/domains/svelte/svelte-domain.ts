@@ -1,6 +1,6 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { WorkspaceDomain } from '../types';
+import type { WorkspaceDomain } from '@unity-agent/domains';
 
 export const svelteDomain: WorkspaceDomain = {
 	id: 'svelte',

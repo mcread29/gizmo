@@ -2,7 +2,6 @@ import type { ToolCallView } from '@unity-agent/protocol';
 import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import ActivityPanel from './ActivityPanel.svelte';
-import type { UnityView } from './unity-view';
 
 describe('ActivityPanel', () => {
 	it('only mounts the visible window from a long activity history', () => {
@@ -13,21 +12,10 @@ describe('ActivityPanel', () => {
 				name: 'read',
 				status: 'complete',
 				statusText: 'Completed',
-				input: { path: `Assets/File-${index}.cs` },
+				input: `Assets/File-${index}.cs`,
 			}),
 		);
-		const view = {
-			projectName: 'Project',
-			state: 'ready',
-			lifecycle: {
-				state: 'ready',
-				label: 'Ready',
-				errors: [],
-				pendingPaths: [],
-			},
-			consoleDiagnostics: [],
-			toolActivity,
-		} satisfies UnityView;
+		const view = { toolActivity };
 
 		const { container, getByText } = render(ActivityPanel, { view });
 

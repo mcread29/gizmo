@@ -16,7 +16,7 @@
 	import { Button, Dialog, Tooltip } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import DiffView from '../conversation/DiffView.svelte';
-	import { sourceHref } from '@unity-agent/unity/web';
+	import { sourceHref } from '../../util/source-href';
 	import { changeTree, changeTreeRows } from './change-tree';
 	import { threadChanges } from './thread-changes';
 

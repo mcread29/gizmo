@@ -6,7 +6,7 @@
 		$props();
 </script>
 
-{#each webDomains.filter(({ id, dialog }) => dialog && (store.activeDomains.includes(id) || (id === 'unity' && store.pendingConfirmations.length > 0))) as definition (definition.id)}
+{#each webDomains.filter(({ id, dialog }) => dialog && (store.activeDomains.includes(id) || store.pendingConfirmations.length > 0)) as definition (definition.id)}
 	{@const Dialog = definition.dialog!}
 	<Dialog {store} {layout} />
 {/each}

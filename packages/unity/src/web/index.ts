@@ -1,10 +1,3 @@
-export { default as UnityPanel } from './unity/UnityPanel.svelte';
-export { default as ActivityPanel } from './unity/ActivityPanel.svelte';
-export { createUnityView, type UnityView } from './unity/unity-view';
-export { default as UnityDomainDialog } from './UnityDomainDialog.svelte';
-export { default as UnityDomainSettings } from './UnityDomainSettings.svelte';
+export { unityDomainPlugin } from './domain-plugin';
+export { unityToolPresentation } from './tool-presentation';
 export { unityExtension } from './console/console-extension.svelte';
-export { sourceHref } from './unity/compiler-diagnostics';
-export { commandName } from './unity/unity-view';
-export { default as UnityTestResults } from './unity/UnityTestResults.svelte';
-export { default as CompilerDiagnosticList } from './unity/CompilerDiagnosticList.svelte';

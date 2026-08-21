@@ -11,10 +11,10 @@
 		Terminal,
 	} from '@lucide/svelte';
 	import { Button } from '../../components';
-	import { CompilerDiagnosticList } from '@unity-agent/unity/web';
 	import ToolResult from './ToolResult.svelte';
 	import { formatToolResult, recordValue } from './format';
 	import { toolIcon, toolLabel } from './tool-labels';
+	import { toolPresentationPlugins } from './tool-presentation';
 	import { toolSummary } from './tool-summary';
 
 	interface Props {
@@ -48,10 +48,15 @@
 		tool.status === 'running' ? tool.statusText : (summary ?? tool.statusText),
 	);
 	let errors = $derived(readArray(tool.result, 'errors'));
-	let consoleEntries = $derived(
-		tool.name === 'unity_console'
-			? readArray(tool.result, 'entries')
-			: readArray(tool.result, 'consoleEntries'),
+	let consoleEntriesKey = $derived(
+		toolPresentationPlugins
+			.map((plugin) => plugin.consoleEntriesKey?.(tool.name))
+			.find((key) => key !== undefined) ?? 'consoleEntries',
+	);
+	let consoleEntries = $derived(readArray(tool.result, consoleEntriesKey));
+	let diagnosticsComponent = $derived(
+		toolPresentationPlugins.find((plugin) => plugin.diagnosticsComponent)
+			?.diagnosticsComponent,
 	);
 
 	$effect(() => {
@@ -128,15 +133,17 @@
 		<div data-ui="tool-content">
 			<ToolResult {tool} {projectPath} {consoleEntries} {errors} />
 
-			{#if errors.length}
+			{#if errors.length && diagnosticsComponent}
+				{@const Diagnostics = diagnosticsComponent}
 				<div data-ui="tool-errors">
-					<CompilerDiagnosticList {errors} {projectPath} />
+					<Diagnostics {errors} {projectPath} />
 				</div>
 			{/if}
 
-			{#if consoleEntries.length}
+			{#if consoleEntries.length && diagnosticsComponent}
+				{@const Diagnostics = diagnosticsComponent}
 				<div data-ui="tool-diagnostics">
-					<CompilerDiagnosticList errors={consoleEntries} {projectPath} />
+					<Diagnostics errors={consoleEntries} {projectPath} />
 				</div>
 			{/if}
 

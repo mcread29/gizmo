@@ -26,6 +26,7 @@ import {
 } from '@unity-agent/protocol';
 import type { AgentClient } from './AgentClient';
 import { applyAgentEvent } from './agent-event-reducer';
+import { webDomain } from '../domains/registry';
 
 export interface AgentModel {
 	provider: string;
@@ -935,7 +936,7 @@ export class AgentStore {
 			this.projectExtensions = [];
 			return;
 		}
-		if (!this.activeDomains.includes('unity')) {
+		if (!this.activeDomains.some((id) => webDomain(id)?.hasProjectStatus)) {
 			this.projectStatus = undefined;
 			await this.loadProjectExtensions();
 			return;

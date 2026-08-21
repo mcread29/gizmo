@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sourceHref } from '@unity-agent/unity/web';
+	import { sourceHref } from '../../util/source-href';
 	import { diffStat, parseDiff } from './diff';
 
 	interface Props {

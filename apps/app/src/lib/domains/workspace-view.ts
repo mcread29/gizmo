@@ -1,33 +1,13 @@
 import type { AgentStore } from '../agent-client';
-import { createUnityView, type UnityView } from '@unity-agent/unity/web';
+import { webDomain } from './registry';
 import type { WorkspaceView } from './types';
 
-export type ActiveWorkspaceView = WorkspaceView & { unity?: UnityView };
+export function createWorkspaceView(store: AgentStore): WorkspaceView {
+	const domainId = store.activeDomains.find((id) => webDomain(id)?.createView);
+	const plugin = domainId ? webDomain(domainId) : undefined;
+	if (plugin?.createView) return plugin.createView(store);
 
-export function createWorkspaceView(store: AgentStore): ActiveWorkspaceView {
 	const workspacePath = store.selectedProjectPath;
-	if (store.activeDomains.includes('unity')) {
-		const unity = createUnityView({
-			messages: store.messages,
-			projects: store.projects,
-			selectedProjectPath: workspacePath,
-			projectStatus: store.projectStatus,
-			projectsLoading: store.projectsLoading,
-		});
-		return {
-			domainId: 'unity',
-			workspacePath: unity.projectPath,
-			workspaceName: unity.projectName,
-			subtitle: unity.version ? `Unity ${unity.version}` : unity.state,
-			state: unity.status?.state,
-			toolActivity: unity.toolActivity,
-			canOpen: Boolean(unity.selectedProject && !unity.editor),
-			open: () => void store.openSelectedProject(),
-			refresh: () => void store.refreshProjectStatus(),
-			unity,
-		};
-	}
-
 	const toolActivity = store.messages.flatMap(({ tools }) => tools);
 	return {
 		...(store.activeDomains.includes('svelte') ? { domainId: 'svelte' } : {}),
