@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process';
-import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { createAgentWebSocketServer } from './transport/websocket-server';
 import { configuredOrigins } from './server-config';
@@ -9,10 +11,20 @@ import { registerExtensions } from './extensions/registry';
 
 await restoreDesktopEnvironment();
 
+// Dev runs with the package dir as cwd; fall back to the repo root so a
+// missing local config does not silently disable every extension.
+const repoRoot = resolve(
+	dirname(fileURLToPath(import.meta.url)),
+	'../../..',
+);
 const extensionsConfigPath =
 	process.env.GIZMO_EXTENSIONS_CONFIG ??
 	resolve(process.cwd(), 'gizmo.extensions.json');
-const extensions = await loadServerExtensions(extensionsConfigPath);
+const extensions = await loadServerExtensions(
+	existsSync(extensionsConfigPath)
+		? extensionsConfigPath
+		: resolve(repoRoot, 'gizmo.extensions.json'),
+);
 registerExtensions(extensions);
 const projectServiceExtension = extensions.find(
 	(extension) => extension.createProjectService,

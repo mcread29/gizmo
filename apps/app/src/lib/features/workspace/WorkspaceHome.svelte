@@ -83,34 +83,32 @@
 			<h3>Threads</h3>
 			<span>Continue previous work</span>
 		</div>
-		<div data-ui="workspace-recent-list">
-			{#if workspaceSessions.length === 0}
-				<p data-ui="workspace-dashboard-hint">
-					No threads here yet. Start one to begin work in this workspace.
-				</p>
-			{/if}
-			{#each workspaceSessions as session (session.id)}
-				<button onclick={() => onOpenThread(session.id)}>
-					<MessageSquare size={15} />
-					<span>
-						<strong>{threadTitle(session.title)}</strong>
-						<small
-							>{session.messageCount} messages · {formatSessionTime(
-								session.lastActiveAt,
-							)}</small
-						>
-					</span>
-					<ArrowRight size={15} />
-				</button>
-			{/each}
-		</div>
+		{#if workspaceSessions.length === 0}
+			<div data-ui="workspace-empty">
+				<MessageSquare size={20} />
+				<strong>No threads yet</strong>
+				<span>Start one to begin work in this workspace.</span>
+				<Button size="sm" onclick={onNewThread}>
+					<Plus size={14} /> New thread
+				</Button>
+			</div>
+		{:else}
+			<div data-ui="workspace-recent-list">
+				{#each workspaceSessions as session (session.id)}
+					<button onclick={() => onOpenThread(session.id)}>
+						<MessageSquare size={15} />
+						<span>
+							<strong>{threadTitle(session.title)}</strong>
+							<small
+								>{session.messageCount} messages · {formatSessionTime(
+									session.lastActiveAt,
+								)}</small
+							>
+						</span>
+						<ArrowRight size={15} />
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</section>
-
-	{#if workspaceSessions.length === 0}
-		<div data-ui="workspace-home-actions">
-			<Button size="sm" onclick={onNewThread}
-				><Plus size={14} /> New thread</Button
-			>
-		</div>
-	{/if}
 </div>

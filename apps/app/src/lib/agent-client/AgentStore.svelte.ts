@@ -483,6 +483,10 @@ export class AgentStore {
 		this.projectExtensions = [];
 		this.gitLoading = true;
 		this.statusLoading = true;
+		// Browsing a workspace leaves any other workspace's transcript behind;
+		// derived panels (like Activity) read from it. A session switch sets
+		// its own loading flag after this.
+		this.messages = [];
 		// The inspector follows the workspace in view, not the last thread's.
 		this.activeDomains =
 			domains ??

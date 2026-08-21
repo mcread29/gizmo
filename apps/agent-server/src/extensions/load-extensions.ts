@@ -1,4 +1,6 @@
 import { readFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { GizmoServerExtension } from '@gizmo/extensions';
 
 interface ExtensionsConfig {
@@ -36,9 +38,23 @@ async function loadExtension(
 				`Extension "${specifier}" has no server entry (missing gizmoExtension export)`,
 			);
 		}
-		return extension;
+		// The package root lets resource discovery and web bundles find the
+		// extension's shipped files (skills/, prompts/, dist/web.js).
+		return extension && { ...extension, packageRoot: packageRoot(specifier) };
 	} catch (error) {
 		console.warn(`Failed to load extension "${specifier}":`, error);
+		return undefined;
+	}
+}
+
+function packageRoot(specifier: string): string | undefined {
+	if (specifier.startsWith('.')) return undefined;
+	try {
+		// Resolve the entry the import just used; the exports map may not
+		// expose ./package.json, but <pkg>/server always resolves here.
+		const entry = fileURLToPath(import.meta.resolve(`${specifier}/server`));
+		return dirname(dirname(dirname(entry)));
+	} catch {
 		return undefined;
 	}
 }

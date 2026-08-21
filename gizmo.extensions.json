@@ -3,6 +3,7 @@
 		"@gizmo/unity",
 		"@gizmo/svelte",
 		"@gizmo/git",
-		"@gizmo/activity"
+		"@gizmo/activity",
+		"@gizmo/skill-authoring"
 	]
 }

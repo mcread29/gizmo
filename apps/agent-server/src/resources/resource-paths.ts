@@ -17,15 +17,10 @@ export interface ResourceRoots {
 	agentsFiles: string[];
 }
 
-/** The cross-harness Agent Skills location, shared with other agent tools. */
-function sharedAgentsDir(): string {
-	return join(homedir(), '.agents');
-}
-
 export function globalResourceRoots(dataDir = defaultDataDir()): ResourceRoots {
 	return {
-		skills: [join(dataDir, 'skills'), join(sharedAgentsDir(), 'skills')],
-		prompts: [join(dataDir, 'prompts'), join(sharedAgentsDir(), 'prompts')],
+		skills: [join(dataDir, 'skills')],
+		prompts: [join(dataDir, 'prompts')],
 		agentsFiles: [join(dataDir, 'AGENTS.md')],
 	};
 }
