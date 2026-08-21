@@ -1,7 +1,5 @@
-export { default as Button } from './Button.svelte';
 export { default as BrandMark } from './BrandMark.svelte';
 export { default as ConfirmDialog } from './ConfirmDialog.svelte';
-export { default as Dialog } from './Dialog.svelte';
 export { default as Menu } from './Menu.svelte';
 export type { MenuItem } from './Menu.svelte';
 export { default as ScrollPanel } from './ScrollPanel.svelte';
@@ -10,5 +8,16 @@ export type { SelectOption } from './SelectField.svelte';
 export { default as SwitchField } from './SwitchField.svelte';
 export { default as Tabs } from './Tabs.svelte';
 export type { TabItem } from './Tabs.svelte';
-export { default as Toast } from './Toast.svelte';
-export { default as Tooltip } from './Tooltip.svelte';
+
+// Workbench primitives shared with first-party extension packages now live in
+// @gizmo/ui; re-exported here so existing app imports keep working.
+export {
+	Button,
+	Dialog,
+	DiffView,
+	Toast,
+	Tooltip,
+	toasts,
+	ToastQueue,
+} from '@gizmo/ui';
+export type { ToastMessage, ToastTone } from '@gizmo/ui';

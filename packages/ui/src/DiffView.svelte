@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sourceHref } from '../../util/source-href';
+	import { sourceHref } from './source-href';
 	import { diffStat, parseDiff } from './diff';
 
 	interface Props {

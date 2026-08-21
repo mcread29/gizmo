@@ -1,11 +1,9 @@
 <script lang="ts">
 	import type { AgentStore } from '../agent-client';
 	import { Tabs } from '../components';
-	import { activateProjectExtensions } from './registry.svelte';
+	import { activateProjectExtensions, webExtensions } from './registry.svelte';
 	import type { WebExtensionRuntime } from './types';
-	import ChangesPanel from '../features/changes/ChangesPanel.svelte';
 	import PanelToggle from '../features/shell/PanelToggle.svelte';
-	import ActivityPanel from './ActivityPanel.svelte';
 	import type { WorkspaceView } from './types';
 
 	let {
@@ -21,13 +19,12 @@
 		onCollapse?: () => void;
 	} = $props();
 
-	let changeCount = $derived(store.gitStatus?.files.length ?? 0);
 	// The workspace a switch resets the inspector to its default tab, mirroring
 	// the per-domain inspector this replaced (which remounted on that switch).
 	let inspectorKey = $derived(
 		`${view.workspacePath ?? ''}:${view.panel?.id ?? view.domainId ?? 'workspace'}`,
 	);
-	let defaultTab = $derived(view.panel?.id ?? 'changes');
+	let defaultTab = $derived(view.panel?.id ?? 'git');
 	let activeDomainPanel = $state('status');
 	let extensionRuntimes = $state<WebExtensionRuntime[]>([]);
 	let extensionTabs = $derived(
@@ -55,10 +52,36 @@
 		return () => runtimes.forEach((runtime) => runtime.dispose());
 	});
 
+	// The inspector shell is app-owned; extensions contribute their own tabs.
+	// Reading the store here keeps badges (like Git's change count) reactive.
 	let tabs = $derived([
-		...(view.panel ? [{ value: view.panel.id, label: view.panel.label }] : []),
-		{ value: 'changes', label: 'Files', badge: changeCount },
-		{ value: 'activity', label: 'Activity' },
+		...(view.panel
+			? [
+					{
+						value: view.panel.id,
+						label: view.panel.label,
+						badge: undefined,
+						component: undefined,
+						props: {},
+					},
+				]
+			: []),
+		...webExtensions()
+			.flatMap(
+				(definition) =>
+					definition.inspectorTabs?.({
+						store,
+						projectPath: view.workspacePath,
+						toolActivity: view.toolActivity,
+					}) ?? [],
+			)
+			.map((tab) => ({
+				value: tab.id,
+				label: tab.label,
+				badge: tab.badge,
+				component: tab.component,
+				props: tab.props,
+			})),
 	]);
 
 	let pill = $derived(view.pill ?? { state: 'ready', label: 'Ready' });
@@ -103,10 +126,10 @@
 							activePanel={activeDomainPanel}
 							onSelectPanel={(panel: string) => (activeDomainPanel = panel)}
 						/>
-					{:else if value === 'changes'}
-						<ChangesPanel {store} projectPath={view.workspacePath} />
-					{:else}
-						<ActivityPanel {view} />
+					{:else if tabs.some((tab) => tab.value === value)}
+						{@const tab = tabs.find((tab) => tab.value === value)!}
+						{@const Panel = tab.component}
+						<Panel {...tab.props} {store} projectPath={view.workspacePath} />
 					{/if}
 				</div>
 			{/snippet}

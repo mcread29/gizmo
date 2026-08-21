@@ -1,6 +1,6 @@
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
-import type { AgentStore } from '../../agent-client';
+import type { GitHostStore } from './host';
 import ChangesPanel from './ChangesPanel.svelte';
 
 describe('ChangesPanel', () => {
@@ -24,7 +24,8 @@ describe('ChangesPanel', () => {
 			refreshGitStatus: vi.fn(async () => {}),
 			generateCommitMessage,
 			commitAll,
-		} as unknown as AgentStore;
+			revertFile: vi.fn(async () => {}),
+		} satisfies GitHostStore;
 		const { findByRole, getByRole, getByText, getByTitle } = render(
 			ChangesPanel,
 			{

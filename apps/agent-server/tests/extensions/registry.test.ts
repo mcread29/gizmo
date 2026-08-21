@@ -3,12 +3,16 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { gizmoExtension as unityExtension } from '@gizmo/unity/server';
-import { activateExtensions, registerExtensions } from '../../src/extensions/registry';
+import { gizmoExtension as svelteExtension } from '@gizmo/svelte/server';
+import {
+	activateExtensions,
+	registerExtensions,
+} from '../../src/extensions/registry';
 
 const directories: string[] = [];
 
 beforeAll(() => {
-	registerExtensions([unityExtension]);
+	registerExtensions([unityExtension, svelteExtension]);
 });
 
 afterEach(async () => {

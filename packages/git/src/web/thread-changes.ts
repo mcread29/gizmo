@@ -1,5 +1,5 @@
 import type { ConversationMessage, ToolCallView } from '@gizmo/protocol';
-import { diffStat, parseDiff } from '../conversation/diff';
+import { diffStat, parseDiff } from '@gizmo/ui';
 import { recordValue, stringValue } from '@gizmo/design/format';
 
 export interface FileChange {

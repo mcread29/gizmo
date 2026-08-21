@@ -962,26 +962,9 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
-			type: Type.Literal('git.status'),
-			projectPath: Type.String({ minLength: 1 }),
-		},
-		{ additionalProperties: false },
-	),
-	Type.Object(
-		{
-			...envelope,
 			type: Type.Literal('git.commit-message'),
 			sessionId: Type.String({ minLength: 1 }),
 			projectPath: Type.String({ minLength: 1 }),
-		},
-		{ additionalProperties: false },
-	),
-	Type.Object(
-		{
-			...envelope,
-			type: Type.Literal('git.commit'),
-			projectPath: Type.String({ minLength: 1 }),
-			message: Type.String({ minLength: 1, maxLength: 4000 }),
 		},
 		{ additionalProperties: false },
 	),

@@ -387,12 +387,16 @@ describe('application shell', () => {
 		// Hold the second Git call open so the loading window is observable.
 		let release = () => {};
 		const gate = new Promise<void>((resolve) => (release = resolve));
-		const realGitStatus = client.getGitStatus.bind(client);
+		const realGitStatus = client.invokeProjectExtension.bind(client);
 		let calls = 0;
-		vi.spyOn(client, 'getGitStatus').mockImplementation(async (path) => {
-			if (++calls > 1) await gate;
-			return realGitStatus(path);
-		});
+		vi.spyOn(client, 'invokeProjectExtension').mockImplementation(
+			async (projectPath, extensionId, operation, input) => {
+				if (extensionId === 'git' && operation === 'status') {
+					if (++calls > 1) await gate;
+				}
+				return realGitStatus(projectPath, extensionId, operation, input);
+			},
+		);
 		const { container, findByRole, getByRole } = render(App, { client });
 		const list = await findByRole('navigation', {
 			name: 'Workspaces and threads',
@@ -828,7 +832,7 @@ describe('application shell', () => {
 		);
 	});
 
-	it('shows the complete repository status in the Changes tab', async () => {
+	it('shows the complete repository status in the Git tab', async () => {
 		const { container, findByRole, getByRole } = renderApp();
 		const composer = getByRole('textbox', { name: 'Message Gizmo' });
 		await fireEvent.input(composer, {
@@ -839,7 +843,7 @@ describe('application shell', () => {
 		);
 		await fireEvent.click(getByRole('button', { name: 'Send message' }));
 
-		const changesTab = await findByRole('tab', { name: /Files/ });
+		const changesTab = await findByRole('tab', { name: /Git/ });
 		await waitFor(() =>
 			expect(
 				changesTab.querySelector('[data-ui="tabs-badge"]'),

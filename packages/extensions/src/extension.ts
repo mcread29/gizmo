@@ -27,6 +27,11 @@ export interface GizmoServerExtension {
 	profile?(root: string): WorkspaceProfile;
 	systemPrompt?: string;
 	createTools?(context: ExtensionContext): ToolDefinition[];
+	/**
+	 * Tools contributed to every session regardless of workspace detection —
+	 * for capabilities that are always on, like Git status.
+	 */
+	defaultTools?(context: ExtensionContext): ToolDefinition[];
 	list?(
 		workspacePath: string,
 		signal: AbortSignal,

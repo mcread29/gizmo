@@ -2,8 +2,6 @@ import {
 	parseAgentModelCatalog,
 	parseAgentResponse,
 	parseFileRevertResult,
-	parseGitCommitResult,
-	parseGitStatus,
 	parseExtensions,
 	parseWebExtensionBundles,
 	parseSessionCatalog,
@@ -23,8 +21,6 @@ import {
 	type AgentModelCatalog,
 	type CompactionPolicy,
 	type FileRevertResult,
-	type GitCommitResult,
-	type GitStatus,
 	type SessionCatalog,
 	type SessionOptions,
 	type SessionSnapshot,
@@ -469,11 +465,6 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseFileRevertResult(response.result);
 	}
 
-	async getGitStatus(projectPath: string): Promise<GitStatus> {
-		const response = await this.#request({ type: 'git.status', projectPath });
-		return parseGitStatus(response.result);
-	}
-
 	async generateCommitMessage(
 		sessionId: string,
 		projectPath: string,
@@ -487,18 +478,6 @@ export class WebSocketAgentClient implements AgentClient {
 			throw new Error('Agent server returned an invalid commit message');
 		}
 		return response.result;
-	}
-
-	async commitAll(
-		projectPath: string,
-		message: string,
-	): Promise<GitCommitResult> {
-		const response = await this.#request({
-			type: 'git.commit',
-			projectPath,
-			message,
-		});
-		return parseGitCommitResult(response.result);
 	}
 
 	subscribe(listener: AgentEventListener): () => void {

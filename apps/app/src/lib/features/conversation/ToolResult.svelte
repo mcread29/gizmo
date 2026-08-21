@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ToolCallView } from '@gizmo/protocol';
-	import DiffView from './DiffView.svelte';
-	import { patchFileName } from '../changes/thread-changes';
+	import { DiffView } from '@gizmo/ui';
+	import { patchFileName } from '@gizmo/git/web';
 	import {
 		formatToolResult,
 		recordValue,

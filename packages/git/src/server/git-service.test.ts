@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { GitService } from '../../src/git/git-service';
+import { GitService } from './git-service';
 
 const execFileAsync = promisify(execFile);
 

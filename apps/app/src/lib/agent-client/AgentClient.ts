@@ -127,12 +127,10 @@ export interface AgentClient {
 		file: string,
 		patch: string,
 	): Promise<FileRevertResult>;
-	getGitStatus(projectPath: string): Promise<GitStatus>;
 	generateCommitMessage(
 		sessionId: string,
 		projectPath: string,
 	): Promise<string>;
-	commitAll(projectPath: string, message: string): Promise<GitCommitResult>;
 	/** Optional: transports with a configurable address implement this. */
 	setEndpoint?(url: string): void;
 	subscribe(listener: AgentEventListener): () => void;

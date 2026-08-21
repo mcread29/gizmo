@@ -7,9 +7,12 @@ optional capabilities an extension may contribute. Core knows only that
 contract; it has no extension categories, no runtime-specific types, and no
 hardcoded knowledge of any specific extension (Unity included).
 
-Unity is the one extension that exists today. It is not special-cased
-anywhere in core — it is loaded, registered, and dispatched through the exact
-same mechanism any third-party extension would use.
+Unity is the largest extension today. Git, Svelte, and Activity are
+extracted the same way: standalone first-party packages (`@gizmo/unity`,
+`@gizmo/git`, `@gizmo/svelte`, `@gizmo/activity`) listed in
+`gizmo.extensions.json` like any third-party one. None of them is
+special-cased anywhere in core — each is loaded, registered, and dispatched
+through the exact same mechanism a third-party extension would use.
 
 ## Contracts
 
@@ -54,8 +57,8 @@ no bundler involved. A missing config file or a failed load is skipped with a
 warning rather than crashing startup — this is already the graceful-fallback
 behavior, verified by running the server with no config present.
 
-`server.ts` never names Unity. It calls `loadServerExtensions()`, registers
-the result plus the always-on `svelteExtension` into
+`server.ts` never names an extension. It calls `loadServerExtensions()`,
+registers the result into
 `apps/agent-server/src/extensions/registry.ts`, and wires
 `ExtensionHostService` and the project-service factory generically from
 whatever was loaded.
@@ -130,7 +133,7 @@ Tauri uses on Windows and what WebView2 is built on), not in WebKitGTK, which
 Tauri uses on Linux.
 
 **Built-ins still win.** `registry.svelte.ts` keeps first-party extensions
-(Unity, Svelte) statically imported, because the app bundles them anyway, and
+(Unity, Svelte, Git, Activity) statically imported, because the app bundles them anyway, and
 a runtime-loaded bundle claiming one of their ids is discarded rather than
 allowed to displace it. The registry is reactive, so extensions that arrive
 after first render still reach the UI; startup never blocks on them.
@@ -146,16 +149,18 @@ tools: [
 	'read',
 	'edit',
 	'write',
-	'git_status',
 	'run_script',
+	...defaultTools.map(({ name }) => name),
 	...activeDomains.tools.map(({ name }) => name),
 ],
 ```
 
 Pi's default four tools are `read`, `write`, `edit`, `bash`. Gizmo keeps the
-first three, adds `git_status` and `run_script`, and adds whatever narrow,
-purpose-built tools each active extension contributes (Unity's `unity_*`
-tools, which wrap its own RPC bridge — never raw shell). There is no
+first three, adds `run_script`, plus the `defaultTools` every installed
+extension may contribute unconditionally (Git contributes `git_status` this
+way), and whatever narrow, purpose-built tools each active extension
+contributes (Unity's `unity_*` tools, which wrap its own RPC bridge — never
+raw shell). There is no
 general-purpose _shell_, and that is intentional: it bounds what the model
 can do to file edits, plus running one named script file, plus whatever an
 extension explicitly and narrowly exposed.

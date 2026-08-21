@@ -452,10 +452,31 @@ export class FakeAgentClient implements AgentClient {
 	}
 
 	async invokeProjectExtension(
-		_projectPath: string,
+		projectPath: string,
 		extensionId: string,
 		operation: string,
+		input?: unknown,
 	): Promise<unknown> {
+		if (extensionId === 'git' && operation === 'status') {
+			this.#assertProject(projectPath);
+			return {
+				rootPath: projectPath,
+				branch: 'main',
+				clean: false,
+				files: [
+					{ path: 'Assets/Scripts/Player.cs', index: ' ', workingTree: 'M' },
+				],
+			};
+		}
+		if (extensionId === 'git' && operation === 'commit') {
+			this.#assertProject(projectPath);
+			const message =
+				typeof (input as { message?: unknown } | undefined)?.message ===
+				'string'
+					? (input as { message: string }).message
+					: '';
+			return { rootPath: projectPath, commit: '0123456789abcdef', message };
+		}
 		if (
 			extensionId !== fakeConsoleExtension.id ||
 			operation !== 'console.snapshot'
@@ -723,18 +744,6 @@ export class FakeAgentClient implements AgentClient {
 		};
 	}
 
-	async getGitStatus(projectPath: string): Promise<GitStatus> {
-		this.#assertProject(projectPath);
-		return {
-			rootPath: projectPath,
-			branch: 'main',
-			clean: false,
-			files: [
-				{ path: 'Assets/Scripts/Player.cs', index: ' ', workingTree: 'M' },
-			],
-		};
-	}
-
 	async generateCommitMessage(
 		sessionId: string,
 		projectPath: string,
@@ -743,14 +752,6 @@ export class FakeAgentClient implements AgentClient {
 		this.#assertProject(projectPath);
 		await this.#wait(new AbortController().signal);
 		return 'Update player behavior';
-	}
-
-	async commitAll(
-		projectPath: string,
-		message: string,
-	): Promise<GitCommitResult> {
-		this.#assertProject(projectPath);
-		return { rootPath: projectPath, commit: '0123456789abcdef', message };
 	}
 
 	subscribe(listener: AgentEventListener): () => void {

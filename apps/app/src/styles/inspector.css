@@ -212,7 +212,7 @@
 }
 
 [data-ui='inspector-panel'][data-panel='unity'],
-[data-ui='inspector-panel'][data-panel='changes'] {
+[data-ui='inspector-panel'][data-panel='git'] {
 	overflow-x: hidden;
 	overflow-y: auto;
 }

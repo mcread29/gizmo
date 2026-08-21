@@ -1,24 +1,33 @@
 import { relative, resolve } from 'node:path';
+import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { WorkspaceIntegration, WorkspaceProfile } from '@gizmo/protocol';
 import type {
 	ActiveExtensions,
 	ExtensionContext,
 	GizmoServerExtension,
 } from '@gizmo/extensions';
-import { svelteExtension } from './svelte-extension';
 
-let extensions: readonly GizmoServerExtension[] = [svelteExtension];
+let extensions: readonly GizmoServerExtension[] = [];
 
-/** Installs the extensions available to detect/activate against a workspace. Svelte is always present. */
+/** Installs the extensions available to detect/activate against a workspace. */
 export function registerExtensions(
 	loaded: readonly GizmoServerExtension[],
 ): void {
-	extensions = [svelteExtension, ...loaded];
+	extensions = loaded;
 }
 
 /** Every installed extension, whether or not it applies to any workspace. */
 export function registeredExtensions(): readonly GizmoServerExtension[] {
 	return extensions;
+}
+
+/** Tools every session receives, regardless of detected integrations. */
+export function defaultExtensionTools(
+	context: ExtensionContext,
+): ToolDefinition[] {
+	return extensions.flatMap(
+		(extension) => extension.defaultTools?.(context) ?? [],
+	);
 }
 
 export async function detectExtensions(workspacePath: string) {

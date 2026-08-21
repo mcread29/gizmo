@@ -29,11 +29,11 @@ import {
 import { sessionTree } from './session-transcript';
 import {
 	activateExtensions,
+	defaultExtensionTools,
 	registeredExtensions,
 } from '../extensions/registry';
 import { extensionResourceRoots } from '../resources/extension-resources';
 import { attachmentPrompt } from '../attachments/attachment-message';
-import { GitService } from '../git/git-service';
 import { createRunScriptTool } from '../scripts/run-script-tool';
 import { ProjectCatalog } from '../projects/project-catalog';
 import { ResourceCatalogService } from '../resources/resource-catalog';
@@ -621,13 +621,21 @@ const createDefaultPiSession: PiSessionFactory = async (
 			: {}),
 	});
 	await resourceLoader.reload();
-	const git = new GitService();
+	const defaultTools = defaultExtensionTools({
+		workspacePath: cwd,
+		confirm: (kind) => {
+			if (kind !== 'stop_play_mode_for_compile') {
+				throw new Error(`Unsupported confirmation: ${kind}`);
+			}
+			return callbacks.confirmStopPlayMode(cwd);
+		},
+	});
 	const { session } = await createAgentSession({
 		cwd,
 		agentDir,
 		customTools: [
 			...activeDomains.tools,
-			git.createStatusTool(cwd),
+			...defaultTools,
 			createRunScriptTool({ workspacePath: cwd }),
 		],
 		tools: [

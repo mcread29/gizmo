@@ -1,4 +1,7 @@
 import type { ExtensionDescriptor } from '@gizmo/protocol';
+import { gizmoWebExtension as activityWebExtension } from '@gizmo/activity/web';
+import { gizmoWebExtension as gitWebExtension } from '@gizmo/git/web';
+import { svelteWebExtension } from '@gizmo/svelte/web';
 import { unityWebExtension } from '@gizmo/unity/web';
 import type {
 	ExtensionContext,
@@ -14,7 +17,9 @@ import type {
  */
 const builtin: readonly GizmoWebExtension[] = [
 	unityWebExtension,
-	{ id: 'svelte' },
+	svelteWebExtension,
+	gitWebExtension,
+	activityWebExtension,
 ];
 
 /**

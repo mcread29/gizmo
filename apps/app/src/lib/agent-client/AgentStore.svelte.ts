@@ -24,6 +24,7 @@ import {
 	type UnityStatus,
 	type ProviderStatus,
 } from '@gizmo/protocol';
+import { parseGitCommitResult, parseGitStatus } from '@gizmo/protocol';
 import type { AgentClient } from './AgentClient';
 import { applyAgentEvent } from './agent-event-reducer';
 import { extension } from '../extensions/registry.svelte';
@@ -751,7 +752,9 @@ export class AgentStore {
 		const projectPath = this.selectedProjectPath;
 		this.gitLoading = true;
 		try {
-			const status = await this.#client.getGitStatus(projectPath);
+			const status = parseGitStatus(
+				await this.invokeProjectExtension(projectPath, 'git', 'status'),
+			);
 			if (this.selectedProjectPath === projectPath) this.gitStatus = status;
 		} finally {
 			if (this.selectedProjectPath === projectPath) this.gitLoading = false;
@@ -768,12 +771,14 @@ export class AgentStore {
 	}
 
 	async commitAll(message: string): Promise<GitCommitResult> {
-		if (!this.selectedProjectPath) throw new Error('No project selected');
+		const projectPath = this.selectedProjectPath;
+		if (!projectPath) throw new Error('No project selected');
 		this.gitCommitting = true;
 		try {
-			const result = await this.#client.commitAll(
-				this.selectedProjectPath,
-				message,
+			const result = parseGitCommitResult(
+				await this.invokeProjectExtension(projectPath, 'git', 'commit', {
+					message,
+				}),
 			);
 			await this.refreshGitStatus();
 			return result;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { CheckCircle2, CircleAlert, X } from '@lucide/svelte';
-	import type { ToastQueue } from '../toasts.svelte';
+	import type { ToastQueue } from './toasts.svelte';
 	import Button from './Button.svelte';
 
 	let { queue }: { queue: ToastQueue } = $props();

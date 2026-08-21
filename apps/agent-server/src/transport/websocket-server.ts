@@ -10,7 +10,7 @@ import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { registeredExtensions } from '../extensions/registry';
 import { webExtensionBundles } from '../extensions/web-bundles';
 import { PiAgentService } from '../sessions/pi-agent-service';
-import { GitService } from '../git/git-service';
+import { GitService } from '@gizmo/git/server';
 import { ExtensionHostService } from '../extensions/extension-host-service';
 
 export interface AgentWebSocketServerOptions {
@@ -376,21 +376,12 @@ async function dispatch(
 					request.input,
 				),
 			};
-		case 'git.status':
-			return { result: await gitService.status(request.projectPath) };
 		case 'git.commit-message': {
 			const context = await gitService.commitContext(request.projectPath);
 			return {
 				result: await service.generateCommitMessage(request.sessionId, context),
 			};
 		}
-		case 'git.commit':
-			return {
-				result: await gitService.commitAll(
-					request.projectPath,
-					request.message,
-				),
-			};
 		case 'file.revert':
 			await projectService.revertFile(
 				request.projectPath,

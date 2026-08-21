@@ -12,16 +12,20 @@
 	} from '@lucide/svelte';
 	import type { GitFileStatus } from '@gizmo/protocol';
 	import { SvelteSet } from 'svelte/reactivity';
-	import type { AgentStore } from '../../agent-client';
-	import { Button, Dialog, Tooltip } from '../../components';
-	import { toasts } from '../../toasts.svelte';
-	import DiffView from '../conversation/DiffView.svelte';
-	import { sourceHref } from '../../util/source-href';
+	import type { GitHostStore } from './host';
+	import {
+		Button,
+		Dialog,
+		Tooltip,
+		toasts,
+		DiffView,
+		sourceHref,
+	} from '@gizmo/ui';
 	import { changeTree, changeTreeRows } from './change-tree';
 	import { threadChanges } from './thread-changes';
 
 	interface Props {
-		store: AgentStore;
+		store: GitHostStore;
 		projectPath?: string;
 	}
 

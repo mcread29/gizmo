@@ -22,11 +22,15 @@
 		"@tauri-apps/plugin-dialog": "^2.7.2",
 		"@gizmo/design": "workspace:*",
 		"@gizmo/protocol": "workspace:*",
+		"@gizmo/svelte": "workspace:*",
+		"@gizmo/ui": "workspace:*",
 		"@gizmo/unity": "workspace:*",
 		"bits-ui": "latest",
 		"dompurify": "^3.4.13",
 		"marked": "^18.0.9",
-		"svelte": "latest"
+		"svelte": "latest",
+		"@gizmo/git": "workspace:*",
+		"@gizmo/activity": "workspace:*"
 	},
 	"devDependencies": {
 		"@sveltejs/vite-plugin-svelte": "latest",

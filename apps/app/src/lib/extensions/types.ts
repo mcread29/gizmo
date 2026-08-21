@@ -27,6 +27,13 @@ export interface InspectorTabContribution {
 	props: Record<string, unknown>;
 }
 
+/** What an extension needs to decide which inspector tabs to contribute. */
+export interface InspectorTabContext {
+	store: AgentStore;
+	projectPath?: string;
+	toolActivity: ToolCallView[];
+}
+
 export interface WebExtensionRuntime {
 	readonly inspectorTabs: InspectorTabContribution[];
 	dispose(): void;
@@ -76,6 +83,12 @@ export interface GizmoWebExtension {
 		descriptor: ExtensionDescriptor,
 		context: ExtensionContext,
 	): WebExtensionRuntime;
+
+	/**
+	 * Static tabs contributed to the workspace inspector whenever the
+	 * extension is installed — no per-project activation required.
+	 */
+	inspectorTabs?(context: InspectorTabContext): InspectorTabContribution[];
 
 	labels?: Record<string, string>;
 	iconFor?(name: string): string | undefined;

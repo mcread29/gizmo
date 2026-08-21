@@ -1,3 +1,8 @@
 {
-	"extensions": ["@gizmo/unity"]
+	"extensions": [
+		"@gizmo/unity",
+		"@gizmo/svelte",
+		"@gizmo/git",
+		"@gizmo/activity"
+	]
 }
