@@ -1,5 +1,20 @@
 # Work log
 
+## 2026-08-21 — Workspace picker becomes a real command palette
+
+- Dropped the shared `Dialog` wrapper (title, description, bordered card
+  header) for this flow in favor of a bare floating overlay built directly on
+  bits-ui's `Dialog.Root`/`Portal`/`Overlay`/`Content` primitives — title and
+  description are now visually hidden (kept for a11y) rather than rendered
+  chrome.
+- Added a persistent keybinding footer (`↑↓ Navigate`, `Backspace Back` when
+  scoped to a pin, `Esc Close`, `Enter Add`) so the interactions are visible
+  instead of assumed.
+- This resolves the open question from the entry below: once compared
+  side-by-side with t3code's own palette, the dialog framing (border, title
+  bar, block-highlighted rows) was the thing making it "feel bad" — the search
+  logic underneath was already fine.
+
 ## 2026-08-21 — Workspace picker: fuzzy search, still mid-redesign
 
 - Replaced the "Open workspace" folder browser's one-level-at-a-time drill-down

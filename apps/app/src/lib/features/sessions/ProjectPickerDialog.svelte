@@ -1,19 +1,13 @@
 <script lang="ts">
-	import {
-		Folder,
-		FolderOpen,
-		LoaderCircle,
-		Pin,
-		PinOff,
-		X,
-	} from '@lucide/svelte';
+	import { Folder, FolderOpen, LoaderCircle, Pin, PinOff, X } from '@lucide/svelte';
+	import { Dialog } from 'bits-ui';
 	import type {
 		ProjectDomains,
 		WorkspaceDirectoryListing,
 		WorkspaceIntegration,
 	} from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, Dialog } from '../../components';
+	import { Button } from '../../components';
 	import { isDesktop, pickWorkspaceDirectory } from '../../desktop';
 	import { PinnedDirectoryStore } from './pinned-directories.svelte';
 
@@ -60,6 +54,11 @@
 
 	$effect(() => {
 		if (open) inputEl?.focus();
+		else {
+			query = '';
+			root = undefined;
+			addError = undefined;
+		}
 	});
 
 	async function browseDesktop() {
@@ -118,30 +117,23 @@
 	}
 </script>
 
-<Dialog
-	bind:open
-	title="Open workspace"
-	description="Choose a folder on this machine"
-	size="md"
->
-	{#snippet trigger(props)}<button
-			{...props}
-			data-ui="hidden-trigger"
-			hidden
-			tabindex="-1">Open workspace</button
-		>{/snippet}
-
-	<div data-ui="folder-picker">
-		{#if isDesktop()}
-			<div data-ui="native-folder-picker">
-				<FolderOpen size={28} />
-				<p>Choose a folder with the system folder picker.</p>
-				<Button disabled={detecting} onclick={() => void browseDesktop()}>
-					{detecting ? 'Opening…' : 'Choose folder'}
-				</Button>
-			</div>
-		{:else}
-			<div data-ui="palette">
+<Dialog.Root bind:open>
+	<Dialog.Portal>
+		<Dialog.Overlay data-ui="palette-overlay" />
+		<Dialog.Content data-ui="palette-panel">
+			<Dialog.Title data-ui="visually-hidden">Open workspace</Dialog.Title>
+			<Dialog.Description data-ui="visually-hidden"
+				>Choose a folder on this machine</Dialog.Description
+			>
+			{#if isDesktop()}
+				<div data-ui="native-folder-picker">
+					<FolderOpen size={28} />
+					<p>Choose a folder with the system folder picker.</p>
+					<Button disabled={detecting} onclick={() => void browseDesktop()}>
+						{detecting ? 'Opening…' : 'Choose folder'}
+					</Button>
+				</div>
+			{:else}
 				<div data-ui="palette-input">
 					{#if root}
 						<button data-ui="palette-scope" onclick={clearRoot}>
@@ -207,9 +199,16 @@
 						{/if}
 					{/each}
 				</ul>
-			</div>
-		{/if}
 
-		{#if addError}<p data-ui="onboarding-error">{addError}</p>{/if}
-	</div>
-</Dialog>
+				<div data-ui="palette-footer">
+					<span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+					{#if root}<span><kbd>Backspace</kbd> Back</span>{/if}
+					<span><kbd>Esc</kbd> Close</span>
+					<span data-ui="palette-footer-primary"><kbd>Enter</kbd> Add</span>
+				</div>
+			{/if}
+
+			{#if addError}<p data-ui="onboarding-error">{addError}</p>{/if}
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
