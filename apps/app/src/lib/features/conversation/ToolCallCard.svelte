@@ -11,7 +11,7 @@
 		Terminal,
 	} from '@lucide/svelte';
 	import { Button } from '../../components';
-	import CompilerDiagnosticList from '../unity/CompilerDiagnosticList.svelte';
+	import { CompilerDiagnosticList } from '@unity-agent/unity/web';
 	import ToolResult from './ToolResult.svelte';
 	import { formatToolResult, recordValue } from './format';
 	import { toolIcon, toolLabel } from './tool-labels';

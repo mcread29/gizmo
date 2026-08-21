@@ -1,7 +1,7 @@
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createUnityTools } from '@unity-agent/unity-tools';
-import type { WorkspaceDomain } from '../types';
+import type { WorkspaceDomain } from '../../../../../apps/agent-server/src/domains/types';
 import { unitySystemPrompt } from './unity-system-prompt';
 
 export const unityDomain: WorkspaceDomain = {

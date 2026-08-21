@@ -5,7 +5,7 @@ import type {
 	InspectorTabContribution,
 	WebExtensionDefinition,
 	WebExtensionRuntime,
-} from '../types';
+} from '../host';
 import type { ConsoleCounts, ConsoleEntry } from './console-types';
 
 const extensionId = 'unity';

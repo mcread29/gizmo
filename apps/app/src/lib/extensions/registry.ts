@@ -1,5 +1,5 @@
 import type { ExtensionDescriptor } from '@unity-agent/protocol';
-import { unityExtension } from './console/console-extension.svelte';
+import { unityExtension } from '@unity-agent/unity/web';
 import type {
 	ExtensionContext,
 	ExtensionHostContext,

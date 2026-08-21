@@ -1,5 +1,5 @@
 import type { AgentStore } from '../agent-client';
-import { createUnityView, type UnityView } from '../features/unity/unity-view';
+import { createUnityView, type UnityView } from '@unity-agent/unity/web';
 import type { WorkspaceView } from './types';
 
 export type ActiveWorkspaceView = WorkspaceView & { unity?: UnityView };

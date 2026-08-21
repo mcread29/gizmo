@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 import { createAgentWebSocketServer } from './transport/websocket-server';
 import { configuredOrigins } from './server-config';
 import { ExtensionHostService } from './extensions/extension-host-service';
-import { UnityExtensionProvider } from '@unity-agent/unity-tools';
+import { UnityExtensionProvider } from '@unity-agent/unity/server';
 
 await restoreDesktopEnvironment();
 

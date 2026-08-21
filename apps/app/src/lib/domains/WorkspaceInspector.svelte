@@ -5,8 +5,7 @@
 	import type { WebExtensionRuntime } from '../extensions/types';
 	import ChangesPanel from '../features/changes/ChangesPanel.svelte';
 	import PanelToggle from '../features/shell/PanelToggle.svelte';
-	import ActivityPanel from '../features/unity/ActivityPanel.svelte';
-	import UnityPanel from '../features/unity/UnityPanel.svelte';
+	import { ActivityPanel, UnityPanel } from '@unity-agent/unity/web';
 	import type { ActiveWorkspaceView } from './workspace-view';
 
 	let {

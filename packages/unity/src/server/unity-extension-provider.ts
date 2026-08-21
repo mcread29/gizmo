@@ -1,11 +1,12 @@
 import type { ExtensionDescriptor } from '@unity-agent/protocol';
 import {
 	invokeUnityExtension,
+	listUnityCommands,
 	listUnityExtensions,
 	unityExtensionCommands,
-} from './unity-extensions';
-import { listUnityCommands } from './unity-list-commands';
-import { UnityRunner, type UnityCommandRunner } from './unity-runner';
+	UnityRunner,
+	type UnityCommandRunner,
+} from '@unity-agent/unity-tools';
 
 /** Adapts Unity Pipeline's extension commands to Gizmo's generic contract. */
 export class UnityExtensionProvider {

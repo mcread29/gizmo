@@ -1,8 +1,7 @@
 import type { Component } from 'svelte';
 import type { AgentStore } from '../agent-client';
 import type { WorkspaceLayout } from '../features/shell/workspace.svelte';
-import UnityDomainDialog from './UnityDomainDialog.svelte';
-import UnityDomainSettings from './UnityDomainSettings.svelte';
+import { UnityDomainDialog, UnityDomainSettings } from '@unity-agent/unity/web';
 
 export interface WebDomainDefinition {
 	id: string;

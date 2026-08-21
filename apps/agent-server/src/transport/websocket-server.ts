@@ -12,7 +12,7 @@ import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { PiAgentService } from '../sessions/pi-agent-service';
 import { GitService } from '../git/git-service';
 import { ExtensionHostService } from '../extensions/extension-host-service';
-import { UnityProjectService } from '../domains/unity/unity-project-service';
+import { UnityProjectService } from '@unity-agent/unity/server';
 
 export interface AgentWebSocketServerOptions {
 	host?: string;

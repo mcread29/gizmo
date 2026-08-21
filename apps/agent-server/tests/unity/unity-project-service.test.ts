@@ -3,8 +3,8 @@ import type {
 	UnityRunResult,
 } from '@unity-agent/unity-tools';
 import { describe, expect, it, vi } from 'vitest';
-import { UnityProjectService } from '../../src/domains/unity/unity-project-service';
-import { UnityExtensionProvider } from '@unity-agent/unity-tools';
+import { UnityProjectService } from '@unity-agent/unity/server';
+import { UnityExtensionProvider } from '@unity-agent/unity/server';
 import { ExtensionHostService } from '../../src/extensions/extension-host-service';
 
 describe('UnityProjectService', () => {

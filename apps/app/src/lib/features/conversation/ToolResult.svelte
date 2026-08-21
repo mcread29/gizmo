@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { ToolCallView } from '@unity-agent/protocol';
-	import { commandName } from '../unity/unity-view';
-	import UnityTestResults from '../unity/UnityTestResults.svelte';
+	import { commandName, UnityTestResults } from '@unity-agent/unity/web';
 	import DiffView from './DiffView.svelte';
 	import { patchFileName } from '../changes/thread-changes';
 	import { formatToolResult, recordValue, stringValue } from './format';

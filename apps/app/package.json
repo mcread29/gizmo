@@ -21,6 +21,7 @@
 		"@tauri-apps/plugin-dialog": "^2.7.2",
 		"@unity-agent/design": "workspace:*",
 		"@unity-agent/protocol": "workspace:*",
+		"@unity-agent/unity": "workspace:*",
 		"bits-ui": "latest",
 		"dompurify": "^3.4.13",
 		"highlight.js": "^11.12.0",

@@ -1,12 +1,11 @@
 <script lang="ts">
-	import type { AgentStore } from '../../agent-client';
-	import type { InspectorTabContribution } from '../../extensions/types';
+	import type { InspectorTabContribution, UnityHost } from '../host';
 	import EditorPanel from './EditorPanel.svelte';
 	import type { UnityView } from './unity-view';
 
 	interface Props {
 		view: UnityView;
-		store: AgentStore;
+		store: UnityHost;
 		onOpenProject: () => void;
 		extensionTabs: InspectorTabContribution[];
 		activePanel: string;

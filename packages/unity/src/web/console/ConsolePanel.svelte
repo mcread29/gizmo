@@ -17,7 +17,7 @@
 	import './console.css';
 	import type { ConsoleExtensionRuntime } from './console-extension.svelte';
 	import type { ConsoleEntry } from './console-types';
-	import { sourceHref } from '../../features/unity/compiler-diagnostics';
+	import { sourceHref } from '../unity/compiler-diagnostics';
 	import {
 		consoleSourceLabel,
 		consoleTimeLabel,

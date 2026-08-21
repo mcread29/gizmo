@@ -1,11 +1,9 @@
 <script lang="ts">
-	import { ConfirmDialog } from '../../components';
-	import type { AgentStore, PendingConfirmation } from '../../agent-client';
-	import type { WorkspaceLayout } from '../shell/workspace.svelte';
+	import type { PendingConfirmation, UnityHost, UnityLayout } from '../host';
 
 	interface Props {
-		store: AgentStore;
-		layout: WorkspaceLayout;
+		store: UnityHost;
+		layout: UnityLayout;
 	}
 
 	let { store, layout }: Props = $props();
@@ -39,13 +37,10 @@
 	}
 </script>
 
-<ConfirmDialog
-	bind:open
-	title="Stop Play Mode to compile?"
-	description="Unity must leave Play Mode before the agent can compile scripts. Your choice will be remembered and can be changed in Settings."
-	confirmLabel="Stop and compile"
-	cancelLabel="Keep playing"
-	tone="primary"
-	onConfirm={() => answer(true)}
-	onCancel={() => answer(false)}
-/>
+{#if open}
+	<div role="dialog" aria-modal="true">
+		<h2>Stop Play Mode to compile?</h2><p>Unity must leave Play Mode before the agent can compile scripts.</p>
+		<button type="button" onclick={() => answer(true)}>Stop and compile</button>
+		<button type="button" onclick={() => answer(false)}>Keep playing</button>
+	</div>
+{/if}

@@ -5,8 +5,6 @@
 	} from '@tanstack/svelte-virtual';
 	import { CircleCheck, CircleDashed, CircleX, Terminal } from '@lucide/svelte';
 	import { get } from 'svelte/store';
-	import { toolLabel } from '../conversation/tool-labels';
-	import { toolSummary } from '../conversation/tool-summary';
 	import type { ToolCallView } from '@unity-agent/protocol';
 
 	let { view }: { view: { toolActivity: ToolCallView[] } } = $props();
@@ -40,6 +38,10 @@
 		const node = viewport;
 		get(virtualizer).setOptions({ getScrollElement: () => node });
 	});
+
+	function toolSummary(input: unknown): string | undefined {
+		return typeof input === 'string' ? input : undefined;
+	}
 </script>
 
 {#if tools.length === 0}
@@ -64,7 +66,7 @@
 					<div data-ui="activity-item" data-state={tool.status}>
 						<Terminal size={13} />
 						<span>
-							<strong>{toolLabel(tool.name)}</strong>
+							<strong>{tool.name.replaceAll('_', ' ')}</strong>
 							<small title={summary}>{summary}</small>
 						</span>
 						{#if tool.status === 'running'}

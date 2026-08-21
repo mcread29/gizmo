@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { FolderOpen } from '@lucide/svelte';
-	import type { AgentStore } from '../../agent-client';
-	import { Button } from '../../components';
+	import type { UnityHost } from '../host';
 	import CompilerDiagnosticList from './CompilerDiagnosticList.svelte';
 	import UnityTestResults from './UnityTestResults.svelte';
 	import { readEditorValue, type UnityView } from './unity-view';
 
 	interface Props {
 		view: UnityView;
-		store: AgentStore;
+		store: UnityHost;
 		onOpenProject: () => void;
 	}
 
@@ -109,14 +108,13 @@
 					'The selected project Editor is not open.'}
 			</p>
 			{#if view.selectedProject}
-				<Button
-					variant="primary"
-					size="sm"
+				<button
+					type="button"
 					disabled={store.projectOpening}
 					onclick={onOpenProject}
 					><FolderOpen size={14} />{store.projectOpening
 						? 'Opening Editor…'
-						: 'Open Editor'}</Button
+						: 'Open Editor'}</button
 				>
 			{/if}
 		{/if}

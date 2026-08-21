@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { unitySystemPrompt } from '../../src/domains/unity/unity-system-prompt';
+import { unitySystemPrompt } from '@unity-agent/unity/server';
 
 describe('unitySystemPrompt', () => {
 	it('documents Unity tools without redefining core coding tools', () => {
