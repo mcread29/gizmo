@@ -100,6 +100,24 @@ match the id it was served as — otherwise an extension could impersonate
 another. One failing bundle is reported and skipped rather than taking the
 whole extension surface down.
 
+**Validation.** Past that identity check, the loaded object comes from code
+Gizmo does not control. Every optional field is checked against the shape
+`GizmoWebExtension` promises — `dialog`/`settings`/`activate`/etc. must
+actually be functions, `labels` must be a string-to-string record, and so on
+— and a field that fails is dropped individually rather than the whole
+bundle: a plugin with one malformed field loses just that capability, with a
+diagnostic naming it, instead of surfacing a raw `TypeError` deep inside a
+Svelte render (or failing to load at all over one bad field).
+
+**Runtime isolation.** The published host-module set
+(`__gizmoHostModules__`) is `Object.freeze`d and defined non-writable and
+non-configurable on `globalThis`. A loaded plugin still runs in the main
+page — this is not a sandbox — but it cannot swap the shared Svelte runtime
+for one it controls and hand a poisoned module to every other extension
+sharing the same global. Real code-execution isolation (an iframe sandbox,
+or hash-pinning a bundle so a silently updated dependency cannot swap code
+under an id already trusted) is future work, not yet done.
+
 **CSP.** Importing a blob URL as a module requires `script-src 'self' blob:`
 in `src-tauri/tauri.conf.json`. The previous `default-src 'self'` (with no
 `script-src`) blocked it; both the block and the fix were confirmed in a real

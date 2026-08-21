@@ -14,21 +14,6 @@ import { publishHostModules } from './host-modules';
  *
  * This requires `script-src ... blob:` in the Tauri CSP; see tauri.conf.json.
  */
-export async function loadWebExtension(
-	bundle: WebExtensionBundle,
-): Promise<GizmoWebExtension> {
-	publishHostModules();
-	const url = URL.createObjectURL(
-		new Blob([bundle.code], { type: 'text/javascript' }),
-	);
-	try {
-		const module: unknown = await import(/* @vite-ignore */ url);
-		return validate(bundle.id, module);
-	} finally {
-		// The module stays live once evaluated; the URL is only needed to fetch it.
-		URL.revokeObjectURL(url);
-	}
-}
 
 /**
  * Loads every bundle, keeping the ones that work. One broken plugin must not
@@ -42,24 +27,61 @@ export async function loadWebExtensions(
 	const results = await Promise.all(
 		bundles.map(async (bundle) => {
 			try {
-				return { extension: await loadWebExtension(bundle) };
+				const { extension, issues } = validate(bundle.id, await load(bundle));
+				return {
+					extension,
+					diagnostics: issues.map(
+						(issue) => `Web extension "${bundle.id}": ${issue}`,
+					),
+				};
 			} catch (error) {
 				return {
-					diagnostic: `Failed to load web extension "${bundle.id}": ${
-						error instanceof Error ? error.message : String(error)
-					}`,
+					diagnostics: [
+						`Failed to load web extension "${bundle.id}": ${
+							error instanceof Error ? error.message : String(error)
+						}`,
+					],
 				};
 			}
 		}),
 	);
 	for (const result of results) {
 		if (result.extension) extensions.push(result.extension);
-		if (result.diagnostic) diagnostics.push(result.diagnostic);
+		diagnostics.push(...result.diagnostics);
 	}
 	return { extensions, diagnostics };
 }
 
-function validate(id: string, module: unknown): GizmoWebExtension {
+async function load(bundle: WebExtensionBundle): Promise<unknown> {
+	publishHostModules();
+	const url = URL.createObjectURL(
+		new Blob([bundle.code], { type: 'text/javascript' }),
+	);
+	try {
+		return await import(/* @vite-ignore */ url);
+	} finally {
+		// The module stays live once evaluated; the URL is only needed to fetch it.
+		URL.revokeObjectURL(url);
+	}
+}
+
+/** A field expected to be a function — a Svelte component or a callback. */
+function isFunction(value: unknown): value is (...args: never[]) => unknown {
+	return typeof value === 'function';
+}
+
+/**
+ * Every field beyond `id` comes from code Gizmo does not control. Rather than
+ * trust the whole object, each optional field is checked against the shape
+ * `GizmoWebExtension` promises and dropped individually if it does not match
+ * — so a plugin with one malformed field loses just that capability instead
+ * of surfacing a raw `TypeError` deep inside a Svelte render, or the plugin
+ * failing to load at all over one bad field.
+ */
+function validate(
+	id: string,
+	module: unknown,
+): { extension: GizmoWebExtension; issues: string[] } {
 	const exported =
 		module !== null &&
 		typeof module === 'object' &&
@@ -69,16 +91,58 @@ function validate(id: string, module: unknown): GizmoWebExtension {
 	if (exported === null || typeof exported !== 'object') {
 		throw new Error('bundle does not export a gizmoWebExtension object');
 	}
-	const extension = exported as GizmoWebExtension;
-	if (typeof extension.id !== 'string' || !extension.id) {
+	const candidate = exported as Record<string, unknown>;
+	if (typeof candidate.id !== 'string' || !candidate.id) {
 		throw new Error('gizmoWebExtension has no id');
 	}
 	// The id is the identity the server dispatches on; a bundle claiming a
 	// different one would let an extension impersonate another.
-	if (extension.id !== id) {
+	if (candidate.id !== id) {
 		throw new Error(
-			`bundle declares id "${extension.id}" but was served as "${id}"`,
+			`bundle declares id "${candidate.id}" but was served as "${id}"`,
 		);
 	}
-	return extension;
+
+	const issues: string[] = [];
+	const extension: { id: string } & Record<string, unknown> = {
+		id: candidate.id,
+	};
+
+	function keep(
+		field: string,
+		check: (value: unknown) => boolean,
+		expected: string,
+	): void {
+		const value = candidate[field];
+		if (value === undefined) return;
+		if (!check(value)) {
+			issues.push(`"${field}" is not ${expected}; ignoring it`);
+			return;
+		}
+		extension[field] = value;
+	}
+
+	keep('dialog', isFunction, 'a component');
+	keep('settings', isFunction, 'a component');
+	keep('createView', isFunction, 'a function');
+	keep('hasProjectStatus', (v) => typeof v === 'boolean', 'a boolean');
+	keep('apiVersion', (v) => typeof v === 'number', 'a number');
+	keep('activate', isFunction, 'a function');
+	keep(
+		'labels',
+		(v) =>
+			v !== null &&
+			typeof v === 'object' &&
+			Object.values(v as Record<string, unknown>).every(
+				(entry) => typeof entry === 'string',
+			),
+		'a string-to-string record',
+	);
+	keep('iconFor', isFunction, 'a function');
+	keep('consoleEntriesKey', isFunction, 'a function');
+	keep('parametersFor', isFunction, 'a function');
+	keep('resultFor', isFunction, 'a function');
+	keep('diagnosticsComponent', isFunction, 'a component');
+
+	return { extension: extension as unknown as GizmoWebExtension, issues };
 }

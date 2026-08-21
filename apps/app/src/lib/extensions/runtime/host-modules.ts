@@ -15,16 +15,30 @@ import * as svelteInternalClient from 'svelte/internal/client';
  * in whichever webview Tauri uses on the host platform. Everything else a
  * plugin imports is bundled into it normally.
  */
-export const sharedModules = {
+// Module namespace objects are already read-only per spec; freezing the
+// container stops a plugin from replacing `sharedModules.svelte` itself and
+// handing a poisoned module to every other extension sharing this global.
+export const sharedModules = Object.freeze({
 	svelte,
 	'svelte/internal/client': svelteInternalClient,
-} as const;
+});
 
 export const hostModulesKey = '__gizmoHostModules__';
 
-/** Publishes the shared modules so a loaded plugin bundle can reach them. */
+/**
+ * Publishes the shared modules so a loaded plugin bundle can reach them.
+ * Defined non-writable and non-configurable so a plugin cannot swap out the
+ * whole set for one it controls and hand a poisoned runtime to extensions
+ * loaded afterward.
+ */
 export function publishHostModules(
 	target: Record<string, unknown> = globalThis as never,
 ): void {
-	target[hostModulesKey] = sharedModules;
+	if (target[hostModulesKey] === sharedModules) return;
+	Object.defineProperty(target, hostModulesKey, {
+		value: sharedModules,
+		writable: false,
+		configurable: false,
+		enumerable: false,
+	});
 }
