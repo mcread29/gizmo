@@ -27,7 +27,11 @@ import {
 	type SessionRepository,
 } from './session-repository';
 import { sessionTree } from './session-transcript';
-import { activateExtensions } from '../extensions/registry';
+import {
+	activateExtensions,
+	registeredExtensions,
+} from '../extensions/registry';
+import { extensionResourceRoots } from '../resources/extension-resources';
 import { attachmentPrompt } from '../attachments/attachment-message';
 import { GitService } from '../git/git-service';
 import { createRunScriptTool } from '../scripts/run-script-tool';
@@ -591,11 +595,16 @@ const createDefaultPiSession: PiSessionFactory = async (
 	// discovery locations contribute nothing, so what the model sees is exactly
 	// what Gizmo's settings say it should.
 	const catalog = new ResourceCatalogService();
-	const [skillPaths, promptPaths, agentsFiles] = await Promise.all([
-		catalog.enabledSkillPaths(cwd),
-		existingDirectories(resourceRoots(cwd).prompts),
-		readAgentsFiles(cwd),
-	]);
+	// enabledSkillPaths already covers extension-shipped skills: the catalog
+	// discovers them from each extension's package. Prompt templates are not
+	// gated by enablement, so their directories are added here directly.
+	const [skillPaths, promptPaths, agentsFiles, fromExtensions] =
+		await Promise.all([
+			catalog.enabledSkillPaths(cwd),
+			existingDirectories(resourceRoots(cwd).prompts),
+			readAgentsFiles(cwd),
+			extensionResourceRoots(registeredExtensions()),
+		]);
 	const resourceLoader = new DefaultResourceLoader({
 		cwd,
 		agentDir,
@@ -605,7 +614,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 		noPromptTemplates: true,
 		noContextFiles: true,
 		additionalSkillPaths: skillPaths,
-		additionalPromptTemplatePaths: promptPaths,
+		additionalPromptTemplatePaths: [...promptPaths, ...fromExtensions.prompts],
 		agentsFilesOverride: () => ({ agentsFiles }),
 		...(activeDomains.systemPrompt
 			? { systemPromptOverride: () => activeDomains.systemPrompt! }

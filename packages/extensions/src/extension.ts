@@ -16,6 +16,12 @@ export interface ExtensionContext {
 export interface GizmoServerExtension {
 	id: string;
 	name: string;
+	/**
+	 * Absolute path to the extension's own package root. Skills and prompt
+	 * templates the package ships are discovered from here using Pi's package
+	 * convention, so an extension never needs a parallel Gizmo skill system.
+	 */
+	packageRoot?: string;
 	detect?(workspacePath: string): Promise<boolean>;
 	detectRoots?(workspacePath: string): Promise<string[]>;
 	profile?(root: string): WorkspaceProfile;

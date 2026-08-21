@@ -7,7 +7,9 @@ import type {
 	ResourceScope,
 	SkillResource,
 } from '@gizmo/protocol';
+import { registeredExtensions } from '../extensions/registry';
 import { ProjectCatalog } from '../projects/project-catalog';
+import { extensionResourceRoots } from './extension-resources';
 import { GlobalResourceStore } from './global-resource-settings';
 import {
 	adoptPiResources,
@@ -168,11 +170,16 @@ export async function discoverResources(
 	const cwd = workspacePath ?? homedir();
 	await adoptPiResources();
 	const roots = resourceRoots(workspacePath);
-	const [skillDirs, promptDirs, agentsFiles] = await Promise.all([
-		existingDirectories(roots.skills),
-		existingDirectories(roots.prompts),
-		existingFiles(roots.agentsFiles),
-	]);
+	// Extensions ship skills through their own package, using Pi's convention;
+	// installing the package is the opt-in, and each skill still stays disabled
+	// until enabled through the catalog like any other.
+	const [skillDirs, promptDirs, agentsFiles, fromExtensions] =
+		await Promise.all([
+			existingDirectories(roots.skills),
+			existingDirectories(roots.prompts),
+			existingFiles(roots.agentsFiles),
+			extensionResourceRoots(registeredExtensions()),
+		]);
 
 	// Pi parses these, but only from the paths Gizmo hands it: none of its own
 	// discovery locations contribute, so nothing under ~/.pi reaches a session.
@@ -185,8 +192,8 @@ export async function discoverResources(
 		noPromptTemplates: true,
 		noThemes: true,
 		noContextFiles: true,
-		additionalSkillPaths: skillDirs,
-		additionalPromptTemplatePaths: promptDirs,
+		additionalSkillPaths: [...skillDirs, ...fromExtensions.skills],
+		additionalPromptTemplatePaths: [...promptDirs, ...fromExtensions.prompts],
 	});
 	await loader.reload();
 

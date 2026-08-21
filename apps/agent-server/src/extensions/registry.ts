@@ -10,8 +10,15 @@ import { svelteExtension } from './svelte-extension';
 let extensions: readonly GizmoServerExtension[] = [svelteExtension];
 
 /** Installs the extensions available to detect/activate against a workspace. Svelte is always present. */
-export function registerExtensions(loaded: readonly GizmoServerExtension[]): void {
+export function registerExtensions(
+	loaded: readonly GizmoServerExtension[],
+): void {
 	extensions = [svelteExtension, ...loaded];
+}
+
+/** Every installed extension, whether or not it applies to any workspace. */
+export function registeredExtensions(): readonly GizmoServerExtension[] {
+	return extensions;
 }
 
 export async function detectExtensions(workspacePath: string) {
@@ -76,9 +83,12 @@ export async function activateExtensions(
 		]
 			.filter(Boolean)
 			.join('\n\n'),
-		tools: active.flatMap(({ extension, integrationPath }) =>
-			extension.createTools?.({ ...context, workspacePath: integrationPath }) ??
-			[],
+		tools: active.flatMap(
+			({ extension, integrationPath }) =>
+				extension.createTools?.({
+					...context,
+					workspacePath: integrationPath,
+				}) ?? [],
 		),
 	};
 }

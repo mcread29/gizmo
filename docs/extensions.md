@@ -164,10 +164,28 @@ Gizmo currently sets `noSkills: true` / `noExtensions: true` /
 ambient package loading, instead passing `additionalSkillPaths`/
 `additionalPromptTemplatePaths` explicitly (see
 `apps/agent-server/src/sessions/pi-agent-service.ts`). A Gizmo extension that
-wants to ship skills should ride this existing Pi mechanism — e.g. by
-resolving to a skills directory the extension's own package declares, added
-to `additionalSkillPaths` — rather than Gizmo inventing a parallel `skillsPath`
-convention and a second resource-discovery system. Not yet wired up.
+ships skills rides this existing Pi mechanism rather than a parallel Gizmo
+`skillsPath` convention and a second resource-discovery system.
+
+A `GizmoServerExtension` may set `packageRoot` to its own package directory.
+`apps/agent-server/src/resources/extension-resources.ts` then resolves the
+skill and prompt directories that package ships, using Pi's own convention:
+
+- a `pi` key in the package's `package.json`
+  (`{ "pi": { "skills": ["./skills"], "prompts": ["./prompts"] } }`), or
+- the conventional `skills/` and `prompts/` directories when no `pi` key
+  declares them.
+
+Declared directories that do not exist, or that resolve outside the package
+root, are dropped — a manifest cannot reach out and contribute arbitrary
+directories from the host machine.
+
+The resulting paths join `additionalSkillPaths` /
+`additionalPromptTemplatePaths`. Installing the extension package is the
+opt-in for _discovery_ only: a shipped skill is registered as installed but
+stays disabled until enabled through the normal resource catalog, exactly
+like a skill found on disk. It never starts influencing sessions on its
+own.
 
 Pi's own "Extensions" concept (a TypeScript module with a
 `(pi: ExtensionAPI) => ...` default export, registering providers, commands,
@@ -189,13 +207,13 @@ decision made yet.
 - `bash` excluded from the default tool allowlist.
 - `run_script` (Bun, `.ts`/`.js` only, no shell) as the sole additional
   execution primitive.
+- Extension-shipped skills and prompts via `packageRoot` + Pi's package
+  convention, feeding `additionalSkillPaths`.
 
 **Decided, not yet implemented:**
 
 - Client-side runtime discovery (needs a Tauri/Vite dynamic-`import(url)`
   spike first).
-- Skills/prompts distributed through Pi packages, wired via
-  `additionalSkillPaths`, not a parallel Gizmo skill system.
 
 **Open:**
 
