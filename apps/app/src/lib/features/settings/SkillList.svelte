@@ -32,15 +32,6 @@
 		onInstall,
 	}: Props = $props();
 
-	/** Descriptions run to paragraphs, so a row shows two lines until opened. */
-	let expanded = $state(new Set<string>());
-
-	function toggleExpanded(id: string) {
-		const next = new Set(expanded);
-		if (!next.delete(id)) next.add(id);
-		expanded = next;
-	}
-
 	/** A row resets when it overrides the global setting or its baseline. */
 	function resettable(skill: SkillResource) {
 		return skill.override !== undefined || (changed?.has(skill.id) ?? false);
@@ -61,8 +52,10 @@
 				? 'Default for every workspace'
 				: 'Workspaces can still turn it on';
 		return skill.override !== undefined
-			? 'Overrides the global setting'
-			: 'Following the global setting';
+			? 'Overrides the default'
+			: skill.enabledGlobally
+				? 'On by default'
+				: 'Off by default';
 	}
 
 	function menuItems(skill: SkillResource): MenuItem[] {
@@ -108,17 +101,7 @@
 						>
 					</div>
 					{#if skill.description}
-						<p
-							data-ui="skill-row-description"
-							data-expanded={expanded.has(skill.id)}
-						>
-							{skill.description}
-						</p>
-						<button
-							data-ui="skill-row-more"
-							onclick={() => toggleExpanded(skill.id)}
-							>{expanded.has(skill.id) ? 'Less' : 'More'}</button
-						>
+						<p data-ui="skill-row-description">{skill.description}</p>
 					{/if}
 					<small data-ui="resource-detail">{note(skill)}</small>
 				</div>

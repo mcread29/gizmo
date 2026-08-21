@@ -262,9 +262,9 @@
 [data-ui='skill-row'] {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
-	align-items: start;
+	align-items: center;
 	gap: var(--space-4);
-	padding: var(--space-3) var(--space-4);
+	padding: var(--space-2) var(--space-4);
 }
 
 [data-ui='skill-row'] + [data-ui='skill-row'] {
@@ -301,37 +301,15 @@
 	color: var(--color-accent, var(--color-text));
 }
 
-/* Descriptions are paragraphs in practice, so a row shows two lines. */
+/* One line each so every row is the same height. */
 [data-ui='skill-row-description'] {
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	line-clamp: 2;
 	overflow: hidden;
 	margin: 0;
 	color: var(--color-text-muted);
 	font-size: var(--text-2xs);
 	line-height: 1.5;
-}
-
-[data-ui='skill-row-description'][data-expanded='true'] {
-	-webkit-line-clamp: unset;
-	line-clamp: unset;
-}
-
-[data-ui='skill-row-more'] {
-	justify-self: start;
-	padding: 0;
-	border: 0;
-	background: none;
-	color: var(--color-text-muted);
-	font-size: var(--text-2xs);
-	text-decoration: underline;
-	cursor: pointer;
-}
-
-[data-ui='skill-row-more']:hover {
-	color: var(--color-text);
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 [data-ui='skill-row-actions'] {
@@ -660,107 +638,113 @@
 	transition: transform 120ms ease;
 }
 
-/* Workspace profile editor: the profile list beside the profile it edits. */
-[data-ui='workspace-profile'] {
+/*
+ * Workspace "Configure agent" screen: a profile switcher on top of two zones
+ * (this profile / this workspace). Reuses settings-card, setting-field,
+ * segmented, switch and the [data-changed] override marker throughout.
+ */
+[data-ui='workspace-configure'] {
 	display: grid;
-	gap: var(--space-6);
-}
-
-[data-ui='profile-editor'] {
-	display: grid;
-	grid-template-columns: 216px minmax(0, 1fr);
 	gap: var(--space-4);
-	align-items: start;
 }
 
-[data-ui='profile-list'] {
-	display: grid;
-	gap: 2px;
-	align-content: start;
-	position: sticky;
-	top: 0;
-}
-
-[data-ui='profile-entry'] {
+/* The profile switcher — replaces the old left-hand profile list. */
+[data-ui='config-profilebar'] {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	justify-content: space-between;
 	gap: var(--space-2);
-	width: 100%;
 	padding: var(--space-2) var(--space-3);
-	border: 1px solid transparent;
-	border-radius: var(--radius-sm);
-	background: none;
-	color: var(--color-text-muted);
-	text-align: left;
-	cursor: pointer;
-}
-
-[data-ui='profile-entry']:hover {
-	background: var(--color-surface-soft);
-	color: var(--color-text);
-}
-
-[data-ui='profile-entry'][data-state='selected'] {
-	border-color: var(--color-border);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
 	background: var(--color-surface);
-	color: var(--color-text);
 }
 
-[data-ui='profile-entry'] > span {
-	display: grid;
-	gap: 2px;
-	min-width: 0;
-}
-
-[data-ui='profile-entry'] strong {
-	overflow: hidden;
-	font-size: var(--text-xs);
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-[data-ui='profile-entry'] small {
-	overflow: hidden;
-	color: var(--color-text-muted);
-	font: var(--text-2xs) / 1.35 var(--font-mono);
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-[data-ui='profile-active-pill'] {
-	display: flex;
-	flex: 0 0 auto;
-	align-items: center;
-	gap: 3px;
-	border-radius: var(--radius-sm);
-	padding: 1px 6px;
-	background: var(--color-surface-soft);
-	color: var(--color-accent, var(--color-text));
+[data-ui='config-profilebar-label'] {
+	color: var(--color-text-faint);
 	font-size: var(--text-2xs);
-	font-style: normal;
 	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
 }
 
-[data-ui='profile-list-actions'] {
+[data-ui='config-lock-chip'] {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='config-profilebar-spacer'] {
+	flex: 1;
+}
+
+[data-ui='config-profilebar-note'] {
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+/* A read-only (built-in / extension) profile: duplicate to edit. */
+[data-ui='config-lock-banner'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid
+		color-mix(in srgb, var(--color-accent) 35%, transparent);
+	border-radius: var(--radius-md);
+	background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+}
+
+[data-ui='config-lock-banner'] > svg {
+	flex: 0 0 auto;
+	color: var(--color-accent);
+}
+
+[data-ui='config-lock-banner'] > div {
+	flex: 1;
+}
+
+/* Zone dividers — "This profile" / "This workspace". */
+[data-ui='config-zone-heading'] {
 	display: grid;
 	gap: 2px;
-	justify-items: stretch;
-	margin-top: var(--space-2);
-	padding-top: var(--space-2);
-	border-top: 1px solid var(--color-border);
+	margin-top: var(--space-3);
 }
 
-[data-ui='profile-detail'] {
+[data-ui='config-zone-heading'] h2 {
+	margin: 0;
+	font-size: var(--text-md);
+	font-weight: 650;
+}
+
+[data-ui='config-zone-heading'] span {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='workspace-configure-body'] {
 	display: grid;
 	gap: var(--space-4);
-	min-width: 0;
 }
 
-[data-ui='profile-detail'] [data-ui='settings-subhead'] {
-	margin-top: 0;
-	padding-top: 0;
-	border-top: 0;
+/* A locked profile still shows its config, just not as something you can set. */
+[data-ui='workspace-configure-body'][data-state='locked'] {
+	opacity: 0.75;
+}
+
+/* Skill group label sits above each grouped skill card. */
+[data-ui='config-skill-group'] {
+	margin: 0;
+	color: var(--color-text-faint);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
 }
 
 [data-ui='profile-id'] {
@@ -785,16 +769,6 @@
 [data-ui='text-input']:focus-visible {
 	outline: none;
 	box-shadow: var(--focus-ring);
-}
-
-@media (max-width: 780px) {
-	[data-ui='profile-editor'] {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	[data-ui='profile-list'] {
-		position: static;
-	}
 }
 
 /*

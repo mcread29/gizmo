@@ -17,14 +17,14 @@ const entry: ConsoleEntry = {
 };
 
 describe('matchesConsoleFilter', () => {
-	it('combines the level tabs with the text filter', () => {
-		expect(matchesConsoleFilter(entry, 'error', 'null')).toBe(true);
-		expect(matchesConsoleFilter(entry, 'warn', '')).toBe(false);
-		expect(matchesConsoleFilter(entry, 'all', 'shader')).toBe(false);
+	it('combines visible levels with the text filter', () => {
+		expect(matchesConsoleFilter(entry, new Set(['error']), 'null')).toBe(true);
+		expect(matchesConsoleFilter(entry, new Set(['warn']), '')).toBe(false);
+		expect(matchesConsoleFilter(entry, new Set(['log', 'warn', 'error']), 'shader')).toBe(false);
 	});
 
 	it('matches the file as well as the message', () => {
-		expect(matchesConsoleFilter(entry, 'all', 'player.cs')).toBe(true);
+		expect(matchesConsoleFilter(entry, new Set(['log', 'warn', 'error']), 'player.cs')).toBe(true);
 	});
 });
 

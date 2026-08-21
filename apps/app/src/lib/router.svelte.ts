@@ -18,7 +18,7 @@ export type SettingsPage = (typeof settingsPages)[number];
 export const defaultSettingsPage: SettingsPage = 'appearance';
 
 /** A workspace screen shows one workspace; its tabs are addressable too. */
-export const workspaceTabs = ['overview', 'profile', 'settings'] as const;
+export const workspaceTabs = ['overview', 'configure'] as const;
 
 export type WorkspaceTab = (typeof workspaceTabs)[number];
 

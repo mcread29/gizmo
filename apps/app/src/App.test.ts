@@ -530,24 +530,19 @@ describe('application shell', () => {
 	});
 
 	it('opens workspace settings as a tab on the workspace screen', async () => {
-		const { findAllByRole, findByRole, getByRole } = renderApp();
+		const { findByRole, findByText } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		await fireEvent.click(
 			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
 		);
 
 		expect(await findByRole('main', { name: 'Workspace' })).toBeInTheDocument();
-		expect(location.hash).toContain('/settings');
+		expect(location.hash).toContain('/configure');
 
-		// Extensions and their roots belong to a profile, so they are edited on
-		// the Profile tab.
-		await fireEvent.click(await findByRole('tab', { name: 'Profile' }));
-		expect(
-			(await findAllByRole('textbox', { name: 'Unity root' }))[0],
-		).toHaveValue('.');
-		expect(getByRole('textbox', { name: 'Svelte root' })).toHaveValue(
-			'WebFrontend',
-		);
+		// Extensions belong to a profile, so they are listed on the Configure tab;
+		// one rooted outside the workspace root shows where it lives.
+		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
+		expect(await findByText('WebFrontend')).toBeInTheDocument();
 	});
 
 	it('overrides a skill for the open workspace only', async () => {
@@ -557,7 +552,7 @@ describe('application shell', () => {
 			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
 		);
 		await findByRole('main', { name: 'Workspace' });
-		await fireEvent.click(await findByRole('tab', { name: 'Profile' }));
+		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
 
 		// On globally, so the workspace switch starts on and can be turned off.
 		const skill = await findByRole('switch', {
@@ -582,18 +577,18 @@ describe('application shell', () => {
 	});
 
 	it('marks what a profile changes from its base and reverts a row', async () => {
-		const { container, findByRole, getByRole } = renderApp();
+		const { findByRole, getByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		await fireEvent.click(
 			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
 		);
 		await findByRole('main', { name: 'Workspace' });
-		await fireEvent.click(await findByRole('tab', { name: 'Profile' }));
+		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
 
 		// The workspace profile turns on both extensions; Default turns on none.
-		const unity = (await findByRole('textbox', { name: 'Unity root' })).closest(
-			'[data-ui="integration-row"]',
-		)!;
+		const unity = (
+			await findByRole('checkbox', { name: /Unity/ })
+		).closest('[data-ui="integration-row"]')!;
 		expect(unity).toHaveAttribute('data-changed', 'true');
 
 		await fireEvent.click(
@@ -605,10 +600,10 @@ describe('application shell', () => {
 
 		await waitFor(() =>
 			expect(
-				container.querySelector(
-					'[data-ui="integration-row"][data-changed="true"] input[aria-label="Unity root"]',
+				getByRole('checkbox', { name: /Unity/ }).closest(
+					'[data-ui="integration-row"]',
 				),
-			).toBeNull(),
+			).not.toHaveAttribute('data-changed'),
 		);
 	});
 
@@ -619,13 +614,13 @@ describe('application shell', () => {
 			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
 		);
 		await findByRole('main', { name: 'Workspace' });
-		await fireEvent.click(await findByRole('tab', { name: 'Profile' }));
+		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
 
-		// Duplicating keeps the extensions the workspace already had.
+		// Duplicating keeps the extensions the workspace already had, and the copy
+		// becomes the active profile without a separate step.
 		await fireEvent.click(await findByRole('button', { name: 'Duplicate' }));
 		const name = getByRole('textbox', { name: 'Profile name' });
 		await fireEvent.input(name, { target: { value: 'Docs only' } });
-		await fireEvent.click(getByRole('button', { name: 'Make active' }));
 		await fireEvent.click(getByRole('button', { name: 'Save' }));
 
 		await waitFor(() =>
@@ -633,7 +628,7 @@ describe('application shell', () => {
 		);
 		// The saved profile is the active one, and reloading the tab keeps it.
 		await fireEvent.click(getByRole('tab', { name: 'Overview' }));
-		await fireEvent.click(getByRole('tab', { name: 'Profile' }));
+		await fireEvent.click(getByRole('tab', { name: 'Configure' }));
 		expect(await findByRole('textbox', { name: 'Profile name' })).toHaveValue(
 			'Docs only',
 		);
@@ -844,7 +839,7 @@ describe('application shell', () => {
 		);
 		await fireEvent.click(getByRole('button', { name: 'Send message' }));
 
-		const changesTab = await findByRole('tab', { name: /Changes/ });
+		const changesTab = await findByRole('tab', { name: /Files/ });
 		await waitFor(() =>
 			expect(
 				changesTab.querySelector('[data-ui="tabs-badge"]'),

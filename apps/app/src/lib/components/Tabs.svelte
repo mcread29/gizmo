@@ -22,7 +22,7 @@
 		value?: string;
 		items: TabItem[];
 		children: Snippet<[string]>;
-		variant?: 'default' | 'inspector' | 'filter';
+		variant?: 'default' | 'inspector' | 'filter' | 'folder' | 'subtab';
 		/** Defer each panel until its first selection, then preserve its state. */
 		lazy?: boolean;
 	} = $props();

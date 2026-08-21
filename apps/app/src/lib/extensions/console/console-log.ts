@@ -2,10 +2,10 @@ import type { ConsoleEntry } from './console-types';
 
 export function matchesConsoleFilter(
 	entry: ConsoleEntry,
-	level: string,
+	visibleLevels: ReadonlySet<ConsoleEntry['level']>,
 	text: string,
 ): boolean {
-	if (level !== 'all' && entry.level !== level) return false;
+	if (!visibleLevels.has(entry.level)) return false;
 	const needle = text.trim().toLowerCase();
 	if (!needle) return true;
 	return `${entry.message} ${entry.file ?? ''}`.toLowerCase().includes(needle);

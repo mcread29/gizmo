@@ -1,17 +1,27 @@
 import type { UnityExtensionDescriptor } from '@unity-agent/protocol';
 import { render, waitFor } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import type { AgentStore } from '../../agent-client';
-import UnityInspector from './UnityInspector.svelte';
-import type { UnityView } from './unity-view';
+import type { AgentStore } from '../agent-client';
+import WorkspaceInspector from './WorkspaceInspector.svelte';
+import type { ActiveWorkspaceView } from './workspace-view';
 
-const view: UnityView = {
-	projectPath: '/projects/game',
-	projectName: 'game',
-	state: 'connected',
-	lifecycle: { state: 'ready', label: 'Ready', errors: [], pendingPaths: [] },
-	consoleDiagnostics: [],
+const view: ActiveWorkspaceView = {
+	domainId: 'unity',
+	workspacePath: '/projects/game',
+	workspaceName: 'game',
+	subtitle: 'Unity',
 	toolActivity: [],
+	canOpen: false,
+	open: () => {},
+	refresh: () => {},
+	unity: {
+		projectPath: '/projects/game',
+		projectName: 'game',
+		state: 'connected',
+		lifecycle: { state: 'ready', label: 'Ready', errors: [], pendingPaths: [] },
+		consoleDiagnostics: [],
+		toolActivity: [],
+	},
 };
 
 function store(projectExtensions: UnityExtensionDescriptor[]): AgentStore {
@@ -28,21 +38,20 @@ function store(projectExtensions: UnityExtensionDescriptor[]): AgentStore {
 	} as unknown as AgentStore;
 }
 
-describe('UnityInspector', () => {
-	it('only renders contributions from installed extensions', async () => {
-		const fallback = render(UnityInspector, {
+describe('WorkspaceInspector', () => {
+	it('nests installed extension tabs under Unity', async () => {
+		const fallback = render(WorkspaceInspector, {
 			store: store([]),
 			view,
 			hidden: false,
-			onOpenProject: () => {},
 		});
 		expect(
 			fallback.container.querySelector(
-				'[data-value="com.gizmo.extras.console.console"]',
+				'[data-ui="unity-view-switch"] button:nth-child(2)',
 			),
 		).toBeNull();
 
-		const extras = render(UnityInspector, {
+		const extras = render(WorkspaceInspector, {
 			store: store([
 				{
 					id: 'com.gizmo.extras.console',
@@ -61,15 +70,19 @@ describe('UnityInspector', () => {
 			]),
 			view,
 			hidden: false,
-			onOpenProject: () => {},
 		});
 		await waitFor(() =>
 			expect(
 				extras.container.querySelector(
-					'[data-value="com.gizmo.extras.console.console"]',
+					'[data-ui="unity-view-switch"] button:nth-child(2)',
 				),
 			).toBeTruthy(),
 		);
+		expect(
+			extras.container.querySelector(
+				'[data-ui="inspector"] > [data-ui="tabs"] > [data-ui="tabs-list"] [data-panel="com.gizmo.extras.console.console"]',
+			),
+		).toBeNull();
 		fallback.unmount();
 		extras.unmount();
 	});

@@ -93,14 +93,14 @@ describe('AppRouter', () => {
 	it('carries the workspace and tab through the fragment', () => {
 		const hash = hashForRoute('workspace', {
 			workspacePath: '/home/dev/my repo',
-			tab: 'settings',
+			tab: 'configure',
 		});
 
-		expect(hash).toBe('#workspace/%2Fhome%2Fdev%2Fmy%20repo/settings');
+		expect(hash).toBe('#workspace/%2Fhome%2Fdev%2Fmy%20repo/configure');
 		expect(locationFromHash(hash)).toMatchObject({
 			route: 'workspace',
 			workspacePath: '/home/dev/my repo',
-			tab: 'settings',
+			tab: 'configure',
 		});
 		// The overview is the default tab, so it stays out of the fragment.
 		expect(hashForRoute('workspace', { workspacePath: '/home/dev/repo' })).toBe(

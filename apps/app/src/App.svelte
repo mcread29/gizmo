@@ -68,6 +68,19 @@
 		router.current === 'settings' || router.current === 'tree',
 	);
 
+	// A refresh restores the workspace route from the URL, but the store defaults
+	// its selection to the first project. Re-sync so the inspector follows the
+	// workspace actually being viewed rather than the default one.
+	$effect(() => {
+		if (
+			router.current === 'workspace' &&
+			router.workspacePath &&
+			router.workspacePath !== store.selectedProjectPath
+		) {
+			void sessions.selectWorkspace(router.workspacePath);
+		}
+	});
+
 	onMount(() => {
 		const measure = () => layout.measure();
 		measure();
@@ -226,7 +239,7 @@
 				onOpenWorkspacePicker={() => (sessions.projectPickerOpen = true)}
 				onOpenWorkspace={(projectPath) => showWorkspace(projectPath)}
 				onOpenWorkspaceSettings={(projectPath) =>
-					showWorkspace(projectPath, 'settings')}
+					showWorkspace(projectPath, 'configure')}
 				onNewThread={(projectPath) => void startThread(projectPath)}
 				onOpenThread={(sessionId) => void openThread(sessionId)}
 			/>
@@ -301,7 +314,7 @@
 		onSelectPage={(page) => router.showSettingsPage(page)}
 		onOpenWorkspace={() => {
 			const path = store.selectedProjectPath;
-			if (path) showWorkspace(path, 'settings');
+			if (path) showWorkspace(path, 'configure');
 		}}
 	/>
 

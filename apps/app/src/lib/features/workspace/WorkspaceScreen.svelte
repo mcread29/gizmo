@@ -4,9 +4,8 @@
 	import { Button, ScrollPanel, Tabs } from '../../components';
 	import type { WorkspaceTab } from '../../router.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
+	import WorkspaceConfigurePanel from './WorkspaceConfigurePanel.svelte';
 	import WorkspaceHome from './WorkspaceHome.svelte';
-	import WorkspaceProfilePanel from './WorkspaceProfilePanel.svelte';
-	import WorkspaceSettingsPanel from './WorkspaceSettingsPanel.svelte';
 
 	interface Props {
 		store: AgentStore;
@@ -36,8 +35,7 @@
 
 	const tabs = [
 		{ value: 'overview', label: 'Overview' },
-		{ value: 'profile', label: 'Profile' },
-		{ value: 'settings', label: 'Settings' },
+		{ value: 'configure', label: 'Configure' },
 	];
 
 	// Tabs owns its selection, so the route is mirrored in and reported out.
@@ -61,7 +59,6 @@
 >
 	<div data-ui="workspace-screen-header">
 		<div>
-			<span data-ui="eyebrow">Workspace</span>
 			<h1>{project?.title ?? 'Workspace'}</h1>
 			{#if project}
 				<p data-ui="workspace-path" title={project.path}>
@@ -82,18 +79,15 @@
 	{#if !project}
 		<p data-ui="resource-empty">This workspace is no longer available.</p>
 	{:else}
-		<Tabs variant="inspector" items={tabs} bind:value={active}>
+		<Tabs variant="folder" items={tabs} bind:value={active}>
 			{#snippet children(value)}
 				<ScrollPanel name={`workspace-${value}`}>
 					<div data-ui="workspace-screen-body">
-						{#if value === 'profile'}
-							<WorkspaceProfilePanel {store} workspacePath={project.path} />
-						{:else if value === 'settings'}
-							<WorkspaceSettingsPanel
+						{#if value === 'configure'}
+							<WorkspaceConfigurePanel
 								{store}
 								{layout}
 								workspacePath={project.path}
-								onSelectProfile={() => (active = 'profile')}
 								{onRemoved}
 							/>
 						{:else}
@@ -102,6 +96,7 @@
 								workspacePath={project.path}
 								{onOpenThread}
 								onNewThread={() => onNewThread(project.path)}
+								onConfigure={() => (active = 'configure')}
 							/>
 						{/if}
 					</div>

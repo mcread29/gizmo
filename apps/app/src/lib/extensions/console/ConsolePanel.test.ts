@@ -24,18 +24,7 @@ describe('ConsolePanel', () => {
 		expect(screen.getByText('Long internal stack trace')).toBeTruthy();
 	});
 
-	it('does not disable refresh for background polling', () => {
-		const runtime = stubRuntime({ loading: true, manualRefreshing: false });
-		const { container } = render(ConsolePanelHarness, { runtime });
-
-		expect(
-			container.querySelector<HTMLButtonElement>(
-				'button[aria-label="Reload console"]',
-			)?.disabled,
-		).toBe(false);
-	});
-
-	it('filters console entries by severity', async () => {
+	it('independently hides console severities', async () => {
 		const runtime = stubRuntime({
 			entries: [
 				{ seq: 1, level: 'warn', message: 'A warning' },
@@ -45,18 +34,17 @@ describe('ConsolePanel', () => {
 		});
 
 		const { container } = render(ConsolePanelHarness, { runtime });
-		const tab = (value: string) =>
+		const filter = (value: string) =>
 			container.querySelector<HTMLButtonElement>(
-				`[data-ui="tabs-trigger"][data-value="${value}"]`,
+				`[data-ui="console-level-filters"] [data-level="${value}"]`,
 			)!;
 
-		await fireEvent.click(tab('warn'));
-		expect(screen.getByText('A warning')).toBeTruthy();
-		expect(screen.queryByText('An error')).toBeNull();
-
-		await fireEvent.click(tab('error'));
+		await fireEvent.click(filter('warn'));
 		expect(screen.queryByText('A warning')).toBeNull();
 		expect(screen.getByText('An error')).toBeTruthy();
+
+		await fireEvent.click(filter('error'));
+		expect(screen.queryByText('An error')).toBeNull();
 	});
 
 	it('only mounts a viewport-sized window from a large console tail', () => {

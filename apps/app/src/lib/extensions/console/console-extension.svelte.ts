@@ -72,19 +72,30 @@ export class ConsoleExtensionRuntime implements WebExtensionRuntime {
 		const probe = parseSnapshot(
 			await this.#context.invoke('snapshot', { tail: 1 }),
 		);
-		if (!probe) throw new Error('Console extension returned invalid data');
+		if (!probe) return this.#markSnapshotError();
 		if (this.#disposed) return;
 		this.counts = probe.counts;
 		if (probe.revision === this.#revision) return;
 		const snapshot = parseSnapshot(
 			await this.#context.invoke('snapshot', { tail: consoleLimit }),
 		);
-		if (!snapshot) throw new Error('Console extension returned invalid data');
+		if (!snapshot) return this.#markSnapshotError();
 		if (this.#disposed) return;
+		if (
+			this.entries.length > 0 &&
+			snapshot.entries.length === 0 &&
+			consoleTotal(snapshot.counts) > 0
+		) {
+			return this.#markSnapshotError();
+		}
 		this.#revision = snapshot.revision;
 		this.entries = snapshot.entries.slice(-consoleLimit);
 		this.counts = snapshot.counts;
 		this.error = undefined;
+	}
+
+	#markSnapshotError(): void {
+		this.error = 'Console extension returned invalid data';
 	}
 
 	clearLocal(): void {
@@ -158,6 +169,10 @@ function consoleCounts(value: unknown): ConsoleCounts | undefined {
 	return logs === undefined || warnings === undefined || errors === undefined
 		? undefined
 		: { logs, warnings, errors };
+}
+
+function consoleTotal(counts: ConsoleCounts): number {
+	return counts.logs + counts.warnings + counts.errors;
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {

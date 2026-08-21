@@ -15,9 +15,11 @@
 		workspacePath: string;
 		onOpenThread: (sessionId: string) => void;
 		onNewThread: () => void;
+		onConfigure: () => void;
 	}
 
-	let { store, workspacePath, onOpenThread, onNewThread }: Props = $props();
+	let { store, workspacePath, onOpenThread, onNewThread, onConfigure }: Props =
+		$props();
 	let project = $derived(
 		store.projects.find(({ path }) => path === workspacePath),
 	);
@@ -27,7 +29,6 @@
 				(session.workspacePath ?? session.projectPath) === workspacePath,
 		),
 	);
-	// The home is where a workspace's threads live, so it lists all of them.
 	let integrationCount = $derived(project?.integrations.length ?? 0);
 	let changedFiles = $derived(store.gitStatus?.files.length ?? 0);
 	// Until Git answers there is nothing true to say about the repository.
@@ -39,53 +40,42 @@
 </script>
 
 <div data-ui="workspace-home">
-	<div data-ui="workspace-summary">
-		<section data-ui="workspace-summary-card">
-			<GitBranch size={18} />
-			<div>
-				<span>Source control</span>
-				{#if gitPending}
-					<div
-						data-ui="skeleton"
-						data-shape="line"
-						data-width="short"
-						aria-label="Loading source control"
-					></div>
-					<div data-ui="skeleton" data-shape="line"></div>
-				{:else}
-					<strong>{store.gitStatus?.branch ?? 'Not available'}</strong>
-					<small
-						>{changedFiles === 0
-							? 'Working tree clean'
-							: `${changedFiles} changed ${changedFiles === 1 ? 'file' : 'files'}`}</small
-					>
-				{/if}
-			</div>
-		</section>
-
-		<section data-ui="workspace-summary-card">
-			<Boxes size={18} />
-			<div>
-				<span>Integrations</span>
-				<strong>{integrationCount || 'None enabled'}</strong>
-				<small
-					>{project?.integrations.length
-						? project.integrations
-								.map(({ id, root }) => `${name(id)} at ${root}`)
-								.join(', ')
-						: 'Standard coding tools only'}</small
+	<!-- A live glance at the workspace, not a set of static tiles. -->
+	<div data-ui="workspace-facts">
+		<div data-ui="workspace-fact">
+			<GitBranch size={15} />
+			{#if gitPending}
+				<div
+					data-ui="skeleton"
+					data-shape="line"
+					data-width="short"
+					aria-label="Loading source control"
+				></div>
+			{:else}
+				<strong>{store.gitStatus?.branch ?? 'No repository'}</strong>
+				<span
+					>{changedFiles === 0
+						? 'clean'
+						: `${changedFiles} changed`}</span
 				>
-			</div>
-		</section>
+			{/if}
+		</div>
 
-		<section data-ui="workspace-summary-card">
-			<MessageSquare size={18} />
-			<div>
-				<span>Threads</span>
-				<strong>{workspaceSessions.length}</strong>
-				<small>Saved in this workspace</small>
-			</div>
-		</section>
+		<button data-ui="workspace-fact" data-clickable="true" onclick={onConfigure}>
+			<Boxes size={15} />
+			<strong
+				>{integrationCount
+					? project?.integrations.map(({ id }) => name(id)).join(', ')
+					: 'No extensions'}</strong
+			>
+			<span>{integrationCount ? 'enabled' : 'coding tools only'}</span>
+		</button>
+
+		<div data-ui="workspace-fact">
+			<MessageSquare size={15} />
+			<strong>{workspaceSessions.length}</strong>
+			<span>{workspaceSessions.length === 1 ? 'thread' : 'threads'}</span>
+		</div>
 	</div>
 
 	<section data-ui="workspace-recent">
@@ -115,4 +105,10 @@
 			{/each}
 		</div>
 	</section>
+
+	{#if workspaceSessions.length === 0}
+		<div data-ui="workspace-home-actions">
+			<Button size="sm" onclick={onNewThread}><Plus size={14} /> New thread</Button>
+		</div>
+	{/if}
 </div>

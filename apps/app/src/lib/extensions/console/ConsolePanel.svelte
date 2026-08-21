@@ -4,23 +4,21 @@
 		observeElementRect,
 	} from '@tanstack/svelte-virtual';
 	import {
+		CircleX,
 		ChevronDown,
 		ChevronRight,
-		Copy,
-		RotateCw,
+		MessageSquareText,
 		Search,
 		Terminal,
-		Trash2,
+		TriangleAlert,
 	} from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import './console.css';
 	import type { ConsoleExtensionRuntime } from './console-extension.svelte';
-	import { Button, Tabs, Tooltip } from '../../components';
-	import { toasts } from '../../toasts.svelte';
+	import type { ConsoleEntry } from './console-types';
 	import { sourceHref } from '../../features/unity/compiler-diagnostics';
 	import {
-		consoleLine,
 		consoleSourceLabel,
 		consoleTimeLabel,
 		matchesConsoleFilter,
@@ -32,7 +30,7 @@
 
 	let { runtime }: Props = $props();
 
-	let level = $state('all');
+	let visibleLevels = $state(new Set<ConsoleEntry['level']>(['log', 'warn', 'error']));
 	let filter = $state('');
 	let viewport = $state<HTMLDivElement | null>(null);
 	let following = true;
@@ -42,7 +40,7 @@
 	let rows = $derived(
 		runtime.entries
 			.map((entry, index) => ({ entry, key: entry.seq ?? index }))
-			.filter(({ entry }) => matchesConsoleFilter(entry, level, filter)),
+			.filter(({ entry }) => matchesConsoleFilter(entry, visibleLevels, filter)),
 	);
 	let entries = $derived(rows.map(({ entry }) => entry));
 	let counts = $derived(runtime.counts);
@@ -108,92 +106,43 @@
 		expanded = next;
 	}
 
-	async function copyVisible() {
-		if (!navigator.clipboard || entries.length === 0) return;
-		await navigator.clipboard.writeText(entries.map(consoleLine).join('\n'));
-		toasts.show(`Copied ${entries.length} console lines`);
+	function toggleLevel(level: ConsoleEntry['level']) {
+		const next = new Set(visibleLevels);
+		if (next.has(level)) next.delete(level);
+		else next.add(level);
+		visibleLevels = next;
 	}
 </script>
 
 <div data-ui="console-panel">
-	<div data-ui="console-filter">
-		<Search size={13} />
-		<label for="console-filter" data-ui="sr-only">Filter console</label>
-		<input
-			id="console-filter"
-			bind:value={filter}
-			type="search"
-			placeholder="Filter messages or files"
-			autocomplete="off"
-		/>
-	</div>
-
 	<div data-ui="console-toolbar">
-		<Tabs
-			variant="filter"
-			items={[
-				{
-					value: 'all',
-					label: 'All',
-					shortLabel: 'All',
-					badge: counts.logs + counts.warnings + counts.errors,
-				},
-				{
-					value: 'warn',
-					label: 'Warnings',
-					shortLabel: 'Warn',
-					badge: counts.warnings,
-				},
-				{
-					value: 'error',
-					label: 'Errors',
-					shortLabel: 'Error',
-					badge: counts.errors,
-					badgeTone: 'danger',
-				},
-			]}
-			bind:value={level}
-		>
-			{#snippet children()}{/snippet}
-		</Tabs>
-		<div data-ui="console-actions">
-			<Tooltip text="Reload from the Editor">
-				{#snippet children(props)}
-					<Button
-						{...props}
-						variant="ghost"
-						size="icon"
-						aria-label="Reload console"
-						disabled={runtime.manualRefreshing}
-						onclick={() => void runtime.refresh(true)}
-						><RotateCw size={13} /></Button
-					>
-				{/snippet}
-			</Tooltip>
-			<Tooltip text="Copy the lines shown">
-				{#snippet children(props)}
-					<Button
-						{...props}
-						variant="ghost"
-						size="icon"
-						aria-label="Copy console"
-						disabled={entries.length === 0}
-						onclick={() => void copyVisible()}><Copy size={13} /></Button
-					>
-				{/snippet}
-			</Tooltip>
-			<Tooltip text="Clear what is shown here, not the Editor console">
-				{#snippet children(props)}
-					<Button
-						{...props}
-						variant="ghost"
-						size="icon"
-						aria-label="Clear console"
-						disabled={runtime.entries.length === 0}
-						onclick={() => runtime.clearLocal()}><Trash2 size={13} /></Button
-					>
-				{/snippet}
-			</Tooltip>
+		<div data-ui="console-filter">
+			<Search size={13} />
+			<label for="console-filter" data-ui="sr-only">Filter console</label>
+			<input
+				id="console-filter"
+				bind:value={filter}
+				type="search"
+				placeholder="Filter messages or files"
+				autocomplete="off"
+			/>
+		</div>
+		<div data-ui="console-level-filters" aria-label="Visible console messages">
+			{#each [
+				{ value: 'log' as const, label: 'Show logs', icon: MessageSquareText },
+				{ value: 'warn' as const, label: 'Show warnings', icon: TriangleAlert },
+				{ value: 'error' as const, label: 'Show errors', icon: CircleX },
+			] as option (option.value)}
+				{@const Icon = option.icon}
+				<button
+					type="button"
+					data-level={option.value}
+					aria-label={option.label}
+					aria-pressed={visibleLevels.has(option.value)}
+					onclick={() => toggleLevel(option.value)}
+					><Icon size={14} /></button
+				>
+			{/each}
 		</div>
 	</div>
 

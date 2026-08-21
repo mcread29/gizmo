@@ -97,7 +97,18 @@
 	inert={!layout.leftVisible || undefined}
 >
 	<div data-ui="sidebar-header">
-		<span data-ui="eyebrow">Workspaces</span>
+		<div data-ui="sidebar-search">
+			<Search size={14} />
+			<label for="thread-search" data-ui="sr-only">Search threads</label>
+			<input
+				id="thread-search"
+				bind:this={searchElement}
+				bind:value={query}
+				type="search"
+				placeholder="Search threads"
+				autocomplete="off"
+			/>
+		</div>
 		<Tooltip text="Open workspace">
 			{#snippet children(props)}
 				<Button
@@ -110,19 +121,6 @@
 				>
 			{/snippet}
 		</Tooltip>
-	</div>
-
-	<div data-ui="sidebar-search">
-		<Search size={14} />
-		<label for="thread-search" data-ui="sr-only">Search threads</label>
-		<input
-			id="thread-search"
-			bind:this={searchElement}
-			bind:value={query}
-			type="search"
-			placeholder="Search threads"
-			autocomplete="off"
-		/>
 	</div>
 
 	<ScrollPanel name="threads">
