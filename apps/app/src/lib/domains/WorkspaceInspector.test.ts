@@ -1,4 +1,4 @@
-import type { UnityExtensionDescriptor } from '@unity-agent/protocol';
+import type { ExtensionDescriptor } from '@unity-agent/protocol';
 import { render, waitFor } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import type { AgentStore } from '../agent-client';
@@ -24,7 +24,7 @@ const view: ActiveWorkspaceView = {
 	},
 };
 
-function store(projectExtensions: UnityExtensionDescriptor[]): AgentStore {
+function store(projectExtensions: ExtensionDescriptor[]): AgentStore {
 	return {
 		messages: [],
 		projectExtensions,
@@ -39,7 +39,7 @@ function store(projectExtensions: UnityExtensionDescriptor[]): AgentStore {
 }
 
 describe('WorkspaceInspector', () => {
-	it('nests installed extension tabs under Unity', async () => {
+	it('renders Unity capabilities inside the Unity extension panel', async () => {
 		const fallback = render(WorkspaceInspector, {
 			store: store([]),
 			view,
@@ -54,14 +54,14 @@ describe('WorkspaceInspector', () => {
 		const extras = render(WorkspaceInspector, {
 			store: store([
 				{
-					id: 'com.gizmo.extras.console',
-					name: 'Console',
+					id: 'unity',
+					name: 'Unity',
 					version: '0.1.0',
 					apiVersion: 1,
 					capabilities: ['unity.console'],
 					operations: [
 						{
-							id: 'snapshot',
+							id: 'console.snapshot',
 							mutates: false,
 							requiresConfirmation: false,
 						},
@@ -80,7 +80,7 @@ describe('WorkspaceInspector', () => {
 		);
 		expect(
 			extras.container.querySelector(
-				'[data-ui="inspector"] > [data-ui="tabs"] > [data-ui="tabs-list"] [data-panel="com.gizmo.extras.console.console"]',
+				'[data-ui="tabs-trigger"][data-value="extensions"]',
 			),
 		).toBeNull();
 		fallback.unmount();

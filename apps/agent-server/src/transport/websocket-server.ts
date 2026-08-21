@@ -1,16 +1,17 @@
 import {
 	parseAgentRequest,
 	protocolVersion,
+	type ExtensionDescriptor,
 	type AgentRequest,
 	type AgentResponse,
 } from '@unity-agent/protocol';
 import type {
-	UnityExtensionDescriptor,
 	UnityStatusDetails,
 } from '@unity-agent/unity-tools';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { PiAgentService } from '../sessions/pi-agent-service';
 import { GitService } from '../git/git-service';
+import { ExtensionHostService } from '../extensions/extension-host-service';
 import { UnityProjectService } from '../domains/unity/unity-project-service';
 
 export interface AgentWebSocketServerOptions {
@@ -20,6 +21,7 @@ export interface AgentWebSocketServerOptions {
 	allowedOrigins?: readonly string[];
 	createService?: () => PiAgentService;
 	createProjectService?: () => UnityProjectService;
+	createExtensionHost?: () => ExtensionHostService;
 	createGitService?: () => GitService;
 }
 
@@ -43,7 +45,12 @@ export async function createAgentWebSocketServer(
 	});
 	const services = new Map<
 		WebSocket,
-		{ agent: PiAgentService; projects: UnityProjectService; git: GitService }
+		{
+			agent: PiAgentService;
+			projects: UnityProjectService;
+			extensions: ExtensionHostService;
+			git: GitService;
+		}
 	>();
 
 	server.on('connection', (socket) => {
@@ -51,10 +58,14 @@ export async function createAgentWebSocketServer(
 		const service = options.createService?.() ?? new PiAgentService();
 		const projectService =
 			options.createProjectService?.() ?? new UnityProjectService();
+		const extensionHost =
+			options.createExtensionHost?.() ??
+			new ExtensionHostService([]);
 		const gitService = options.createGitService?.() ?? new GitService();
 		services.set(socket, {
 			agent: service,
 			projects: projectService,
+			extensions: extensionHost,
 			git: gitService,
 		});
 		const unsubscribe = service.subscribe((event) =>
@@ -86,6 +97,7 @@ export async function createAgentWebSocketServer(
 				socket,
 				service,
 				projectService,
+				extensionHost,
 				gitService,
 				emit,
 				isBinary ? undefined : data.toString(),
@@ -95,6 +107,7 @@ export async function createAgentWebSocketServer(
 			unsubscribe();
 			service.dispose();
 			projectService.dispose();
+			extensionHost.dispose();
 			services.delete(socket);
 		});
 	});
@@ -134,7 +147,7 @@ interface ProjectEmitters {
 	extensions(
 		sessionId: string,
 		projectPath: string,
-		extensions: UnityExtensionDescriptor[],
+		extensions: ExtensionDescriptor[],
 	): void;
 }
 
@@ -142,6 +155,7 @@ async function handleMessage(
 	socket: WebSocket,
 	service: PiAgentService,
 	projectService: UnityProjectService,
+	extensionHost: ExtensionHostService,
 	gitService: GitService,
 	emit: ProjectEmitters,
 	text: string | undefined,
@@ -167,6 +181,7 @@ async function handleMessage(
 		const result = await dispatch(
 			service,
 			projectService,
+			extensionHost,
 			gitService,
 			emit,
 			request,
@@ -185,6 +200,7 @@ async function handleMessage(
 async function dispatch(
 	service: PiAgentService,
 	projectService: UnityProjectService,
+	extensionHost: ExtensionHostService,
 	gitService: GitService,
 	emit: ProjectEmitters,
 	request: AgentRequest,
@@ -326,12 +342,13 @@ async function dispatch(
 		case 'project.status':
 			return { result: await projectService.getStatus(request.projectPath) };
 		case 'project.watch':
+			extensionHost.watch(request.projectPath, (extensions) =>
+				emit.extensions(request.sessionId, request.projectPath, extensions),
+			);
 			return {
 				result: await projectService.watchStatus(request.projectPath, {
 					status: (status) =>
 						emit.status(request.sessionId, request.projectPath, status),
-					extensions: (extensions) =>
-						emit.extensions(request.sessionId, request.projectPath, extensions),
 				}),
 			};
 		case 'project.open':
@@ -339,12 +356,12 @@ async function dispatch(
 		case 'project.extensions':
 			return {
 				result: {
-					extensions: await projectService.listExtensions(request.projectPath),
+					extensions: await extensionHost.list(request.projectPath),
 				},
 			};
 		case 'project.extension.invoke':
 			return {
-				result: await projectService.invokeExtension(
+				result: await extensionHost.invoke(
 					request.projectPath,
 					request.extensionId,
 					request.operation,

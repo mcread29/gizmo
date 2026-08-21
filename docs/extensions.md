@@ -1,35 +1,35 @@
-# Unity project extensions
+# Extensions
 
-These are extensions hosted inside the Unity domain. For workspace profiles and
-bundled domain contributions such as Unity and Svelte, see
-[domains.md](domains.md).
+Gizmo owns one extension contract. An extension may integrate any external
+runtime and contribute tools or UI. Core knows only versioned descriptors,
+opaque operations, and generic contribution slots; it has no extension
+categories or runtime-specific types.
 
-Project extensions add optional Unity Editor capabilities without teaching the
-Gizmo core about their data or behavior. Core discovers extensions, validates
-their declared operations, forwards opaque payloads, and renders generic UI
-contributions. Each extension owns everything else.
-
-The first implementation is `com.gizmo.extras.console` in the Cronkis embedded
-`com.gizmo.extras` package.
+Unity is one extension. Its Pipeline bridge uses the internal
+`com.gizmo.extras.console` capability, but Gizmo sees only the `unity`
+descriptor and `console.snapshot` operation; Console is not a second Gizmo
+extension.
 
 ## Architecture
 
 ```text
-Unity package                  Agent server                  Web app
-─────────────                  ────────────                  ───────
-extension registry     →       discover descriptors   →     extension registry
+extension provider             Gizmo host                    Web app
+──────────────────             ──────────                    ───────
+descriptor registry     →       discover descriptors   →     extension registry
 operation handlers     ←       validate + forward     ←     extension runtime
-Unity-specific data            opaque JSON payloads          state + UI + polling
+runtime-specific data          opaque JSON payloads          state + UI + polling
 ```
 
-There are two Unity Pipeline entrypoints for every extension:
+An extension chooses its own implementation transport. Unity currently uses
+two Pipeline entrypoints internally:
 
 - `gizmo_extensions` returns installed extension descriptors.
 - `gizmo_extension_invoke` invokes one declared operation with JSON input.
 
 There are no extension-specific requests, events, store fields, or branches in
-core. Adding an extension must not require changes to `UnityProjectService`,
-`AgentStore`, or `UnityInspector`.
+core. Adding an extension must not require changes to `ExtensionHostService`,
+`AgentStore`, or the generic inspector contribution slot. An extension's
+internal sub-capabilities must not appear as separate Gizmo descriptors.
 
 ## Descriptor contract
 
@@ -37,14 +37,14 @@ Each installed extension returns a descriptor with this shape:
 
 ```json
 {
-	"id": "com.gizmo.extras.example",
-	"name": "Example",
+	"id": "unity",
+	"name": "Unity",
 	"version": "0.1.0",
 	"apiVersion": 1,
-	"capabilities": ["example.inspect"],
+	"capabilities": ["unity.console"],
 	"operations": [
 		{
-			"id": "snapshot",
+			"id": "console.snapshot",
 			"mutates": false,
 			"requiresConfirmation": false
 		},
@@ -57,11 +57,12 @@ Each installed extension returns a descriptor with this shape:
 }
 ```
 
-- `id` is the permanent identity shared by the Unity and web implementations.
+- `id` is the permanent identity shared by the extension's server and web
+  implementations.
 - `version` is the extension package version. It may change without changing
   the host contract.
-- `apiVersion` is the web/Unity payload contract version. The web definition is
-  activated only when it supports the exact version.
+- `apiVersion` is the web/server payload contract version. The web definition
+  is activated only when it supports the exact version.
 - `capabilities` describe meaningful features for compatibility and future
   composition. They do not grant invocation by themselves.
 - `operations` are the invocation allow-list.
@@ -70,16 +71,16 @@ Each installed extension returns a descriptor with this shape:
   input contains `confirmed: true`.
 
 The protocol validates descriptors but deliberately defines no extension
-payload schemas. Payload validation belongs to the matching web and Unity
+payload schemas. Payload validation belongs to the matching web and provider
 implementations.
 
 ## Discovery and lifecycle
 
-When a thread selects a project, the app requests its extension descriptors.
-The server first inspects the live Pipeline command list so a missing extension
-host never generates a Unity Console error. Descriptors are cached briefly and
-rechecked while the project is watched. Installation, removal, or an API-version
-change therefore updates the active project without restarting Gizmo.
+When a thread selects a workspace, the app requests its extension descriptors.
+The generic host caches them briefly and rechecks them while the workspace is
+watched. A provider can return no descriptors when it does not apply. The Unity
+provider first inspects the live Pipeline command list so a missing extension
+host never generates a Unity Console error.
 
 For every compatible descriptor, the web registry creates one runtime with a
 project-scoped `ExtensionContext`:

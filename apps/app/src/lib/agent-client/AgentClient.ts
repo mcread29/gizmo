@@ -16,7 +16,7 @@ import type {
 	WorkspaceDirectoryListing,
 	WorkspaceProfiles,
 	ProviderStatus,
-	UnityExtensions,
+	Extensions,
 	UnityOpenProjectResult,
 	UnityStatus,
 } from '@unity-agent/protocol';
@@ -112,7 +112,7 @@ export interface AgentClient {
 		projectPath: string,
 	): Promise<UnityStatus>;
 	openProject(projectPath: string): Promise<UnityOpenProjectResult>;
-	listProjectExtensions(projectPath: string): Promise<UnityExtensions>;
+	listProjectExtensions(projectPath: string): Promise<Extensions>;
 	invokeProjectExtension(
 		projectPath: string,
 		extensionId: string,

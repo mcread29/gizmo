@@ -14,7 +14,7 @@ import {
 	type SessionState,
 	type SessionTree,
 	type SessionUsage,
-	type UnityExtensionDescriptor,
+	type ExtensionDescriptor,
 	type ResourceCatalog,
 	type StoredProject,
 	type ProjectDomains,
@@ -96,7 +96,7 @@ export class AgentStore {
 	projectOpening = $state(false);
 	projectError = $state<string>();
 	error = $state<AgentError>();
-	projectExtensions = $state<UnityExtensionDescriptor[]>([]);
+	projectExtensions = $state<ExtensionDescriptor[]>([]);
 	extensionsLoading = $state(false);
 	usage = $state<SessionUsage>();
 	pendingConfirmations = $state<PendingConfirmation[]>([]);
@@ -929,11 +929,15 @@ export class AgentStore {
 		if (
 			this.connection !== 'connected' ||
 			!this.sessionId ||
-			!this.selectedProjectPath ||
-			!this.activeDomains.includes('unity')
+			!this.selectedProjectPath
 		) {
 			this.projectStatus = undefined;
 			this.projectExtensions = [];
+			return;
+		}
+		if (!this.activeDomains.includes('unity')) {
+			this.projectStatus = undefined;
+			await this.loadProjectExtensions();
 			return;
 		}
 		const sessionId = this.sessionId;

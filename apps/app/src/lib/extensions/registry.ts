@@ -1,5 +1,5 @@
-import type { UnityExtensionDescriptor } from '@unity-agent/protocol';
-import { consoleExtension } from './console/console-extension.svelte';
+import type { ExtensionDescriptor } from '@unity-agent/protocol';
+import { unityExtension } from './console/console-extension.svelte';
 import type {
 	ExtensionContext,
 	ExtensionHostContext,
@@ -7,10 +7,10 @@ import type {
 	WebExtensionRuntime,
 } from './types';
 
-const definitions: readonly WebExtensionDefinition[] = [consoleExtension];
+const definitions: readonly WebExtensionDefinition[] = [unityExtension];
 
 export function activateProjectExtensions(
-	descriptors: readonly UnityExtensionDescriptor[],
+	descriptors: readonly ExtensionDescriptor[],
 	context: ExtensionHostContext,
 ): WebExtensionRuntime[] {
 	return descriptors.flatMap((descriptor) => {

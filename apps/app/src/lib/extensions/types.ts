@@ -1,4 +1,4 @@
-import type { UnityExtensionDescriptor } from '@unity-agent/protocol';
+import type { ExtensionDescriptor } from '@unity-agent/protocol';
 import type { Component } from 'svelte';
 
 export interface ExtensionContext {
@@ -34,7 +34,7 @@ export interface WebExtensionDefinition {
 	id: string;
 	apiVersion: number;
 	activate(
-		descriptor: UnityExtensionDescriptor,
+		descriptor: ExtensionDescriptor,
 		context: ExtensionContext,
 	): WebExtensionRuntime;
 }

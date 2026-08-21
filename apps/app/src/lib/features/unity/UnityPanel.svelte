@@ -42,7 +42,6 @@
 			>
 		{/each}
 	</div>
-
 	<div data-ui="unity-subpanel" data-panel={activePanel}>
 		{#if activePanel === 'status'}
 			<EditorPanel {view} {store} {onOpenProject} />

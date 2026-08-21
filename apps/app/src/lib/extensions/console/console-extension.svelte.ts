@@ -1,4 +1,4 @@
-import type { UnityExtensionDescriptor } from '@unity-agent/protocol';
+import type { ExtensionDescriptor } from '@unity-agent/protocol';
 import ConsolePanel from './ConsolePanel.svelte';
 import type {
 	ExtensionContext,
@@ -8,10 +8,11 @@ import type {
 } from '../types';
 import type { ConsoleCounts, ConsoleEntry } from './console-types';
 
-const extensionId = 'com.gizmo.extras.console';
+const extensionId = 'unity';
 const consoleLimit = 500;
 
-export const consoleExtension: WebExtensionDefinition = {
+/** Unity's web implementation; Console is one of its internal capabilities. */
+export const unityExtension: WebExtensionDefinition = {
 	id: extensionId,
 	apiVersion: 1,
 	activate: (_descriptor, context) => new ConsoleExtensionRuntime(context),
@@ -70,14 +71,14 @@ export class ConsoleExtensionRuntime implements WebExtensionRuntime {
 
 	async #refreshSnapshot(): Promise<void> {
 		const probe = parseSnapshot(
-			await this.#context.invoke('snapshot', { tail: 1 }),
+		await this.#context.invoke('console.snapshot', { tail: 1 }),
 		);
 		if (!probe) return this.#markSnapshotError();
 		if (this.#disposed) return;
 		this.counts = probe.counts;
 		if (probe.revision === this.#revision) return;
 		const snapshot = parseSnapshot(
-			await this.#context.invoke('snapshot', { tail: consoleLimit }),
+		await this.#context.invoke('console.snapshot', { tail: consoleLimit }),
 		);
 		if (!snapshot) return this.#markSnapshotError();
 		if (this.#disposed) return;

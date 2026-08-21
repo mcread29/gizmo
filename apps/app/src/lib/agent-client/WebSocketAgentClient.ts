@@ -4,7 +4,7 @@ import {
 	parseFileRevertResult,
 	parseGitCommitResult,
 	parseGitStatus,
-	parseUnityExtensions,
+	parseExtensions,
 	parseSessionCatalog,
 	parseSessionSnapshot,
 	parseSessionTree,
@@ -28,7 +28,7 @@ import {
 	type SessionOptions,
 	type SessionSnapshot,
 	type SessionTree,
-	type UnityExtensions,
+	type Extensions,
 	type UnityOpenProjectResult,
 	type UnityStatus,
 	type StoredProject,
@@ -424,12 +424,12 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseUnityOpenProjectResult(response.result);
 	}
 
-	async listProjectExtensions(projectPath: string): Promise<UnityExtensions> {
+	async listProjectExtensions(projectPath: string): Promise<Extensions> {
 		const response = await this.#request({
 			type: 'project.extensions',
 			projectPath,
 		});
-		return parseUnityExtensions(response.result);
+		return parseExtensions(response.result);
 	}
 
 	async invokeProjectExtension(

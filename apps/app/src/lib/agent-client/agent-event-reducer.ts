@@ -4,7 +4,7 @@ import type {
 	ConversationMessage,
 	SessionState,
 	SessionUsage,
-	UnityExtensionDescriptor,
+	ExtensionDescriptor,
 	UnityStatus,
 } from '@unity-agent/protocol';
 
@@ -19,7 +19,7 @@ export interface AgentEventState {
 	sessions: AgentSessionSummary[];
 	sessionId?: string;
 	selectedProjectPath?: string;
-	projectExtensions: UnityExtensionDescriptor[];
+	projectExtensions: ExtensionDescriptor[];
 	projectStatus?: UnityStatus;
 	projectError?: string;
 }

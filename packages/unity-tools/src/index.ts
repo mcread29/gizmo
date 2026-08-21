@@ -63,6 +63,7 @@ export {
 	listUnityExtensions,
 	unityExtensionCommands,
 } from './unity-extensions';
+export { UnityExtensionProvider } from './unity-extension-provider';
 export type {
 	UnityExtensionDescriptor,
 	UnityExtensionOperation,

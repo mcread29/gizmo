@@ -14,7 +14,7 @@ import {
 	type SessionOptions,
 	type SessionSnapshot,
 	type SessionTree,
-	type UnityExtensionDescriptor,
+	type ExtensionDescriptor,
 	type UnityOpenProjectResult,
 	type AgentResource,
 	type ResourceCatalog,
@@ -446,7 +446,7 @@ export class FakeAgentClient implements AgentClient {
 	}
 
 	async listProjectExtensions(_projectPath: string): Promise<{
-		extensions: UnityExtensionDescriptor[];
+		extensions: ExtensionDescriptor[];
 	}> {
 		return { extensions: [fakeConsoleExtension] };
 	}
@@ -456,7 +456,10 @@ export class FakeAgentClient implements AgentClient {
 		extensionId: string,
 		operation: string,
 	): Promise<unknown> {
-		if (extensionId !== fakeConsoleExtension.id || operation !== 'snapshot') {
+		if (
+			extensionId !== fakeConsoleExtension.id ||
+			operation !== 'console.snapshot'
+		) {
 			throw new Error(
 				`Unknown extension operation: ${extensionId}/${operation}`,
 			);
@@ -1030,13 +1033,15 @@ const fakeEditResult = {
 	warnings: [],
 };
 
-const fakeConsoleExtension: UnityExtensionDescriptor = {
-	id: 'com.gizmo.extras.console',
-	name: 'Console',
+const fakeConsoleExtension: ExtensionDescriptor = {
+	id: 'unity',
+	name: 'Unity',
 	version: '0.1.0',
 	apiVersion: 1,
 	capabilities: ['unity.console'],
-	operations: [{ id: 'snapshot', mutates: false, requiresConfirmation: false }],
+	operations: [
+		{ id: 'console.snapshot', mutates: false, requiresConfirmation: false },
+	],
 };
 
 const fakeConsoleEntries = [

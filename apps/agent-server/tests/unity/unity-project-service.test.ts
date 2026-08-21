@@ -4,6 +4,8 @@ import type {
 } from '@unity-agent/unity-tools';
 import { describe, expect, it, vi } from 'vitest';
 import { UnityProjectService } from '../../src/domains/unity/unity-project-service';
+import { UnityExtensionProvider } from '@unity-agent/unity-tools';
+import { ExtensionHostService } from '../../src/extensions/extension-host-service';
 
 describe('UnityProjectService', () => {
 	it('rejects paths outside the Unity project registry before status or open', async () => {
@@ -76,7 +78,6 @@ describe('UnityProjectService', () => {
 
 	it('discovers extension entrypoints without invoking missing commands', async () => {
 		const runner = runnerReturning(
-			projectsResult(),
 			runResult({
 				stdout: JSON.stringify({
 					success: true,
@@ -87,21 +88,18 @@ describe('UnityProjectService', () => {
 				}),
 			}),
 		);
-		const service = new UnityProjectService(runner);
-
-		await service.listProjects();
-		const extensions = await service.listExtensions('/projects/game');
+		const service = new ExtensionHostService([new UnityExtensionProvider(runner)]);
+		const extensions = await service.list('/projects/game');
 
 		expect(extensions).toEqual([]);
-		expect(runner.run).toHaveBeenCalledTimes(2);
+		expect(runner.run).toHaveBeenCalledTimes(1);
 		expect(runner.run.mock.calls.flatMap(([args]) => args)).not.toContain(
 			'gizmo_extensions',
 		);
 	});
 
-	it('forwards only operations declared by an installed extension', async () => {
+	it('exposes Unity as one extension while forwarding its Console capability', async () => {
 		const runner = runnerReturning(
-			projectsResult(),
 			runResult({
 				stdout: JSON.stringify({
 					success: true,
@@ -133,22 +131,20 @@ describe('UnityProjectService', () => {
 			}),
 			runResult({ stdout: extensionResult({ opaque: true }) }),
 		);
-		const service = new UnityProjectService(runner);
-
-		await service.listProjects();
-		await service.listExtensions('/projects/game');
+		const service = new ExtensionHostService([new UnityExtensionProvider(runner)]);
+		await service.list('/projects/game');
 		await expect(
-			service.invokeExtension(
+			service.invoke(
 				'/projects/game',
-				'com.gizmo.extras.console',
-				'snapshot',
+				'unity',
+				'console.snapshot',
 				{ tail: 1 },
 			),
 		).resolves.toEqual({ opaque: true });
 		await expect(
-			service.invokeExtension(
+			service.invoke(
 				'/projects/game',
-				'com.gizmo.extras.console',
+				'unity',
 				'missing',
 			),
 		).rejects.toThrow('does not expose operation');
@@ -162,22 +158,12 @@ describe('UnityProjectService', () => {
 		const runner = runnerReturning(
 			projectsResult(),
 			statusResult([{ projectPath: '/projects/game', state: 'ready' }]),
-			runResult({
-				stdout: JSON.stringify({
-					success: true,
-					command: 'list',
-					data: { tools: [{ name: 'console' }] },
-					errors: [],
-					warnings: [],
-				}),
-			}),
 			statusResult([]),
 		);
 		const service = new UnityProjectService(runner, 1);
 		const changed = new Promise<string>((resolve) => {
 			void service.watchStatus('/projects/game', {
 				status: (status) => resolve(status.state),
-				extensions: () => {},
 			});
 		});
 

@@ -505,7 +505,7 @@ export const unityStatusSchema = Type.Object(
 
 export type UnityStatus = Static<typeof unityStatusSchema>;
 
-export const unityExtensionOperationSchema = Type.Object(
+export const extensionOperationSchema = Type.Object(
 	{
 		id: Type.String({ minLength: 1, maxLength: 128 }),
 		mutates: Type.Boolean(),
@@ -514,34 +514,30 @@ export const unityExtensionOperationSchema = Type.Object(
 	{ additionalProperties: false },
 );
 
-export type UnityExtensionOperation = Static<
-	typeof unityExtensionOperationSchema
->;
+export type ExtensionOperation = Static<typeof extensionOperationSchema>;
 
-export const unityExtensionDescriptorSchema = Type.Object(
+export const extensionDescriptorSchema = Type.Object(
 	{
 		id: Type.String({ minLength: 1, maxLength: 128 }),
 		name: Type.String({ minLength: 1, maxLength: 128 }),
 		version: Type.String({ minLength: 1, maxLength: 64 }),
 		apiVersion: Type.Integer({ minimum: 1 }),
 		capabilities: Type.Array(Type.String({ minLength: 1, maxLength: 128 })),
-		operations: Type.Array(unityExtensionOperationSchema),
+		operations: Type.Array(extensionOperationSchema),
 	},
 	{ additionalProperties: false },
 );
 
-export type UnityExtensionDescriptor = Static<
-	typeof unityExtensionDescriptorSchema
->;
+export type ExtensionDescriptor = Static<typeof extensionDescriptorSchema>;
 
-export const unityExtensionsSchema = Type.Object(
+export const extensionsSchema = Type.Object(
 	{
-		extensions: Type.Array(unityExtensionDescriptorSchema),
+		extensions: Type.Array(extensionDescriptorSchema),
 	},
 	{ additionalProperties: false },
 );
 
-export type UnityExtensions = Static<typeof unityExtensionsSchema>;
+export type Extensions = Static<typeof extensionsSchema>;
 
 export const fileRevertResultSchema = Type.Object(
 	{
@@ -1067,7 +1063,7 @@ export const agentEventSchema = Type.Union([
 			...eventEnvelope,
 			type: Type.Literal('project.extensions.changed'),
 			projectPath: Type.String({ minLength: 1 }),
-			extensions: Type.Array(unityExtensionDescriptorSchema),
+			extensions: Type.Array(extensionDescriptorSchema),
 		},
 		{ additionalProperties: false },
 	),
@@ -1274,8 +1270,8 @@ export function parseUnityOpenProjectResult(
 	return input;
 }
 
-export function parseUnityExtensions(input: unknown): UnityExtensions {
-	if (!Value.Check(unityExtensionsSchema, input)) {
+export function parseExtensions(input: unknown): Extensions {
+	if (!Value.Check(extensionsSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;
