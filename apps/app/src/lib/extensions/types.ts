@@ -84,13 +84,13 @@ export interface GizmoWebExtension {
 		name: string,
 		parameters: [string, string][],
 	): [string, string][];
-	resultFor?(
-		name: string,
-	): Component<{
-		tool: ToolCallView;
-		projectPath?: string;
-		consoleEntries: unknown[];
-		errors: unknown[];
-	}> | undefined;
+	resultFor?(name: string):
+		| Component<{
+				tool: ToolCallView;
+				projectPath?: string;
+				consoleEntries: unknown[];
+				errors: unknown[];
+		  }>
+		| undefined;
 	diagnosticsComponent?: Component<{ errors: unknown[]; projectPath?: string }>;
 }

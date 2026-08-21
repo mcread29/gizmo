@@ -128,7 +128,8 @@
 	scrollbar-width: none;
 }
 
-[data-ui='tabs'][data-variant='subtab'] > [data-ui='tabs-list']::-webkit-scrollbar {
+[data-ui='tabs'][data-variant='subtab']
+	> [data-ui='tabs-list']::-webkit-scrollbar {
 	display: none;
 }
 

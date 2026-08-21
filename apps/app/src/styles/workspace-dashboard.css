@@ -265,7 +265,6 @@
 	text-align: center;
 }
 
-
 @media (max-width: 560px) {
 	[data-ui='workspace-home'] {
 		padding: var(--space-5) var(--space-4);

@@ -173,8 +173,12 @@
 			};
 		}),
 	);
-	let projectSkills = $derived(skills.filter((skill) => skill.scope === 'project'));
-	let globalSkills = $derived(skills.filter((skill) => skill.scope === 'global'));
+	let projectSkills = $derived(
+		skills.filter((skill) => skill.scope === 'project'),
+	);
+	let globalSkills = $derived(
+		skills.filter((skill) => skill.scope === 'global'),
+	);
 	let activeSkills = $derived(skills.filter((skill) => skill.enabled).length);
 
 	let toolsChanged = $derived(
@@ -243,7 +247,10 @@
 		if (!setup) return;
 		const detected =
 			setup.available.find((candidate) => candidate.id === id)?.root ?? '.';
-		setExtension(id, checked ? (extensionRoot(base, id) ?? detected) : undefined);
+		setExtension(
+			id,
+			checked ? (extensionRoot(base, id) ?? detected) : undefined,
+		);
 	}
 
 	function setSkill(id: string, enabled: boolean | null) {
@@ -331,7 +338,9 @@
 
 	/** A workspace profile can be deleted; the built-in and extension ones stay. */
 	let deletable = $derived(
-		Boolean(editing && editable && editing.id !== 'default' && profiles.length > 1),
+		Boolean(
+			editing && editable && editing.id !== 'default' && profiles.length > 1,
+		),
 	);
 
 	function uniqueId(base: string): string {
@@ -487,8 +496,10 @@
 						>Revert</Button
 					>
 				{/if}
-				<Button size="sm" disabled={saving || !dirty} onclick={() => void save()}
-					>{saving ? 'Saving…' : 'Save'}</Button
+				<Button
+					size="sm"
+					disabled={saving || !dirty}
+					onclick={() => void save()}>{saving ? 'Saving…' : 'Save'}</Button
 				>
 			{:else}
 				<Button size="sm" onclick={duplicateProfile}
@@ -506,8 +517,8 @@
 					New threads use the active profile.
 				{/if}
 			{:else}
-				<strong>{editing.name}</strong> is {originLabel(editing)} and read-only.
-				New threads use the active profile.
+				<strong>{editing.name}</strong> is {originLabel(editing)} and read-only. New
+				threads use the active profile.
 			{/if}
 		</p>
 
@@ -517,9 +528,9 @@
 			<div data-ui="config-lock-banner">
 				<Lock size={15} />
 				<div>
-					<strong>{editing.name}</strong> is {originLabel(editing)} and can’t be
-					edited in place. Duplicate it to customize — your copy stays editable
-					and keeps inheriting new defaults you don’t override.
+					<strong>{editing.name}</strong> is {originLabel(editing)} and can’t be edited
+					in place. Duplicate it to customize — your copy stays editable and keeps
+					inheriting new defaults you don’t override.
 				</div>
 				<Button size="sm" onclick={duplicateProfile}
 					><Copy size={14} /> Duplicate to edit</Button
@@ -533,7 +544,10 @@
 			<span>How the agent thinks and what it can do in this workspace.</span>
 		</div>
 
-		<div data-ui="workspace-configure-body" data-state={editable ? undefined : 'locked'}>
+		<div
+			data-ui="workspace-configure-body"
+			data-state={editable ? undefined : 'locked'}
+		>
 			{#if base && changeCount > 0}
 				<div
 					data-ui="setting-field"
@@ -541,7 +555,9 @@
 					data-ui-role="config-changes"
 				>
 					<div>
-						<strong>{changeCount} change{changeCount === 1 ? '' : 's'} from {base.name}</strong>
+						<strong
+							>{changeCount} change{changeCount === 1 ? '' : 's'} from {base.name}</strong
+						>
 						<span>Changed rows are marked.</span>
 					</div>
 					{#if editable}
@@ -553,7 +569,10 @@
 			{/if}
 
 			<div data-ui="settings-card">
-				<div data-ui="setting-field" data-state={editable ? undefined : 'disabled'}>
+				<div
+					data-ui="setting-field"
+					data-state={editable ? undefined : 'disabled'}
+				>
 					<div>
 						<strong>Name</strong>
 						<span>Shown wherever this profile is picked.</span>
@@ -592,7 +611,9 @@
 
 			<div data-ui="settings-subhead">
 				<strong>Extensions</strong>
-				<span>Which extensions this profile turns on, and where each is rooted.</span>
+				<span
+					>Which extensions this profile turns on, and where each is rooted.</span
+				>
 			</div>
 			<div data-ui="settings-card">
 				{#if setup.available.length === 0}
@@ -604,14 +625,20 @@
 						{#each setup.available as extension (extension.id)}
 							{@const root = extensionRoot(editing, extension.id)}
 							{@const changed = changedExtensions.has(extension.id)}
-							<div data-ui="integration-row" data-changed={changed || undefined}>
+							<div
+								data-ui="integration-row"
+								data-changed={changed || undefined}
+							>
 								<label>
 									<input
 										type="checkbox"
 										checked={root !== undefined}
 										disabled={!editable}
 										onchange={(event) =>
-											toggleExtension(extension.id, event.currentTarget.checked)}
+											toggleExtension(
+												extension.id,
+												event.currentTarget.checked,
+											)}
 									/>
 									<span>
 										<strong>{extension.name}</strong>
@@ -623,9 +650,8 @@
 									</span>
 								</label>
 								{#if root !== undefined && root !== '.'}
-									<span
-										data-ui="resource-scope"
-										title={`Rooted at ${root}`}>{root}</span
+									<span data-ui="resource-scope" title={`Rooted at ${root}`}
+										>{root}</span
 									>
 								{/if}
 								{#if changed && base && editable}
@@ -641,7 +667,10 @@
 
 			<div data-ui="settings-subhead">
 				<strong>What enabled extensions may add</strong>
-				<span>Whether extensions may contribute their own tools and prompt guidance.</span>
+				<span
+					>Whether extensions may contribute their own tools and prompt
+					guidance.</span
+				>
 			</div>
 			<div data-ui="settings-card">
 				<div data-ui="setting-field" data-changed={toolsChanged || undefined}>
@@ -657,7 +686,9 @@
 							<button
 								type="button"
 								data-ui="segmented-option"
-								data-state={toolsMode(editing) === mode.value ? 'active' : undefined}
+								data-state={toolsMode(editing) === mode.value
+									? 'active'
+									: undefined}
 								disabled={!editable}
 								onclick={() => {
 									if (editing) editing.tools = { mode: mode.value };
@@ -682,7 +713,9 @@
 							<button
 								type="button"
 								data-ui="segmented-option"
-								data-state={promptMode(editing) === mode.value ? 'active' : undefined}
+								data-state={promptMode(editing) === mode.value
+									? 'active'
+									: undefined}
 								disabled={!editable}
 								onclick={() => {
 									if (editing) editing.prompt = { mode: mode.value };
@@ -707,7 +740,9 @@
 				<p data-ui="resource-error">{store.resourceError}</p>
 			{/if}
 			{#if projectSkills.length > 0}
-				<p data-ui="config-skill-group">From extensions · default set by the extension</p>
+				<p data-ui="config-skill-group">
+					From extensions · default set by the extension
+				</p>
 				<div data-ui="settings-card">
 					<SkillList
 						skills={projectSkills}
@@ -722,7 +757,9 @@
 				</div>
 			{/if}
 			{#if globalSkills.length > 0}
-				<p data-ui="config-skill-group">Global · default is your global setting</p>
+				<p data-ui="config-skill-group">
+					Global · default is your global setting
+				</p>
 				<div data-ui="settings-card">
 					<SkillList
 						skills={globalSkills}
@@ -747,7 +784,9 @@
 					<div data-ui="setting-field">
 						<div>
 							<strong>Delete this profile</strong>
-							<span>Removes it from this workspace. Saved threads are untouched.</span>
+							<span
+								>Removes it from this workspace. Saved threads are untouched.</span
+							>
 						</div>
 						<Button
 							size="sm"

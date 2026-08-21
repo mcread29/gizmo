@@ -7,6 +7,8 @@ import {
 } from '@gizmo/protocol';
 import type { ProjectService, ProjectStatus } from '@gizmo/extensions';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
+import { registeredExtensions } from '../extensions/registry';
+import { webExtensionBundles } from '../extensions/web-bundles';
 import { PiAgentService } from '../sessions/pi-agent-service';
 import { GitService } from '../git/git-service';
 import { ExtensionHostService } from '../extensions/extension-host-service';
@@ -24,10 +26,14 @@ export interface AgentWebSocketServerOptions {
 
 /** Used when no domain's project service is configured for this connection. */
 const noProjectService: ProjectService = {
-	getStatus: () => Promise.reject(new Error('No project service is configured')),
-	watchStatus: () => Promise.reject(new Error('No project service is configured')),
-	openProject: () => Promise.reject(new Error('No project service is configured')),
-	revertFile: () => Promise.reject(new Error('No project service is configured')),
+	getStatus: () =>
+		Promise.reject(new Error('No project service is configured')),
+	watchStatus: () =>
+		Promise.reject(new Error('No project service is configured')),
+	openProject: () =>
+		Promise.reject(new Error('No project service is configured')),
+	revertFile: () =>
+		Promise.reject(new Error('No project service is configured')),
 	dispose: () => {},
 };
 
@@ -64,8 +70,7 @@ export async function createAgentWebSocketServer(
 		const service = options.createService?.() ?? new PiAgentService();
 		const projectService = options.createProjectService?.() ?? noProjectService;
 		const extensionHost =
-			options.createExtensionHost?.() ??
-			new ExtensionHostService([]);
+			options.createExtensionHost?.() ?? new ExtensionHostService([]);
 		const gitService = options.createGitService?.() ?? new GitService();
 		services.set(socket, {
 			agent: service,
@@ -144,11 +149,7 @@ const defaultAllowedOrigins = [
 ];
 
 interface ProjectEmitters {
-	status(
-		sessionId: string,
-		projectPath: string,
-		status: ProjectStatus,
-	): void;
+	status(sessionId: string, projectPath: string, status: ProjectStatus): void;
 	extensions(
 		sessionId: string,
 		projectPath: string,
@@ -364,6 +365,8 @@ async function dispatch(
 					extensions: await extensionHost.list(request.projectPath),
 				},
 			};
+		case 'extensions.web':
+			return { result: await webExtensionBundles(registeredExtensions()) };
 		case 'project.extension.invoke':
 			return {
 				result: await extensionHost.invoke(

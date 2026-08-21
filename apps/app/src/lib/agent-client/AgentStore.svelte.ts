@@ -26,7 +26,7 @@ import {
 } from '@gizmo/protocol';
 import type { AgentClient } from './AgentClient';
 import { applyAgentEvent } from './agent-event-reducer';
-import { extension } from '../extensions/registry';
+import { extension } from '../extensions/registry.svelte';
 
 export interface AgentModel {
 	provider: string;

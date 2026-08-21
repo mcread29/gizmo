@@ -2,10 +2,14 @@
 	import type { ToolCallView } from '@gizmo/protocol';
 	import DiffView from './DiffView.svelte';
 	import { patchFileName } from '../changes/thread-changes';
-	import { formatToolResult, recordValue, stringValue } from '@gizmo/design/format';
+	import {
+		formatToolResult,
+		recordValue,
+		stringValue,
+	} from '@gizmo/design/format';
 	import { highlightCode } from '@gizmo/design/highlight';
 	import { toolParameters } from './tool-summary';
-	import { extensions as toolPresentationPlugins } from '../../extensions/registry';
+	import { webExtensions as toolPresentationPlugins } from '../../extensions/registry.svelte';
 
 	interface Props {
 		tool: ToolCallView;
@@ -26,7 +30,7 @@
 			(diff ? patchFileName(diff) : undefined),
 	);
 	let parameters = $derived(
-		toolPresentationPlugins.reduce(
+		toolPresentationPlugins().reduce(
 			(params, plugin) => plugin.parametersFor?.(tool.name, params) ?? params,
 			toolParameters(tool.input),
 		),
@@ -39,7 +43,7 @@
 			: highlightCode(resultText, 'json'),
 	);
 	let resultComponent = $derived(
-		toolPresentationPlugins
+		toolPresentationPlugins()
 			.map((plugin) => plugin.resultFor?.(tool.name))
 			.find((component) => component !== undefined),
 	);

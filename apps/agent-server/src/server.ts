@@ -27,7 +27,10 @@ const agentServer = await createAgentWebSocketServer({
 	port,
 	createExtensionHost: () => new ExtensionHostService(extensions),
 	...(projectServiceExtension
-		? { createProjectService: () => projectServiceExtension.createProjectService!() }
+		? {
+				createProjectService: () =>
+					projectServiceExtension.createProjectService!(),
+			}
 		: {}),
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),
 });

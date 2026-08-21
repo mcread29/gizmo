@@ -17,6 +17,7 @@ import type {
 	WorkspaceProfiles,
 	ProviderStatus,
 	Extensions,
+	WebExtensionBundles,
 	UnityOpenProjectResult,
 	UnityStatus,
 } from '@gizmo/protocol';
@@ -113,6 +114,8 @@ export interface AgentClient {
 	): Promise<UnityStatus>;
 	openProject(projectPath: string): Promise<UnityOpenProjectResult>;
 	listProjectExtensions(projectPath: string): Promise<Extensions>;
+	/** Standalone web-extension bundles to load at runtime, if the client supports them. */
+	listWebExtensionBundles?(): Promise<WebExtensionBundles>;
 	invokeProjectExtension(
 		projectPath: string,
 		extensionId: string,

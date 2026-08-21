@@ -37,19 +37,36 @@ export class ExtensionHostService {
 		return this.#run(async (signal) => {
 			const extensions = await this.#listUnchecked(workspacePath, signal);
 			const extension = extensions.find(({ id }) => id === extensionId);
-			if (!extension) throw new Error(`Extension is not installed: ${extensionId}`);
-			const operation = extension.operations.find(({ id }) => id === operationId);
+			if (!extension)
+				throw new Error(`Extension is not installed: ${extensionId}`);
+			const operation = extension.operations.find(
+				({ id }) => id === operationId,
+			);
 			if (!operation)
-				throw new Error(`Extension ${extensionId} does not expose operation: ${operationId}`);
+				throw new Error(
+					`Extension ${extensionId} does not expose operation: ${operationId}`,
+				);
 			if (operation.requiresConfirmation && !confirmed(input))
-				throw new Error(`Extension operation requires confirmation: ${operationId}`);
+				throw new Error(
+					`Extension operation requires confirmation: ${operationId}`,
+				);
 			const provider = this.#owners.get(`${workspacePath}:${extensionId}`);
-			if (!provider) throw new Error(`Extension provider is unavailable: ${extensionId}`);
-			return provider.invoke(workspacePath, extensionId, operationId, input, signal);
+			if (!provider)
+				throw new Error(`Extension provider is unavailable: ${extensionId}`);
+			return provider.invoke(
+				workspacePath,
+				extensionId,
+				operationId,
+				input,
+				signal,
+			);
 		});
 	}
 
-	watch(workspacePath: string, changed: (extensions: ExtensionDescriptor[]) => void): () => void {
+	watch(
+		workspacePath: string,
+		changed: (extensions: ExtensionDescriptor[]) => void,
+	): () => void {
 		let disposed = false;
 		let fingerprint = '';
 		const check = async () => {
@@ -102,7 +119,10 @@ export class ExtensionHostService {
 				this.#cache.delete(workspacePath);
 				throw error;
 			});
-		this.#cache.set(workspacePath, { expiresAt: Date.now() + this.pollMs, value });
+		this.#cache.set(workspacePath, {
+			expiresAt: Date.now() + this.pollMs,
+			value,
+		});
 		return value;
 	}
 
@@ -118,5 +138,9 @@ export class ExtensionHostService {
 }
 
 function confirmed(input: unknown): boolean {
-	return input !== null && typeof input === 'object' && (input as Record<string, unknown>).confirmed === true;
+	return (
+		input !== null &&
+		typeof input === 'object' &&
+		(input as Record<string, unknown>).confirmed === true
+	);
 }

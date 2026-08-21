@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { AgentStore } from '../agent-client';
 	import { Tabs } from '../components';
-	import { activateProjectExtensions } from './registry';
+	import { activateProjectExtensions } from './registry.svelte';
 	import type { WebExtensionRuntime } from './types';
 	import ChangesPanel from '../features/changes/ChangesPanel.svelte';
 	import PanelToggle from '../features/shell/PanelToggle.svelte';
@@ -70,7 +70,6 @@
 		)
 			activeDomainPanel = 'status';
 	});
-
 </script>
 
 <aside
@@ -95,10 +94,7 @@
 	{#key inspectorKey}
 		<Tabs variant="subtab" lazy items={tabs} value={defaultTab}>
 			{#snippet children(value)}
-				<div
-					data-ui="inspector-panel"
-					data-panel={value}
-				>
+				<div data-ui="inspector-panel" data-panel={value}>
 					{#if view.panel && value === view.panel.id}
 						{@const Panel = view.panel.component}
 						<Panel

@@ -1,4 +1,4 @@
-import { extensions as toolPresentationPlugins } from '../../extensions/registry';
+import { webExtensions as toolPresentationPlugins } from '../../extensions/registry.svelte';
 
 const baseLabels: Record<string, string> = {
 	read: 'Read file',
@@ -6,20 +6,24 @@ const baseLabels: Record<string, string> = {
 	write: 'Write file',
 };
 
-const labels: Record<string, string> = Object.assign(
-	{},
-	baseLabels,
-	...toolPresentationPlugins.map((plugin) => plugin.labels ?? {}),
-);
+// Read per call rather than built once: extensions can be installed after
+// this module is first evaluated.
+function labels(): Record<string, string> {
+	return Object.assign(
+		{},
+		baseLabels,
+		...toolPresentationPlugins().map((plugin) => plugin.labels ?? {}),
+	);
+}
 
 export function toolLabel(name: string): string {
-	return labels[name] ?? name;
+	return labels()[name] ?? name;
 }
 
 export type ToolIcon = 'file' | 'shell' | string;
 
 export function toolIcon(name: string): ToolIcon {
-	for (const plugin of toolPresentationPlugins) {
+	for (const plugin of toolPresentationPlugins()) {
 		const icon = plugin.iconFor?.(name);
 		if (icon) return icon;
 	}

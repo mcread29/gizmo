@@ -1,5 +1,5 @@
 import type { AgentStore } from '../agent-client';
-import { extension } from './registry';
+import { extension } from './registry.svelte';
 import type { WorkspaceView } from './types';
 
 export function createWorkspaceView(store: AgentStore): WorkspaceView {

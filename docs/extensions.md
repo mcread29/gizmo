@@ -65,22 +65,57 @@ in settings" case with no further work: `npm install` (or a git checkout) any
 package exporting `gizmoExtension` from a `/server` subpath, add its
 specifier to `gizmo.extensions.json`, done.
 
-### Client: still statically registered
+### Client: runtime-loaded bundles
 
-`apps/app/src/lib/extensions/registry.ts` currently imports `@gizmo/unity/web`
-directly and returns a static array. This is the one piece that hasn't moved
-to runtime discovery yet, because it's a materially harder problem: Vite (like
-any bundler) resolves import specifiers by static analysis at build time, so
-loading a plugin the app's build never saw requires a genuinely different
-mechanism — building the plugin as a standalone module with `svelte`
-externalized so it shares the host's runtime, then loading it via a real
-runtime `import(url)` (bundlers leave a non-statically-analyzable specifier
-alone; the JS engine resolves it at runtime, same as it would under any other
-bundler or no bundler at all — this is not a reason to move off Vite/Tauri).
+Vite — like any bundler — resolves import specifiers by static analysis at
+build time, so the app's own build can never see a plugin installed later. The
+way around it is to build the plugin separately and load it through a genuine
+runtime `import(url)`, which the JS engine resolves itself.
 
-This needs a small spike to confirm the mechanism actually works cleanly
-inside the Tauri webview before the client registry is rebuilt on top of it.
-Not yet done.
+**Building.** `apps/app/scripts/build-web-extension.ts` (`pnpm --filter
+@gizmo/app extension:build <package-dir>`) compiles a package's `src/web`
+entry into one standalone ES module with no remaining imports.
+
+The one thing a plugin must _not_ bundle is the Svelte runtime: two copies do
+not share context or a reactivity graph, so a plugin carrying its own would
+render but never update. Those specifiers are rewritten to read from a global
+the host publishes (`__gizmoHostModules__`, see
+`apps/app/src/lib/extensions/runtime/host-modules.ts`) rather than left
+external and resolved through an import map — import-map support varies across
+the webviews Tauri uses on different platforms, a global does not. The list of
+names to re-export is read from the installed Svelte package at build time, so
+it tracks the version in use; names that are reserved words (`if`, `await`,
+`try`) are renamed in the export clause. Everything else a plugin imports —
+`@gizmo/design` components, icons — is bundled into it normally.
+
+**Delivering.** The server reads each extension's built `dist/web.js`
+(`apps/agent-server/src/extensions/web-bundles.ts`) and returns the source
+over the existing agent WebSocket in response to `extensions.web`. Sending
+source over the connection Gizmo already has avoids standing up an HTTP
+server just to host plugin assets.
+
+**Loading.** `runtime/load-web-extension.ts` turns the source into a blob URL
+and imports it. A bundle must export `gizmoWebExtension`, and its `id` must
+match the id it was served as — otherwise an extension could impersonate
+another. One failing bundle is reported and skipped rather than taking the
+whole extension surface down.
+
+**CSP.** Importing a blob URL as a module requires `script-src 'self' blob:`
+in `src-tauri/tauri.conf.json`. The previous `default-src 'self'` (with no
+`script-src`) blocked it; both the block and the fix were confirmed in a real
+Chromium against the exact CSP strings. This does loosen the policy — it is
+the cost of loading third-party UI code at all, and is why bundles arrive only
+from extensions the user installed and listed in `gizmo.extensions.json`.
+
+_Not verified:_ the blob-import path was confirmed in Chromium (which is what
+Tauri uses on Windows and what WebView2 is built on), not in WebKitGTK, which
+Tauri uses on Linux.
+
+**Built-ins still win.** `registry.svelte.ts` keeps first-party extensions
+(Unity, Svelte) statically imported, because the app bundles them anyway, and
+a runtime-loaded bundle claiming one of their ids is discarded rather than
+allowed to displace it. The registry is reactive, so extensions that arrive
+after first render still reach the UI; startup never blocks on them.
 
 ## Tool policy: no shell, by design
 
@@ -196,7 +231,7 @@ workspace/UI layer. Gizmo disables ambient Pi extensions
 extensions. Whether/how to bridge the two is an open question, not a
 decision made yet.
 
-## Summary: what's implemented vs. planned
+## Summary: what's implemented
 
 **Implemented:**
 
@@ -209,11 +244,9 @@ decision made yet.
   execution primitive.
 - Extension-shipped skills and prompts via `packageRoot` + Pi's package
   convention, feeding `additionalSkillPaths`.
-
-**Decided, not yet implemented:**
-
-- Client-side runtime discovery (needs a Tauri/Vite dynamic-`import(url)`
-  spike first).
+- Client-side runtime loading: standalone plugin builds sharing the host's
+  Svelte runtime, delivered over the agent connection, imported from a blob
+  URL.
 
 **Open:**
 
@@ -222,3 +255,5 @@ decision made yet.
   adding once there's a real third-party ecosystem to protect against.
 - Whether/how Pi's own "Extensions" concept composes with
   `GizmoServerExtension`.
+- Whether blob-URL module imports behave the same under WebKitGTK, which
+  Tauri uses on Linux. Verified under Chromium only.

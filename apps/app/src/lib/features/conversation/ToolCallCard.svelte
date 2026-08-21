@@ -14,7 +14,7 @@
 	import ToolResult from './ToolResult.svelte';
 	import { formatToolResult, recordValue } from '@gizmo/design/format';
 	import { toolIcon, toolLabel } from './tool-labels';
-	import { extensions as toolPresentationPlugins } from '../../extensions/registry';
+	import { webExtensions as toolPresentationPlugins } from '../../extensions/registry.svelte';
 	import { toolSummary } from './tool-summary';
 
 	interface Props {
@@ -49,13 +49,13 @@
 	);
 	let errors = $derived(readArray(tool.result, 'errors'));
 	let consoleEntriesKey = $derived(
-		toolPresentationPlugins
+		toolPresentationPlugins()
 			.map((plugin) => plugin.consoleEntriesKey?.(tool.name))
 			.find((key) => key !== undefined) ?? 'consoleEntries',
 	);
 	let consoleEntries = $derived(readArray(tool.result, consoleEntriesKey));
 	let diagnosticsComponent = $derived(
-		toolPresentationPlugins.find((plugin) => plugin.diagnosticsComponent)
+		toolPresentationPlugins().find((plugin) => plugin.diagnosticsComponent)
 			?.diagnosticsComponent,
 	);
 

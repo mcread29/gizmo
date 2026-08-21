@@ -539,6 +539,32 @@ export const extensionsSchema = Type.Object(
 
 export type Extensions = Static<typeof extensionsSchema>;
 
+/**
+ * One runtime-loadable web extension bundle. `code` is a standalone ES module
+ * exporting `gizmoWebExtension`; the app imports it through a real runtime
+ * `import()` of a blob URL, which its own bundler never had to resolve.
+ */
+export const webExtensionBundleSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1, maxLength: 128 }),
+		code: Type.String({ minLength: 1 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type WebExtensionBundle = Static<typeof webExtensionBundleSchema>;
+
+export const webExtensionBundlesSchema = Type.Object(
+	{
+		bundles: Type.Array(webExtensionBundleSchema),
+		/** Extensions that declared a web bundle Gizmo could not load. */
+		diagnostics: Type.Array(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+
+export type WebExtensionBundles = Static<typeof webExtensionBundlesSchema>;
+
 export const fileRevertResultSchema = Type.Object(
 	{
 		file: Type.String({ minLength: 1 }),
@@ -881,6 +907,13 @@ export const agentRequestSchema = Type.Union([
 			...envelope,
 			type: Type.Literal('project.extensions'),
 			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('extensions.web'),
 		},
 		{ additionalProperties: false },
 	),
@@ -1272,6 +1305,13 @@ export function parseUnityOpenProjectResult(
 
 export function parseExtensions(input: unknown): Extensions {
 	if (!Value.Check(extensionsSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseWebExtensionBundles(input: unknown): WebExtensionBundles {
+	if (!Value.Check(webExtensionBundlesSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

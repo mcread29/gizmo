@@ -53,15 +53,15 @@
 				></div>
 			{:else}
 				<strong>{store.gitStatus?.branch ?? 'No repository'}</strong>
-				<span
-					>{changedFiles === 0
-						? 'clean'
-						: `${changedFiles} changed`}</span
-				>
+				<span>{changedFiles === 0 ? 'clean' : `${changedFiles} changed`}</span>
 			{/if}
 		</div>
 
-		<button data-ui="workspace-fact" data-clickable="true" onclick={onConfigure}>
+		<button
+			data-ui="workspace-fact"
+			data-clickable="true"
+			onclick={onConfigure}
+		>
 			<Boxes size={15} />
 			<strong
 				>{integrationCount
@@ -108,7 +108,9 @@
 
 	{#if workspaceSessions.length === 0}
 		<div data-ui="workspace-home-actions">
-			<Button size="sm" onclick={onNewThread}><Plus size={14} /> New thread</Button>
+			<Button size="sm" onclick={onNewThread}
+				><Plus size={14} /> New thread</Button
+			>
 		</div>
 	{/if}
 </div>

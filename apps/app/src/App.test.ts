@@ -586,9 +586,9 @@ describe('application shell', () => {
 		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
 
 		// The workspace profile turns on both extensions; Default turns on none.
-		const unity = (
-			await findByRole('checkbox', { name: /Unity/ })
-		).closest('[data-ui="integration-row"]')!;
+		const unity = (await findByRole('checkbox', { name: /Unity/ })).closest(
+			'[data-ui="integration-row"]',
+		)!;
 		expect(unity).toHaveAttribute('data-changed', 'true');
 
 		await fireEvent.click(

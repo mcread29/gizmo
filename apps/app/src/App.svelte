@@ -7,6 +7,7 @@
 		WebSocketAgentClient,
 		type AgentClient,
 	} from './lib/agent-client';
+	import { installWebExtensions } from './lib/extensions/runtime/install';
 	import { saveAppSettings } from './lib/app-settings';
 	import { AppRouter, type WorkspaceTab } from './lib/router.svelte';
 	import { Toast } from './lib/components';
@@ -40,16 +41,18 @@
 		capabilities: ['editor-status', 'pipeline-commands'],
 	};
 	const layout = new WorkspaceLayout();
-	const store = new AgentStore(
-		untrack(
-			() =>
-				client ??
-				new WebSocketAgentClient(
-					layout.agentUrl ? { url: layout.agentUrl } : {},
-				),
-		),
+	const agentClient = untrack(
+		() =>
+			client ??
+			new WebSocketAgentClient(layout.agentUrl ? { url: layout.agentUrl } : {}),
 	);
+	const store = new AgentStore(agentClient);
 	const sessions = new SessionActions(store, agent.name, toasts);
+	// Web extensions the app's own build never saw. The registry is reactive, so
+	// UI they contribute appears when they arrive; startup does not wait.
+	void installWebExtensions(agentClient).then((diagnostics) => {
+		for (const diagnostic of diagnostics) console.warn(diagnostic);
+	});
 	const drafts = new DraftStore();
 
 	const router = new AppRouter();
