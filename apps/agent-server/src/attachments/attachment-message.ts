@@ -1,4 +1,4 @@
-import type { ConversationAttachment } from '@unity-agent/protocol';
+import type { ConversationAttachment } from '@gizmo/protocol';
 
 const manifestStart = '<unity-agent-attachments>';
 const manifestEnd = '</unity-agent-attachments>';

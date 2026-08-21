@@ -4,8 +4,8 @@ import {
 	type ExtensionDescriptor,
 	type AgentRequest,
 	type AgentResponse,
-} from '@unity-agent/protocol';
-import type { ProjectService, ProjectStatus } from '@unity-agent/domains';
+} from '@gizmo/protocol';
+import type { ProjectService, ProjectStatus } from '@gizmo/extensions';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
 import { PiAgentService } from '../sessions/pi-agent-service';
 import { GitService } from '../git/git-service';

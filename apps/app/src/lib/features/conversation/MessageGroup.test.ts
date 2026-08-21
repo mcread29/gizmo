@@ -1,4 +1,4 @@
-import type { ConversationMessage } from '@unity-agent/protocol';
+import type { ConversationMessage } from '@gizmo/protocol';
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import MessageGroupView from './MessageGroup.svelte';

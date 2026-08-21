@@ -1,4 +1,4 @@
-import type { AgentAttachment } from '@unity-agent/protocol';
+import type { AgentAttachment } from '@gizmo/protocol';
 
 export const maxAttachmentCount = 8;
 export const maxAttachmentBytes = 10 * 1024 * 1024;

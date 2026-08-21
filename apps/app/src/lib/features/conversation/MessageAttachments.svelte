@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ConversationAttachment } from '@unity-agent/protocol';
+	import type { ConversationAttachment } from '@gizmo/protocol';
 	import { Download, ExternalLink, File } from '@lucide/svelte';
 	import { Button, Dialog } from '../../components';
 	import type { AttachmentContent } from '../../agent-client/AgentClient';

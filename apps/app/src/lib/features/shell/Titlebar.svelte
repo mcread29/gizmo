@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AgentIdentity } from '@unity-agent/protocol';
+	import type { AgentIdentity } from '@gizmo/protocol';
 	import { ArrowLeft, Moon, Settings, Sun } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { BrandMark, Button, Tooltip } from '../../components';
@@ -9,7 +9,7 @@
 	import PanelToggle from './PanelToggle.svelte';
 	import WindowControls from './WindowControls.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
-	import type { WorkspaceView } from '../../domains/types';
+	import type { WorkspaceView } from '../../extensions/types';
 
 	interface Props {
 		agent: AgentIdentity;

@@ -4,7 +4,7 @@ import {
 	type AgentEvent,
 	type AgentModelCatalog,
 	type CompactionPolicy,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

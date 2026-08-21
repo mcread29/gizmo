@@ -4,7 +4,7 @@
 	import ThreadDialogs from '../sessions/ThreadDialogs.svelte';
 	import type { SessionActions } from '../sessions/session-actions.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
-	import DomainDialogs from '../../domains/DomainDialogs.svelte';
+	import ExtensionDialogs from '../../extensions/ExtensionDialogs.svelte';
 
 	interface Props {
 		store: AgentStore;
@@ -26,4 +26,4 @@
 	}}
 />
 <ThreadDialogs {sessions} />
-<DomainDialogs {store} {layout} />
+<ExtensionDialogs {store} {layout} />

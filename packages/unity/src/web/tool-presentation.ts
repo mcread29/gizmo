@@ -8,6 +8,7 @@ const resultToolNames = new Set([
 	'unity_wait_for_compile',
 	'unity_wait_for_command',
 	'unity_test',
+	'unity_script',
 ]);
 
 /** Adapts Unity's tools to the conversation view's generic tool-presentation contract. */
@@ -28,5 +29,9 @@ export const unityToolPresentation = {
 		name === 'unity_console' ? 'entries' : undefined,
 	resultFor: (name: string) =>
 		resultToolNames.has(name) ? UnityToolResult : undefined,
+	parametersFor: (name: string, parameters: [string, string][]) =>
+		name === 'unity_script'
+			? parameters.filter(([param]) => param !== 'code')
+			: parameters,
 	diagnosticsComponent: CompilerDiagnosticList,
 };

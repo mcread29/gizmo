@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SessionUsage } from '@unity-agent/protocol';
+	import type { SessionUsage } from '@gizmo/protocol';
 	import { usageView } from './usage';
 
 	let { usage }: { usage: SessionUsage } = $props();

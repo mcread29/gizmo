@@ -1,4 +1,4 @@
-import { parseAgentEvent, type AgentEvent } from '@unity-agent/protocol';
+import { parseAgentEvent, type AgentEvent } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
 import { AgentStore } from './AgentStore.svelte';
 import { FakeAgentClient } from './FakeAgentClient';

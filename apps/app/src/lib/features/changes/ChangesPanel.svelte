@@ -10,7 +10,7 @@
 		RefreshCw,
 		Undo2,
 	} from '@lucide/svelte';
-	import type { GitFileStatus } from '@unity-agent/protocol';
+	import type { GitFileStatus } from '@gizmo/protocol';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Dialog, Tooltip } from '../../components';

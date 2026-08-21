@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AgentAttachment } from '@unity-agent/protocol';
+	import type { AgentAttachment } from '@gizmo/protocol';
 	import {
 		CornerDownLeft,
 		Minimize2,

@@ -26,16 +26,16 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: ^0.84.2
         version: 0.84.2(patch_hash=8313737439ed796a7f96383a9a672d2a8c7ac0a43c910016b668d9c1af1af10d)(ws@8.21.3)
-      '@unity-agent/domains':
+      '@gizmo/extensions':
         specifier: workspace:*
-        version: link:../../packages/domains
-      '@unity-agent/protocol':
+        version: link:../../packages/extensions
+      '@gizmo/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
-      '@unity-agent/unity':
+      '@gizmo/unity':
         specifier: workspace:*
         version: link:../../packages/unity
-      '@unity-agent/unity-tools':
+      '@gizmo/unity-tools':
         specifier: workspace:*
         version: link:../../packages/unity-tools
       typebox:
@@ -63,6 +63,15 @@ importers:
 
   apps/app:
     dependencies:
+      '@gizmo/design':
+        specifier: workspace:*
+        version: link:../../packages/design
+      '@gizmo/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+      '@gizmo/unity':
+        specifier: workspace:*
+        version: link:../../packages/unity
       '@lucide/svelte':
         specifier: ^1.31.0
         version: 1.31.0(svelte@5.56.9)
@@ -75,24 +84,12 @@ importers:
       '@tauri-apps/plugin-dialog':
         specifier: ^2.7.2
         version: 2.7.2
-      '@unity-agent/design':
-        specifier: workspace:*
-        version: link:../../packages/design
-      '@unity-agent/protocol':
-        specifier: workspace:*
-        version: link:../../packages/protocol
-      '@unity-agent/unity':
-        specifier: workspace:*
-        version: link:../../packages/unity
       bits-ui:
         specifier: latest
         version: 2.19.0(@internationalized/date@3.12.3)(svelte@5.56.9)
       dompurify:
         specifier: ^3.4.13
         version: 3.4.13
-      highlight.js:
-        specifier: ^11.12.0
-        version: 11.12.0
       marked:
         specifier: ^18.0.9
         version: 18.0.9
@@ -133,16 +130,19 @@ importers:
 
   packages/design:
     dependencies:
+      highlight.js:
+        specifier: ^11.12.0
+        version: 11.12.0
       svelte:
         specifier: latest
         version: 5.56.9
 
-  packages/domains:
+  packages/extensions:
     dependencies:
       '@earendil-works/pi-coding-agent':
         specifier: ^0.84.2
         version: 0.84.2(patch_hash=8313737439ed796a7f96383a9a672d2a8c7ac0a43c910016b668d9c1af1af10d)(ws@8.21.3)
-      '@unity-agent/protocol':
+      '@gizmo/protocol':
         specifier: workspace:*
         version: link:../protocol
     devDependencies:
@@ -168,24 +168,24 @@ importers:
 
   packages/unity:
     dependencies:
+      '@gizmo/design':
+        specifier: workspace:*
+        version: link:../design
+      '@gizmo/extensions':
+        specifier: workspace:*
+        version: link:../extensions
+      '@gizmo/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@gizmo/unity-tools':
+        specifier: workspace:*
+        version: link:../unity-tools
       '@lucide/svelte':
         specifier: ^1.31.0
         version: 1.31.0(svelte@5.56.9)
       '@tanstack/svelte-virtual':
         specifier: ^3.13.36
         version: 3.13.36(svelte@5.56.9)
-      '@unity-agent/design':
-        specifier: workspace:*
-        version: link:../design
-      '@unity-agent/domains':
-        specifier: workspace:*
-        version: link:../domains
-      '@unity-agent/protocol':
-        specifier: workspace:*
-        version: link:../protocol
-      '@unity-agent/unity-tools':
-        specifier: workspace:*
-        version: link:../unity-tools
       svelte:
         specifier: latest
         version: 5.56.9
@@ -195,7 +195,7 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: ^0.84.2
         version: 0.84.2(patch_hash=8313737439ed796a7f96383a9a672d2a8c7ac0a43c910016b668d9c1af1af10d)(ws@8.21.3)
-      '@unity-agent/protocol':
+      '@gizmo/protocol':
         specifier: workspace:*
         version: link:../protocol
       typebox:

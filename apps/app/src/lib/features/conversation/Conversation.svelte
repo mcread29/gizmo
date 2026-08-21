@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AgentSessionSummary } from '@unity-agent/protocol';
+	import type { AgentSessionSummary } from '@gizmo/protocol';
 	import { GitBranch, MoreHorizontal } from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';

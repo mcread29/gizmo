@@ -8,7 +8,7 @@
 		Search,
 		Settings2,
 	} from '@lucide/svelte';
-	import type { StoredProject } from '@unity-agent/protocol';
+	import type { StoredProject } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel, Tooltip } from '../../components';
 	import ComponentGallery from '../../components/ComponentGallery.svelte';

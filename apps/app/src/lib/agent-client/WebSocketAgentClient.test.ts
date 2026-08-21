@@ -1,4 +1,4 @@
-import { protocolVersion, type AgentEvent } from '@unity-agent/protocol';
+import { protocolVersion, type AgentEvent } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
 import { WebSocketAgentClient } from './WebSocketAgentClient';
 

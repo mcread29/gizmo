@@ -11,7 +11,7 @@ import type {
 	UnityStatus,
 	ProviderStatus,
 	WorkspaceProfiles,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentClient, AgentEventListener } from './AgentClient';
 import { AgentStore } from './AgentStore.svelte';

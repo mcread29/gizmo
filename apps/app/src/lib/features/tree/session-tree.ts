@@ -1,4 +1,4 @@
-import type { SessionTree, SessionTreeEntry } from '@unity-agent/protocol';
+import type { SessionTree, SessionTreeEntry } from '@gizmo/protocol';
 
 /**
  * Which entries the tree shows. Filtering never changes the shape of the

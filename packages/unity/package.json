@@ -1,5 +1,5 @@
 {
-	"name": "@unity-agent/unity",
+	"name": "@gizmo/unity",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -10,10 +10,10 @@
 	"dependencies": {
 		"@lucide/svelte": "^1.31.0",
 		"@tanstack/svelte-virtual": "^3.13.36",
-		"@unity-agent/design": "workspace:*",
-		"@unity-agent/domains": "workspace:*",
-		"@unity-agent/protocol": "workspace:*",
-		"@unity-agent/unity-tools": "workspace:*",
+		"@gizmo/design": "workspace:*",
+		"@gizmo/extensions": "workspace:*",
+		"@gizmo/protocol": "workspace:*",
+		"@gizmo/unity-tools": "workspace:*",
 		"svelte": "latest"
 	}
 }

@@ -6,8 +6,8 @@ import type {
 	AgentSessionSummary,
 	SessionCatalog,
 	SessionSnapshot,
-} from '@unity-agent/protocol';
-import { sessionTitle } from '@unity-agent/protocol';
+} from '@gizmo/protocol';
+import { sessionTitle } from '@gizmo/protocol';
 import {
 	mkdir,
 	readFile,

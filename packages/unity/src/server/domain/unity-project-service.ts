@@ -9,9 +9,9 @@ import {
 	type UnityOpenProjectDetails,
 	type UnityProject,
 	type UnityStatusDetails,
-} from '@unity-agent/unity-tools';
-import type { ProjectService } from '@unity-agent/domains';
-import { revertPatch } from '@unity-agent/domains';
+} from '@gizmo/unity-tools';
+import type { ProjectService } from '@gizmo/extensions';
+import { revertPatch } from '@gizmo/extensions';
 
 export interface ProjectWatchListeners {
 	status: (status: UnityStatusDetails) => void;

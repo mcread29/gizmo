@@ -1,4 +1,4 @@
-import type { ConversationMessage } from '@unity-agent/protocol';
+import type { ConversationMessage } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
 import { findMatches, stepIndex } from './transcript-search';
 

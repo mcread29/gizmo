@@ -1,4 +1,4 @@
-import type { ConversationMessage } from '@unity-agent/protocol';
+import type { ConversationMessage } from '@gizmo/protocol';
 
 /** Consecutive messages closer together than this share one header. */
 export const groupWindowMs = 5 * 60_000;

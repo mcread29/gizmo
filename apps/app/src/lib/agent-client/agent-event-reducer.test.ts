@@ -1,4 +1,4 @@
-import { protocolVersion } from '@unity-agent/protocol';
+import { protocolVersion } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
 import { applyAgentEvent, type AgentEventState } from './agent-event-reducer';
 

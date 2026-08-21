@@ -3,7 +3,7 @@ import type {
 	ToolCallView,
 	StoredProject,
 	UnityStatus,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import {
 	compilerDiagnostics,
 	type CompilerDiagnostic,

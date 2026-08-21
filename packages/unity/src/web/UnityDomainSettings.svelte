@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { UnityLayout } from './host';
-	import { SelectField } from '@unity-agent/design/components';
+	import { SelectField } from '@gizmo/design/components';
 	let { layout }: { layout: UnityLayout } = $props();
 </script>
 

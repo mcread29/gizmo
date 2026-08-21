@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { FolderOpen } from '@lucide/svelte';
-	import { Button } from '@unity-agent/design/components';
+	import { Button } from '@gizmo/design/components';
 	import type { UnityHost } from '../host';
 	import CompilerDiagnosticList from './CompilerDiagnosticList.svelte';
 	import UnityTestResults from './UnityTestResults.svelte';

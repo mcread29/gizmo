@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify';
 import { Marked, Renderer } from 'marked';
-import { highlightCode, resolveLanguage } from './highlight';
+import { highlightCode, resolveLanguage } from '@gizmo/design/highlight';
 
 const renderer = new Renderer();
 

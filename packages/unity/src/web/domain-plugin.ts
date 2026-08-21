@@ -2,7 +2,7 @@ import type {
 	ConversationMessage,
 	StoredProject,
 	UnityStatus,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import UnityDomainDialog from './UnityDomainDialog.svelte';
 import UnityDomainSettings from './UnityDomainSettings.svelte';
 import UnityPanel from './unity/UnityPanel.svelte';

@@ -6,7 +6,7 @@
 	import ReasoningBlock from './ReasoningBlock.svelte';
 	import StreamingIndicator from './StreamingIndicator.svelte';
 	import ToolCallCard from './ToolCallCard.svelte';
-	import { formatMessageTime } from './format';
+	import { formatMessageTime } from '@gizmo/design/format';
 	import { groupContent, type MessageGroup } from './message-groups';
 	import type { StreamingActivity } from './streaming';
 	import type { AttachmentContent } from '../../agent-client/AgentClient';

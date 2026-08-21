@@ -1,4 +1,4 @@
-import type { ExtensionDescriptor } from '@unity-agent/protocol';
+import type { ExtensionDescriptor } from '@gizmo/protocol';
 import ConsolePanel from './ConsolePanel.svelte';
 import type {
 	ExtensionContext,

@@ -8,7 +8,7 @@ import type {
 	SessionTree,
 	SessionTreeEntry,
 	ToolCallView,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import { displayedUserMessage } from '../attachments/attachment-message';
 import { normalizeToolResult, toolResultIsError } from '../tools/tool-result';
 

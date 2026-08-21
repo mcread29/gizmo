@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SessionTree } from '@unity-agent/protocol';
+	import type { SessionTree } from '@gizmo/protocol';
 	import {
 		ArrowLeft,
 		Bookmark,

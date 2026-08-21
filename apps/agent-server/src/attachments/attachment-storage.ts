@@ -1,5 +1,5 @@
 import type { SessionManager } from '@earendil-works/pi-coding-agent';
-import type { AgentAttachment } from '@unity-agent/protocol';
+import type { AgentAttachment } from '@gizmo/protocol';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';

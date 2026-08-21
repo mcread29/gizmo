@@ -6,9 +6,9 @@ export type {
 export { createAgentWebSocketServer } from './transport/websocket-server';
 export { ExtensionHostService } from './extensions/extension-host-service';
 export type {
-	ExtensionProvider,
+	GizmoServerExtension,
 	ProjectService,
-} from '@unity-agent/domains';
+} from '@gizmo/extensions';
 export type {
 	AgentWebSocketServer,
 	AgentWebSocketServerOptions,

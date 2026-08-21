@@ -26,7 +26,7 @@ import {
 	type WorkspaceProfiles,
 	type UnityStatus,
 	type ProviderStatus,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import type {
 	AgentClient,
 	AgentDisconnectListener,

@@ -1,14 +1,22 @@
 import { execFile } from 'node:child_process';
+import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { createAgentWebSocketServer } from './transport/websocket-server';
 import { configuredOrigins } from './server-config';
 import { ExtensionHostService } from './extensions/extension-host-service';
-import {
-	UnityExtensionProvider,
-	UnityProjectService,
-} from '@unity-agent/unity/server';
+import { loadServerExtensions } from './extensions/load-extensions';
+import { registerExtensions } from './extensions/registry';
 
 await restoreDesktopEnvironment();
+
+const extensionsConfigPath =
+	process.env.GIZMO_EXTENSIONS_CONFIG ??
+	resolve(process.cwd(), 'gizmo.extensions.json');
+const extensions = await loadServerExtensions(extensionsConfigPath);
+registerExtensions(extensions);
+const projectServiceExtension = extensions.find(
+	(extension) => extension.createProjectService,
+);
 
 const host =
 	process.env.GIZMO_HOST ?? process.env.UNITY_AGENT_HOST ?? '127.0.0.1';
@@ -17,9 +25,10 @@ const allowedOrigins = configuredOrigins(process.env);
 const agentServer = await createAgentWebSocketServer({
 	host,
 	port,
-	createExtensionHost: () =>
-		new ExtensionHostService([new UnityExtensionProvider()]),
-	createProjectService: () => new UnityProjectService(),
+	createExtensionHost: () => new ExtensionHostService(extensions),
+	...(projectServiceExtension
+		? { createProjectService: () => projectServiceExtension.createProjectService!() }
+		: {}),
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),
 });
 

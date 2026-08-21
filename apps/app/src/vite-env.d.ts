@@ -1,3 +1,3 @@
 /// <reference types="vite/client" />
 
-declare module '@unity-agent/design';
+declare module '@gizmo/design';

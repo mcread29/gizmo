@@ -1,6 +1,6 @@
-import type { ConversationMessage, ToolCallView } from '@unity-agent/protocol';
+import type { ConversationMessage, ToolCallView } from '@gizmo/protocol';
 import { diffStat, parseDiff } from '../conversation/diff';
-import { recordValue, stringValue } from '../conversation/format';
+import { recordValue, stringValue } from '@gizmo/design/format';
 
 export interface FileChange {
 	toolCallId: string;

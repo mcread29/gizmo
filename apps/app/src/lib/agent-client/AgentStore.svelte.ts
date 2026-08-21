@@ -23,10 +23,10 @@ import {
 	type WorkspaceProfiles,
 	type UnityStatus,
 	type ProviderStatus,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import type { AgentClient } from './AgentClient';
 import { applyAgentEvent } from './agent-event-reducer';
-import { webDomain } from '../domains/registry';
+import { extension } from '../extensions/registry';
 
 export interface AgentModel {
 	provider: string;
@@ -936,7 +936,7 @@ export class AgentStore {
 			this.projectExtensions = [];
 			return;
 		}
-		if (!this.activeDomains.some((id) => webDomain(id)?.hasProjectStatus)) {
+		if (!this.activeDomains.some((id) => extension(id)?.hasProjectStatus)) {
 			this.projectStatus = undefined;
 			await this.loadProjectExtensions();
 			return;

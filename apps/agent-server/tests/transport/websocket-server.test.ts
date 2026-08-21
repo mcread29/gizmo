@@ -4,7 +4,7 @@ import {
 	parseAgentResponse,
 	protocolVersion,
 	type AgentResponse,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import type { AddressInfo } from 'node:net';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';

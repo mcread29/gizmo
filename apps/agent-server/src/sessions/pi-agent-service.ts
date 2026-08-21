@@ -16,7 +16,7 @@ import {
 	type SessionTree,
 	type ProviderStatus,
 	type WorkspaceProfiles,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import {
 	PiEventTranslator,
 	type TranslatedPiEvent,
@@ -27,7 +27,7 @@ import {
 	type SessionRepository,
 } from './session-repository';
 import { sessionTree } from './session-transcript';
-import { activateDomains } from '../domains/registry';
+import { activateExtensions } from '../extensions/registry';
 import { attachmentPrompt } from '../attachments/attachment-message';
 import { GitService } from '../git/git-service';
 import { ProjectCatalog } from '../projects/project-catalog';
@@ -571,7 +571,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 	const agentDir = defaultDataDir();
 	const modelRuntime = await gizmoModelRuntime();
 	const settingsManager = SettingsManager.create(cwd, agentDir);
-	const activeDomains = await activateDomains(
+	const activeDomains = await activateExtensions(
 		{
 			workspacePath: cwd,
 			confirm: (kind) => {
@@ -629,7 +629,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 		settingsManager,
 	});
 	return Object.assign(session, {
-		domains: activeDomains.domains.map(({ id }) => id),
+		domains: activeDomains.extensions.map(({ id }) => id),
 		async generateCommitMessage(context: string): Promise<string> {
 			if (!session.model) throw new Error('No model is selected');
 			const message = await session.modelRuntime.completeSimple(

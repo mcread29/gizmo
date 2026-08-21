@@ -1,4 +1,4 @@
-import '@unity-agent/design';
+import '@gizmo/design';
 import { mount } from 'svelte';
 import App from './App.svelte';
 import './app.css';

@@ -1,5 +1,5 @@
 import type { AgentStore } from '../../agent-client';
-import type { WorkspaceIntegration } from '@unity-agent/protocol';
+import type { WorkspaceIntegration } from '@gizmo/protocol';
 import { isDesktop, saveTextFile } from '../../desktop';
 import type { ToastQueue } from '../../toasts.svelte';
 import {

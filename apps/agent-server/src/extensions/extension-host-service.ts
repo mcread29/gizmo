@@ -1,5 +1,8 @@
-import type { ExtensionDescriptor } from '@unity-agent/protocol';
-import type { ExtensionProvider } from '@unity-agent/domains';
+import type { ExtensionDescriptor } from '@gizmo/protocol';
+import type { GizmoServerExtension } from '@gizmo/extensions';
+
+type ExtensionProvider = GizmoServerExtension &
+	Required<Pick<GizmoServerExtension, 'list' | 'invoke'>>;
 
 export class ExtensionHostService {
 	readonly #providers: readonly ExtensionProvider[];
@@ -11,8 +14,14 @@ export class ExtensionHostService {
 	readonly #watchStops = new Set<() => void>();
 	readonly #owners = new Map<string, ExtensionProvider>();
 
-	constructor(providers: readonly ExtensionProvider[], private readonly pollMs = 5_000) {
-		this.#providers = providers;
+	constructor(
+		extensions: readonly GizmoServerExtension[],
+		private readonly pollMs = 5_000,
+	) {
+		this.#providers = extensions.filter(
+			(extension): extension is ExtensionProvider =>
+				extension.list !== undefined && extension.invoke !== undefined,
+		);
 	}
 
 	async list(workspacePath: string): Promise<ExtensionDescriptor[]> {

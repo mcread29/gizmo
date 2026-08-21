@@ -19,7 +19,7 @@ import type {
 	Extensions,
 	UnityOpenProjectResult,
 	UnityStatus,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 
 export type AgentEventListener = (event: unknown) => void;
 export type AgentDisconnectListener = (error: Error) => void;

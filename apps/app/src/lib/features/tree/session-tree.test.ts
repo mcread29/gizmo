@@ -1,4 +1,4 @@
-import type { SessionTree, SessionTreeEntry } from '@unity-agent/protocol';
+import type { SessionTree, SessionTreeEntry } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
 import { activePath, treeRows } from './session-tree';
 

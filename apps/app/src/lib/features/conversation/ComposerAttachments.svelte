@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AgentAttachment } from '@unity-agent/protocol';
+	import type { AgentAttachment } from '@gizmo/protocol';
 	import { File as FileIcon, X } from '@lucide/svelte';
 	import { attachmentSize, attachmentUrl } from './attachments';
 

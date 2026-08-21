@@ -1,4 +1,4 @@
-import type { AgentSessionSummary } from '@unity-agent/protocol';
+import type { AgentSessionSummary } from '@gizmo/protocol';
 
 export interface SessionGroup {
 	label: string;

@@ -1,12 +1,11 @@
 <script lang="ts">
-	import type { ToolCallView } from '@unity-agent/protocol';
+	import type { ToolCallView } from '@gizmo/protocol';
 	import DiffView from './DiffView.svelte';
 	import { patchFileName } from '../changes/thread-changes';
-	import { formatToolResult, recordValue, stringValue } from './format';
-	import { highlightCode } from './highlight';
+	import { formatToolResult, recordValue, stringValue } from '@gizmo/design/format';
+	import { highlightCode } from '@gizmo/design/highlight';
 	import { toolParameters } from './tool-summary';
-	import { toolPresentationPlugins } from './tool-presentation';
-	import UnityScriptResult from './UnityScriptResult.svelte';
+	import { extensions as toolPresentationPlugins } from '../../extensions/registry';
 
 	interface Props {
 		tool: ToolCallView;
@@ -27,9 +26,10 @@
 			(diff ? patchFileName(diff) : undefined),
 	);
 	let parameters = $derived(
-		tool.name === 'unity_script'
-			? toolParameters(tool.input).filter(([name]) => name !== 'code')
-			: toolParameters(tool.input),
+		toolPresentationPlugins.reduce(
+			(params, plugin) => plugin.parametersFor?.(tool.name, params) ?? params,
+			toolParameters(tool.input),
+		),
 	);
 	// Structured results are JSON; the code blocks beside them are highlighted,
 	// so these should be too. highlight.js escapes its own output.
@@ -61,8 +61,6 @@
 {:else if resultComponent}
 	{@const ResultComponent = resultComponent}
 	<ResultComponent {tool} {projectPath} {consoleEntries} {errors} />
-{:else if tool.name === 'unity_script'}
-	<UnityScriptResult input={tool.input} result={tool.result} />
 {:else if diff}
 	<DiffView {diff} file={diffFile} {projectPath} />
 {:else if resultText}

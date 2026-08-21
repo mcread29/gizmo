@@ -1,4 +1,4 @@
-import type { ToolCallView } from '@unity-agent/protocol';
+import type { ToolCallView } from '@gizmo/protocol';
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import ToolCallCard from './ToolCallCard.svelte';

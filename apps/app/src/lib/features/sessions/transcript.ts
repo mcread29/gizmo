@@ -1,5 +1,5 @@
-import type { SessionSnapshot } from '@unity-agent/protocol';
-import { formatToolResult } from '../conversation/format';
+import type { SessionSnapshot } from '@gizmo/protocol';
+import { formatToolResult } from '@gizmo/design/format';
 
 /** Renders a session as the Markdown document the export action writes out. */
 export function transcriptMarkdown(

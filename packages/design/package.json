@@ -1,11 +1,16 @@
 {
-	"name": "@unity-agent/design",
+	"name": "@gizmo/design",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
 	"exports": {
 		".": "./src/index.css",
-		"./components": "./src/components.ts"
+		"./components": "./src/components.ts",
+		"./format": "./src/format.ts",
+		"./highlight": "./src/highlight.ts"
 	},
-	"dependencies": { "svelte": "latest" }
+	"dependencies": {
+		"highlight.js": "^11.12.0",
+		"svelte": "latest"
+	}
 }

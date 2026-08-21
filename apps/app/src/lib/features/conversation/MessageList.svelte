@@ -2,7 +2,7 @@
 	import type {
 		AgentSessionSummary,
 		ConversationMessage,
-	} from '@unity-agent/protocol';
+	} from '@gizmo/protocol';
 	import {
 		createVirtualizer,
 		observeElementRect,

@@ -6,7 +6,7 @@ import type {
 	GitCommitResult,
 	GitFileStatus,
 	GitStatus,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 
 const execFileAsync = promisify(execFile);
 const maxGitOutput = 4 * 1024 * 1024;

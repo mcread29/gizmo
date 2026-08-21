@@ -1,4 +1,4 @@
-import type { ConversationMessage } from '@unity-agent/protocol';
+import type { ConversationMessage } from '@gizmo/protocol';
 import { toolSummary } from './tool-summary';
 
 export interface TranscriptMatches {

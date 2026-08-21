@@ -1,4 +1,4 @@
-import type { ConversationMessage } from '@unity-agent/protocol';
+import type { ConversationMessage } from '@gizmo/protocol';
 import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import type { AgentStore } from '../../agent-client';

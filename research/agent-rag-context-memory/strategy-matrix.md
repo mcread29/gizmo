@@ -1,0 +1,178 @@
+# Strategy matrix
+
+## Claim traceability
+
+Major evidence-bearing conclusions on this page use the following canonical records; each claim file lists its exact synthesis locations and confidence dimensions:
+
+- [MC001](claims/MC001.md) ← [ME001](evidence/ME001.md); [MC002](claims/MC002.md) ← [ME002](evidence/ME002.md); [MC003](claims/MC003.md) ← [ME003](evidence/ME003.md); [MC004](claims/MC004.md) ← [ME004](evidence/ME004.md).
+- [MC005](claims/MC005.md) ← [ME005](evidence/ME005.md); [MC006](claims/MC006.md) ← [ME006](evidence/ME006.md), [ME007](evidence/ME007.md), [ME008](evidence/ME008.md); [MC007](claims/MC007.md) ← [ME009](evidence/ME009.md); [MC008](claims/MC008.md) ← [ME010](evidence/ME010.md), [ME011](evidence/ME011.md).
+- [MC009](claims/MC009.md) ← [ME012](evidence/ME012.md); [MC010](claims/MC010.md) ← [ME013](evidence/ME013.md), [ME014](evidence/ME014.md); [MC011](claims/MC011.md) ← [ME015](evidence/ME015.md), [ME016](evidence/ME016.md); [MC012](claims/MC012.md) ← [ME017](evidence/ME017.md).
+- [MC013](claims/MC013.md) ← [ME018](evidence/ME018.md); [MC014](claims/MC014.md) ← [ME019](evidence/ME019.md); [MC015](claims/MC015.md) ← [ME020](evidence/ME020.md); [MC016](claims/MC016.md) ← [ME021](evidence/ME021.md).
+- [MC017](claims/MC017.md) ← [ME022](evidence/ME022.md); [MC018](claims/MC018.md) ← [ME023](evidence/ME023.md); [MC019](claims/MC019.md) ← [ME024](evidence/ME024.md); [MC020](claims/MC020.md) ← [ME025](evidence/ME025.md), [ME026](evidence/ME026.md).
+- [MC021](claims/MC021.md) ← [ME027](evidence/ME027.md); [MC022](claims/MC022.md) ← [ME028](evidence/ME028.md), [ME029](evidence/ME029.md); [MC023](claims/MC023.md) ← [ME030](evidence/ME030.md); [MC024](claims/MC024.md) ← [ME031](evidence/ME031.md).
+- [MC025](claims/MC025.md) ← [ME032](evidence/ME032.md); [MC026](claims/MC026.md) ← [ME033](evidence/ME033.md); [MC027](claims/MC027.md) ← [ME034](evidence/ME034.md); [MC028](claims/MC028.md) ← [ME035](evidence/ME035.md).
+- [MC029](claims/MC029.md) ← [ME036](evidence/ME036.md); [MC030](claims/MC030.md) ← [ME037](evidence/ME037.md); [MC031](claims/MC031.md) ← [ME038](evidence/ME038.md); [MC032](claims/MC032.md) ← [ME039](evidence/ME039.md), [ME040](evidence/ME040.md).
+- [MC033](claims/MC033.md) ← [ME041](evidence/ME041.md); [MC034](claims/MC034.md) ← [ME042](evidence/ME042.md); [MC035](claims/MC035.md) ← [ME043](evidence/ME043.md); [MC036](claims/MC036.md) ← [ME044](evidence/ME044.md).
+- [MC037](claims/MC037.md) ← [ME045](evidence/ME045.md); [MC038](claims/MC038.md) ← [ME046](evidence/ME046.md); [MC039](claims/MC039.md) ← [ME047](evidence/ME047.md); [MC040](claims/MC040.md) ← [ME048](evidence/ME048.md).
+- [MC041](claims/MC041.md) ← [ME049](evidence/ME049.md); [MC042](claims/MC042.md) ← [ME050](evidence/ME050.md), [ME051](evidence/ME051.md); [MC043](claims/MC043.md) ← [ME052](evidence/ME052.md), [ME053](evidence/ME053.md); [MC044](claims/MC044.md) ← [ME054](evidence/ME054.md).
+
+Confidence uses the canonical [`../confidence-rubric.md`](../confidence-rubric.md). Decision-table cells publish the deterministic claim grade and `D/V/U/C/E/X/P/R` vector, followed by maturity for each linked evidence artifact; canonical polarity and claim status remain separate in the records.
+
+## Decision table
+
+| Strategy | Best-supported use case | Evidence | Benefit | Cost | Failure modes | Confidence records | Recommended default |
+|---|---|---|---|---|---|---|---|
+| Raw trajectory or event-log storage | Audit, replay, exact artifact recovery, source of derived views | TapeAgents architecture; LongMemEval/LoCoMo raw-vs-lossy comparisons [M01, M02, M14] | Preserves detail/provenance | Highest storage; needs indexing and redaction | Noise, secrets, poison, expensive scans | [MC006](claims/MC006.md) `C [D3 V2 U1 C1 E2 X1 P1 R2]; ME006 M4; ME007 M4; ME008 M2`; [MC033](claims/MC033.md) `unsupported; strongest observation D [D2 V1 U1 C0 E2 X1 P0 R2]; ME041 M2` | **Yes**, append-only and access-controlled; never inject wholesale |
+| Rolling transcript windows | Local sequential tool tasks and cheap working context | SWE-agent masking study; ContextWeaver local case [M07, M17] | Cheap, deterministic, strong baseline | Can lose distant obligations | Recency bias; stale recent data; cross-file dependency loss | [MC016](claims/MC016.md) `C [D3 V2 U2 C1 E3 X1 P0 R2]; ME021 M2`; [MC019](claims/MC019.md) `C [D3 V2 U2 C1 E3 X1 P0 R2]; ME024 M2` | **Yes**, with protected state/plan/failure slots and handles |
+| Recursive summaries | Navigation across very long histories | LoCoMo and coding-agent summary comparisons [M02, M07, M17] | Bounded context and global sketch | Extra LLM calls; drift compounds | Detail loss, false compression, longer trajectories | [MC006](claims/MC006.md) `C [D3 V2 U1 C1 E2 X1 P1 R2]; ME006 M4; ME007 M4; ME008 M2`; [MC017](claims/MC017.md) `C [D3 V2 U2 C1 E3 X1 P0 R2]; ME022 M2`; [MC018](claims/MC018.md) `C [D3 V2 U2 C1 E3 X1 P0 R2]; ME023 M2`; [MC019](claims/MC019.md) `C [D3 V2 U2 C1 E3 X1 P0 R2]; ME024 M2` | **No** as authority; optional navigation view over raw events |
+| Fact extraction | Search keys and compact personalization | LongMemEval raw/fact ablations [M01] | Fact-augmented keys improve recall/QA | Extraction/write calls; update burden | Missing qualifiers/time; false facts | [MC005](claims/MC005.md) `C [D3 V2 U1 C1 E2 X1 P0 R2]; ME005 M4`; [MC006](claims/MC006.md) `C [D3 V2 U1 C1 E2 X1 P1 R2]; ME006 M4; ME007 M4; ME008 M2` | Add to raw value; validate and time-scope |
+| Vector retrieval over raw events | Semantic episodic recall in modest stores | LongMemEval and LoCoMo [M01, M02] | Gains over no history access in scoped tasks | Embeddings, index, reranking, reader tokens | Similar ≠ useful; identifiers and updates missed | [MC004](claims/MC004.md) `C [D3 V2 U1 C1 E2 X1 P0 R2]; ME004 M4`; [MC006](claims/MC006.md) `C [D3 V2 U1 C1 E2 X1 P1 R2]; ME006 M4; ME007 M4; ME008 M2`; [MC008](claims/MC008.md) `C [D3 V2 U1 C2 E2 X1 P0 R3]; ME010 M4; ME011 M4` | Use as one channel, never sole policy |
+| Multi-key or hybrid indexing | Mixed semantic/detail retrieval | LongMemEval value+fact; RepoCoder lexical Jaccard; coding structural evidence [M01, Table 3; M03; M05] | +9.4% avg recall and +5.4% QA for raw+fact keys [M01, Table 3; §5.3] | More index/write/storage paths | Duplicates, rank fusion errors, stale keys | [MC005](claims/MC005.md) `C [D3 V2 U1 C1 E2 X1 P0 R2]; ME005 M4`; [MC013](claims/MC013.md) `C [D3 V2 U1 C1 E3 X1 P0 R2]; ME018 M4`; [MC014](claims/MC014.md) `C [D3 V2 U1 C1 E3 X1 P0 R2]; ME019 M2` | **Yes** for durable stores; retain one raw value and deduplicate |
+| Temporal retrieval and query expansion | Current/history/date-relative questions | LongMemEval and A-TMA [M01, M16] | Recall gains and fewer state-view errors | Time parsing and state metadata | Weak parser hallucinates ranges; timezone/scope errors | [MC007](claims/MC007.md) `C [D3 V2 U1 C1 E2 X1 P0 R2]; ME009 M4`; [MC028](claims/MC028.md) `C [D3 V2 U1 C1 E2 X1 P0 R2]; ME035 M2` | **Yes** when time matters; explicit current/historical/transition intent |
+| Structured schemas and deterministic state updates | Counters, ledgers, entities, obligations, side effects | A-TMA state roles; stateful deterministic benchmarks [M16, M22, M26] | Inspectable updates and exact validation | Engineering/schema migration | Wrong identity/schema; split brain | [MC028](claims/MC028.md) `C [D3 V2 U1 C1 E2 X1 P0 R2]; ME035 M2`; [MC029](claims/MC029.md) `C [D3 V1 U1 C1 E2 X1 P0 R2]; ME036 M2`; [MC043](claims/MC043.md) `C [D2 V2 U2 C1 E3 X2 P0 R2]; ME052 M4; ME053 M4` | **Yes** for operational state; model proposes, code enforces |
+| Episodic success/failure retrieval | Reusing applicable verified successes; contrasting failures during induction | ExpeL [M11, Tables 1–3] | 40.0→59.0 ALFWorld with matched experience [M11, Tables 1–3] | Store growth and matching calls/tokens | Random/mismatched retrieval cut result to 42.5 [M11, Table 3] | [MC020](claims/MC020.md) `C [D3 V2 U2 C1 E2 X1 P0 R2]; ME025 M4; ME026 M4`; [MC021](claims/MC021.md) `C [D3 V2 U2 C1 E2 X1 P0 R2]; ME027 M4` | Retrieve verified successes; use failures for diagnosis, not imitation |
+| Reflection and verbal lessons | Retry with a trustworthy oracle | Reflexion and ExpeL negative ablation [M10, M11, M25] | Can focus later attempts | Extra calls/retries; not compute matched | Faulty test/reflection becomes poison | [MC022](claims/MC022.md) `C [D2 V1 U1 C1 E3 X1 P0 R2]; ME028 M4; ME029 M4`; [MC023](claims/MC023.md) `C [D3 V2 U1 C2 E3 X1 P1 R2]; ME030 M4` | Quarantine as hypotheses; never promote on self-judgment alone |
+| Workflow/runbook induction | Repeated browser/tool templates with execution feedback | AWM [M12, Tables 1–2] | In-paper accessibility-tree baseline 15.0→35.5; cross-template 20.5→33.2 [M12, Tables 1–2; §§3.1.1–3.1.3] | Induction, storage, prompt tokens; no equal-call test | Template leakage, bad online judge, obsolete workflow | [MC024](claims/MC024.md) `C [D3 V1 U1 C1 E2 X1 P0 R2]; ME031 M2` | Promote only verified, parameterized workflows with held-out tests |
+| Executable skill libraries | Composable embodied/tool actions with objective execution checks | Voyager plus Assay [M13, M18] | Faster unseen Minecraft tasks; curated skills improve AppWorld | Build/verify/sandbox/routing and versioning | Unsafe code; routing collisions; flat library interference | [MC025](claims/MC025.md) `C [D2 V1 U2 C1 E2 X1 P0 R2]; ME032 M4`; [MC026](claims/MC026.md) `C [D3 V2 U1 C1 E3 X1 P0 R2]; ME033 M2`; [MC027](claims/MC027.md) `C [D3 V2 U1 C1 E3 X1 P0 R2]; ME034 M2` | Use typed, versioned, sandboxed skills; applicability gate and rollback |
+| Hierarchical memory and paging | Histories exceeding direct retrieval/window limits | MemGPT design; no strong isolated equal-budget test [M08] | Potential bounded-context operation | Paging calls/latency and controller errors | Thrashing, lost handles, model-managed write errors | [MC006](claims/MC006.md) `C [D3 V2 U1 C1 E2 X1 P1 R2]; ME006 M4; ME007 M4; ME008 M2`; [MC012](claims/MC012.md) `C [D3 V2 U1 C2 E2 X1 P0 R2]; ME017 M4` | Harness-managed paging only when scale requires it; benchmark against flat hybrid retrieval |
+| Graph memory | Relation/temporal/state-transition queries | Mem0 and A-TMA [M15, Table 1; M16, Tables 2–4] | Temporal gains in some hosts/tasks | More build latency/storage; Mem0 7K→14K memory tokens [M15, §4.5] | No gain or regression on simple/multi-hop tasks; stale edges | [MC028](claims/MC028.md) `C [D3 V2 U1 C1 E2 X1 P0 R2]; ME035 M2`; [MC031](claims/MC031.md) `C [D3 V2 U1 C1 E2 X1 P0 R2]; ME038 M2`; [MC032](claims/MC032.md) `C [D3 V1 U2 C1 E2 X1 P0 R2]; ME039 M2; ME040 M2` | Add as derived view, not primary truth; use only for graph-shaped questions |
+| Shared multi-agent memory | True information/tool partition and explicit handoff | TapeAgents provides coordination architecture; M20 tests extra-agent message passing, not durable shared memory [M14, M20] | May bridge masked/private information | Synchronization, ownership, duplicate tokens | Races, stale summaries, contagion; effectiveness not directly tested | [MC035](claims/MC035.md) `C [D3 V2 U1 C2 E2 X1 P0 R2]; ME043 M2`; [MC036](claims/MC036.md) `C [D2 V1 U1 C2 E2 X1 P0 R2]; ME044 M2`; [MC037](claims/MC037.md) `C [D3 V2 U1 C2 E3 X2 P0 R2]; ME045 M4`; [MC038](claims/MC038.md) `C [D3 V2 U2 C1 E2 X2 P0 R2]; ME046 M2` | One engineered shared state service + private scratch when partition/verification requires it |
+| External files/databases as authoritative state | Repositories, APIs, transactions, artifacts | Stateful deterministic evaluation and tape/event evidence [M14, M22, M26] | Exact state checks, replay, concurrency controls | I/O, schemas, permissions, backup/deletion | Stale cache, unauthorized writes, tool mismatch | [MC033](claims/MC033.md) `unsupported; strongest observation D [D2 V1 U1 C0 E2 X1 P0 R2]; ME041 M2`; [MC043](claims/MC043.md) `C [D2 V2 U2 C1 E3 X2 P0 R2]; ME052 M4; ME053 M4`; [MC044](claims/MC044.md) `unsupported; strongest observation D [D1 V0 U0 C0 E0 X0 P0 R1]; ME054 M0` | **Yes**; transcript is a view, not state store |
+| Model-managed versus harness-managed writes | Candidate extraction vs enforcement | MemGPT design; poisoning/trust failures [M08, M24] | Model handles ambiguous language | Calls and nondeterministic corruption | Confident malicious/false writes; schema violations | [MC037](claims/MC037.md) `C [D3 V2 U1 C2 E3 X2 P0 R2]; ME045 M4`; [MC038](claims/MC038.md) `C [D3 V2 U2 C1 E2 X2 P0 R2]; ME046 M2`; [MC041](claims/MC041.md) `C [D3 V1 U1 C1 E1 X1 P0 R1]; ME049 M2` | Model proposes; harness authorizes, validates, commits, and logs |
+| Learned memory managers | Adaptive retrieval depth/timing on repeated task streams | MemCon [M19, Tables 1–2] | Isolated controller 59.7→64.9 (+5.2); full system 67.9 with 5–20% token savings [M19, Table 2; §4.2] | Exploration regret, state table, development tuning | Single-run evidence; nonstationarity; overfit | [MC034](claims/MC034.md) `C [D3 V2 U1 C1 E2 X2 P0 R2]; ME042 M2` | Trial behind deterministic fallback; shadow/canary and private holdout |
+| Automatic memory or context-policy optimization | Stable high-volume workloads with private objective and rollback | Assay causal masking; MemCon; cost-aware prompt optimization [M18, M19, M25] | Can remove harmful context and lower cost | Many evaluation rollouts (Assay: 180/model) [M18, §3.1] | Public-benchmark/dev overfit, reward hacking, policy drift | [MC026](claims/MC026.md) `C [D3 V2 U1 C1 E3 X1 P0 R2]; ME033 M2`; [MC027](claims/MC027.md) `C [D3 V2 U1 C1 E3 X1 P0 R2]; ME034 M2`; [MC034](claims/MC034.md) `C [D3 V2 U1 C1 E2 X2 P0 R2]; ME042 M2` | Optimize offline/on canary with frozen private holdout and rollback; never self-approve |
+
+## Evidence audit cards
+
+These cards make the evidence conditions explicit. “Compute matched” means the compared strategy had the same relevant model-call/token/step ceiling, not merely the same base model.
+
+### 1. Raw trajectory or event-log storage
+
+- **Task/model/harness/baseline:** TapeAgents reports structured append-only tapes across agent training/evaluation, including a GAIA-style assistant; its headline 8B student result compares a tape-distilled student with a 405B teacher, not tape versus no tape. [M14, §2; Tables 4–5]
+- **Sample/runs/metric/result/cost:** 8B student 76.6% versus 405B teacher 75.8%; reported serving cost $85 versus $28,157 per million turns. [M14, Tables 4–5; Figure 6]
+- **Compute/holdout/status:** not an isolated or compute-matched storage ablation; preprint/technical report; distillation data and model sizes confound the result.
+- **Supports:** auditability, replay, and a viable learning substrate. **Does not support:** that logging alone improves task success or is cheaper.
+
+### 2. Rolling transcript windows
+
+- **Task/model/harness/baseline:** 500 SWE-bench Verified tasks, SWE-agent, Qwen3-32B/480B and Gemini-2.5-Flash variants; masking old observations versus raw history and LLM summary, 250-turn cap. [M07, §§3.1–3.2; Table 1]
+- **Result/cost/runs:** Qwen3-Coder-480B masking 54.8%, $0.61/instance; summary 53.8%, $0.64; raw 53.4%, $1.29. Each strategy ran the same 500 instances; 10,000 paired bootstrap replicates, not repeated agent seeds. [M07, Tables 1, 4]
+- **Compute/holdout/status:** same scaffold/turn cap but actual tokens differ by design; benchmark test set, no tuning/test isolation for every hyperparameter; 2025 preprint/workshop paper.
+- **Failure:** Gemini-thinking masking 36.4% and summary 31.4% versus raw 40.4% (both significant). [M07, Tables 3–4]
+
+### 3. Recursive summaries
+
+- **Task/model/baseline:** same M07 setting plus LoCoMo GPT-3.5-16K RAG over session summaries versus observations/dialog turns. [M02, Table 3; M07, Table 1]
+- **Result/cost:** summaries did not consistently beat masking; summary generation was up to 7.2% of instance cost and sometimes elongated trajectories by about 15%. [M07, Figure 4; Table 2; §§4.4, 5.2]
+- **Compute/holdout/status:** summary incurs extra calls, so not call matched; LoCoMo is ACL 2024 but summary QA comparison uses generated, human-edited conversations and one reader family.
+- **Supports:** summaries can bound/navigation context. **Does not support:** summaries as sole durable memory; recursive error was not measured over indefinite sessions.
+
+### 4. Fact extraction
+
+- **Task/model/baseline:** LongMemEval, 500 questions; Llama-3.1-8B extracts facts; Stella-v5 retrieves; GPT-4o/Llama readers; fact keys/values versus original round/session text. [M01, §§5.1–5.3]
+- **Result:** fact-only keys often underperform raw; round `K=V+fact` Recall@5 0.644 vs 0.582 and GPT-4o top-5 QA 0.657 vs 0.615; paper averages +9.4% recall and +5.4% QA across models. [M01, Table 3]
+- **Cost/compute/holdout/status:** extraction calls and storage not priced; same retrieval k/readers, but extra indexing compute not matched; ICLR 2025 peer reviewed; benchmark questions separate from generated histories but no cross-domain user holdout.
+- **Verdict:** useful as an auxiliary key/view; loss-prone as replacement.
+
+### 5. Vector retrieval over raw events
+
+- **Task/model/baseline:** LongMemEval and LoCoMo compare semantic retrieval over conversation events with no retrieval, summaries, and other memory representations. [M01, M02]
+- **Result:** semantic retrieval can recover relevant events, but reader budget and representation strongly affect final QA; it is not an always-retrieve result. [M01, §§5.2–5.3; M02, Table 3]
+- **Cost/compute/holdout/status:** embedding/index costs are incompletely matched; conversational benchmarks do not establish coding or operational-state generality.
+- **Limits:** dense similarity can miss exact identifiers and does not establish one universal retrieval channel.
+
+### 6. Multi-key or hybrid indexing
+
+- Evidence setting/result/caveats include the LongMemEval `V+fact` comparison in card 4. Stable original values plus multiple keys improve retrieval under fixed k, but indexing cost was not compute matched. [M01, Table 3]
+- RepoCoder provides complementary lexical evidence: it uses top-10 Jaccard retrieval, not dense/vector retrieval; iterative retrieval raised line exact match 40.56%→56.81% and function pass rate 23.32%→42.63%, with extra generation calls. [M05, §§3–4; Tables 2–3]
+- **Publication/holdout:** ICLR 2025 and EMNLP 2023; scoped conversational/repository benchmarks; no independent production replication.
+
+### 7. Temporal retrieval and query expansion
+
+- **Task/model/baseline:** LongMemEval temporal subset; GPT-4o or Llama-3.1-8B extracts time ranges; time-filtered versus unfiltered retrieval. [M01, §5.4; Table 4]
+- **Result:** paper reports average recall improvement 11.3% for round values and 6.8% for session values; one raw-round Recall@5 changed 0.421→0.451, while weak Llama extraction reduced it to 0.384. [M01, Table 4]
+- **Cost/compute/holdout/status:** one extra model extraction, not call matched; ICLR 2025; same benchmark, no temporal future holdout.
+- **Verdict:** use with a strong or deterministic parser and explicit fallback.
+
+### 8. Structured schemas and deterministic state updates
+
+- **Task/model/baseline:** A-TMA LTP, 800 probes/10 profiles, Qwen2.5-3B answerer, top-5 retrieval, Llama-3.3-70B judge; state-role overlay versus same host. [M16, §§5.1–5.2; Table 2]
+- **Result:** Graphiti/Zep conflict 0.480→0.720 and QA 0.524→0.635; A-Mem conflict 0.812→0.860 but fact accuracy fell 0.700→0.698. [M16, Table 2]
+- **Cost/compute/holdout/status:** reader/k fixed; overlay/controller and storage cost not fully matched; current 2026 preprint; LTP is constructed and LoCoMo generalization is mixed.
+- **Supports:** explicit state roles/update traces. **Does not isolate:** deterministic database constraints as the sole cause.
+
+### 9. Episodic success/failure retrieval
+
+- **Task/model/baseline:** ExpeL with ReAct-style agents on ALFWorld, HotPotQA/FEVER; applicable successful trajectories and induced insights versus ReAct/no experience and random retrieval. [M11, Tables 1–3]
+- **Result:** ALFWorld 40.0%→59.0%; random retrieval 42.5%. HotPotQA→FEVER 63%→70%. [M11, Tables 1–3]
+- **Cost/compute/holdout/status:** extra induction/retrieval context, not token/call matched; AAAI 2024 peer reviewed; cross-task transfer is held out by task/domain, but stores are small and run counts/cost sparse.
+- **Verdict:** matched, verified success helps; failure use is mainly insight induction and can poison output.
+
+### 10. Reflection and verbal lessons
+
+- **Task/model/baseline:** Reflexion, GPT-4, HumanEval/MBPP with generated tests, reflection and retries versus cited one-shot GPT-4. [M10, §4; Tables 1–3]
+- **Result:** 91.0% HumanEval versus cited 80.1%; MBPP generated-test condition regressed 80.1%→77.1%. [M10, Tables 1–3]
+- **Cost/compute/holdout/status:** extra attempts/calls/tests; not compute matched; benchmark test tasks; NeurIPS 2023 peer reviewed. M25 reports retry/warming can dominate on cost frontier. [M25, Table A1]
+- **Verdict:** oracle-conditioned retry can work; verbal reflection itself is not isolated and false oracles hurt.
+
+### 11. Workflow/runbook induction
+
+- **Task/model/baseline:** AWM, GPT-4-0613 temperature 0, WebArena; online induced workflows versus BrowserGym `axtree`; execution-based task success. [M12, §§3.1–3.1.3; Tables 1–2]
+- **Result:** the in-paper accessibility-tree baseline is 15.0% versus AWM 35.5%; the external published BrowserGym HTML+accessibility-tree result is 23.5%. The one-example-per-template subset is 20.5%→33.2%; successful AWM episodes used about two fewer steps. [M12, Tables 1–2]
+- **Cost/compute/holdout/status:** induction and prompt costs omitted; no equal-call/token comparison; cross-template subset is a stronger holdout but online evaluation sees the test stream; arXiv v1 preprint status used here.
+- **Failure:** the paper notes model-predicted trajectories can induce wrong workflows. [M12, §3.2.2]
+
+### 12. Executable skill libraries
+
+- **Task/model/baseline:** Voyager, GPT-4 Minecraft agent; full system versus no skill library and ReAct/Reflexion/AutoGPT; three trials for reported tech/unseen tasks. [M13, Tables 1–2; §3.4]
+- **Result:** on unseen tasks, full Voyager solved 12/12 aggregate trials within 50 iterations; no-skill variant solved 11/12 but took more iterations (e.g. diamond pickaxe 19 vs 36); standard baselines solved 0/12. [M13, Table 2]
+- **Cost/compute/holdout/status:** new Minecraft world/tasks are held out; systems are bundled and not call matched; GPT-4 is reported 15× GPT-3.5 cost [M13, §4], no total dollars/storage; TMLR 2024 peer reviewed.
+- **Limits:** self-verifier can err; no flat-library scaling study in Voyager. Assay supplies direct evidence that routing/curation matters. [M18]
+
+### 13. Hierarchical memory and paging
+
+- **Task/model/baseline:** MemGPT demonstrates LLM-triggered movement between context and external storage on conversational/document tasks. [M08, §§2–3]
+- **Result/sample/cost:** no controlled, equal-budget component result adequate for a general effectiveness verdict was found in the reviewed version.
+- **Status/limits:** arXiv preprint; architecture evidence only. Model-managed paging adds calls and can thrash or write errors.
+
+### 14. Graph memory
+
+- **Task/model/baseline:** Mem0 on 10 LoCoMo conversations (~1,986 answerable questions in later protocol), GPT-4o-mini answerer/judge setup; graph variant versus base memory. [M15, §§3–4; Tables 1–2]
+- **Result:** temporal judge 55.51→58.13; graph did not improve single-hop/multi-hop; overall judge approximately 67%→68.44%; footprint approximately 7K→14K stored-memory tokens/conversation. [M15, Table 1; §§4.1, 4.5]
+- **Cost/compute/holdout/status:** 10 judge runs for LLM-judge means, but task samples are only 10 conversations; extra graph write calls not compute matched; 2025 preprint authored by system vendor; adversarial questions excluded.
+- **Verdict:** conditional temporal benefit, not universal superiority. Full context scored roughly 73% overall, above base and graph Mem0 (~67% and 68.44%), when its latency/token cost was feasible. [M15, Table 2; §4.3]
+
+### 15. Shared multi-agent memory
+
+- **Task/model/baseline:** M20 v2 compares single agents with sequential/debate extra-agent message passing under equal reasoning-token caps on FRAMES and MuSiQue; it does not evaluate a durable shared-memory service. [M20, Table 1; §§5.1, 5.3]
+- **Result:** single-agent averages at 1K/2K/5K/10K caps .418/.421/.427/.426; sequential .379/.389/.386/.387; debate .388/.403/.420/.420. Sequential wins only under severe masking/substitution. [M20, Table 1]
+- **Cost/compute/holdout/status:** caps matched, prompts/final outputs excluded and actual compute not perfectly matched; benchmark test sets; 2026 preprint; no tool side effects or persistent service.
+- **Verdict:** evidence is negative for extra agents/message passing as a default under these caps; durable shared-memory effectiveness remains largely unsupported.
+
+### 16. External files/databases as authoritative state
+
+- **Task/model/baseline:** AgentDojo uses deterministic environment-state utility/attack checks over 97 user tasks and 629 security cases; τ-bench uses database-state checks over 165 tasks and eight reruns. [M22, §§3–4; M26, Table 2 and `pass^k` figure]
+- **Result:** GPT-4o function calling in τ-bench scored 61.2% retail/35.2% airline, while retail `pass^8` fell below 25%, showing why state and repeated-run checks expose failures hidden by one run. [M26, Table 2; `pass^k` figure]
+- **Cost/compute/holdout/status:** benchmark evidence, not transcript-vs-database ablation; AgentDojo NeurIPS 2024 and τ-bench ICLR 2025 peer reviewed.
+- **Verdict:** supports deterministic authority/evaluation, not a quantified memory uplift.
+
+### 17. Model-managed versus harness-managed writes
+
+- **Task/model/baseline:** EHR memory-poisoning defense with GPT-4o-mini and Gemini-2.0-Flash; model trust gate on 101 poison queries. [M24, §§6–8]
+- **Result:** GPT configuration rejected all 23 candidate memories (including benign utility opportunity); Gemini accepted 82, including 54 malicious entries at trust 1.0. [M24, §§8.1–8.2]
+- **Cost/compute/holdout/status:** small two-run preprint experiment, no balanced benign test or independent replication; write policy is not a full deterministic-harness comparator.
+- **Verdict:** direct evidence against self-rated unrestricted writes; deterministic external verification remains engineering synthesis.
+
+### 18. Learned memory managers
+
+- **Task/model/baseline:** MemCon on ALFWorld (134), PDDL (100), ScienceWorld (100), TriviaQA (200), WebWalkerQA (200), GAIA (165), three frameworks/backbones; controller over a fixed memory backend versus static memory baselines. [M19, §§4.1–4.3; Appendix A]
+- **Result:** GPT-4.1-mini Lobster ALFWorld isolated learned-controller comparison 59.7%→64.9% (+5.2); full bundled MemCon reaches 67.9%. Examples report 5–20% fewer input tokens for the full system, not the isolated controller. [M19, Table 2; §4.2]
+- **Cost/compute/holdout/status:** zero extra LLM calls for table lookup, but one online deployment run/configuration with no seed averaging; 30-task held-out tuning split, policies then learn on evaluation stream; July 2026 preprint.
+- **Verdict:** promising adaptive gate, insufficient for strong generalization claim.
+
+### 19. Automatic memory or context-policy optimization
+
+- **Task/model/baseline:** Assay on AppWorld 168 normal + 417 challenge and τ-bench retail 115, seven models; causal skill masking versus bare agent/uncurated library. [M18, §§3.1–3.3; Tables 1–2]
+- **Result/cost:** GPT-5.1 challenge bare 52.5%, uncurated 49.9%, curated/masked 66.4%; attribution costs 180 agent rollouts/model on 15 development tasks; two τ-bench models had 0-point gains. [M18, Table 1; §§3.1–3.3]
+- **Compute/holdout/status:** train/development/test disjoint; inference context is reduced, but optimization rollouts make end-to-end cost non-matched; July 2026 preprint.
+- **Supports:** measured per-task context selection can reverse context harm. **Does not support:** unconstrained self-optimization or transfer to new models/domains without re-attribution.

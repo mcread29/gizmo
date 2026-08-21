@@ -1,4 +1,4 @@
-import { protocolVersion } from '@unity-agent/protocol';
+import { protocolVersion } from '@gizmo/protocol';
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import { defaultAppSettings } from '../../app-settings';

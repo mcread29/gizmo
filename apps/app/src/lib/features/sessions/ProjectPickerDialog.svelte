@@ -11,7 +11,7 @@
 		ProjectDomains,
 		WorkspaceDirectoryListing,
 		WorkspaceIntegration,
-	} from '@unity-agent/protocol';
+	} from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Dialog } from '../../components';
 	import { isDesktop, pickWorkspaceDirectory } from '../../desktop';

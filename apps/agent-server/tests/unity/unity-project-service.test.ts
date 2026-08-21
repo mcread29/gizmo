@@ -1,11 +1,23 @@
 import type {
 	UnityCommandRunner,
 	UnityRunResult,
-} from '@unity-agent/unity-tools';
+} from '@gizmo/unity-tools';
 import { describe, expect, it, vi } from 'vitest';
-import { UnityProjectService } from '@unity-agent/unity/server';
-import { UnityExtensionProvider } from '@unity-agent/unity/server';
+import { UnityProjectService } from '@gizmo/unity/server';
+import { UnityExtensionProvider } from '@gizmo/unity/server';
+import type { GizmoServerExtension } from '@gizmo/extensions';
 import { ExtensionHostService } from '../../src/extensions/extension-host-service';
+
+function unityExtension(runner?: UnityCommandRunner): GizmoServerExtension {
+	const provider = new UnityExtensionProvider(runner);
+	return {
+		id: 'unity',
+		name: 'Unity',
+		list: (workspacePath, signal) => provider.list(workspacePath, signal),
+		invoke: (workspacePath, extensionId, operationId, input, signal) =>
+			provider.invoke(workspacePath, extensionId, operationId, input, signal),
+	};
+}
 
 describe('UnityProjectService', () => {
 	it('rejects paths outside the Unity project registry before status or open', async () => {
@@ -88,7 +100,7 @@ describe('UnityProjectService', () => {
 				}),
 			}),
 		);
-		const service = new ExtensionHostService([new UnityExtensionProvider(runner)]);
+		const service = new ExtensionHostService([unityExtension(runner)]);
 		const extensions = await service.list('/projects/game');
 
 		expect(extensions).toEqual([]);
@@ -131,7 +143,7 @@ describe('UnityProjectService', () => {
 			}),
 			runResult({ stdout: extensionResult({ opaque: true }) }),
 		);
-		const service = new ExtensionHostService([new UnityExtensionProvider(runner)]);
+		const service = new ExtensionHostService([unityExtension(runner)]);
 		await service.list('/projects/game');
 		await expect(
 			service.invoke(

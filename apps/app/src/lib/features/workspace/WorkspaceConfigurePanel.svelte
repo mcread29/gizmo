@@ -8,10 +8,10 @@
 		WorkspaceIntegration,
 		WorkspaceProfile,
 		WorkspaceProfiles,
-	} from '@unity-agent/protocol';
+	} from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ConfirmDialog, Menu, SelectField } from '../../components';
-	import DomainSettings from '../../domains/DomainSettings.svelte';
+	import ExtensionSettings from '../../extensions/ExtensionSettings.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SkillList from '../settings/SkillList.svelte';
 
@@ -766,7 +766,7 @@
 			<span>Applies to every profile, not just this one.</span>
 		</div>
 
-		<DomainSettings {layout} activeDomains={store.activeDomains} />
+		<ExtensionSettings {layout} activeDomains={store.activeDomains} />
 
 		<div data-ui="settings-card">
 			<div data-ui="setting-field">

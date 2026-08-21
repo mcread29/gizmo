@@ -1,7 +1,7 @@
-import type { ExtensionDescriptor } from '@unity-agent/protocol';
+import type { ExtensionDescriptor } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
 import { ExtensionHostService } from '../../src/extensions/extension-host-service';
-import type { ExtensionProvider } from '@unity-agent/domains';
+import type { GizmoServerExtension } from '@gizmo/extensions';
 
 const descriptor: ExtensionDescriptor = {
 	id: 'com.example.notes',
@@ -18,7 +18,9 @@ const descriptor: ExtensionDescriptor = {
 describe('ExtensionHostService', () => {
 	it('validates declared operations without knowing the provider runtime', async () => {
 		const calls: string[] = [];
-		const provider: ExtensionProvider = {
+		const provider: GizmoServerExtension = {
+			id: 'notes',
+			name: 'Notes',
 			list: async () => [descriptor],
 			invoke: async (_workspace, _extension, operation) => {
 				calls.push(operation);

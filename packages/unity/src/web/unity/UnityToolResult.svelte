@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { ToolCallView } from '@unity-agent/protocol';
+	import type { ToolCallView } from '@gizmo/protocol';
 	import { commandName } from './unity-view';
+	import UnityScriptResult from './UnityScriptResult.svelte';
 	import UnityTestResults from './UnityTestResults.svelte';
 
 	interface Props {
@@ -91,4 +92,6 @@
 	</div>
 {:else if tool.name === 'unity_test'}
 	<UnityTestResults result={tool.result} {projectPath} />
+{:else if tool.name === 'unity_script'}
+	<UnityScriptResult input={tool.input} result={tool.result} />
 {/if}

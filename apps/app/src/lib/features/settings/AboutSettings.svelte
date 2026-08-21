@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { protocolVersion } from '@unity-agent/protocol';
+	import { protocolVersion } from '@gizmo/protocol';
 	import { Button, ConfirmDialog } from '../../components';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SettingsPage from './SettingsPage.svelte';

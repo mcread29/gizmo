@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AgentIdentity } from '@unity-agent/protocol';
+	import type { AgentIdentity } from '@gizmo/protocol';
 	import { Tooltip } from 'bits-ui';
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import {
@@ -13,7 +13,7 @@
 	import { toasts } from './lib/toasts.svelte';
 	import Conversation from './lib/features/conversation/Conversation.svelte';
 	import { DraftStore } from './lib/features/conversation/drafts.svelte';
-	import { formatToolResult } from './lib/features/conversation/format';
+	import { formatToolResult } from '@gizmo/design/format';
 	import SessionSidebar from './lib/features/sessions/SessionSidebar.svelte';
 	import { SessionActions } from './lib/features/sessions/session-actions.svelte';
 	import AppDialogs from './lib/features/shell/AppDialogs.svelte';
@@ -25,8 +25,8 @@
 	import { handleShortcut } from './lib/features/shell/shortcuts';
 	import { WorkspaceLayout } from './lib/features/shell/workspace.svelte';
 	import WorkspaceScreen from './lib/features/workspace/WorkspaceScreen.svelte';
-	import WorkspaceInspector from './lib/domains/WorkspaceInspector.svelte';
-	import { createWorkspaceView } from './lib/domains/workspace-view';
+	import WorkspaceInspector from './lib/extensions/WorkspaceInspector.svelte';
+	import { createWorkspaceView } from './lib/extensions/workspace-view';
 
 	interface Props {
 		client?: AgentClient;

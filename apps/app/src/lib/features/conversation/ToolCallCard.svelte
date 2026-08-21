@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ToolCallView } from '@unity-agent/protocol';
+	import type { ToolCallView } from '@gizmo/protocol';
 	import {
 		Check,
 		CircleCheck,
@@ -12,9 +12,9 @@
 	} from '@lucide/svelte';
 	import { Button } from '../../components';
 	import ToolResult from './ToolResult.svelte';
-	import { formatToolResult, recordValue } from './format';
+	import { formatToolResult, recordValue } from '@gizmo/design/format';
 	import { toolIcon, toolLabel } from './tool-labels';
-	import { toolPresentationPlugins } from './tool-presentation';
+	import { extensions as toolPresentationPlugins } from '../../extensions/registry';
 	import { toolSummary } from './tool-summary';
 
 	interface Props {

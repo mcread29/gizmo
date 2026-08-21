@@ -6,7 +6,7 @@ import type {
 	ResourceCatalog,
 	ResourceScope,
 	SkillResource,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import { ProjectCatalog } from '../projects/project-catalog';
 import { GlobalResourceStore } from './global-resource-settings';
 import {

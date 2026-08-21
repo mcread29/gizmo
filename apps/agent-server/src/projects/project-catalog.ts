@@ -15,8 +15,8 @@ import {
 	type WorkspaceIntegration,
 	type WorkspaceProfile,
 	type WorkspaceProfiles,
-} from '@unity-agent/protocol';
-import { defaultProfile, detectDomains } from '../domains/registry';
+} from '@gizmo/protocol';
+import { defaultProfile, detectExtensions } from '../extensions/registry';
 import { defaultDataDir } from '../sessions/session-repository';
 
 export class ProjectCatalog {
@@ -58,7 +58,7 @@ export class ProjectCatalog {
 
 	async detect(projectPath: string): Promise<ProjectDomains> {
 		const path = await requireDirectory(projectPath);
-		return detectDomains(path);
+		return detectExtensions(path);
 	}
 
 	async browse(input?: string) {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PendingConfirmation, UnityHost, UnityLayout } from '../host';
-	import { ConfirmDialog } from '@unity-agent/design/components';
+	import { ConfirmDialog } from '@gizmo/design/components';
 
 	interface Props {
 		store: UnityHost;

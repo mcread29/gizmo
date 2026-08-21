@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Search } from '@lucide/svelte';
-	import type { SkillResource } from '@unity-agent/protocol';
+	import type { SkillResource } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
 	import SettingsPage from './SettingsPage.svelte';

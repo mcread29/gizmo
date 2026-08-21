@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { MoreHorizontal } from '@lucide/svelte';
 	import { Switch } from 'bits-ui';
-	import type { SkillResource } from '@unity-agent/protocol';
+	import type { SkillResource } from '@gizmo/protocol';
 	import { Button, Menu, type MenuItem } from '../../components';
 
 	interface Props {

@@ -1,4 +1,4 @@
-import type { SessionUsage } from '@unity-agent/protocol';
+import type { SessionUsage } from '@gizmo/protocol';
 
 export interface UsageView {
 	/** Share of the model's window the next request will occupy, 0 to 1. */

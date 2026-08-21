@@ -6,7 +6,7 @@ import type {
 	SessionUsage,
 	ExtensionDescriptor,
 	UnityStatus,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 
 export interface AgentEventState {
 	model?: { provider: string; id: string; thinkingLevel: string };

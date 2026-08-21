@@ -1,4 +1,4 @@
-import type { ConversationMessage, ToolCallView } from '@unity-agent/protocol';
+import type { ConversationMessage, ToolCallView } from '@gizmo/protocol';
 import { toolLabel } from './tool-labels';
 
 export interface StreamingActivity {

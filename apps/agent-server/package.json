@@ -1,5 +1,5 @@
 {
-	"name": "@unity-agent/agent-server",
+	"name": "@gizmo/agent-server",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -11,10 +11,10 @@
 	},
 	"dependencies": {
 		"@earendil-works/pi-coding-agent": "^0.84.2",
-		"@unity-agent/domains": "workspace:*",
-		"@unity-agent/protocol": "workspace:*",
-		"@unity-agent/unity": "workspace:*",
-		"@unity-agent/unity-tools": "workspace:*",
+		"@gizmo/extensions": "workspace:*",
+		"@gizmo/protocol": "workspace:*",
+		"@gizmo/unity": "workspace:*",
+		"@gizmo/unity-tools": "workspace:*",
 		"typebox": "^1.3.14",
 		"ws": "^8.21.3"
 	},

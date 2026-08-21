@@ -1,4 +1,4 @@
-import { toolPresentationPlugins } from './tool-presentation';
+import { extensions as toolPresentationPlugins } from '../../extensions/registry';
 
 const baseLabels: Record<string, string> = {
 	read: 'Read file',

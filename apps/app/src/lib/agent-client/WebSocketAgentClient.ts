@@ -38,7 +38,7 @@ import {
 	type WorkspaceDirectoryListing,
 	type WorkspaceProfiles,
 	type ProviderStatus,
-} from '@unity-agent/protocol';
+} from '@gizmo/protocol';
 import type {
 	AgentClient,
 	AttachmentContent,

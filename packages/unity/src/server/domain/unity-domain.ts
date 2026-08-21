@@ -1,10 +1,13 @@
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createUnityTools } from '@unity-agent/unity-tools';
-import type { WorkspaceDomain } from '@unity-agent/domains';
+import { createUnityTools } from '@gizmo/unity-tools';
+import type { GizmoServerExtension } from '@gizmo/extensions';
 import { unitySystemPrompt } from './unity-system-prompt';
 
-export const unityDomain: WorkspaceDomain = {
+export const unityDomain: Pick<
+	GizmoServerExtension,
+	'id' | 'name' | 'detect' | 'profile' | 'systemPrompt' | 'createTools'
+> = {
 	id: 'unity',
 	name: 'Unity',
 	detect: (workspacePath) => exists(join(workspacePath, 'ProjectSettings')),
