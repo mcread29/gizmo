@@ -1,198 +1,185 @@
 # Extensions
 
-Gizmo owns one extension contract. An extension may integrate any external
-runtime and contribute tools or UI. Core knows only versioned descriptors,
-opaque operations, and generic contribution slots; it has no extension
-categories or runtime-specific types.
+Gizmo owns exactly one integration contract: the extension. There is no
+separate "domain" concept — workspace detection, tools, system prompt, a live
+project process, and UI (dialogs, panels, tool-result rendering) are all just
+optional capabilities an extension may contribute. Core knows only that
+contract; it has no extension categories, no runtime-specific types, and no
+hardcoded knowledge of any specific extension (Unity included).
 
-Unity is one extension. Its Pipeline bridge uses the internal
-`com.gizmo.extras.console` capability, but Gizmo sees only the `unity`
-descriptor and `console.snapshot` operation; Console is not a second Gizmo
-extension.
+Unity is the one extension that exists today. It is not special-cased
+anywhere in core — it is loaded, registered, and dispatched through the exact
+same mechanism any third-party extension would use.
 
-## Architecture
+## Contracts
 
-```text
-extension provider             Gizmo host                    Web app
-──────────────────             ──────────                    ───────
-descriptor registry     →       discover descriptors   →     extension registry
-operation handlers     ←       validate + forward     ←     extension runtime
-runtime-specific data          opaque JSON payloads          state + UI + polling
-```
+Two small interfaces, one per side, mirror each other:
 
-An extension chooses its own implementation transport. Unity currently uses
-two Pipeline entrypoints internally:
+- **Server** — `GizmoServerExtension` (`@gizmo/extensions`): `id`, `name`,
+  plus optional `detect`/`detectRoots`/`profile`/`systemPrompt`/`createTools`
+  (workspace integration), optional `list`/`invoke` (live RPC-style
+  operations the web UI can call), and optional `createProjectService`
+  (a running external process with status/watch/open/revert).
+- **Client** — `GizmoWebExtension` (`apps/app/src/lib/extensions/types.ts`):
+  `id`, plus optional `dialog`/`settings`/`createView`/`hasProjectStatus`
+  (workspace UI), optional `apiVersion`/`activate` (matched against a
+  server-reported descriptor to activate live operations), and optional
+  `labels`/`iconFor`/`consoleEntriesKey`/`parametersFor`/`resultFor`/
+  `diagnosticsComponent` (tool-result presentation).
 
-- `gizmo_extensions` returns installed extension descriptors.
-- `gizmo_extension_invoke` invokes one declared operation with JSON input.
+Every field is optional. An extension contributes whatever it actually has;
+it never has to implement capabilities it doesn't need.
 
-There are no extension-specific requests, events, store fields, or branches in
-core. Adding an extension must not require changes to `ExtensionHostService`,
-`AgentStore`, or the generic inspector contribution slot. An extension's
-internal sub-capabilities must not appear as separate Gizmo descriptors.
+Unity's server package exports exactly one object, `gizmoExtension`, from
+`@gizmo/unity/server`. Its web package exports exactly one object,
+`unityWebExtension`, from `@gizmo/unity/web`. Nothing else about Unity's
+internals is part of the public surface.
 
-## Descriptor contract
+## Discovery
 
-Each installed extension returns a descriptor with this shape:
+### Server: runtime-loaded, config-driven
+
+`gizmo.extensions.json` at the repo root (overridable via
+`GIZMO_EXTENSIONS_CONFIG`) lists extension specifiers:
 
 ```json
-{
-	"id": "unity",
-	"name": "Unity",
-	"version": "0.1.0",
-	"apiVersion": 1,
-	"capabilities": ["unity.console"],
-	"operations": [
-		{
-			"id": "console.snapshot",
-			"mutates": false,
-			"requiresConfirmation": false
-		},
-		{
-			"id": "apply",
-			"mutates": true,
-			"requiresConfirmation": true
-		}
-	]
-}
+{ "extensions": ["@gizmo/unity"] }
 ```
 
-- `id` is the permanent identity shared by the extension's server and web
-  implementations.
-- `version` is the extension package version. It may change without changing
-  the host contract.
-- `apiVersion` is the web/server payload contract version. The web definition
-  is activated only when it supports the exact version.
-- `capabilities` describe meaningful features for compatibility and future
-  composition. They do not grant invocation by themselves.
-- `operations` are the invocation allow-list.
-- `mutates` identifies operations that change project or Editor state.
-- `requiresConfirmation` makes the server reject an invocation unless its JSON
-  input contains `confirmed: true`.
+At startup, `apps/agent-server/src/extensions/load-extensions.ts` reads this
+file and dynamically `import()`s each entry's `<specifier>/server` subpath,
+expecting a `gizmoExtension` export. A specifier can be a bare package name
+(npm-resolved) or a filesystem path — both work with Node's `import()` with
+no bundler involved. A missing config file or a failed load is skipped with a
+warning rather than crashing startup — this is already the graceful-fallback
+behavior, verified by running the server with no config present.
 
-The protocol validates descriptors but deliberately defines no extension
-payload schemas. Payload validation belongs to the matching web and provider
-implementations.
+`server.ts` never names Unity. It calls `loadServerExtensions()`, registers
+the result plus the always-on `svelteExtension` into
+`apps/agent-server/src/extensions/registry.ts`, and wires
+`ExtensionHostService` and the project-service factory generically from
+whatever was loaded.
 
-## Discovery and lifecycle
+This already supports the "someone else installs an npm package and lists it
+in settings" case with no further work: `npm install` (or a git checkout) any
+package exporting `gizmoExtension` from a `/server` subpath, add its
+specifier to `gizmo.extensions.json`, done.
 
-When a thread selects a workspace, the app requests its extension descriptors.
-The generic host caches them briefly and rechecks them while the workspace is
-watched. A provider can return no descriptors when it does not apply. The Unity
-provider first inspects the live Pipeline command list so a missing extension
-host never generates a Unity Console error.
+### Client: still statically registered
 
-For every compatible descriptor, the web registry creates one runtime with a
-project-scoped `ExtensionContext`:
+`apps/app/src/lib/extensions/registry.ts` currently imports `@gizmo/unity/web`
+directly and returns a static array. This is the one piece that hasn't moved
+to runtime discovery yet, because it's a materially harder problem: Vite (like
+any bundler) resolves import specifiers by static analysis at build time, so
+loading a plugin the app's build never saw requires a genuinely different
+mechanism — building the plugin as a standalone module with `svelte`
+externalized so it shares the host's runtime, then loading it via a real
+runtime `import(url)` (bundlers leave a non-statically-analyzable specifier
+alone; the JS engine resolves it at runtime, same as it would under any other
+bundler or no bundler at all — this is not a reason to move off Vite/Tauri).
+
+This needs a small spike to confirm the mechanism actually works cleanly
+inside the Tauri webview before the client registry is rebuilt on top of it.
+Not yet done.
+
+## Tool policy: no shell, by design
+
+Gizmo already deliberately excludes Pi's default `bash` tool. The explicit
+allowlist passed to `createAgentSession` in
+`apps/agent-server/src/sessions/pi-agent-service.ts` is:
 
 ```ts
-interface ExtensionContext {
-	projectPath: string;
-	invoke(operation: string, input?: unknown): Promise<unknown>;
-}
+tools: [
+	'read',
+	'edit',
+	'write',
+	'git_status',
+	...activeDomains.tools.map(({ name }) => name),
+],
 ```
 
-The context is already scoped to the descriptor ID. An extension cannot invoke
-another extension by changing an argument.
+Pi's default four tools are `read`, `write`, `edit`, `bash`. Gizmo keeps the
+first three, adds `git_status`, and adds whatever narrow, purpose-built tools
+each active extension contributes (Unity's `unity_*` tools, which wrap its
+own RPC bridge — never raw shell). There is no general-purpose execution
+primitive, and that is intentional: it bounds what the model can do to file
+edits plus whatever an extension explicitly, narrowly exposed.
 
-A runtime may contribute inspector tabs. It owns the tabs' components, props,
-badges, state, subscriptions, and polling. `dispose()` must synchronously stop
-timers and subscriptions. Results arriving after disposal must be ignored.
+This is a deliberate, load-bearing design choice, not an oversight to
+"fix" by re-adding `bash`. It should stay this way.
 
-## Adding a Unity extension
+### Planned: a narrow script-runner tool
 
-Register the extension behind the package's generic registry rather than adding
-another `[CliCommand]`.
+Skills that ship an attached script (the [Agent Skills
+standard](https://agentskills.io) supports this, and Pi's skill support is
+built on it — see below) need *some* execution primitive to run that script.
+Rather than reopening `bash`, the plan is one narrow, Gizmo-owned tool —
+tentatively `run_script` — that executes a `.ts`/`.js` file via Bun in a
+subprocess, with no shell interpretation. No pipes, no arbitrary binary
+invocation, no `curl | sh`. Just "run this specific script file."
 
-1. Choose a stable reverse-domain ID and API version.
-2. Return a descriptor from `gizmo_extensions`.
-3. Route declared operation IDs inside `gizmo_extension_invoke`.
-4. Parse and validate JSON input inside the extension handler.
-5. Return a small serializable object; do not require consumers to parse logs.
-6. Keep read operations side-effect free.
-7. Mark every state-changing operation as mutating.
-8. Enforce confirmation again inside Unity for guarded operations. Server-side
-   validation is defense in depth, not a replacement for the Unity guard.
-9. Reject project-content writes during Play Mode, compilation, or domain
-   reload.
-10. Add focused command-contract and behavior tests.
+**This means skills must be authored (or rewritten) as TypeScript/Bun
+scripts, not shell scripts, to work in Gizmo.** A skill that ships a `.sh`
+script — the common case for skills written against a Claude-Code-like
+environment that assumes `bash` — will not run under this model as-is. That
+incompatibility is accepted deliberately: the alternative is reopening
+general shell execution, which is a materially larger trust surface for a
+desktop app running arbitrary downloaded extensions. Not yet implemented.
 
-The generic entrypoints must remain the only public Pipeline commands supplied
-by the Extras package. Extension-specific command names recreate the coupling
-this system exists to avoid.
+## Skills and prompts: Pi's job, not Gizmo's
 
-## Adding a web extension
+Gizmo does not have (and should not build) its own skill/prompt package
+format. Pi already has one:
 
-Create a directory under `apps/app/src/lib/extensions/` containing the
-extension definition, runtime, components, payload parser, tests, and styles.
-Register only its `WebExtensionDefinition` in `registry.ts`.
+- Skills already follow the Agent Skills standard: a `SKILL.md` plus
+  supporting files in a folder, discovered from conventional directories or
+  from a **Pi package**.
+- **Pi packages** (`npm:`, `git:`, or a filesystem path) bundle extensions,
+  skills, prompt templates, and themes together, declared either via a `pi`
+  key in `package.json` (`{ "pi": { "skills": ["./skills"], ... } }`) or by
+  convention directories (`skills/`, `extensions/`, `prompts/`, `themes/`) if
+  no manifest is present. Pi ships install/update/list/remove commands,
+  npm/git/path sources, and project-vs-user scope for these already.
 
-```ts
-export const exampleExtension: WebExtensionDefinition = {
-	id: 'com.gizmo.extras.example',
-	apiVersion: 1,
-	activate: (descriptor, context) => new ExampleRuntime(context),
-};
-```
+Gizmo currently sets `noSkills: true` / `noExtensions: true` /
+`noPromptTemplates: true` when creating a Pi session — it does not use Pi's
+ambient package loading, instead passing `additionalSkillPaths`/
+`additionalPromptTemplatePaths` explicitly (see
+`apps/agent-server/src/sessions/pi-agent-service.ts`). A Gizmo extension that
+wants to ship skills should ride this existing Pi mechanism — e.g. by
+resolving to a skills directory the extension's own package declares, added
+to `additionalSkillPaths` — rather than Gizmo inventing a parallel `skillsPath`
+convention and a second resource-discovery system. Not yet wired up.
 
-The runtime should:
+Pi's own "Extensions" concept (a TypeScript module with a
+`(pi: ExtensionAPI) => ...` default export, registering providers, commands,
+or TUI customization) is a different, adjacent thing from a
+`GizmoServerExtension` — it extends Pi's own agent runtime, not Gizmo's
+workspace/UI layer. Gizmo disables ambient Pi extensions
+(`noExtensions: true`) and does not currently expose this to Gizmo
+extensions. Whether/how to bridge the two is an open question, not a
+decision made yet.
 
-- validate every opaque response before storing or rendering it;
-- keep extension state out of `AgentStore`;
-- expose UI through generic contributions;
-- deduplicate concurrent requests instead of queuing them;
-- distinguish background work from user-triggered loading indicators;
-- use revision or cursor probes before fetching large snapshots;
-- stop all recurring work in `dispose()`;
-- ignore results for a project that is no longer active.
+## Summary: what's implemented vs. planned
 
-Styles live with the extension. Global app styles should contain only generic
-contribution-container behavior.
+**Implemented:**
+- Unified `GizmoServerExtension` / `GizmoWebExtension` contracts, no
+  domain/extension split.
+- Server-side runtime discovery via `gizmo.extensions.json` + dynamic
+  `import()`, with graceful fallback.
+- `bash` excluded from the default tool allowlist.
 
-## Invocation and safety
+**Decided, not yet implemented:**
+- Client-side runtime discovery (needs a Tauri/Vite dynamic-`import(url)`
+  spike first).
+- `run_script` (Bun/TS-only) as the sole additional execution primitive for
+  skill scripts.
+- Skills/prompts distributed through Pi packages, wired via
+  `additionalSkillPaths`, not a parallel Gizmo skill system.
 
-Before forwarding an operation, the server verifies that:
-
-1. the project is registered;
-2. the extension is currently installed;
-3. the operation appears in its descriptor; and
-4. guarded operations received `confirmed: true`.
-
-Unity must repeat input and confirmation checks at the actual mutation boundary.
-An extension descriptor is not trusted authorization.
-
-Keep payloads bounded. The WebSocket already has a global payload limit, but
-extensions should return summaries, tails, or paginated data rather than entire
-project databases. Polling extensions should make their cheap no-change path
-truly cheap.
-
-## Testing checklist
-
-An extension should have focused coverage for:
-
-- descriptor identity, API version, and operation metadata;
-- malformed input and unknown operation rejection;
-- confirmation omission for every guarded operation;
-- payload parsing on the web side;
-- activation only when the matching descriptor is installed;
-- runtime disposal and request deduplication;
-- background versus manual loading behavior; and
-- the smallest live Unity invocation that proves registration.
-
-After changing the Unity package, wait through compilation and domain reload,
-check Editor errors, run its EditMode fixture, list the live commands, and invoke
-the generic discovery and operation entrypoints.
-
-## Current limitations
-
-- Web implementations are bundled with Gizmo and registered at build time.
-  Installing a Unity package activates a compatible bundled implementation; it
-  cannot currently deliver arbitrary JavaScript to the app.
-- Downloading, installing, updating, and removing the Extras Unity package is a
-  separate distribution layer and is not implemented yet.
-- Inspector tabs are the only contribution slot today. New generic slots should
-  be added only when at least one extension needs them; they must not encode one
-  extension's behavior into core.
-
-See [extension-ideas.md](extension-ideas.md) for candidate extensions and the
-criteria for deciding whether a feature belongs here.
+**Open:**
+- Whether a Gizmo-specific manifest (declaring an extension's capabilities
+  before its code is executed, mirroring Pi's `pi` package.json key) is worth
+  adding once there's a real third-party ecosystem to protect against.
+- Whether/how Pi's own "Extensions" concept composes with
+  `GizmoServerExtension`.

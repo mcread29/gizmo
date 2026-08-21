@@ -2,7 +2,7 @@
 
 # Gizmo
 
-An open source, extensible AI workbench built on Pi. Workspace domains add
+An open source, extensible AI workbench built on Pi. Extensions add
 first-class support for Unity, Svelte, and other project ecosystems without
 forking the product.
 
@@ -13,7 +13,8 @@ workspace owns its agent profiles under `.gizmo/profiles.json`. A profile
 selects the prompt fragments, tools, skills, and extension contributions that
 shape new threads. Extension packages such as Unity and Svelte provide profile
 defaults, but the saved project profile is the source of truth once copied into
-the workspace. See [`docs/domains.md`](docs/domains.md).
+the workspace. See [`docs/workspace-profiles.md`](docs/workspace-profiles.md)
+and [`docs/extensions.md`](docs/extensions.md).
 
 The default profile keeps Pi's default system prompt unchanged, plus any skills
 enabled through Gizmo's global and profile-local settings.
