@@ -30,6 +30,7 @@ import { sessionTree } from './session-transcript';
 import { activateExtensions } from '../extensions/registry';
 import { attachmentPrompt } from '../attachments/attachment-message';
 import { GitService } from '../git/git-service';
+import { createRunScriptTool } from '../scripts/run-script-tool';
 import { ProjectCatalog } from '../projects/project-catalog';
 import { ResourceCatalogService } from '../resources/resource-catalog';
 import {
@@ -615,12 +616,17 @@ const createDefaultPiSession: PiSessionFactory = async (
 	const { session } = await createAgentSession({
 		cwd,
 		agentDir,
-		customTools: [...activeDomains.tools, git.createStatusTool(cwd)],
+		customTools: [
+			...activeDomains.tools,
+			git.createStatusTool(cwd),
+			createRunScriptTool({ workspacePath: cwd }),
+		],
 		tools: [
 			'read',
 			'edit',
 			'write',
 			'git_status',
+			'run_script',
 			...activeDomains.tools.map(({ name }) => name),
 		],
 		resourceLoader,

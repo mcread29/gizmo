@@ -94,29 +94,43 @@ tools: [
 	'edit',
 	'write',
 	'git_status',
+	'run_script',
 	...activeDomains.tools.map(({ name }) => name),
 ],
 ```
 
 Pi's default four tools are `read`, `write`, `edit`, `bash`. Gizmo keeps the
-first three, adds `git_status`, and adds whatever narrow, purpose-built tools
-each active extension contributes (Unity's `unity_*` tools, which wrap its
-own RPC bridge — never raw shell). There is no general-purpose execution
-primitive, and that is intentional: it bounds what the model can do to file
-edits plus whatever an extension explicitly, narrowly exposed.
+first three, adds `git_status` and `run_script`, and adds whatever narrow,
+purpose-built tools each active extension contributes (Unity's `unity_*`
+tools, which wrap its own RPC bridge — never raw shell). There is no
+general-purpose _shell_, and that is intentional: it bounds what the model
+can do to file edits, plus running one named script file, plus whatever an
+extension explicitly and narrowly exposed.
 
 This is a deliberate, load-bearing design choice, not an oversight to
 "fix" by re-adding `bash`. It should stay this way.
 
-### Planned: a narrow script-runner tool
+### `run_script`: the one execution primitive
 
 Skills that ship an attached script (the [Agent Skills
 standard](https://agentskills.io) supports this, and Pi's skill support is
-built on it — see below) need *some* execution primitive to run that script.
-Rather than reopening `bash`, the plan is one narrow, Gizmo-owned tool —
-tentatively `run_script` — that executes a `.ts`/`.js` file via Bun in a
-subprocess, with no shell interpretation. No pipes, no arbitrary binary
-invocation, no `curl | sh`. Just "run this specific script file."
+built on it — see below) need _some_ execution primitive to run that script.
+Rather than reopening `bash`, Gizmo owns one narrow tool, `run_script`
+(`apps/agent-server/src/scripts/`), which executes a single `.ts`/`.js` file
+via Bun in a subprocess with `shell: false`. The path and arguments are
+passed as argv, so there is no interpolation, no pipes, no redirection, no
+chained commands, and no `curl | sh`. Just "run this specific script file."
+
+It enforces, and has tests for, each of:
+
+- the resolved path stays inside the workspace;
+- the extension is a JS/TS one — a `.sh` file is refused by name;
+- the file exists;
+- a default 60s timeout (caller-overridable to 600s);
+- output capped and marked `truncated` rather than flooding the transcript;
+- a non-zero exit is _reported_ as a result, not thrown, so the model can read
+  stderr and react;
+- a missing `bun` on PATH produces an explicit message rather than `ENOENT`.
 
 **This means skills must be authored (or rewritten) as TypeScript/Bun
 scripts, not shell scripts, to work in Gizmo.** A skill that ships a `.sh`
@@ -124,7 +138,11 @@ script — the common case for skills written against a Claude-Code-like
 environment that assumes `bash` — will not run under this model as-is. That
 incompatibility is accepted deliberately: the alternative is reopening
 general shell execution, which is a materially larger trust surface for a
-desktop app running arbitrary downloaded extensions. Not yet implemented.
+desktop app running arbitrary downloaded extensions.
+
+Bun is a runtime prerequisite for `run_script` specifically; the rest of
+Gizmo does not require it, and a missing Bun degrades to that one tool
+failing with a clear message.
 
 ## Skills and prompts: Pi's job, not Gizmo's
 
@@ -163,21 +181,24 @@ decision made yet.
 ## Summary: what's implemented vs. planned
 
 **Implemented:**
+
 - Unified `GizmoServerExtension` / `GizmoWebExtension` contracts, no
   domain/extension split.
 - Server-side runtime discovery via `gizmo.extensions.json` + dynamic
   `import()`, with graceful fallback.
 - `bash` excluded from the default tool allowlist.
+- `run_script` (Bun, `.ts`/`.js` only, no shell) as the sole additional
+  execution primitive.
 
 **Decided, not yet implemented:**
+
 - Client-side runtime discovery (needs a Tauri/Vite dynamic-`import(url)`
   spike first).
-- `run_script` (Bun/TS-only) as the sole additional execution primitive for
-  skill scripts.
 - Skills/prompts distributed through Pi packages, wired via
   `additionalSkillPaths`, not a parallel Gizmo skill system.
 
 **Open:**
+
 - Whether a Gizmo-specific manifest (declaring an extension's capabilities
   before its code is executed, mirroring Pi's `pi` package.json key) is worth
   adding once there's a real third-party ecosystem to protect against.
