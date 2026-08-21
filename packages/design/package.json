@@ -3,5 +3,9 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
-	"exports": "./src/index.css"
+	"exports": {
+		".": "./src/index.css",
+		"./components": "./src/components.ts"
+	},
+	"dependencies": { "svelte": "latest" }
 }

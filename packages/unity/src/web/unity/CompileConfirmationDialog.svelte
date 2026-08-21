@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PendingConfirmation, UnityHost, UnityLayout } from '../host';
+	import { ConfirmDialog } from '@unity-agent/design/components';
 
 	interface Props {
 		store: UnityHost;
@@ -37,10 +38,4 @@
 	}
 </script>
 
-{#if open}
-	<div role="dialog" aria-modal="true">
-		<h2>Stop Play Mode to compile?</h2><p>Unity must leave Play Mode before the agent can compile scripts.</p>
-		<button type="button" onclick={() => answer(true)}>Stop and compile</button>
-		<button type="button" onclick={() => answer(false)}>Keep playing</button>
-	</div>
-{/if}
+<ConfirmDialog bind:open title="Stop Play Mode to compile?" description="Unity must leave Play Mode before the agent can compile scripts." confirmLabel="Stop and compile" cancelLabel="Keep playing" onConfirm={() => answer(true)} onCancel={() => answer(false)} />

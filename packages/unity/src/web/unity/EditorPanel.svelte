@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { FolderOpen } from '@lucide/svelte';
+	import { Button } from '@unity-agent/design/components';
 	import type { UnityHost } from '../host';
 	import CompilerDiagnosticList from './CompilerDiagnosticList.svelte';
 	import UnityTestResults from './UnityTestResults.svelte';
@@ -108,13 +109,14 @@
 					'The selected project Editor is not open.'}
 			</p>
 			{#if view.selectedProject}
-				<button
-					type="button"
+				<Button
+					variant="primary"
+					size="sm"
 					disabled={store.projectOpening}
 					onclick={onOpenProject}
 					><FolderOpen size={14} />{store.projectOpening
 						? 'Opening Editor…'
-						: 'Open Editor'}</button
+						: 'Open Editor'}</Button
 				>
 			{/if}
 		{/if}

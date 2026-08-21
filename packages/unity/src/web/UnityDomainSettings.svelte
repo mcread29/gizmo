@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { UnityLayout } from './host';
+	import { SelectField } from '@unity-agent/design/components';
 	let { layout }: { layout: UnityLayout } = $props();
 </script>
 
@@ -12,10 +13,6 @@
 				Mode.</span
 			>
 		</div>
-		<label>When Play Mode is active
-			<select bind:value={layout.compilePlayModePolicy}>
-				<option value="ask">Ask</option><option value="stop">Stop Play Mode</option><option value="keep_playing">Keep playing</option>
-			</select>
-		</label>
+		<SelectField value={layout.compilePlayModePolicy} label="When Play Mode is active" options={[{ value: 'ask', label: 'Ask' }, { value: 'stop', label: 'Stop Play Mode' }, { value: 'keep_playing', label: 'Keep playing' }]} onValueChange={(value) => layout.compilePlayModePolicy = value as UnityLayout['compilePlayModePolicy']} />
 	</div>
 </div>
