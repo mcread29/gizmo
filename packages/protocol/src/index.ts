@@ -854,6 +854,15 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('project.search'),
+			query: Type.String(),
+			root: Type.Optional(Type.String({ minLength: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('project.add'),
 			projectPath: Type.String({ minLength: 1 }),
 			integrations: Type.Array(workspaceProfileExtensionSchema),

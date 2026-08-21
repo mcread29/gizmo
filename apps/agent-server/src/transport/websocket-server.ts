@@ -303,6 +303,10 @@ async function dispatch(
 			return { result: await service.detectProject(request.projectPath) };
 		case 'project.browse':
 			return { result: await service.browseProjects(request.path) };
+		case 'project.search':
+			return {
+				result: await service.searchProjects(request.query, request.root),
+			};
 		case 'project.add':
 			return {
 				result: await service.addProject(

@@ -1,5 +1,25 @@
 # Work log
 
+## 2026-08-21 — Workspace picker: fuzzy search, still mid-redesign
+
+- Replaced the "Open workspace" folder browser's one-level-at-a-time drill-down
+  with a flat, fuzzy-searched list: typing filters folder names recursively
+  under a root (default `~`), skipping dotfiles and common build/dependency
+  directories (`node_modules`, `dist`, `.git`, etc.), ranked exact match >
+  prefix > substring > subsequence, capped at 200 results.
+- Added `ProjectCatalog.search()` server-side and a `project.search` RPC to
+  back it; `browse()` (single-level listing) stays for the desktop-picker
+  fallback path and now also hides dotfile directories.
+- Added pinned folders (`~/repos`, `~/UnityProjects`, etc.), stored in
+  `localStorage` via `PinnedDirectoryStore`. A pin sets the search root rather
+  than opening directly, since pins are meant as jump-off points, not
+  workspaces themselves.
+- Keyboard-driven: arrow keys move the highlighted result, Enter opens it.
+- This was iterated against t3code's command palette as a reference and still
+  reads as a dialog wearing a palette's clothes rather than an actual
+  palette — see `HANDOFF-workspace-picker.md` for the open decision on whether
+  to drop the `Dialog` chrome for a bare floating overlay instead.
+
 ## 2026-08-20 — A workspace profile is edited where it lives
 
 - Made the workspace screen's tabs a column ending in one scrolling panel: the

@@ -590,6 +590,19 @@ export class FakeAgentClient implements AgentClient {
 		};
 	}
 
+	async searchProjects(
+		query: string,
+		root = '/projects',
+	): Promise<WorkspaceDirectoryListing> {
+		const needle = query.trim().toLowerCase();
+		return {
+			path: root,
+			directories: fakeProjects
+				.filter((project) => project.title.toLowerCase().includes(needle))
+				.map((project) => ({ name: project.title, path: project.path })),
+		};
+	}
+
 	async addProject(
 		projectPath: string,
 		integrations: WorkspaceIntegration[],

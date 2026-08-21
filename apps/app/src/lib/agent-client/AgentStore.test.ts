@@ -114,6 +114,9 @@ class InvalidEventClient implements AgentClient {
 	async browseProjects() {
 		return { path: '/projects', directories: [] };
 	}
+	async searchProjects() {
+		return { path: '/projects', directories: [] };
+	}
 	async addProject(
 		projectPath: string,
 		integrations: { id: string; root: string }[],

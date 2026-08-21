@@ -327,6 +327,18 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseWorkspaceDirectoryListing(response.result);
 	}
 
+	async searchProjects(
+		query: string,
+		root?: string,
+	): Promise<WorkspaceDirectoryListing> {
+		const response = await this.#request({
+			type: 'project.search',
+			query,
+			...(root ? { root } : {}),
+		});
+		return parseWorkspaceDirectoryListing(response.result);
+	}
+
 	async addProject(
 		projectPath: string,
 		integrations: WorkspaceIntegration[],

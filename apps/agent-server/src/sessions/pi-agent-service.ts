@@ -223,6 +223,10 @@ export class PiAgentService {
 		return this.#projects.browse(path);
 	}
 
+	searchProjects(query: string, root?: string) {
+		return this.#projects.search(query, root);
+	}
+
 	addProject(
 		projectPath: string,
 		integrations: NonNullable<SessionOptions['integrations']>,

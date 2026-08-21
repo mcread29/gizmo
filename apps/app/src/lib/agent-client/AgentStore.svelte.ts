@@ -375,6 +375,13 @@ export class AgentStore {
 		return this.#client.browseProjects(path);
 	}
 
+	searchProjects(
+		query: string,
+		root?: string,
+	): Promise<WorkspaceDirectoryListing> {
+		return this.#client.searchProjects(query, root);
+	}
+
 	async addProject(
 		projectPath: string,
 		integrations: WorkspaceIntegration[],

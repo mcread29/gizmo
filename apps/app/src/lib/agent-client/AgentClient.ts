@@ -87,6 +87,10 @@ export interface AgentClient {
 	listProjects(): Promise<StoredProject[]>;
 	detectProject(projectPath: string): Promise<ProjectDomains>;
 	browseProjects(path?: string): Promise<WorkspaceDirectoryListing>;
+	searchProjects(
+		query: string,
+		root?: string,
+	): Promise<WorkspaceDirectoryListing>;
 	addProject(
 		projectPath: string,
 		integrations: WorkspaceIntegration[],

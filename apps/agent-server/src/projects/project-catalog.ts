@@ -69,9 +69,60 @@ export class ProjectCatalog {
 			path,
 			...(parent !== path ? { parent } : {}),
 			directories: entries
-				.filter((entry) => entry.isDirectory())
+				.filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
 				.sort((left, right) => left.name.localeCompare(right.name))
 				.map((entry) => ({ name: entry.name, path: join(path, entry.name) })),
+		};
+	}
+
+	/**
+	 * Flat, fuzzy-matched folder search rooted at `root`, for a command-palette
+	 * style picker. An empty query only lists `root`'s immediate subfolders,
+	 * since walking the whole tree with nothing to filter on is just noise.
+	 */
+	async search(query: string, root?: string) {
+		const path = await requireDirectory(root ?? homedir());
+		const needle = query.trim().toLowerCase();
+		const matches: Array<{ name: string; path: string; score: number }> = [];
+
+		const walk = async (dir: string, depth: number): Promise<void> => {
+			if (matches.length >= searchResultLimit) return;
+			let entries;
+			try {
+				entries = await readdir(dir, { withFileTypes: true });
+			} catch {
+				return;
+			}
+			for (const entry of entries) {
+				if (matches.length >= searchResultLimit) return;
+				if (!entry.isDirectory()) continue;
+				if (entry.name.startsWith('.') || skippedDirectoryNames.has(entry.name))
+					continue;
+				const entryPath = join(dir, entry.name);
+				const score = matchScore(entry.name.toLowerCase(), needle);
+				if (score >= 0) matches.push({ name: entry.name, path: entryPath, score });
+				if (needle && depth < searchMaxDepth) await walk(entryPath, depth + 1);
+			}
+		};
+
+		if (needle) await walk(path, 0);
+		else {
+			const entries = await readdir(path, { withFileTypes: true });
+			for (const entry of entries) {
+				if (entry.isDirectory() && !entry.name.startsWith('.')) {
+					matches.push({ name: entry.name, path: join(path, entry.name), score: 0 });
+				}
+			}
+		}
+
+		matches.sort(
+			(left, right) => right.score - left.score || left.name.localeCompare(right.name),
+		);
+		return {
+			path,
+			directories: matches
+				.slice(0, searchResultLimit)
+				.map(({ name, path: entryPath }) => ({ name, path: entryPath })),
 		};
 	}
 
@@ -390,6 +441,40 @@ async function requireDirectory(input: string): Promise<string> {
 		throw new Error('Project path is not a directory');
 	}
 	return path;
+}
+
+const searchResultLimit = 200;
+const searchMaxDepth = 6;
+const skippedDirectoryNames = new Set([
+	'node_modules',
+	'dist',
+	'build',
+	'target',
+	'vendor',
+	'venv',
+	'obj',
+	'bin',
+	'Library',
+	'Temp',
+]);
+
+/** -1 if `needle` doesn't match `name` at all; otherwise higher is a better match. */
+function matchScore(name: string, needle: string): number {
+	if (!needle) return 0;
+	if (name === needle) return 4;
+	if (name.startsWith(needle)) return 3;
+	if (name.includes(needle)) return 2;
+	return isSubsequence(name, needle) ? 1 : -1;
+}
+
+function isSubsequence(name: string, needle: string): boolean {
+	let index = 0;
+	for (const char of needle) {
+		index = name.indexOf(char, index);
+		if (index === -1) return false;
+		index += 1;
+	}
+	return true;
 }
 
 function missing(error: unknown): boolean {
