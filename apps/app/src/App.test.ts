@@ -321,6 +321,27 @@ describe('application shell', () => {
 		expect(queryByRole('textbox', { name: 'Workspace path' })).toBeNull();
 	});
 
+	it('updates the folder list as the query changes', async () => {
+		const { findByRole } = renderApp();
+		await findByRole('button', { name: 'Model' });
+		await fireEvent.click(
+			await findByRole('button', { name: 'Open workspace' }),
+		);
+
+		const dialog = await findByRole('dialog');
+		const inDialog = within(dialog);
+		await inDialog.findByText('ThirdPersonSandbox');
+
+		await fireEvent.input(inDialog.getByPlaceholderText('Search folders…'), {
+			target: { value: 'render' },
+		});
+
+		expect(await inDialog.findByText('RenderingPlayground')).toBeInTheDocument();
+		await waitFor(() =>
+			expect(inDialog.queryByText('ThirdPersonSandbox')).toBeNull(),
+		);
+	});
+
 	it('opens a workspace without opening or creating a thread', async () => {
 		const { findAllByText, findByRole } = renderApp();
 		const list = await findByRole('navigation', {

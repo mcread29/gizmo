@@ -71,11 +71,15 @@
 	let requestToken = 0;
 	$effect(() => {
 		if (mode !== 'workspace' || !open || isDesktop()) return;
+		// Read reactively *before* the timeout so typing/scoping re-triggers this
+		// effect — reading them inside the callback below would not track them.
+		const search = query;
+		const searchRoot = root;
 		const token = ++requestToken;
 		searching = true;
 		const timer = setTimeout(async () => {
 			try {
-				const listing = await store.searchProjects(query, root);
+				const listing = await store.searchProjects(search, searchRoot);
 				if (token !== requestToken) return;
 				results = listing.directories;
 			} catch (error) {
