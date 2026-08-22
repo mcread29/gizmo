@@ -1,5 +1,24 @@
 # Work log
 
+## 2026-08-21 — Extensions can contribute palette commands
+
+- Added `commands?(context): CommandContribution[]` to `GizmoWebExtension`
+  (`apps/app/src/lib/extensions/types.ts`), mirroring the existing
+  `inspectorTabs` contribution point: static (no per-project `activate()`
+  needed), context is just `{ store, projectPath }`. A contribution is
+  `{ id, label, keywords?, icon?, run() }`.
+- `CommandPalette.svelte` aggregates `webExtensions().flatMap(ext =>
+  ext.commands?.(...) ?? [])` into an "Extensions" group in the root command
+  list, same pattern `WorkspaceInspector.svelte` already uses for tabs.
+  Commands without an icon fall back to a generic `Puzzle` glyph.
+- Added `commands` to the runtime bundle validator's `keep()` list
+  (`load-web-extension.ts`) so untrusted runtime-loaded extensions get the
+  same drop-if-malformed treatment other fields get, rather than being
+  silently ignored (which is what currently happens to `inspectorTabs` there
+  — a pre-existing gap, left alone since it's not what was asked for here).
+- No bundled extension (unity/svelte/git/activity) contributes a command
+  yet — this is the mechanism, not new commands.
+
 ## 2026-08-21 — A real global command palette, not just a folder search
 
 - What genge actually meant by "a real command palette" was a global

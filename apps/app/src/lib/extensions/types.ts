@@ -34,6 +34,20 @@ export interface InspectorTabContext {
 	toolActivity: ToolCallView[];
 }
 
+export interface CommandContribution {
+	id: string;
+	label: string;
+	keywords?: string[];
+	icon?: Component;
+	run(): void;
+}
+
+/** What an extension needs to decide which commands to contribute. */
+export interface CommandContext {
+	store: AgentStore;
+	projectPath?: string;
+}
+
 export interface WebExtensionRuntime {
 	readonly inspectorTabs: InspectorTabContribution[];
 	dispose(): void;
@@ -89,6 +103,13 @@ export interface GizmoWebExtension {
 	 * extension is installed — no per-project activation required.
 	 */
 	inspectorTabs?(context: InspectorTabContext): InspectorTabContribution[];
+
+	/**
+	 * Commands contributed to the global command palette (Cmd/Ctrl+K),
+	 * alongside the app's own. Static like `inspectorTabs` — no per-project
+	 * activation required.
+	 */
+	commands?(context: CommandContext): CommandContribution[];
 
 	labels?: Record<string, string>;
 	iconFor?(name: string): string | undefined;

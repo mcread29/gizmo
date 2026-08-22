@@ -6,6 +6,7 @@
 		Pin,
 		PinOff,
 		Plus,
+		Puzzle,
 		Search,
 		Settings,
 		X,
@@ -19,6 +20,7 @@
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
 	import { isDesktop, pickWorkspaceDirectory } from '../../desktop';
+	import { webExtensions } from '../../extensions/registry.svelte';
 	import { PinnedDirectoryStore } from './pinned-directories.svelte';
 
 	type Mode = 'root' | 'workspace';
@@ -55,6 +57,16 @@
 	let searching = $state(false);
 	let inputEl = $state<HTMLInputElement | null>(null);
 	const pins = new PinnedDirectoryStore();
+
+	let extensionCommands = $derived(
+		webExtensions().flatMap(
+			(definition) =>
+				definition.commands?.({
+					store,
+					projectPath: store.selectedProjectPath,
+				}) ?? [],
+		),
+	);
 
 	let requestToken = 0;
 	$effect(() => {
@@ -233,6 +245,33 @@
 									</Command.Item>
 								</Command.GroupItems>
 							</Command.Group>
+							{#if extensionCommands.length > 0}
+								<Command.Group>
+									<Command.GroupHeading data-ui="palette-group-heading"
+										>Extensions</Command.GroupHeading
+									>
+									<Command.GroupItems>
+										{#each extensionCommands as command (command.id)}
+											<Command.Item
+												data-ui="palette-result"
+												value={command.id}
+												keywords={command.keywords}
+												onSelect={run(command.run)}
+											>
+												{#if command.icon}
+													{@const Icon = command.icon}
+													<Icon size={15} />
+												{:else}
+													<Puzzle size={15} />
+												{/if}
+												<span data-ui="palette-result-name"
+													>{command.label}</span
+												>
+											</Command.Item>
+										{/each}
+									</Command.GroupItems>
+								</Command.Group>
+							{/if}
 						{:else}
 							{#if !query && !root && pins.paths.length > 0}
 								<Command.Group>
