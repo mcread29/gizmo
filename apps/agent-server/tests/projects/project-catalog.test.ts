@@ -117,6 +117,28 @@ describe('ProjectCatalog', () => {
 			],
 		});
 	});
+	it('recurses into subfolders when explicitly scoped to a root', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		await mkdir(join(project, 'Assets', 'Widgets'), { recursive: true });
+		const catalog = new ProjectCatalog(data);
+
+		expect(await catalog.search('Widgets', project)).toMatchObject({
+			directories: [{ name: 'Widgets', path: join(project, 'Assets', 'Widgets') }],
+		});
+	});
+
+	it('only matches an actual substring, not a loose subsequence', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		await mkdir(join(project, 'repos'));
+		await mkdir(join(project, 'Crash Reports'));
+		const catalog = new ProjectCatalog(data);
+
+		const { directories } = await catalog.search('repos', project);
+		expect(directories.map((entry) => entry.name)).toEqual(['repos']);
+	});
+
 	it('stores per-workspace skill overrides and keeps them across edits', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');

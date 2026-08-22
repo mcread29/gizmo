@@ -77,12 +77,17 @@ export class ProjectCatalog {
 
 	/**
 	 * Flat, fuzzy-matched folder search rooted at `root`, for a command-palette
-	 * style picker. An empty query only lists `root`'s immediate subfolders,
-	 * since walking the whole tree with nothing to filter on is just noise.
+	 * style picker. Only recurses when `root` is explicitly given (the user
+	 * scoped into a pinned folder) — with no root, this is the user's whole
+	 * home directory, and walking that recursively on every keystroke is both
+	 * slow and mostly noise (cache dirs, deep asset trees, etc). Unscoped
+	 * queries instead just filter the immediate children, same as an empty
+	 * query does.
 	 */
 	async search(query: string, root?: string) {
 		const path = await requireDirectory(root ?? homedir());
 		const needle = query.trim().toLowerCase();
+		const scoped = root !== undefined;
 		const matches: Array<{ name: string; path: string; score: number }> = [];
 
 		const walk = async (dir: string, depth: number): Promise<void> => {
@@ -101,7 +106,9 @@ export class ProjectCatalog {
 				const entryPath = join(dir, entry.name);
 				const score = matchScore(entry.name.toLowerCase(), needle);
 				if (score >= 0) matches.push({ name: entry.name, path: entryPath, score });
-				if (needle && depth < searchMaxDepth) await walk(entryPath, depth + 1);
+				if (needle && scoped && depth < searchMaxDepth) {
+					await walk(entryPath, depth + 1);
+				}
 			}
 		};
 
@@ -444,7 +451,7 @@ async function requireDirectory(input: string): Promise<string> {
 }
 
 const searchResultLimit = 200;
-const searchMaxDepth = 6;
+const searchMaxDepth = 4;
 const skippedDirectoryNames = new Set([
 	'node_modules',
 	'dist',
@@ -458,23 +465,16 @@ const skippedDirectoryNames = new Set([
 	'Temp',
 ]);
 
-/** -1 if `needle` doesn't match `name` at all; otherwise higher is a better match. */
+/**
+ * -1 if `needle` doesn't match `name` at all; otherwise higher is a better
+ * match. Requires an actual substring — a loose subsequence match (letters of
+ * "repos" appear in order somewhere in "Crash Reports") surfaces nonsense.
+ */
 function matchScore(name: string, needle: string): number {
 	if (!needle) return 0;
-	if (name === needle) return 4;
-	if (name.startsWith(needle)) return 3;
-	if (name.includes(needle)) return 2;
-	return isSubsequence(name, needle) ? 1 : -1;
-}
-
-function isSubsequence(name: string, needle: string): boolean {
-	let index = 0;
-	for (const char of needle) {
-		index = name.indexOf(char, index);
-		if (index === -1) return false;
-		index += 1;
-	}
-	return true;
+	if (name === needle) return 3;
+	if (name.startsWith(needle)) return 2;
+	return name.includes(needle) ? 1 : -1;
 }
 
 function missing(error: unknown): boolean {

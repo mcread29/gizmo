@@ -1,5 +1,28 @@
 # Work log
 
+## 2026-08-21 — Workspace search was quietly searching all of $HOME
+
+- The unscoped folder search (no pin picked) defaulted its root to
+  `homedir()` and then recursed up to 4-6 levels deep — so typing anything
+  before scoping into a pin walked the user's entire home directory,
+  surfacing noise from `~/snap/chromium/...` caches and deeply nested Unity
+  asset folders. Pins were supposed to be *how* you opt into that recursive
+  search; instead it ran unconditionally. Fixed in
+  `ProjectCatalog.search()` (`apps/agent-server/src/projects/project-catalog.ts`):
+  recursion now only happens when `root` is explicitly passed (i.e. the user
+  scoped into a pin) — unscoped queries just filter home's immediate
+  children, same as an empty query already did.
+- Tightened `matchScore` to require an actual substring match, dropping the
+  subsequence fallback — it was scoring "repos" as a match against "Crash
+  Reports" (the letters r-e-p-o-s do appear in that order), which is exactly
+  the kind of nonsense result reported.
+- Fixed a CSS overflow bug in the same complaint: `[data-ui='palette-panel']`
+  had no `overflow: hidden` and `[data-ui='palette-result']` had no
+  `min-width: 0`, so a long unscoped path could visibly spill out past the
+  dialog's rounded corner instead of eliding.
+- Added `ProjectCatalog` tests for both the scoped-recursion behavior and
+  the substring-only matching.
+
 ## 2026-08-21 — Unity and Git use the new command-palette surface
 
 - Unity (`packages/unity/src/web/domain-plugin.ts`): "Open Unity Editor"
