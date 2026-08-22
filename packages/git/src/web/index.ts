@@ -1,4 +1,6 @@
+import { GitCommit, RefreshCw } from '@lucide/svelte';
 import type { Component } from 'svelte';
+import { toasts } from '@gizmo/ui';
 import ChangesPanel from './ChangesPanel.svelte';
 import type { GitHostStore } from './host';
 
@@ -15,6 +17,37 @@ export interface GitInspectorTab {
 	props: Record<string, unknown>;
 }
 
+/** Mirrors the app's `CommandContribution`; kept local so the package never imports the app. */
+export interface GitCommand {
+	id: string;
+	label: string;
+	keywords?: string[];
+	icon?: Component;
+	run(): void;
+}
+
+export interface GitCommandStore extends GitHostStore {
+	selectedProjectPath?: string;
+}
+
+async function commitAll(store: GitHostStore): Promise<void> {
+	try {
+		const message = await store.generateCommitMessage();
+		const result = await store.commitAll(message);
+		toasts.show(`Committed ${result.commit.slice(0, 7)}`);
+	} catch (error) {
+		toasts.show(error instanceof Error ? error.message : String(error), 'danger');
+	}
+}
+
+async function refreshGitStatus(store: GitHostStore): Promise<void> {
+	try {
+		await store.refreshGitStatus();
+	} catch (error) {
+		toasts.show(error instanceof Error ? error.message : String(error), 'danger');
+	}
+}
+
 /** Git's single entry point into Gizmo's generic web extension contract. */
 export { patchFileName } from './thread-changes';
 export const gizmoWebExtension = {
@@ -28,6 +61,26 @@ export const gizmoWebExtension = {
 				badge: context.store.gitStatus?.files.length ?? 0,
 				component: ChangesPanel as Component<any>,
 				props: {},
+			},
+		];
+	},
+	commands(context: { store: GitCommandStore }): GitCommand[] {
+		const { store } = context;
+		if (!store.selectedProjectPath) return [];
+		return [
+			{
+				id: 'git.commit-all',
+				label: 'Commit all changes',
+				keywords: ['git', 'commit'],
+				icon: GitCommit,
+				run: () => void commitAll(store),
+			},
+			{
+				id: 'git.refresh-status',
+				label: 'Refresh Git status',
+				keywords: ['git'],
+				icon: RefreshCw,
+				run: () => void refreshGitStatus(store),
 			},
 		];
 	},

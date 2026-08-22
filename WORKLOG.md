@@ -1,5 +1,29 @@
 # Work log
 
+## 2026-08-21 — Unity and Git use the new command-palette surface
+
+- Unity (`packages/unity/src/web/domain-plugin.ts`): "Open Unity Editor"
+  (hidden once an editor instance is already connected, via
+  `projectStatus.instances[0]`) and "Refresh Unity project status", gated on
+  `activeDomains.includes('unity')` plus a selected project. Both just call
+  the same `openSelectedProject()`/`refreshProjectStatus()` methods the
+  workspace view's `open()`/`refresh()` already use.
+- Git (`packages/git/src/web/index.ts`): "Commit all changes" and "Refresh
+  Git status", gated on a selected project only — matching the Git inspector
+  tab, which is always shown regardless of domain. "Commit all changes"
+  generates the AI commit message and commits immediately rather than
+  reopening the panel's review dialog; this skips the manual-edit step the
+  in-panel button offers, which is a deliberate tradeoff for a one-shot
+  palette command, worth revisiting if it surprises anyone.
+- Left out for now: "Refresh console" / "Clear console" for Unity. Those
+  live on the *activated* per-project `ConsoleExtensionRuntime`
+  (`console-extension.svelte.ts`), not the static extension definition, and
+  `CommandPalette` only reads static `commands()` today — wiring those in
+  would mean adding `commands` to `WebExtensionRuntime` too and threading the
+  currently-active project runtimes into the palette (right now only
+  `WorkspaceInspector` holds them). Flagging as a follow-up rather than
+  doing it inline.
+
 ## 2026-08-21 — Extensions can contribute palette commands
 
 - Added `commands?(context): CommandContribution[]` to `GizmoWebExtension`
