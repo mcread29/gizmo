@@ -342,6 +342,28 @@ describe('application shell', () => {
 		);
 	});
 
+	it('tabs into the highlighted folder to browse its subfolders', async () => {
+		const { findByRole } = renderApp();
+		await findByRole('button', { name: 'Model' });
+		await fireEvent.click(
+			await findByRole('button', { name: 'Open workspace' }),
+		);
+
+		const dialog = await findByRole('dialog');
+		const inDialog = within(dialog);
+		await inDialog.findByText('ThirdPersonSandbox');
+		const input = inDialog.getByPlaceholderText(
+			'Search folders…',
+		) as HTMLInputElement;
+
+		await fireEvent.keyDown(input, { key: 'Tab' });
+
+		expect(
+			await inDialog.findByText('/projects/ThirdPersonSandbox'),
+		).toBeInTheDocument();
+		expect(input.value).toBe('');
+	});
+
 	it('opens a workspace without opening or creating a thread', async () => {
 		const { findAllByText, findByRole } = renderApp();
 		const list = await findByRole('navigation', {

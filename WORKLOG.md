@@ -1,5 +1,27 @@
 # Work log
 
+## 2026-08-21 — Tab drills into a folder; fixed a corner-radius mismatch
+
+- Added Tab as a drill-in key in `CommandPalette.svelte`'s workspace mode:
+  it scopes into the currently highlighted result (same as clicking a pin),
+  clearing the query and repopulating the list with that folder's
+  subfolders — Enter still commits ("Add"), Tab now browses deeper. Needed
+  `Command.Root`'s `value` bound so the palette knows which item is
+  currently highlighted.
+- The scope chip now shows the highlighted folder's *full* path rather than
+  just its last segment, so drilling in visibly confirms where you are —
+  which was really the point of the request ("tab should fill with the
+  path"). Truncates from the left (`direction: rtl` trick) when too long,
+  since the meaningful/distinguishing part of a path is usually the tail.
+- Fixed the "inconsistent rounded corners" complaint: the plain `<input>`
+  inside the palette had no `border-radius`, so its global `:focus-visible`
+  ring rendered as a sharp-cornered box sitting inside an otherwise fully
+  rounded panel — jarring next to `--radius-lg` (panel), `--radius-md`
+  (result rows), `--radius-sm` (footer kbd). Gave it `--radius-md` to match
+  the row highlight it sits above.
+- Added a test asserting Tab scopes into the highlighted folder and shows
+  its full path with the query cleared.
+
 ## 2026-08-21 — Workspace search was quietly searching all of $HOME
 
 - The unscoped folder search (no pin picked) defaulted its root to

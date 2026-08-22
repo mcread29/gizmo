@@ -56,6 +56,7 @@
 	let results = $state<WorkspaceDirectoryListing['directories']>([]);
 	let searching = $state(false);
 	let inputEl = $state<HTMLInputElement | null>(null);
+	let selectedValue = $state('');
 	const pins = new PinnedDirectoryStore();
 
 	let extensionCommands = $derived(
@@ -162,6 +163,16 @@
 	}
 
 	function onInputKeydown(event: KeyboardEvent) {
+		if (event.key === 'Tab' && mode === 'workspace') {
+			const path = selectedValue.startsWith('pin:')
+				? selectedValue.slice(4)
+				: selectedValue;
+			if (path) {
+				event.preventDefault();
+				jumpTo(path);
+			}
+			return;
+		}
 		if (event.key !== 'Backspace' || query) return;
 		if (mode === 'workspace' && root) clearRoot();
 		else if (mode === 'workspace') backToCommands();
@@ -185,11 +196,16 @@
 					</Button>
 				</div>
 			{:else}
-				<Command.Root shouldFilter={mode === 'root'} loop>
+				<Command.Root
+					bind:value={selectedValue}
+					shouldFilter={mode === 'root'}
+					loop
+				>
 					<div data-ui="palette-input">
 						{#if mode === 'workspace' && root}
 							<button data-ui="palette-scope" onclick={clearRoot}>
-								{folderName(root)}<X size={12} />
+								<span data-ui="palette-scope-path">{root}</span>
+								<X size={12} />
 							</button>
 						{/if}
 						<Command.Input
@@ -344,9 +360,10 @@
 
 				<div data-ui="palette-footer">
 					<span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
-					{#if mode === 'workspace'}<span
-							><kbd>Backspace</kbd> Back</span
-						>{/if}
+					{#if mode === 'workspace'}
+						<span><kbd>Tab</kbd> Open folder</span>
+						<span><kbd>Backspace</kbd> Back</span>
+					{/if}
 					<span><kbd>Esc</kbd> Close</span>
 					<span data-ui="palette-footer-primary"
 						><kbd>Enter</kbd> {mode === 'root' ? 'Select' : 'Add'}</span
