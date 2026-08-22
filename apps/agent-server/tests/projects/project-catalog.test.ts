@@ -117,15 +117,18 @@ describe('ProjectCatalog', () => {
 			],
 		});
 	});
-	it('recurses into subfolders when explicitly scoped to a root', async () => {
+	it('only matches immediate children, never recursing into subfolders', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');
 		await mkdir(join(project, 'Assets', 'Widgets'), { recursive: true });
 		const catalog = new ProjectCatalog(data);
 
 		expect(await catalog.search('Widgets', project)).toMatchObject({
-			directories: [{ name: 'Widgets', path: join(project, 'Assets', 'Widgets') }],
+			directories: [],
 		});
+		expect(await catalog.search('Widgets', join(project, 'Assets'))).toMatchObject(
+			{ directories: [{ name: 'Widgets' }] },
+		);
 	});
 
 	it('only matches an actual substring, not a loose subsequence', async () => {

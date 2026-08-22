@@ -1,5 +1,25 @@
 # Work log
 
+## 2026-08-21 — Removed recursive search from the workspace picker entirely
+
+- Typing a path like `/home/genge/repos/fo` was still surfacing "fonts"
+  folders several directories deep (`ghostling/dev/fonts`,
+  `stalberg-grid/build-release/assets/fonts`, ...) — none of them children
+  of `repos`. The earlier fix only stopped recursion for *unscoped* queries;
+  once a `root` was given at all (which typing an absolute path always
+  produces, same as clicking a pin), the server still walked the whole
+  subtree fuzzy-matching every descendant. That distinction was never the
+  right one — genge was clear this flow shouldn't have fuzzy search, full
+  stop, at any scope.
+- `ProjectCatalog.search()` (`apps/agent-server/src/projects/project-catalog.ts`)
+  now only ever lists `root`'s immediate children, filtered by substring —
+  the recursive walk, depth cap, and skip-list are gone entirely. It behaves
+  like shell tab-completion: narrow what's in front of you, nothing more.
+- This was my own scope creep from early in the session (treating a folder
+  picker like a VS Code Quick-Open file search) rather than anything asked
+  for; the "recurse once scoped" design from a few commits back was solving
+  a problem that didn't exist.
+
 ## 2026-08-21 — The scope chip was never "one text input"; removed it
 
 - genge called out that the pill-plus-separate-placeholder-field from the

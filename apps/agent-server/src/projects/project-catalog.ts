@@ -76,60 +76,31 @@ export class ProjectCatalog {
 	}
 
 	/**
-	 * Flat, fuzzy-matched folder search rooted at `root`, for a command-palette
-	 * style picker. Only recurses when `root` is explicitly given (the user
-	 * scoped into a pinned folder) — with no root, this is the user's whole
-	 * home directory, and walking that recursively on every keystroke is both
-	 * slow and mostly noise (cache dirs, deep asset trees, etc). Unscoped
-	 * queries instead just filter the immediate children, same as an empty
-	 * query does.
+	 * The folders directly inside `root`, filtered by `query` — never
+	 * recursive. A folder picker should behave like a shell's tab completion:
+	 * narrow what's in front of you, not fuzzy-match anything anywhere in the
+	 * tree, which surfaces unrelated noise several levels deep.
 	 */
 	async search(query: string, root?: string) {
 		const path = await requireDirectory(root ?? homedir());
 		const needle = query.trim().toLowerCase();
-		const scoped = root !== undefined;
-		const matches: Array<{ name: string; path: string; score: number }> = [];
-
-		const walk = async (dir: string, depth: number): Promise<void> => {
-			if (matches.length >= searchResultLimit) return;
-			let entries;
-			try {
-				entries = await readdir(dir, { withFileTypes: true });
-			} catch {
-				return;
-			}
-			for (const entry of entries) {
-				if (matches.length >= searchResultLimit) return;
-				if (!entry.isDirectory()) continue;
-				if (entry.name.startsWith('.') || skippedDirectoryNames.has(entry.name))
-					continue;
-				const entryPath = join(dir, entry.name);
-				const score = matchScore(entry.name.toLowerCase(), needle);
-				if (score >= 0) matches.push({ name: entry.name, path: entryPath, score });
-				if (needle && scoped && depth < searchMaxDepth) {
-					await walk(entryPath, depth + 1);
-				}
-			}
-		};
-
-		if (needle) await walk(path, 0);
-		else {
-			const entries = await readdir(path, { withFileTypes: true });
-			for (const entry of entries) {
-				if (entry.isDirectory() && !entry.name.startsWith('.')) {
-					matches.push({ name: entry.name, path: join(path, entry.name), score: 0 });
-				}
-			}
-		}
+		const entries = await readdir(path, { withFileTypes: true });
+		const matches = entries.flatMap((entry) => {
+			if (!entry.isDirectory() || entry.name.startsWith('.')) return [];
+			const score = matchScore(entry.name.toLowerCase(), needle);
+			if (score < 0) return [];
+			return [{ name: entry.name, path: join(path, entry.name), score }];
+		});
 
 		matches.sort(
 			(left, right) => right.score - left.score || left.name.localeCompare(right.name),
 		);
 		return {
 			path,
-			directories: matches
-				.slice(0, searchResultLimit)
-				.map(({ name, path: entryPath }) => ({ name, path: entryPath })),
+			directories: matches.map(({ name, path: entryPath }) => ({
+				name,
+				path: entryPath,
+			})),
 		};
 	}
 
@@ -449,21 +420,6 @@ async function requireDirectory(input: string): Promise<string> {
 	}
 	return path;
 }
-
-const searchResultLimit = 200;
-const searchMaxDepth = 4;
-const skippedDirectoryNames = new Set([
-	'node_modules',
-	'dist',
-	'build',
-	'target',
-	'vendor',
-	'venv',
-	'obj',
-	'bin',
-	'Library',
-	'Temp',
-]);
 
 /**
  * -1 if `needle` doesn't match `name` at all; otherwise higher is a better
