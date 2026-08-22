@@ -9,7 +9,6 @@
 		Puzzle,
 		Search,
 		Settings,
-		X,
 	} from '@lucide/svelte';
 	import { Command, Dialog } from 'bits-ui';
 	import type {
@@ -51,8 +50,11 @@
 	let mode = $state<Mode>('root');
 	let detecting = $state(false);
 	let addError = $state<string>();
-	let query = $state('');
-	let root = $state<string>();
+	/** The single visible/editable text — literally the path being browsed, same as an address bar. */
+	let location = $state('');
+	/** The last directory the server actually resolved `location` against. Internal bookkeeping, never shown on its own. */
+	let resolvedRoot = $state<string>();
+	let filterText = $state('');
 	let results = $state<WorkspaceDirectoryListing['directories']>([]);
 	let searching = $state(false);
 	let inputEl = $state<HTMLInputElement | null>(null);
@@ -69,20 +71,48 @@
 		),
 	);
 
+	/**
+	 * Splits the typed `location` into a directory to browse and a filter to
+	 * match its children against — the same job a shell does when you tab-complete
+	 * a path. Editing inside the already-resolved directory just narrows the
+	 * filter; editing the path itself (typing past it, pasting a new one) browses
+	 * to whatever directory the new text names.
+	 */
+	function splitLocation(
+		value: string,
+		knownRoot: string | undefined,
+	): { root: string | undefined; filter: string } {
+		const sep = value.includes('\\') ? '\\' : '/';
+		if (knownRoot && (value === knownRoot || value.startsWith(knownRoot + sep))) {
+			const rest = value.slice(knownRoot.length).replace(/^[\\/]+/, '');
+			const lastSep = Math.max(rest.lastIndexOf('/'), rest.lastIndexOf('\\'));
+			if (lastSep === -1) return { root: knownRoot, filter: rest };
+			const descended = rest.slice(0, lastSep);
+			return {
+				root: `${knownRoot.replace(/[\\/]+$/, '')}${sep}${descended}`,
+				filter: rest.slice(lastSep + 1),
+			};
+		}
+		const lastSep = Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\'));
+		if (lastSep === -1) return { root: knownRoot, filter: value };
+		return { root: value.slice(0, lastSep) || sep, filter: value.slice(lastSep + 1) };
+	}
+
 	let requestToken = 0;
 	$effect(() => {
 		if (mode !== 'workspace' || !open || isDesktop()) return;
-		// Read reactively *before* the timeout so typing/scoping re-triggers this
-		// effect — reading them inside the callback below would not track them.
-		const search = query;
-		const searchRoot = root;
+		// Read reactively *before* the timeout so typing re-triggers this effect —
+		// reading them inside the callback below would not track them.
+		const { root: searchRoot, filter } = splitLocation(location, resolvedRoot);
+		filterText = filter;
 		const token = ++requestToken;
 		searching = true;
 		const timer = setTimeout(async () => {
 			try {
-				const listing = await store.searchProjects(search, searchRoot);
+				const listing = await store.searchProjects(filter, searchRoot);
 				if (token !== requestToken) return;
 				results = listing.directories;
+				resolvedRoot = listing.path;
 			} catch (error) {
 				if (token !== requestToken) return;
 				addError = error instanceof Error ? error.message : String(error);
@@ -96,8 +126,9 @@
 	$effect(() => {
 		if (open) {
 			mode = initialMode;
-			query = '';
-			root = undefined;
+			location = '';
+			resolvedRoot = undefined;
+			filterText = '';
 			addError = undefined;
 		}
 	});
@@ -128,31 +159,21 @@
 
 	function enterWorkspaceMode() {
 		mode = 'workspace';
-		query = '';
+		location = '';
 		inputEl?.focus();
 	}
 
 	function jumpTo(path: string) {
-		root = path;
-		query = '';
-		inputEl?.focus();
-	}
-
-	function clearRoot() {
-		root = undefined;
-		query = '';
+		const sep = path.includes('\\') ? '\\' : '/';
+		location = `${path}${sep}`;
 		inputEl?.focus();
 	}
 
 	function backToCommands() {
 		mode = 'root';
-		query = '';
+		location = '';
 		results = [];
 		inputEl?.focus();
-	}
-
-	function folderName(path: string) {
-		return path.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
 	}
 
 	function run(action: () => void) {
@@ -173,9 +194,9 @@
 			}
 			return;
 		}
-		if (event.key !== 'Backspace' || query) return;
-		if (mode === 'workspace' && root) clearRoot();
-		else if (mode === 'workspace') backToCommands();
+		if (event.key === 'Backspace' && !location && mode === 'workspace') {
+			backToCommands();
+		}
 	}
 </script>
 
@@ -202,21 +223,13 @@
 					loop
 				>
 					<div data-ui="palette-input">
-						{#if mode === 'workspace' && root}
-							<button data-ui="palette-scope" onclick={clearRoot}>
-								<span data-ui="palette-scope-path">{root}</span>
-								<X size={12} />
-							</button>
-						{/if}
 						<Command.Input
 							bind:ref={inputEl}
-							bind:value={query}
+							bind:value={location}
 							autofocus
 							placeholder={mode === 'root'
 								? 'Type a command or search folders…'
-								: root
-									? `Search in ${folderName(root)}…`
-									: 'Search folders…'}
+								: 'Type a path, or search folders…'}
 							onkeydown={onInputKeydown}
 						/>
 						{#if searching}<LoaderCircle size={14} data-ui="palette-spinner" />{/if}
@@ -293,7 +306,7 @@
 								</Command.Group>
 							{/if}
 						{:else}
-							{#if !query && !root && pins.paths.length > 0}
+							{#if !location && pins.paths.length > 0}
 								<Command.Group>
 									<Command.GroupHeading data-ui="palette-group-heading"
 									>Pinned</Command.GroupHeading
@@ -314,7 +327,7 @@
 							{/if}
 
 							<Command.Empty data-ui="palette-empty">
-								{#if searching}Searching…{:else if query}No folders match "{query}".{:else}No
+								{#if searching}Searching…{:else if filterText}No folders match "{filterText}".{:else}No
 									subfolders here.{/if}
 							</Command.Empty>
 
@@ -361,8 +374,8 @@
 				<div data-ui="palette-footer">
 					<span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
 					{#if mode === 'workspace'}
-						<span><kbd>Tab</kbd> Open folder</span>
-						<span><kbd>Backspace</kbd> Back</span>
+						<span><kbd>Tab</kbd> Complete path</span>
+						{#if !location}<span><kbd>Backspace</kbd> Back</span>{/if}
 					{/if}
 					<span><kbd>Esc</kbd> Close</span>
 					<span data-ui="palette-footer-primary"

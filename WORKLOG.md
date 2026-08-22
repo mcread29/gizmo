@@ -1,5 +1,32 @@
 # Work log
 
+## 2026-08-21 — The scope chip was never "one text input"; removed it
+
+- genge called out that the pill-plus-separate-placeholder-field from the
+  last pass wasn't actually "one text input" — it was two things dressed up
+  to look like one. Rebuilt `CommandPalette.svelte`'s workspace mode as a
+  real address bar instead: a single `location` string *is* the input's
+  value, full stop. No chip, no separate root state exposed as UI.
+- Typed text is parsed by `splitLocation()`: if it extends the last resolved
+  directory, everything after the last separator is a filter on that
+  directory's children; if it doesn't (a pasted or freshly typed absolute
+  path), the text up to its last separator becomes the new directory to
+  browse. This is the same job a shell does when you tab-complete.
+- Tab now fills `location` with the highlighted result's full path (plus a
+  trailing separator) and the list repopulates with its children — same
+  behavior as before, but now it's visibly the actual input text instead of
+  a separate chip.
+- Dropped the special "Backspace clears the scope" step entirely — deleting
+  characters is just normal text editing now. Backspace on a fully empty
+  field still pops back to the command list, since there's nothing left to
+  delete there.
+- Found and fixed a self-inflicted bug while rebuilding this: an earlier
+  version auto-filled `location` with the resolved home path from inside the
+  same effect that reacts to `location` changing, which raced against
+  bits-ui's own initial-selection timing and intermittently left Tab
+  operating on a stale/empty selection. Removed the auto-fill; the field
+  now only changes when the user types, clicks a pin, or presses Tab.
+
 ## 2026-08-21 — Tab drills into a folder; fixed a corner-radius mismatch
 
 - Added Tab as a drill-in key in `CommandPalette.svelte`'s workspace mode:

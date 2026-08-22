@@ -332,7 +332,7 @@ describe('application shell', () => {
 		const inDialog = within(dialog);
 		await inDialog.findByText('ThirdPersonSandbox');
 
-		await fireEvent.input(inDialog.getByPlaceholderText('Search folders…'), {
+		await fireEvent.input(inDialog.getByPlaceholderText('Type a path, or search folders…'), {
 			target: { value: 'render' },
 		});
 
@@ -353,15 +353,21 @@ describe('application shell', () => {
 		const inDialog = within(dialog);
 		await inDialog.findByText('ThirdPersonSandbox');
 		const input = inDialog.getByPlaceholderText(
-			'Search folders…',
+			'Type a path, or search folders…',
 		) as HTMLInputElement;
+		// bits-ui highlights the first item on the next tick after it mounts;
+		// firing Tab before that lands would miss the selection entirely.
+		await waitFor(() =>
+			expect(
+				dialog.querySelector('[data-ui="palette-result"][data-selected]'),
+			).not.toBeNull(),
+		);
 
 		await fireEvent.keyDown(input, { key: 'Tab' });
 
-		expect(
-			await inDialog.findByText('/projects/ThirdPersonSandbox'),
-		).toBeInTheDocument();
-		expect(input.value).toBe('');
+		await waitFor(() =>
+			expect(input.value).toBe('/projects/ThirdPersonSandbox/'),
+		);
 	});
 
 	it('opens a workspace without opening or creating a thread', async () => {
