@@ -130,6 +130,7 @@
 			openTree: () => router.go('tree'),
 			focusComposer: () => focusComposer?.(),
 			findInThread: () => findInThread?.(),
+			openPalette: () => sessions.openCommandPalette('root'),
 			searchThreads: () => {
 				if (!layout.leftVisible) layout.toggleLeft();
 				focusThreadSearch?.();
@@ -137,6 +138,7 @@
 			toggleLeft: () => layout.toggleLeft(),
 			toggleRight: () => layout.toggleRight(),
 			dismiss: () => {
+				if (sessions.commandPaletteOpen) return;
 				if (router.current === 'workspace') layout.closeDrawers();
 				else router.close();
 			},
@@ -239,7 +241,7 @@
 				openWorkspacePath={router.current === 'workspace'
 					? router.workspacePath
 					: undefined}
-				onOpenWorkspacePicker={() => (sessions.projectPickerOpen = true)}
+				onOpenWorkspacePicker={() => sessions.openCommandPalette('workspace')}
 				onOpenWorkspace={(projectPath) => showWorkspace(projectPath)}
 				onOpenWorkspaceSettings={(projectPath) =>
 					showWorkspace(projectPath, 'configure')}
@@ -304,6 +306,12 @@
 				{sessions}
 				{layout}
 				onOpenWorkspace={(projectPath) => showWorkspace(projectPath)}
+				onNewThread={() => void startThread()}
+				onOpenSettings={() => router.go('settings')}
+				onSearchThreads={() => {
+					if (!layout.leftVisible) layout.toggleLeft();
+					focusThreadSearch?.();
+				}}
 			/>
 		</div>
 	</AppContextMenu>

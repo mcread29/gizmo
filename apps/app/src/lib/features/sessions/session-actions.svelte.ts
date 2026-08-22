@@ -14,7 +14,9 @@ import {
  * they live here once instead of being re-implemented per surface.
  */
 export class SessionActions {
-	projectPickerOpen = $state(false);
+	commandPaletteOpen = $state(false);
+	/** Which screen the palette opens to; read once when it opens. */
+	commandPaletteMode = $state<'root' | 'workspace'>('root');
 	renameOpen = $state(false);
 	deleteOpen = $state(false);
 	renameDraft = $state('');
@@ -40,7 +42,7 @@ export class SessionActions {
 	async startThread(): Promise<void> {
 		const projectPath = this.#store.selectedProjectPath;
 		if (!projectPath) {
-			this.projectPickerOpen = true;
+			this.openCommandPalette('workspace');
 			return;
 		}
 		const integrations = this.#store.projects.find(
@@ -49,9 +51,14 @@ export class SessionActions {
 		await this.#store.newSession(projectPath, integrations);
 	}
 
+	openCommandPalette(mode: 'root' | 'workspace' = 'root'): void {
+		this.commandPaletteMode = mode;
+		this.commandPaletteOpen = true;
+	}
+
 	/** Selecting a workspace shows it; it never opens or creates a thread. */
 	async selectWorkspace(projectPath: string): Promise<void> {
-		this.projectPickerOpen = false;
+		this.commandPaletteOpen = false;
 		await this.#store.selectWorkspace(projectPath);
 	}
 

@@ -1,5 +1,27 @@
 # Work log
 
+## 2026-08-21 — A real global command palette, not just a folder search
+
+- What genge actually meant by "a real command palette" was a global
+  Cmd/Ctrl+K launcher with "Open workspace" as one command among others, not
+  a nicer-looking dialog scoped to one flow. Rebuilt on bits-ui's `Command`
+  primitive (the same one cmdk-style palettes use), replacing the hand-rolled
+  fuzzy list, arrow-key handling, and selection state from earlier today —
+  the library now owns keyboard nav, selection, and (for the root command
+  list) the fuzzy filtering/scoring.
+- `ProjectPickerDialog.svelte` is gone; `CommandPalette.svelte`
+  (`apps/app/src/lib/features/sessions/`) replaces it with two modes: `root`
+  (New thread, Open settings, Search threads, Open workspace…) and
+  `workspace` (the folder search, entered either directly or via the "Open
+  workspace" command). `SessionActions.commandPaletteOpen` /
+  `commandPaletteMode` replace the old `projectPickerOpen` boolean.
+- Cmd/Ctrl+K now opens the palette; the sidebar's own thread-search shortcut
+  moved to Cmd/Ctrl+Shift+K to make room (updated in `shortcuts.ts` and the
+  About page's shortcut list).
+- Fixed a stale `App.test.ts` assertion for this dialog (it referenced markup
+  removed by the fuzzy-search redesign earlier today and had been failing
+  since; not caught before because the suite wasn't run after that commit).
+
 ## 2026-08-21 — Workspace picker becomes a real command palette
 
 - Dropped the shared `Dialog` wrapper (title, description, bordered card

@@ -13,8 +13,9 @@
 	let confirmOpen = $state(false);
 
 	const shortcuts = [
+		['Command palette', 'Ctrl/⌘ K'],
 		['New thread', 'Ctrl/⌘ N'],
-		['Search threads', 'Ctrl/⌘ K'],
+		['Search threads', 'Ctrl/⌘ Shift K'],
 		['Focus composer', 'Ctrl/⌘ Shift L'],
 		['Toggle threads', 'Ctrl/⌘ B'],
 		['Toggle inspector', 'Ctrl/⌘ Shift B'],

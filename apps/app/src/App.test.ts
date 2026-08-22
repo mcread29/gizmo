@@ -314,12 +314,10 @@ describe('application shell', () => {
 			await findByRole('button', { name: 'Open workspace' }),
 		);
 
+		const dialog = await findByRole('dialog');
 		expect(
-			await findByRole('dialog', { name: 'Open workspace' }),
+			await within(dialog).findByText('ThirdPersonSandbox'),
 		).toBeInTheDocument();
-		expect(
-			await findByRole('region', { name: 'Folder browser' }),
-		).toHaveTextContent('/projects');
 		expect(queryByRole('textbox', { name: 'Workspace path' })).toBeNull();
 	});
 
