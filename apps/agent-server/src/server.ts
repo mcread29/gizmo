@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { createAgentWebSocketServer } from './transport/websocket-server';
 import { configuredOrigins } from './server-config';
+import { CompositeProjectService } from '@gizmo/extensions';
 import { ExtensionHostService } from './extensions/extension-host-service';
 import { loadServerExtensions } from './extensions/load-extensions';
 import { registerExtensions } from './extensions/registry';
@@ -26,9 +27,9 @@ const extensions = await loadServerExtensions(
 		: resolve(repoRoot, 'gizmo.extensions.json'),
 );
 registerExtensions(extensions);
-const projectServiceExtension = extensions.find(
-	(extension) => extension.createProjectService,
-);
+const projectServiceFactories = extensions
+	.filter((extension) => extension.createProjectService)
+	.map((extension) => extension.createProjectService!);
 
 const host =
 	process.env.GIZMO_HOST ?? process.env.UNITY_AGENT_HOST ?? '127.0.0.1';
@@ -38,10 +39,10 @@ const agentServer = await createAgentWebSocketServer({
 	host,
 	port,
 	createExtensionHost: () => new ExtensionHostService(extensions),
-	...(projectServiceExtension
+	...(projectServiceFactories.length
 		? {
 				createProjectService: () =>
-					projectServiceExtension.createProjectService!(),
+					new CompositeProjectService(projectServiceFactories.map((create) => create())),
 			}
 		: {}),
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),

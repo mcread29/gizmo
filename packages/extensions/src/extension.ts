@@ -23,6 +23,12 @@ export interface GizmoServerExtension {
 	 */
 	packageRoot?: string;
 	detect?(workspacePath: string): Promise<boolean>;
+	/**
+	 * Roots this extension applies to inside the workspace. Only the first
+	 * root is used: it becomes the integration root for detection and the
+	 * default profile. Multi-root selection is not supported yet — return
+	 * the most relevant root first.
+	 */
 	detectRoots?(workspacePath: string): Promise<string[]>;
 	profile?(root: string): WorkspaceProfile;
 	systemPrompt?: string;

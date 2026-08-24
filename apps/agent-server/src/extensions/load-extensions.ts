@@ -26,6 +26,9 @@ export async function loadServerExtensions(
 	);
 }
 
+/** Extension ids become map keys and file-path components; keep them tame. */
+const extensionIdPattern = /^[a-z0-9][a-z0-9.-]*$/i;
+
 async function loadExtension(
 	specifier: string,
 ): Promise<GizmoServerExtension | undefined> {
@@ -37,10 +40,20 @@ async function loadExtension(
 			console.warn(
 				`Extension "${specifier}" has no server entry (missing gizmoExtension export)`,
 			);
+			return undefined;
+		}
+		if (
+			typeof extension.id !== 'string' ||
+			!extensionIdPattern.test(extension.id)
+		) {
+			console.warn(
+				`Extension "${specifier}" has an invalid id (${JSON.stringify(extension.id)}); ids are lowercase alphanumerics, dots, and dashes`,
+			);
+			return undefined;
 		}
 		// The package root lets resource discovery and web bundles find the
 		// extension's shipped files (skills/, prompts/, dist/web.js).
-		return extension && { ...extension, packageRoot: packageRoot(specifier) };
+		return { ...extension, packageRoot: packageRoot(specifier) };
 	} catch (error) {
 		console.warn(`Failed to load extension "${specifier}":`, error);
 		return undefined;

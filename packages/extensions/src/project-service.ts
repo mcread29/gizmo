@@ -30,3 +30,63 @@ export interface ProjectService {
 	revertFile(projectPath: string, file: string, patch: string): Promise<void>;
 	dispose(): void;
 }
+
+/**
+ * Fans project operations out to every extension that provides a
+ * ProjectService, trying each until one handles the path. Keeps
+ * `server.ts` from hardcoding "first extension wins" — a second
+ * runtime extension (e.g. a future non-Unity one) is reachable
+ * without editing core.
+ */
+export class CompositeProjectService implements ProjectService {
+	readonly #services: readonly ProjectService[];
+
+	constructor(services: readonly ProjectService[]) {
+		this.#services = services;
+	}
+
+	async getStatus(projectPath: string): Promise<ProjectStatus> {
+		return this.#first((service) => service.getStatus(projectPath));
+	}
+
+	async watchStatus(
+		projectPath: string,
+		listeners: ProjectWatchListeners,
+	): Promise<ProjectStatus> {
+		return this.#first((service) => service.watchStatus(projectPath, listeners));
+	}
+
+	async openProject(projectPath: string): Promise<unknown> {
+		return this.#first((service) => service.openProject(projectPath));
+	}
+
+	async revertFile(
+		projectPath: string,
+		file: string,
+		patch: string,
+	): Promise<void> {
+		return this.#first((service) => service.revertFile(projectPath, file, patch));
+	}
+
+	dispose(): void {
+		for (const service of this.#services) {
+			try {
+				service.dispose();
+			} catch {
+				// One service failing to dispose must not prevent the rest.
+			}
+		}
+	}
+
+	async #first<T>(call: (service: ProjectService) => Promise<T>): Promise<T> {
+		let lastError: unknown;
+		for (const service of this.#services) {
+			try {
+				return await call(service);
+			} catch (error) {
+				lastError = error;
+			}
+		}
+		throw lastError ?? new Error('No project service is configured');
+	}
+}

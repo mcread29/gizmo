@@ -541,7 +541,7 @@ export class PiAgentService {
 	 * can't stall shutdown.
 	 */
 	async abortStreamingSessions(): Promise<void> {
-		const timeoutMs = 3_000;
+		const timeoutMs = 10_000;
 		await Promise.all(
 			[...this.#sessions.entries()]
 				.filter(([, active]) => active.session.isStreaming)
@@ -697,16 +697,15 @@ const createDefaultPiSession: PiSessionFactory = async (
 	const agentDir = defaultDataDir();
 	const modelRuntime = await gizmoModelRuntime();
 	const settingsManager = SettingsManager.create(cwd, agentDir);
+	const confirm = (kind: string): Promise<boolean> => {
+		if (kind !== 'stop_play_mode_for_compile') {
+			throw new Error(`Unsupported confirmation: ${kind}`);
+		}
+		return callbacks.confirmStopPlayMode(cwd);
+	};
+	const extensionContext = { workspacePath: cwd, confirm };
 	const activeDomains = await activateExtensions(
-		{
-			workspacePath: cwd,
-			confirm: (kind) => {
-				if (kind !== 'stop_play_mode_for_compile') {
-					throw new Error(`Unsupported confirmation: ${kind}`);
-				}
-				return callbacks.confirmStopPlayMode(cwd);
-			},
-		},
+		extensionContext,
 		options.integrations ??
 			(options.domainId && options.domainId !== 'generic'
 				? [{ id: options.domainId, root: '.' }]
@@ -742,30 +741,18 @@ const createDefaultPiSession: PiSessionFactory = async (
 			: {}),
 	});
 	await resourceLoader.reload();
-	const defaultTools = defaultExtensionTools({
-		workspacePath: cwd,
-		confirm: (kind) => {
-			if (kind !== 'stop_play_mode_for_compile') {
-				throw new Error(`Unsupported confirmation: ${kind}`);
-			}
-			return callbacks.confirmStopPlayMode(cwd);
-		},
-	});
+	const defaultTools = defaultExtensionTools(extensionContext);
+	const runScriptTool = createRunScriptTool({ workspacePath: cwd });
+	const customTools = [...activeDomains.tools, ...defaultTools, runScriptTool];
 	const { session } = await createAgentSession({
 		cwd,
 		agentDir,
-		customTools: [
-			...activeDomains.tools,
-			...defaultTools,
-			createRunScriptTool({ workspacePath: cwd }),
-		],
+		customTools,
 		tools: [
 			'read',
 			'edit',
 			'write',
-			'git_status',
-			'run_script',
-			...activeDomains.tools.map(({ name }) => name),
+			...customTools.map(({ name }) => name),
 		],
 		resourceLoader,
 		modelRuntime,
@@ -874,7 +861,12 @@ function gizmoModelRuntime() {
 					modelsStorePath: paths.modelsStorePath,
 				});
 			},
-		);
+		).catch((error: unknown) => {
+			// Do not cache the rejection: the next caller should retry creation
+			// (e.g. after auth was re-imported) rather than fail forever.
+			modelRuntimePromise = undefined;
+			throw error;
+		});
 	}
 	return modelRuntimePromise;
 }

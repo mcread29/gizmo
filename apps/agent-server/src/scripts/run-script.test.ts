@@ -135,4 +135,20 @@ describe('runScript', () => {
 		expect(result.stdout).toContain('output truncated');
 		expect(result.stdout.length).toBeLessThan(50_000);
 	});
+
+	it('marks a maxBuffer kill as truncated rather than a bare failure', async () => {
+		const name = await script('flood.ts');
+		const result = await runScript(name, {
+			workspacePath: workspace,
+			run: async () => {
+				throw Object.assign(
+					new Error('spawn bun ENOBUFS / maxBuffer exceeded'),
+					{ code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' },
+				);
+			},
+		});
+
+		expect(result).toMatchObject({ ok: false, truncated: true });
+		expect(result.stderr).toContain('truncated');
+	});
 });

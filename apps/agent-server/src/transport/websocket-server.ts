@@ -45,9 +45,14 @@ export interface AgentWebSocketServer {
 export async function createAgentWebSocketServer(
 	options: AgentWebSocketServerOptions = {},
 ): Promise<AgentWebSocketServer> {
-	const verifyClient: VerifyClientCallbackSync = ({ origin }) =>
-		!origin ||
-		(options.allowedOrigins ?? defaultAllowedOrigins).includes(origin);
+	const allowedOrigins = options.allowedOrigins ?? defaultAllowedOrigins;
+	const verifyClient: VerifyClientCallbackSync = ({ origin }) => {
+		// Non-browser clients (CLI, tests) send no Origin header and have local
+		// system access anyway; browsers always send one. A literal "null"
+		// origin is a browser on an opaque origin (file://, sandboxed iframe)
+		// and is rejected like any other unlisted origin.
+		return !origin || (origin !== 'null' && allowedOrigins.includes(origin));
+	};
 	const server = new WebSocketServer({
 		host: options.host ?? '127.0.0.1',
 		port: options.port ?? 8787,
@@ -72,6 +77,42 @@ export async function createAgentWebSocketServer(
 		const extensionHost =
 			options.createExtensionHost?.() ?? new ExtensionHostService([]);
 		const gitService = options.createGitService?.() ?? new GitService();
+		/**
+		 * The project this connection currently watches, if any. Repeated
+		 * `project.watch` requests for the same path reuse the live watch
+		 * instead of restarting it (which would kill and re-create the
+		 * underlying poll); watching a different path replaces it, matching
+		 * the single-watch behavior of the project services.
+		 */
+		let watchedProject: { path: string; stopExtensionWatch: () => void } | undefined;
+		/**
+		 * Coalesces project watches for this connection: the same path reuses
+		 * the live watch, a different path replaces it. Without this, every
+		 * `project.watch` request restarted the underlying poll and each
+		 * restart discarded the previous one's listeners.
+		 */
+		const watchCoordinator = {
+			watch(
+				sessionId: string,
+				projectPath: string,
+			): Promise<ProjectStatus> {
+				if (watchedProject?.path === projectPath) {
+					// Already watching: report the current status without
+					// restarting, so the existing listeners stay live.
+					return projectService.getStatus(projectPath);
+				}
+				watchedProject?.stopExtensionWatch();
+				const stopExtensionWatch = extensionHost.watch(
+					projectPath,
+					(extensions) =>
+						emit.extensions(sessionId, projectPath, extensions),
+				);
+				watchedProject = { path: projectPath, stopExtensionWatch };
+				return projectService.watchStatus(projectPath, {
+					status: (status) => emit.status(sessionId, projectPath, status),
+				});
+			},
+		};
 		services.set(socket, {
 			agent: service,
 			projects: projectService,
@@ -110,6 +151,7 @@ export async function createAgentWebSocketServer(
 				extensionHost,
 				gitService,
 				emit,
+				watchCoordinator,
 				isBinary ? undefined : data.toString(),
 			);
 		});
@@ -178,6 +220,10 @@ interface ProjectEmitters {
 	): void;
 }
 
+interface ProjectWatchCoordinator {
+	watch(sessionId: string, projectPath: string): Promise<ProjectStatus>;
+}
+
 async function handleMessage(
 	socket: WebSocket,
 	service: PiAgentService,
@@ -185,6 +231,7 @@ async function handleMessage(
 	extensionHost: ExtensionHostService,
 	gitService: GitService,
 	emit: ProjectEmitters,
+	watchCoordinator: ProjectWatchCoordinator,
 	text: string | undefined,
 ): Promise<void> {
 	let input: unknown;
@@ -211,6 +258,7 @@ async function handleMessage(
 			extensionHost,
 			gitService,
 			emit,
+			watchCoordinator,
 			request,
 		);
 		send(socket, {
@@ -230,6 +278,7 @@ async function dispatch(
 	extensionHost: ExtensionHostService,
 	gitService: GitService,
 	emit: ProjectEmitters,
+	watchCoordinator: ProjectWatchCoordinator,
 	request: AgentRequest,
 ): Promise<{ sessionId?: string; result?: unknown }> {
 	switch (request.type) {
@@ -373,14 +422,11 @@ async function dispatch(
 		case 'project.status':
 			return { result: await projectService.getStatus(request.projectPath) };
 		case 'project.watch':
-			extensionHost.watch(request.projectPath, (extensions) =>
-				emit.extensions(request.sessionId, request.projectPath, extensions),
-			);
 			return {
-				result: await projectService.watchStatus(request.projectPath, {
-					status: (status) =>
-						emit.status(request.sessionId, request.projectPath, status),
-				}),
+				result: await watchCoordinator.watch(
+					request.sessionId,
+					request.projectPath,
+				),
 			};
 		case 'project.open':
 			return { result: await projectService.openProject(request.projectPath) };

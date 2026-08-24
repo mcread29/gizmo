@@ -193,7 +193,7 @@ describe('PiAgentService idle eviction', () => {
 			session.abort = vi.fn(() => new Promise<void>(() => {}));
 
 			const pending = service.abortStreamingSessions();
-			vi.advanceTimersByTime(3_000);
+			vi.advanceTimersByTime(10_000);
 			await pending;
 
 			expect(session.abort).toHaveBeenCalledOnce();

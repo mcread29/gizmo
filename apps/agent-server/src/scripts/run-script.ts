@@ -16,7 +16,6 @@ const runnableExtensions = new Set([
 	'.cts',
 ]);
 
-const maxOutputBytes = 1024 * 1024;
 const maxReportedChars = 20_000;
 const defaultTimeoutSeconds = 60;
 
@@ -98,19 +97,28 @@ export async function runScript(
 			stderr?: string;
 			message?: string;
 		};
-		const timedOut = failure.killed === true || failure.signal === 'SIGTERM';
+		const timedOut =
+			failure.killed === true || failure.signal === 'SIGTERM';
+		const overflowed =
+			typeof failure.code === 'string' &&
+			failure.code.toLowerCase().includes('maxbuffer');
 		return report({
 			script,
 			exitCode: typeof failure.code === 'number' ? failure.code : 1,
 			stdout: failure.stdout ?? '',
-			stderr: failure.stderr ?? failure.message ?? '',
+			stderr:
+				failure.stderr ??
+				(overflowed
+					? 'Output exceeded the capture limit and was truncated.'
+					: failure.message ?? ''),
 			timedOut,
+			truncated: overflowed,
 		});
 	}
 }
 
 function report(
-	result: Omit<RunScriptResult, 'ok' | 'truncated'>,
+	result: Omit<RunScriptResult, 'ok' | 'truncated'> & { truncated?: boolean },
 ): RunScriptResult {
 	const stdout = clamp(result.stdout);
 	const stderr = clamp(result.stderr);
@@ -119,7 +127,10 @@ function report(
 		stdout: stdout.text,
 		stderr: stderr.text,
 		ok: result.exitCode === 0 && !result.timedOut,
-		truncated: stdout.truncated || stderr.truncated,
+		truncated:
+			result.truncated === true ||
+			stdout.truncated ||
+			stderr.truncated,
 	};
 }
 
@@ -145,7 +156,10 @@ const bunRunner: ScriptRunner = (command, args, options) =>
 		cwd: options.cwd,
 		encoding: 'utf8',
 		timeout: options.timeout,
-		maxBuffer: maxOutputBytes,
+		// Generous byte cap: execFile kills the process at maxBuffer, which
+		// reports as an error rather than clamped output. 4x the reported-char
+		// cap leaves room for multi-byte UTF-8 while still bounding memory.
+		maxBuffer: maxReportedChars * 4,
 		...(options.signal ? { signal: options.signal } : {}),
 		// No shell, and no inherited stdin: the script cannot prompt for input.
 		shell: false,

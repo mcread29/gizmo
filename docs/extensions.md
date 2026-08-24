@@ -145,36 +145,24 @@ after first render still reach the UI; startup never blocks on them.
 
 Gizmo already deliberately excludes Pi's default `bash` tool. The explicit
 allowlist passed to `createAgentSession` in
-`apps/agent-server/src/sessions/pi-agent-service.ts` is:
+`apps/agent-server/src/sessions/pi-agent-service.ts` is derived from the
+same tool objects that are registered:
 
 ```ts
-tools: [
-	'read',
-	'edit',
-	'write',
-	'git_status',
-	'run_script',
-	...activeDomains.tools.map(({ name }) => name),
-],
+const customTools = [...activeDomains.tools, ...defaultTools, runScriptTool];
+tools: ['read', 'edit', 'write', ...customTools.map(({ name }) => name)],
 ```
 
 Pi's default four tools are `read`, `write`, `edit`, `bash`. Gizmo keeps the
-first three, adds `run_script`, and allows whatever narrow, purpose-built
-tools each active extension contributes (Unity's `unity_*` tools, which wrap
-its own RPC bridge — never raw shell). There is no general-purpose _shell_,
-and that is intentional: it bounds what the model can do to file edits, plus
-running one named script file, plus whatever an extension explicitly and
-narrowly exposed.
-
-Note this allowlist currently names `git_status` literally rather than
-deriving it from `defaultTools` (the extension-contributed tools that are
-always registered regardless of workspace detection, built via
-`defaultExtensionTools` and added to `customTools`) — so a second extension
-adding its own `defaultTools`-contributed tool would need its name added here
-too, by hand, to actually be reachable. That's a real gap against this
-document's own "no hardcoded knowledge of any specific extension" claim, not
-a documented design choice; worth fixing in `pi-agent-service.ts` if a second
-`defaultTools` consumer shows up.
+first three, adds `run_script` and whatever `defaultTools` extensions
+contribute (e.g. `git_status`), plus whatever narrow, purpose-built tools each
+active extension contributes (Unity's `unity_*` tools, which wrap its own RPC
+bridge — never raw shell). There is no general-purpose _shell_, and that is
+intentional: it bounds what the model can do to file edits, plus running one
+named script file, plus whatever an extension explicitly and narrowly exposed.
+`defaultTools` and active-extension tools flow through the same derivation, so
+a second extension adding a `defaultTools`-contributed tool is reachable
+without hand-editing the allowlist.
 
 This is a deliberate, load-bearing design choice, not an oversight to
 "fix" by re-adding `bash`. It should stay this way.

@@ -4,15 +4,24 @@ import type { GizmoServerExtension } from '@gizmo/extensions';
 type ExtensionProvider = GizmoServerExtension &
 	Required<Pick<GizmoServerExtension, 'list' | 'invoke'>>;
 
+interface WatchState {
+	listeners: Set<(extensions: ExtensionDescriptor[]) => void>;
+	timer: NodeJS.Timeout;
+	fingerprint: string;
+}
+
 export class ExtensionHostService {
 	readonly #providers: readonly ExtensionProvider[];
+	/** A recent `list` per workspace; concurrent callers share one poll. */
 	readonly #cache = new Map<
 		string,
 		{ expiresAt: number; value: Promise<ExtensionDescriptor[]> }
 	>();
 	readonly #controllers = new Set<AbortController>();
-	readonly #watchStops = new Set<() => void>();
-	readonly #owners = new Map<string, ExtensionProvider>();
+	/** One poll per workspace, shared by every listener watching it. */
+	readonly #watches = new Map<string, WatchState>();
+	/** Entry per workspace: the owners its descriptors last reported. */
+	readonly #owners = new Map<string, Map<string, ExtensionProvider>>();
 
 	constructor(
 		extensions: readonly GizmoServerExtension[],
@@ -50,7 +59,9 @@ export class ExtensionHostService {
 				throw new Error(
 					`Extension operation requires confirmation: ${operationId}`,
 				);
-			const provider = this.#owners.get(`${workspacePath}:${extensionId}`);
+			const provider = this.#owners
+				.get(workspacePath)
+				?.get(extensionId);
 			if (!provider)
 				throw new Error(`Extension provider is unavailable: ${extensionId}`);
 			return provider.invoke(
@@ -67,37 +78,54 @@ export class ExtensionHostService {
 		workspacePath: string,
 		changed: (extensions: ExtensionDescriptor[]) => void,
 	): () => void {
-		let disposed = false;
-		let fingerprint = '';
-		const check = async () => {
-			try {
-				this.#cache.delete(workspacePath);
-				const extensions = await this.list(workspacePath);
-				const next = JSON.stringify(extensions);
-				if (fingerprint && next !== fingerprint) changed(extensions);
-				fingerprint = next;
-			} catch {
-				// Providers are retried on the next observation.
-			} finally {
-				if (!disposed) timer = setTimeout(check, this.pollMs);
-			}
+		let state = this.#watches.get(workspacePath);
+		if (!state) {
+			state = {
+				listeners: new Set(),
+				timer: setTimeout(() => this.#check(workspacePath), this.pollMs),
+				fingerprint: '',
+			};
+			state.timer.unref?.();
+			this.#watches.set(workspacePath, state);
+		}
+		state.listeners.add(changed);
+		return () => {
+			const current = this.#watches.get(workspacePath);
+			if (!current) return;
+			current.listeners.delete(changed);
+			if (current.listeners.size) return;
+			clearTimeout(current.timer);
+			this.#watches.delete(workspacePath);
 		};
-		let timer = setTimeout(check, this.pollMs);
-		const stop = () => {
-			disposed = true;
-			clearTimeout(timer);
-			this.#watchStops.delete(stop);
-		};
-		this.#watchStops.add(stop);
-		return stop;
 	}
 
 	dispose(): void {
-		for (const stop of this.#watchStops) stop();
+		for (const { timer } of this.#watches.values()) clearTimeout(timer);
+		this.#watches.clear();
 		for (const controller of this.#controllers) controller.abort();
 		this.#controllers.clear();
-		this.#cache.clear();
 		this.#owners.clear();
+		this.#cache.clear();
+	}
+
+	async #check(workspacePath: string): Promise<void> {
+		const state = this.#watches.get(workspacePath);
+		if (!state) return;
+		try {
+			this.#cache.delete(workspacePath);
+			const extensions = await this.list(workspacePath);
+			const next = JSON.stringify(extensions);
+			if (state.fingerprint && next !== state.fingerprint) {
+				for (const listener of state.listeners) listener(extensions);
+			}
+			state.fingerprint = next;
+		} catch {
+			// Providers are retried on the next observation.
+		}
+		const current = this.#watches.get(workspacePath);
+		if (!current) return;
+		current.timer = setTimeout(() => this.#check(workspacePath), this.pollMs);
+		current.timer.unref?.();
 	}
 
 	async #listUnchecked(workspacePath: string, signal: AbortSignal) {
@@ -110,9 +138,12 @@ export class ExtensionHostService {
 			})),
 		)
 			.then((groups) => {
+				// Ownership is replaced wholesale per observation, so a stale
+				// owner from a removed descriptor cannot linger.
+				const owners = new Map<string, ExtensionProvider>();
 				for (const { provider, extensions } of groups)
-					for (const { id } of extensions)
-						this.#owners.set(`${workspacePath}:${id}`, provider);
+					for (const { id } of extensions) owners.set(id, provider);
+				this.#owners.set(workspacePath, owners);
 				return groups.flatMap(({ extensions }) => extensions);
 			})
 			.catch((error) => {

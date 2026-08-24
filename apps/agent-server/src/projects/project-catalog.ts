@@ -21,9 +21,21 @@ import { defaultDataDir } from '../sessions/session-repository';
 
 export class ProjectCatalog {
 	readonly #file: string;
+	readonly #catalogMutex = new AsyncMutex();
+	readonly #profileMutexes = new Map<string, AsyncMutex>();
 
 	constructor(dataDir = defaultDataDir()) {
 		this.#file = join(dataDir, 'projects.json');
+	}
+
+	#profileMutex(projectPath: string): AsyncMutex {
+		const key = resolve(projectPath);
+		let mutex = this.#profileMutexes.get(key);
+		if (!mutex) {
+			mutex = new AsyncMutex();
+			this.#profileMutexes.set(key, mutex);
+		}
+		return mutex;
 	}
 
 	async list(): Promise<StoredProject[]> {
@@ -110,27 +122,29 @@ export class ProjectCatalog {
 	): Promise<StoredProject> {
 		const path = await requireDirectory(projectPath);
 		await this.#validateIntegrations(path, integrations);
-		const projects = await this.#readCatalog();
-		const existing = projects.find((item) => item.path === path);
-		const detected = await this.detect(path);
-		const existingProfiles = await this.#profiles(path, existing);
-		const profiles = profilesFromSelection(
-			detected.profiles ?? [],
-			integrations,
-			activeProfile(existingProfiles)?.skills ?? [],
-		);
-		await this.#validateProfiles(path, profiles);
-		await writeProfiles(path, profiles);
-		const project: CatalogProject = {
-			title: basename(path),
-			path,
-			addedAt: existing?.addedAt ?? Date.now(),
-		};
-		await this.#write([
-			project,
-			...projects.filter((item) => item.path !== path),
-		]);
-		return this.#storedProject(project);
+		return this.#catalogMutex.run(async () => {
+			const projects = await this.#readCatalog();
+			const existing = projects.find((item) => item.path === path);
+			const detected = await this.detect(path);
+			const existingProfiles = await this.#profiles(path, existing);
+			const profiles = profilesFromSelection(
+				detected.profiles ?? [],
+				integrations,
+				activeProfile(existingProfiles)?.skills ?? [],
+			);
+			await this.#validateProfiles(path, profiles);
+			await this.#profileMutex(path).run(() => writeProfiles(path, profiles));
+			const project: CatalogProject = {
+				title: basename(path),
+				path,
+				addedAt: existing?.addedAt ?? Date.now(),
+			};
+			await this.#write([
+				project,
+				...projects.filter((item) => item.path !== path),
+			]);
+			return this.#storedProject(project);
+		});
 	}
 
 	async saveProfiles(
@@ -144,15 +158,17 @@ export class ProjectCatalog {
 			throw new Error(`Workspace is not registered with Gizmo: ${path}`);
 		}
 		await this.#validateProfiles(path, profiles);
-		await writeProfiles(path, profiles);
+		await this.#profileMutex(path).run(() => writeProfiles(path, profiles));
 		return this.#storedProject(existing);
 	}
 
 	async remove(projectPath: string): Promise<void> {
 		const path = resolve(projectPath);
-		await this.#write(
-			(await this.#readCatalog()).filter((project) => project.path !== path),
-		);
+		await this.#catalogMutex.run(async () => {
+			await this.#write(
+				(await this.#readCatalog()).filter((project) => project.path !== path),
+			);
+		});
 	}
 
 	/** Per-profile overrides of the global skill enablement. */
@@ -174,14 +190,16 @@ export class ProjectCatalog {
 		if (!project) {
 			throw new Error(`Workspace is not registered with Gizmo: ${path}`);
 		}
-		const profiles = await this.#profiles(path, project);
-		const profile = activeProfile(profiles);
-		if (!profile) throw new Error('The active profile is missing');
-		const skills = (profile.skills ?? []).filter(({ id }) => id !== skillId);
-		if (enabled !== null) skills.push({ id: skillId, enabled });
-		profile.skills = skills;
-		await writeProfiles(path, profiles);
-		return skills;
+		return this.#profileMutex(path).run(async () => {
+			const profiles = await this.#profiles(path, project);
+			const profile = activeProfile(profiles);
+			if (!profile) throw new Error('The active profile is missing');
+			const skills = (profile.skills ?? []).filter(({ id }) => id !== skillId);
+			if (enabled !== null) skills.push({ id: skillId, enabled });
+			profile.skills = skills;
+			await writeProfiles(path, profiles);
+			return skills;
+		});
 	}
 
 	async profilesFor(
@@ -440,4 +458,22 @@ function missing(error: unknown): boolean {
 		'code' in error &&
 		error.code === 'ENOENT',
 	);
+}
+
+class AsyncMutex {
+	#tail: Promise<void> = Promise.resolve();
+
+	async run<T>(fn: () => Promise<T>): Promise<T> {
+		const previous = this.#tail;
+		let release!: () => void;
+		this.#tail = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		await previous;
+		try {
+			return await fn();
+		} finally {
+			release();
+		}
+	}
 }
