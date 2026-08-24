@@ -26,8 +26,11 @@ Two small interfaces, one per side, mirror each other:
 - **Client** — `GizmoWebExtension` (`apps/app/src/lib/extensions/types.ts`):
   `id`, plus optional `dialog`/`settings`/`createView`/`hasProjectStatus`
   (workspace UI), optional `apiVersion`/`activate` (matched against a
-  server-reported descriptor to activate live operations), and optional
-  `labels`/`iconFor`/`consoleEntriesKey`/`parametersFor`/`resultFor`/
+  server-reported descriptor to activate live operations), optional
+  `inspectorTabs`/`commands`/`statusBar` (static contributions — a workspace
+  inspector tab, a global command-palette entry, and a small always-visible
+  titlebar indicator, respectively — none need per-project activation), and
+  optional `labels`/`iconFor`/`consoleEntriesKey`/`parametersFor`/`resultFor`/
   `diagnosticsComponent` (tool-result presentation).
 
 Every field is optional. An extension contributes whatever it actually has;
@@ -149,21 +152,29 @@ tools: [
 	'read',
 	'edit',
 	'write',
+	'git_status',
 	'run_script',
-	...defaultTools.map(({ name }) => name),
 	...activeDomains.tools.map(({ name }) => name),
 ],
 ```
 
 Pi's default four tools are `read`, `write`, `edit`, `bash`. Gizmo keeps the
-first three, adds `run_script`, plus the `defaultTools` every installed
-extension may contribute unconditionally (Git contributes `git_status` this
-way), and whatever narrow, purpose-built tools each active extension
-contributes (Unity's `unity_*` tools, which wrap its own RPC bridge — never
-raw shell). There is no
-general-purpose _shell_, and that is intentional: it bounds what the model
-can do to file edits, plus running one named script file, plus whatever an
-extension explicitly and narrowly exposed.
+first three, adds `run_script`, and allows whatever narrow, purpose-built
+tools each active extension contributes (Unity's `unity_*` tools, which wrap
+its own RPC bridge — never raw shell). There is no general-purpose _shell_,
+and that is intentional: it bounds what the model can do to file edits, plus
+running one named script file, plus whatever an extension explicitly and
+narrowly exposed.
+
+Note this allowlist currently names `git_status` literally rather than
+deriving it from `defaultTools` (the extension-contributed tools that are
+always registered regardless of workspace detection, built via
+`defaultExtensionTools` and added to `customTools`) — so a second extension
+adding its own `defaultTools`-contributed tool would need its name added here
+too, by hand, to actually be reachable. That's a real gap against this
+document's own "no hardcoded knowledge of any specific extension" claim, not
+a documented design choice; worth fixing in `pi-agent-service.ts` if a second
+`defaultTools` consumer shows up.
 
 This is a deliberate, load-bearing design choice, not an oversight to
 "fix" by re-adding `bash`. It should stay this way.

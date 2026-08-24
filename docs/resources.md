@@ -2,8 +2,9 @@
 
 Gizmo manages the Pi resources that shape a session: skills, `AGENTS.md`
 context files, prompt templates, and Pi extensions. These are separate from
-workspace profiles and domains ([domains.md](domains.md)) and from Unity project
-extensions ([extensions.md](extensions.md)).
+workspace profiles ([workspace-profiles.md](workspace-profiles.md)) and from
+Gizmo extensions ([extensions.md](extensions.md)) — there is no separate
+"domain" concept; see [extensions.md](extensions.md) for why.
 
 ## Model
 

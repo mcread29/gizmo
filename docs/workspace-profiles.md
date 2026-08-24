@@ -95,9 +95,19 @@ Unity-hosted project extensions such as Console.
 Detected when `package.json` declares `svelte` in dependencies or development
 dependencies. It contributes Svelte-specific working guidance and a lightweight
 changes/activity inspector. It intentionally has no custom tools yet; normal
-coding and project scripts already cover the useful baseline. Unlike Unity, it
-is built into core rather than loaded via `gizmo.extensions.json` — it has no
-external dependency to load.
+coding and project scripts already cover the useful baseline. Like Unity, it
+is loaded via `gizmo.extensions.json` (`@gizmo/svelte`) rather than
+special-cased in core.
+
+### Git, Activity, and Skill Authoring
+
+Also listed in `gizmo.extensions.json` by default (`@gizmo/git`,
+`@gizmo/activity`, `@gizmo/skill-authoring`). Git detects any workspace inside
+a repository and contributes the always-on `git_status` tool, a Changes
+inspector tab, and commit/refresh commands. Activity is a web-only extension:
+an inspector tab over the session's tool-call history, with no server-side
+behavior. Skill Authoring contributes no tools or UI — it ships skills (under
+its own `skills/`) that guide the model when authoring new skills.
 
 ### Default profile
 
