@@ -5,7 +5,7 @@ import type {
 	SessionState,
 	SessionUsage,
 	ExtensionDescriptor,
-	UnityStatus,
+	ProjectStatus,
 } from '@gizmo/protocol';
 
 export interface AgentEventState {
@@ -20,7 +20,7 @@ export interface AgentEventState {
 	sessionId?: string;
 	selectedProjectPath?: string;
 	projectExtensions: ExtensionDescriptor[];
-	projectStatus?: UnityStatus;
+	projectStatus?: ProjectStatus;
 	projectError?: string;
 }
 

@@ -8,7 +8,7 @@ import {
 	parseSessionSnapshot,
 	parseSessionTree,
 	parseUnityOpenProjectResult,
-	parseUnityStatus,
+	parseProjectStatus,
 	parseStoredProjects,
 	parseProjectDomains,
 	parseResourceCatalog,
@@ -28,7 +28,7 @@ import {
 	type Extensions,
 	type WebExtensionBundles,
 	type UnityOpenProjectResult,
-	type UnityStatus,
+	type ProjectStatus,
 	type StoredProject,
 	type ProjectDomains,
 	type ResourceCatalog,
@@ -406,24 +406,24 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseResourceCatalog(response.result);
 	}
 
-	async getProjectStatus(projectPath: string): Promise<UnityStatus> {
+	async getProjectStatus(projectPath: string): Promise<ProjectStatus> {
 		const response = await this.#request({
 			type: 'project.status',
 			projectPath,
 		});
-		return parseUnityStatus(response.result);
+		return parseProjectStatus(response.result);
 	}
 
 	async watchProjectStatus(
 		sessionId: string,
 		projectPath: string,
-	): Promise<UnityStatus> {
+	): Promise<ProjectStatus> {
 		const response = await this.#request({
 			type: 'project.watch',
 			sessionId,
 			projectPath,
 		});
-		return parseUnityStatus(response.result);
+		return parseProjectStatus(response.result);
 	}
 
 	async openProject(projectPath: string): Promise<UnityOpenProjectResult> {

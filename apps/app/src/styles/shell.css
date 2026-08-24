@@ -196,6 +196,40 @@
 	color: var(--color-text-faint);
 }
 
+[data-ui='status-bar-item'] {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 3px 8px;
+	border: none;
+	border-radius: var(--radius-full);
+	background: transparent;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	white-space: nowrap;
+	cursor: default;
+}
+
+[data-ui='status-bar-item']:not(:disabled) {
+	cursor: pointer;
+}
+
+[data-ui='status-bar-item']:not(:disabled):hover {
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+}
+
+[data-ui='status-bar-item'][data-tone='accent'] {
+	color: var(--color-accent);
+	background: var(--color-accent-soft);
+}
+
+[data-ui='status-bar-item'][data-tone='danger'] {
+	color: var(--color-danger);
+	background: var(--color-danger-soft);
+}
+
 [data-ui='panel-resize-handle'] {
 	position: absolute;
 	top: var(--titlebar-height);

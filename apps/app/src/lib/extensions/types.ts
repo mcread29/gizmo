@@ -48,6 +48,20 @@ export interface CommandContext {
 	projectPath?: string;
 }
 
+export interface StatusBarContribution {
+	id: string;
+	label: string;
+	icon?: Component;
+	tone?: 'default' | 'accent' | 'danger';
+	onClick?(): void;
+}
+
+/** What an extension needs to decide which status bar items to contribute. */
+export interface StatusBarContext {
+	store: AgentStore;
+	projectPath?: string;
+}
+
 export interface WebExtensionRuntime {
 	readonly inspectorTabs: InspectorTabContribution[];
 	dispose(): void;
@@ -110,6 +124,13 @@ export interface GizmoWebExtension {
 	 * activation required.
 	 */
 	commands?(context: CommandContext): CommandContribution[];
+
+	/**
+	 * A small always-visible indicator in the titlebar, alongside the app's
+	 * own project status. Static like `commands`/`inspectorTabs` — no
+	 * per-project activation required.
+	 */
+	statusBar?(context: StatusBarContext): StatusBarContribution[];
 
 	labels?: Record<string, string>;
 	iconFor?(name: string): string | undefined;

@@ -19,7 +19,7 @@ import type {
 	Extensions,
 	WebExtensionBundles,
 	UnityOpenProjectResult,
-	UnityStatus,
+	ProjectStatus,
 } from '@gizmo/protocol';
 
 export type AgentEventListener = (event: unknown) => void;
@@ -111,11 +111,11 @@ export interface AgentClient {
 		skillId: string,
 		enabled: boolean | null,
 	): Promise<ResourceCatalog>;
-	getProjectStatus(projectPath: string): Promise<UnityStatus>;
+	getProjectStatus(projectPath: string): Promise<ProjectStatus>;
 	watchProjectStatus(
 		sessionId: string,
 		projectPath: string,
-	): Promise<UnityStatus>;
+	): Promise<ProjectStatus>;
 	openProject(projectPath: string): Promise<UnityOpenProjectResult>;
 	listProjectExtensions(projectPath: string): Promise<Extensions>;
 	/** Standalone web-extension bundles to load at runtime, if the client supports them. */

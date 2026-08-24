@@ -21,7 +21,7 @@ import {
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
 	type WorkspaceProfiles,
-	type UnityStatus,
+	type ProjectStatus,
 	type ProviderStatus,
 } from '@gizmo/protocol';
 import { parseGitCommitResult, parseGitStatus } from '@gizmo/protocol';
@@ -61,7 +61,7 @@ interface SessionSelection {
 	thinkingLevels: string[];
 	activeDomains: string[];
 	selectedProjectPath?: string;
-	projectStatus?: UnityStatus;
+	projectStatus?: ProjectStatus;
 	usage?: SessionUsage;
 }
 
@@ -93,7 +93,7 @@ export class AgentStore {
 	sessions = $state<AgentSessionSummary[]>([]);
 	projects = $state<StoredProject[]>([]);
 	selectedProjectPath = $state<string>();
-	projectStatus = $state<UnityStatus>();
+	projectStatus = $state<ProjectStatus>();
 	projectsLoading = $state(false);
 	projectOpening = $state(false);
 	projectError = $state<string>();

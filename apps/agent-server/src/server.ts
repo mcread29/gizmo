@@ -59,6 +59,19 @@ async function close() {
 process.once('SIGINT', () => void close());
 process.once('SIGTERM', () => void close());
 
+// An unawaited rejection anywhere in a session/extension's async code would
+// otherwise crash the process by default and drop every connected client
+// with no diagnostic. Log it and close down cleanly instead of leaving the
+// server in a half-crashed state.
+process.on('uncaughtException', (error) => {
+	console.error('Uncaught exception:', error);
+	void close().finally(() => process.exit(1));
+});
+process.on('unhandledRejection', (reason) => {
+	console.error('Unhandled rejection:', reason);
+	void close().finally(() => process.exit(1));
+});
+
 function parsePort(value: string | undefined): number {
 	if (value === undefined) return 8787;
 	const port = Number(value);

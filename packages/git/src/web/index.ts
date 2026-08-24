@@ -26,6 +26,13 @@ export interface GitCommand {
 	run(): void;
 }
 
+/** Mirrors the app's `StatusBarContribution`; kept local so the package never imports the app. */
+export interface GitStatusBarItem {
+	id: string;
+	label: string;
+	tone?: 'default' | 'accent' | 'danger';
+}
+
 export interface GitCommandStore extends GitHostStore {
 	selectedProjectPath?: string;
 }
@@ -61,6 +68,19 @@ export const gizmoWebExtension = {
 				badge: context.store.gitStatus?.files.length ?? 0,
 				component: ChangesPanel as Component<any>,
 				props: {},
+			},
+		];
+	},
+	statusBar(context: { store: GitHostStore }): GitStatusBarItem[] {
+		const status = context.store.gitStatus;
+		if (!status) return [];
+		return [
+			{
+				id: 'git.branch',
+				label: status.clean
+					? status.branch
+					: `${status.branch} (${status.files.length})`,
+				tone: status.clean ? 'default' : 'accent',
 			},
 		];
 	},

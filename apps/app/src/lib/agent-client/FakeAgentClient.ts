@@ -25,6 +25,7 @@ import {
 	type WorkspaceDirectoryListing,
 	type WorkspaceProfiles,
 	type UnityStatus,
+	type ProjectStatus,
 	type ProviderStatus,
 } from '@gizmo/protocol';
 import type {
@@ -717,7 +718,7 @@ export class FakeAgentClient implements AgentClient {
 		};
 	}
 
-	async getProjectStatus(projectPath: string): Promise<UnityStatus> {
+	async getProjectStatus(projectPath: string): Promise<ProjectStatus> {
 		this.#assertProject(projectPath);
 		return fakeStatus(projectPath, this.#editorOpen);
 	}
@@ -725,7 +726,7 @@ export class FakeAgentClient implements AgentClient {
 	async watchProjectStatus(
 		sessionId: string,
 		projectPath: string,
-	): Promise<UnityStatus> {
+	): Promise<ProjectStatus> {
 		this.#getSession(sessionId);
 		this.#assertProject(projectPath);
 		this.#watchedProject = { sessionId, projectPath };

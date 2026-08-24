@@ -10,6 +10,7 @@
 	import WindowControls from './WindowControls.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
 	import type { WorkspaceView } from '../../extensions/types';
+	import { webExtensions } from '../../extensions/registry.svelte';
 
 	interface Props {
 		agent: AgentIdentity;
@@ -41,6 +42,16 @@
 	// Visible even when the conversation is scrolled away from the newest reply.
 	let activity = $derived(
 		streamingActivity(store.messages, store.sessionState),
+	);
+
+	let statusBarItems = $derived(
+		webExtensions().flatMap(
+			(definition) =>
+				definition.statusBar?.({
+					store,
+					projectPath: store.selectedProjectPath,
+				}) ?? [],
+		),
 	);
 </script>
 
@@ -89,6 +100,19 @@
 	{/if}
 	<div data-ui="titlebar-end">
 		{#if !screenOpen}
+			{#each statusBarItems as item (item.id)}
+				{@const Icon = item.icon}
+				<button
+					type="button"
+					data-ui="status-bar-item"
+					data-tone={item.tone ?? 'default'}
+					disabled={!item.onClick}
+					onclick={item.onClick}
+				>
+					{#if Icon}<Icon size={13} />{/if}
+					{item.label}
+				</button>
+			{/each}
 			<Tooltip text={layout.darkTheme ? 'Use light theme' : 'Use dark theme'}>
 				{#snippet children(props)}
 					<Button

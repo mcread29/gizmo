@@ -505,6 +505,15 @@ export const unityStatusSchema = Type.Object(
 
 export type UnityStatus = Static<typeof unityStatusSchema>;
 
+/**
+ * Generic wire shape for any extension that declares `hasProjectStatus`.
+ * Structurally identical to `UnityStatus` — Unity is simply the extension
+ * that happens to populate it today — kept as a distinct export so client
+ * code names the capability, not the extension that first implemented it.
+ */
+export const projectStatusSchema = unityStatusSchema;
+export type ProjectStatus = UnityStatus;
+
 export const extensionOperationSchema = Type.Object(
 	{
 		id: Type.String({ minLength: 1, maxLength: 128 }),
@@ -1281,6 +1290,14 @@ export function parseAgentModelCatalog(input: unknown): AgentModelCatalog {
 
 export function parseUnityStatus(input: unknown): UnityStatus {
 	if (!Value.Check(unityStatusSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+/** Generic counterpart to {@link parseUnityStatus} for the `ProjectStatus` wire shape. */
+export function parseProjectStatus(input: unknown): ProjectStatus {
+	if (!Value.Check(projectStatusSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

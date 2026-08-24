@@ -96,6 +96,17 @@ interface ActiveSession {
 	/** Held so branching moves the leaf the live session reads from. */
 	manager: SessionManager;
 	unsubscribe: () => void;
+	/** Last time this session was activated or interacted with, for idle eviction. */
+	lastActiveAt: number;
+}
+
+export interface PiAgentServiceOptions {
+	/** Soft cap on concurrently resident sessions per connection; the least-recently-used idle one is evicted to stay under it. */
+	maxActiveSessions?: number;
+	/** How long a non-streaming session may sit unused before it's evicted from memory. */
+	idleTimeoutMs?: number;
+	/** How often the idle sweep runs. */
+	sweepIntervalMs?: number;
 }
 
 type WithoutEventEnvelope<T> = T extends AgentEvent
@@ -116,17 +127,28 @@ export class PiAgentService {
 	>();
 	#eventId = 0;
 	#confirmationId = 0;
+	readonly #maxActiveSessions: number;
+	readonly #idleTimeoutMs: number;
+	readonly #sweepTimer: NodeJS.Timeout;
 
 	constructor(
 		factory: PiSessionFactory = createDefaultPiSession,
 		repository: SessionRepository = new PiSessionRepository(),
 		projects: ProjectCatalog = new ProjectCatalog(),
 		resources: ResourceCatalogService = new ResourceCatalogService(projects),
+		options: PiAgentServiceOptions = {},
 	) {
 		this.#factory = factory;
 		this.#repository = repository;
 		this.#projects = projects;
 		this.#resources = resources;
+		this.#maxActiveSessions = options.maxActiveSessions ?? 24;
+		this.#idleTimeoutMs = options.idleTimeoutMs ?? 30 * 60_000;
+		this.#sweepTimer = setInterval(
+			() => this.#evictIdle(),
+			options.sweepIntervalMs ?? 5 * 60_000,
+		);
+		this.#sweepTimer.unref?.();
 	}
 
 	async listProviders(): Promise<ProviderStatus[]> {
@@ -206,6 +228,8 @@ export class PiAgentService {
 				this.#callbacks(sessionId),
 			);
 			this.#activate(session, sessionManager, snapshot.session.title);
+		} else {
+			this.#touch(sessionId);
 		}
 		await this.#repository.setLastSession(sessionId);
 		return snapshot;
@@ -276,6 +300,7 @@ export class PiAgentService {
 		compaction?: CompactionPolicy,
 		attachments: AgentAttachment[] = [],
 	): Promise<void> {
+		await this.#ensureActive(sessionId);
 		const active = this.#active(sessionId);
 		const { session } = active;
 		if (compaction) {
@@ -293,6 +318,7 @@ export class PiAgentService {
 	}
 
 	async compact(sessionId: string, policy: CompactionPolicy): Promise<void> {
+		await this.#ensureActive(sessionId);
 		const session = this.#session(sessionId);
 		validateCompactionPolicy(policy);
 		if (session.isStreaming)
@@ -307,6 +333,7 @@ export class PiAgentService {
 		sessionId: string,
 		context: string,
 	): Promise<string> {
+		await this.#ensureActive(sessionId);
 		const session = this.#session(sessionId);
 		if (!session.generateCommitMessage) {
 			throw new Error(
@@ -326,7 +353,12 @@ export class PiAgentService {
 			this.#emit(sessionId, this.#withContextWindow(session, event)),
 		);
 		const unsubscribe = session.subscribe((event) => translator.receive(event));
-		this.#sessions.set(sessionId, { session, manager, unsubscribe });
+		this.#sessions.set(sessionId, {
+			session,
+			manager,
+			unsubscribe,
+			lastActiveAt: Date.now(),
+		});
 		this.#emit(sessionId, {
 			type: 'session.created',
 			title,
@@ -345,6 +377,10 @@ export class PiAgentService {
 				: {}),
 		});
 		this.#emit(sessionId, { type: 'session.state', state: 'idle' });
+		// Enforce the cap right away, so a burst of activations doesn't wait for
+		// the next sweep — the session just activated always sorts last, so it's
+		// never the one evicted here.
+		this.#evictIdle();
 	}
 
 	/**
@@ -395,6 +431,7 @@ export class PiAgentService {
 		text: string,
 		attachments: AgentAttachment[] = [],
 	): Promise<void> {
+		await this.#ensureActive(sessionId);
 		const active = this.#active(sessionId);
 		const prepared = await prepareAttachments(active.manager, attachments);
 		const prompt = attachmentPrompt(text, prepared.files);
@@ -419,12 +456,14 @@ export class PiAgentService {
 		await revealStoredAttachment(this.#active(sessionId).manager, attachmentId);
 	}
 
-	abort(sessionId: string): Promise<void> {
+	async abort(sessionId: string): Promise<void> {
 		this.#cancelConfirmations(sessionId);
-		return this.#session(sessionId).abort();
+		await this.#ensureActive(sessionId);
+		await this.#session(sessionId).abort();
 	}
 
 	async getModelCatalog(sessionId: string): Promise<AgentModelCatalog> {
+		await this.#ensureActive(sessionId);
 		const session = this.#session(sessionId);
 		if (!session.getModelCatalog) {
 			throw new Error('Model selection is unavailable for this session');
@@ -437,6 +476,7 @@ export class PiAgentService {
 		provider: string,
 		modelId: string,
 	): Promise<AgentModelCatalog> {
+		await this.#ensureActive(sessionId);
 		const session = this.#session(sessionId);
 		if (session.isStreaming) {
 			throw new Error('Cannot change models while the agent is responding');
@@ -452,6 +492,7 @@ export class PiAgentService {
 		sessionId: string,
 		level: string,
 	): Promise<AgentModelCatalog> {
+		await this.#ensureActive(sessionId);
 		const session = this.#session(sessionId);
 		if (session.isStreaming) {
 			throw new Error(
@@ -470,11 +511,7 @@ export class PiAgentService {
 	async deleteSession(sessionId: string): Promise<void> {
 		this.#cancelConfirmations(sessionId);
 		const active = this.#sessions.get(sessionId);
-		if (active) {
-			active.unsubscribe();
-			active.session.dispose();
-			this.#sessions.delete(sessionId);
-		}
+		if (active) this.#evict(sessionId, active);
 		await this.#repository.delete(sessionId);
 	}
 
@@ -497,6 +534,7 @@ export class PiAgentService {
 	}
 
 	dispose(): void {
+		clearInterval(this.#sweepTimer);
 		for (const { resolve } of this.#confirmations.values()) resolve(false);
 		this.#confirmations.clear();
 		for (const { session, unsubscribe } of this.#sessions.values()) {
@@ -539,6 +577,57 @@ export class PiAgentService {
 		const active = this.#sessions.get(sessionId);
 		if (!active) throw new Error(`Unknown session: ${sessionId}`);
 		return active;
+	}
+
+	/**
+	 * Cheap when the session is already resident (a Map lookup); only pays for
+	 * a full `resumeSession` reconstruction when idle eviction actually dropped
+	 * it. Lets the hot-path methods (prompt, steer, abort, ...) stay correct
+	 * after an idle eviction without paying resumeSession's snapshot read on
+	 * every call.
+	 */
+	async #ensureActive(sessionId: string): Promise<void> {
+		if (this.#sessions.has(sessionId)) {
+			this.#touch(sessionId);
+			return;
+		}
+		await this.resumeSession(sessionId);
+	}
+
+	#touch(sessionId: string): void {
+		const active = this.#sessions.get(sessionId);
+		if (active) active.lastActiveAt = Date.now();
+	}
+
+	#evict(sessionId: string, active: ActiveSession): void {
+		active.unsubscribe();
+		active.session.dispose();
+		this.#sessions.delete(sessionId);
+	}
+
+	/**
+	 * Frees sessions nobody has touched in a while, then — if still over the
+	 * cap — frees the least-recently-used ones regardless of idle time. Never
+	 * evicts a streaming session: the cap is soft, not a hard limit that could
+	 * corrupt an in-flight response.
+	 */
+	#evictIdle(now = Date.now()): void {
+		for (const [id, active] of this.#sessions) {
+			if (
+				!active.session.isStreaming &&
+				now - active.lastActiveAt > this.#idleTimeoutMs
+			) {
+				this.#evict(id, active);
+			}
+		}
+		if (this.#sessions.size <= this.#maxActiveSessions) return;
+		const candidates = [...this.#sessions.entries()]
+			.filter(([, active]) => !active.session.isStreaming)
+			.sort(([, a], [, b]) => a.lastActiveAt - b.lastActiveAt);
+		for (const [id, active] of candidates) {
+			if (this.#sessions.size <= this.#maxActiveSessions) break;
+			this.#evict(id, active);
+		}
 	}
 
 	/** Only the session knows the model, and only the model knows the limit. */

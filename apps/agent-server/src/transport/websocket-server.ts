@@ -113,11 +113,27 @@ export async function createAgentWebSocketServer(
 				isBinary ? undefined : data.toString(),
 			);
 		});
+		// A socket that errors without a listener would otherwise crash the
+		// whole process (Node throws on an unhandled EventEmitter 'error').
+		// The 'close' event still fires afterward and tears the session down.
+		socket.on('error', (error) => {
+			console.error('Agent socket error:', error);
+		});
 		socket.once('close', () => {
 			unsubscribe();
-			service.dispose();
-			projectService.dispose();
-			extensionHost.dispose();
+			// Each dispose is independent; one throwing must not skip the rest,
+			// since that would leak whichever resource came after it.
+			for (const disposeOne of [
+				() => service.dispose(),
+				() => projectService.dispose(),
+				() => extensionHost.dispose(),
+			]) {
+				try {
+					disposeOne();
+				} catch (error) {
+					console.error('Error disposing agent session resource:', error);
+				}
+			}
 			services.delete(socket);
 		});
 	});
