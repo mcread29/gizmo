@@ -2,7 +2,6 @@ import type { ExtensionDescriptor } from '@gizmo/protocol';
 import { gizmoWebExtension as activityWebExtension } from '@gizmo/activity/web';
 import { gizmoWebExtension as gitWebExtension } from '@gizmo/git/web';
 import { svelteWebExtension } from '@gizmo/svelte/web';
-import { unityWebExtension } from '@gizmo/unity/web';
 import type {
 	ExtensionContext,
 	ExtensionHostContext,
@@ -13,10 +12,12 @@ import type {
 /**
  * Extensions the app ships with. First-party ones stay here because the app
  * bundles them anyway; anything installed later arrives through
- * `registerWebExtensions` instead.
+ * `registerWebExtensions` instead. Unity is the first extension that ships
+ * only as a runtime bundle: it is listed in `gizmo.extensions.json` and
+ * arrives over `extensions.web`, so it exercises the same path any
+ * third-party extension would.
  */
 const builtin: readonly GizmoWebExtension[] = [
-	unityWebExtension,
 	svelteWebExtension,
 	gitWebExtension,
 	activityWebExtension,

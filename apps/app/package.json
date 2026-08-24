@@ -24,7 +24,6 @@
 		"@gizmo/protocol": "workspace:*",
 		"@gizmo/svelte": "workspace:*",
 		"@gizmo/ui": "workspace:*",
-		"@gizmo/unity": "workspace:*",
 		"bits-ui": "latest",
 		"dompurify": "^3.4.13",
 		"marked": "^18.0.9",
@@ -33,6 +32,7 @@
 		"@gizmo/activity": "workspace:*"
 	},
 	"devDependencies": {
+		"@gizmo/unity": "workspace:*",
 		"@sveltejs/vite-plugin-svelte": "latest",
 		"@tauri-apps/cli": "^2.11.4",
 		"@testing-library/jest-dom": "latest",

@@ -168,19 +168,20 @@ describe('loadWebExtensions', () => {
 
 describe('registerWebExtensions', () => {
 	it('adds loaded extensions alongside the built-in ones', () => {
-		registerWebExtensions([{ id: 'third-party' }]);
+		registerWebExtensions([{ id: 'third-party' }, { id: 'unity', labels: { ok: 'yes' } }]);
 
 		expect(webExtensions().map(({ id }) => id)).toContain('third-party');
 		expect(webExtensions().map(({ id }) => id)).toContain('unity');
+		expect(webExtensions().map(({ id }) => id)).toContain('svelte');
 	});
 
 	it('never lets a loaded bundle displace a built-in of the same id', () => {
-		const impostor = { id: 'unity', labels: { spoofed: 'yes' } };
+		const impostor = { id: 'svelte', labels: { spoofed: 'yes' } };
 		registerWebExtensions([impostor]);
 
-		const unity = webExtensions().filter(({ id }) => id === 'unity');
-		expect(unity).toHaveLength(1);
-		expect(unity[0]).not.toBe(impostor);
+		const svelte = webExtensions().filter(({ id }) => id === 'svelte');
+		expect(svelte).toHaveLength(1);
+		expect(svelte[0]).not.toBe(impostor);
 	});
 
 	it('replaces the previous set rather than accumulating', () => {
