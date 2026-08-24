@@ -120,21 +120,26 @@ export async function createAgentWebSocketServer(
 			console.error('Agent socket error:', error);
 		});
 		socket.once('close', () => {
-			unsubscribe();
-			// Each dispose is independent; one throwing must not skip the rest,
-			// since that would leak whichever resource came after it.
-			for (const disposeOne of [
-				() => service.dispose(),
-				() => projectService.dispose(),
-				() => extensionHost.dispose(),
-			]) {
-				try {
-					disposeOne();
-				} catch (error) {
-					console.error('Error disposing agent session resource:', error);
+			void (async () => {
+				// Give any streaming session a chance to stop cleanly before the
+				// dispose loop below tears it down mid-write.
+				await service.abortStreamingSessions();
+				unsubscribe();
+				// Each dispose is independent; one throwing must not skip the rest,
+				// since that would leak whichever resource came after it.
+				for (const disposeOne of [
+					() => service.dispose(),
+					() => projectService.dispose(),
+					() => extensionHost.dispose(),
+				]) {
+					try {
+						disposeOne();
+					} catch (error) {
+						console.error('Error disposing agent session resource:', error);
+					}
 				}
-			}
-			services.delete(socket);
+				services.delete(socket);
+			})();
 		});
 	});
 

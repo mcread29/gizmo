@@ -80,7 +80,7 @@ function fakeSession(sessionId: string): PiSessionLike & { isStreaming: boolean 
 		subscribe: () => () => {},
 		prompt: async () => {},
 		steer: async () => {},
-		abort: async () => {},
+		abort: vi.fn(async () => {}),
 		dispose: vi.fn(),
 	};
 }
@@ -170,5 +170,51 @@ describe('PiAgentService idle eviction', () => {
 
 		expect(repository.snapshotCalls).toBe(0);
 		expect(repository.openCalls).toBe(0);
+	});
+
+	describe('abortStreamingSessions', () => {
+		it('aborts only sessions that are currently streaming', async () => {
+			createService();
+			const streamingId = await service.createSession();
+			const idleId = await service.createSession();
+			sessions.get(streamingId)!.isStreaming = true;
+
+			await service.abortStreamingSessions();
+
+			expect(sessions.get(streamingId)?.abort).toHaveBeenCalledOnce();
+			expect(sessions.get(idleId)?.abort).not.toHaveBeenCalled();
+		});
+
+		it('does not block past the timeout on a hung abort', async () => {
+			createService();
+			const sessionId = await service.createSession();
+			const session = sessions.get(sessionId)!;
+			session.isStreaming = true;
+			session.abort = vi.fn(() => new Promise<void>(() => {}));
+
+			const pending = service.abortStreamingSessions();
+			vi.advanceTimersByTime(3_000);
+			await pending;
+
+			expect(session.abort).toHaveBeenCalledOnce();
+		});
+
+		it('does not let one failing abort stop another session from being aborted', async () => {
+			createService();
+			const failingId = await service.createSession();
+			const otherId = await service.createSession();
+			sessions.get(failingId)!.isStreaming = true;
+			sessions.get(failingId)!.abort = vi.fn(async () => {
+				throw new Error('boom');
+			});
+			sessions.get(otherId)!.isStreaming = true;
+			const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			await service.abortStreamingSessions();
+
+			expect(sessions.get(otherId)?.abort).toHaveBeenCalledOnce();
+			expect(errorSpy).toHaveBeenCalled();
+			errorSpy.mockRestore();
+		});
 	});
 });

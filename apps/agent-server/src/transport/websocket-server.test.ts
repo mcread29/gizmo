@@ -3,10 +3,14 @@ import WebSocket from 'ws';
 import type { PiAgentService } from '../sessions/pi-agent-service';
 import { createAgentWebSocketServer, type AgentWebSocketServer } from './websocket-server';
 
-function fakeService(dispose: () => void): PiAgentService {
+function fakeService(
+	dispose: () => void,
+	abortStreamingSessions: () => Promise<void> = async () => {},
+): PiAgentService {
 	return {
 		subscribe: () => () => {},
 		dispose,
+		abortStreamingSessions,
 	} as unknown as PiAgentService;
 }
 
@@ -56,5 +60,29 @@ describe('createAgentWebSocketServer', () => {
 			expect.any(Error),
 		);
 		errorSpy.mockRestore();
+	});
+
+	it('aborts streaming sessions before disposing them on socket close', async () => {
+		const order: string[] = [];
+		agentServer = await createAgentWebSocketServer({
+			port: 0,
+			createService: () =>
+				fakeService(
+					() => void order.push('dispose'),
+					async () => void order.push('abort'),
+				),
+		});
+
+		const { port } = agentServer.server.address() as { port: number };
+		const socket = new WebSocket(`ws://127.0.0.1:${port}/agent`);
+		await new Promise<void>((resolve, reject) => {
+			socket.once('open', () => resolve());
+			socket.once('error', reject);
+		});
+		socket.close();
+		await new Promise<void>((resolve) => socket.once('close', () => resolve()));
+		await new Promise((resolve) => setTimeout(resolve, 20));
+
+		expect(order).toEqual(['abort', 'dispose']);
 	});
 });

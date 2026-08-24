@@ -533,6 +533,34 @@ export class PiAgentService {
 		pending.resolve(accepted);
 	}
 
+	/**
+	 * Gives every streaming session a chance to stop cleanly (the same path a
+	 * user-initiated abort uses) before the connection tears sessions down —
+	 * otherwise `dispose()` cuts generation off mid-write with no chance for
+	 * Pi to finalize or persist an interrupted state. Bounded so a hung abort
+	 * can't stall shutdown.
+	 */
+	async abortStreamingSessions(): Promise<void> {
+		const timeoutMs = 3_000;
+		await Promise.all(
+			[...this.#sessions.entries()]
+				.filter(([, active]) => active.session.isStreaming)
+				.map(async ([sessionId, active]) => {
+					try {
+						await Promise.race([
+							active.session.abort(),
+							new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+						]);
+					} catch (error) {
+						console.error(
+							`Error aborting session ${sessionId} on disconnect:`,
+							error,
+						);
+					}
+				}),
+		);
+	}
+
 	dispose(): void {
 		clearInterval(this.#sweepTimer);
 		for (const { resolve } of this.#confirmations.values()) resolve(false);
