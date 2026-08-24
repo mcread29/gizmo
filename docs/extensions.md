@@ -129,7 +129,7 @@ or hash-pinning a bundle so a silently updated dependency cannot swap code
 under an id already trusted) is future work, not yet done.
 
 **CSP.** Importing a blob URL as a module requires `script-src 'self' blob:`
-in `src-tauri/tauri.conf.json`. The previous `default-src 'self'` (with no
+in `apps/app/src-tauri/tauri.conf.json`. The previous `default-src 'self'` (with no
 `script-src`) blocked it; both the block and the fix were confirmed in a real
 Chromium against the exact CSP strings. This does loosen the policy — it is
 the cost of loading third-party UI code at all, and is why bundles arrive only
@@ -140,9 +140,11 @@ Tauri uses on Windows and what WebView2 is built on), not in WebKitGTK, which
 Tauri uses on Linux.
 
 **Built-ins still win.** `registry.svelte.ts` keeps first-party extensions
-(Unity, Svelte, Git, Activity) statically imported, because the app bundles them anyway, and
-a runtime-loaded bundle claiming one of their ids is discarded rather than
-allowed to displace it. The registry is reactive, so extensions that arrive
+(Svelte, Git, Activity) statically imported, because the app bundles them
+anyway, and a runtime-loaded bundle claiming one of their ids is discarded
+rather than allowed to displace it. Unity is not in that set — it only ever
+arrives at runtime over `extensions.web`, the same path a third-party
+extension would use. The registry is reactive, so extensions that arrive
 after first render still reach the UI; startup never blocks on them.
 
 ## Tool policy: no shell, by design
