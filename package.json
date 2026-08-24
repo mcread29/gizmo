@@ -3,11 +3,12 @@
 	"private": true,
 	"packageManager": "pnpm@11.5.2",
 	"scripts": {
-		"build": "pnpm -r --if-present build",
+		"build": "pnpm extensions:build && pnpm -r --if-present build",
 		"check": "pnpm -r --if-present check",
 		"desktop:build": "pnpm --filter @gizmo/app desktop:build",
 		"desktop:dev": "pnpm --filter @gizmo/app desktop:dev",
-		"dev": "pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
+		"dev": "test -f packages/unity/dist/web.js || pnpm extensions:build && pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
+		"extensions:build": "pnpm --filter @gizmo/app extension:build ../../packages/unity",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"test": "pnpm -r --if-present test"

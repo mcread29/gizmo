@@ -10,9 +10,13 @@ hardcoded knowledge of any specific extension (Unity included).
 Unity is the largest extension today. Git, Svelte, and Activity are
 extracted the same way: standalone first-party packages (`@gizmo/unity`,
 `@gizmo/git`, `@gizmo/svelte`, `@gizmo/activity`) listed in
-`gizmo.extensions.json` like any third-party one. None of them is
-special-cased anywhere in core — each is loaded, registered, and dispatched
-through the exact same mechanism a third-party extension would use.
+`gizmo.extensions.json` like any third-party one. On the server, none of
+them is special-cased — each is loaded, registered, and dispatched through the
+exact same mechanism a third-party extension would use. On the client,
+Svelte/Git/Activity are statically bundled as builtins (the app bundles them
+anyway); Unity is the first extension that ships only as a runtime web bundle
+and arrives over `extensions.web`, exercising the same path any third-party
+web extension would.
 
 ## Contracts
 

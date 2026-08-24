@@ -88,7 +88,10 @@ threads in most-recent-first order.
 
 Detected by `ProjectSettings/`. It contributes Unity CLI/Pipeline tools, the
 Editor lifecycle prompt, Editor inspector, Play Mode compile confirmation, and
-Unity-hosted project extensions such as Console.
+Unity-hosted project extensions such as Console. Unity is the first extension
+that ships only as a runtime web bundle (not a client builtin): it is listed
+in `gizmo.extensions.json` and arrives over `extensions.web` like any
+third-party extension.
 
 ### Svelte
 
