@@ -22,13 +22,11 @@ const extensionsConfigPath =
 	process.env.GIZMO_EXTENSIONS_CONFIG ??
 	resolve(process.cwd(), 'gizmo.extensions.json');
 const piWebMode = process.env.GIZMO_PI_WEB === '1';
-const extensions = piWebMode
-	? []
-	: await loadServerExtensions(
-			existsSync(extensionsConfigPath)
-				? extensionsConfigPath
-				: resolve(repoRoot, 'gizmo.extensions.json'),
-	);
+const extensions = await loadServerExtensions(
+	existsSync(extensionsConfigPath)
+		? extensionsConfigPath
+		: resolve(repoRoot, 'gizmo.extensions.json'),
+);
 registerExtensions(extensions);
 const projectServiceFactories = extensions
 	.filter((extension) => extension.createProjectService)
