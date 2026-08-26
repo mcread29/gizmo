@@ -31,27 +31,31 @@ pnpm dev
 Open <http://localhost:5173>. The Vite development server proxies `/agent` to
 the local WebSocket server on port `8787`.
 
-For a minimal web frontend for Pi's normal coding agent, run:
+To run the full Gizmo web interface against Pi's default runtime, run:
 
 ```sh
 pnpm pi-web:dev
 ```
 
-This mode skips Gizmo extensions and project UI and gives Pi its standard
-`read`, `edit`, `write`, and `bash` tools. It is implemented as a separate
-runtime mode so the full Gizmo frontend remains available.
+Pi Web keeps Gizmo's thread, workspace, settings, Git, and extension UI. New
+threads use Pi's standard built-in tools and discover the resources configured
+under `~/.pi/agent`: packages, extensions, skills, prompt templates, context
+files, settings, models, and providers. Project-local executable resources obey
+Pi's saved project-trust decisions and `defaultProjectTrust` setting. Gizmo's
+workspace extensions remain available, but their custom system-prompt override
+is not applied in this mode.
 
 Pi conversations are stored as JSONL under `~/.gizmo/sessions`. The app
 restores the last selected session and project on reconnect. Set
 `GIZMO_DATA_DIR` to use a different application-data directory. The older
 `UNITY_AGENT_DATA_DIR` name remains supported for migration.
 
-The backend keeps Pi SDK configuration in Gizmo's application-data directory:
-`auth.json`, `settings.json`, `models.json`, and `models-store.json` live beside
-the `sessions` directory. On first use, missing config files are copied from
-`~/.pi/agent` without overwriting anything Gizmo already owns. Until Gizmo has
-its own login UI, run `pi`, use `/login`, and remove Gizmo's `auth.json` to
-import the updated credentials on the next session creation.
+In normal Gizmo mode, the backend keeps Pi SDK configuration in Gizmo's
+application-data directory: `auth.json`, `settings.json`, `models.json`, and
+`models-store.json` live beside the `sessions` directory. Missing files are
+initially copied from `~/.pi/agent` without overwriting Gizmo-owned state. Pi Web
+instead reads those runtime files directly from `~/.pi/agent`, so authentication
+and model changes made by Pi are available to new threads without a copy step.
 
 Browser WebSockets are restricted to the local Vite origin by default. Set a
 comma-separated `GIZMO_ORIGINS` value when intentionally serving the UI

@@ -170,8 +170,12 @@ named script file, plus whatever an extension explicitly and narrowly exposed.
 a second extension adding a `defaultTools`-contributed tool is reachable
 without hand-editing the allowlist.
 
-This is a deliberate, load-bearing design choice, not an oversight to
-"fix" by re-adding `bash`. It should stay this way.
+This remains the normal Gizmo policy. Pi Web mode is the explicit exception:
+it omits the allowlist and therefore follows Pi's `defaultTools` setting (or
+Pi's standard `read`, `bash`, `edit`, and `write` defaults). Pi-discovered
+extension tools are additive there, as are Gizmo extension tools for the active
+workspace. The mode is intended for users who deliberately want the same broad
+local capabilities as Pi rather than the bounded desktop harness policy.
 
 ### `run_script`: the one execution primitive
 

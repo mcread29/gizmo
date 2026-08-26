@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+	defaultPiRuntimePaths,
 	gizmoPiRuntimePaths,
 	importPiRuntimeConfig,
 	reimportPiAuth,
@@ -31,6 +32,16 @@ describe('Pi runtime configuration', () => {
 			authPath: join(dataDir, 'auth.json'),
 			modelsPath: join(dataDir, 'models.json'),
 			modelsStorePath: join(dataDir, 'models-store.json'),
+		});
+	});
+
+	it('uses Pi-owned runtime paths in default Pi mode', async () => {
+		const agentDir = await temporary('pi-agent-');
+		expect(defaultPiRuntimePaths(agentDir)).toEqual({
+			agentDir,
+			authPath: join(agentDir, 'auth.json'),
+			modelsPath: join(agentDir, 'models.json'),
+			modelsStorePath: join(agentDir, 'models-store.json'),
 		});
 	});
 

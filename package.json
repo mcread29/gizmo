@@ -8,13 +8,14 @@
 		"desktop:build": "pnpm --filter @gizmo/app desktop:build",
 		"desktop:dev": "pnpm --filter @gizmo/app desktop:dev",
 		"dev": "test -f packages/unity/dist/web.js || pnpm extensions:build && pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
-		"pi-web:dev": "GIZMO_PI_WEB=1 VITE_PI_WEB=1 pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
+		"pi-web:dev": "cross-env GIZMO_PI_WEB=1 pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
 		"extensions:build": "pnpm --filter @gizmo/app extension:build ../../packages/unity",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"test": "pnpm -r --if-present test"
 	},
 	"devDependencies": {
+		"cross-env": "^10.1.0",
 		"prettier": "latest",
 		"prettier-plugin-svelte": "latest",
 		"typescript": "^6.0.0"

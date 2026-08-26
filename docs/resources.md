@@ -73,12 +73,20 @@ global skill of the same name.
 
 ## Sessions
 
-Sessions do not let Pi discover anything. `createDefaultPiSession` asks the
-catalog for the enabled skill paths of the session's workspace and passes them
-as `additionalSkillPaths`, supplies prompt directories the same way, and injects
-`AGENTS.md` files through `agentsFilesOverride`. The catalog is the single
-source of truth for what is active, and a skill that is off cannot leak into a
-session through a Pi settings file or an ancestor directory.
+Normal Gizmo sessions do not let Pi discover anything. `createDefaultPiSession`
+asks the catalog for the enabled skill paths of the session's workspace and
+passes them as `additionalSkillPaths`, supplies prompt directories the same way,
+and injects `AGENTS.md` files through `agentsFilesOverride`. The catalog is the
+single source of truth for what is active, and a skill that is off cannot leak
+into a normal Gizmo session through a Pi settings file or ancestor directory.
+
+Pi Web mode is intentionally different. It points `DefaultResourceLoader` at
+`~/.pi/agent` with Pi discovery enabled, so Pi settings, packages, extensions,
+skills, prompts, themes, and context files load from their standard global and
+project locations. Project-local executable resources follow Pi's saved trust
+decision; when no decision exists, `defaultProjectTrust: "always"` enables them
+and `"ask"` or `"never"` leaves them disabled because the web trust prompt has
+not yet been implemented.
 
 ## Protocol
 

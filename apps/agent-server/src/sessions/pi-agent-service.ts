@@ -49,6 +49,8 @@ import {
 	type PiImage,
 } from '../attachments/attachment-storage';
 import {
+	defaultPiAgentDir,
+	defaultPiRuntimePaths,
 	gizmoPiRuntimePaths,
 	importPiRuntimeConfig,
 	reimportPiAuth,
@@ -171,7 +173,7 @@ export class PiAgentService {
 	}
 
 	async reimportPiAuth(): Promise<ProviderStatus[]> {
-		await reimportPiAuth();
+		if (process.env.GIZMO_PI_WEB !== '1') await reimportPiAuth();
 		modelRuntimePromise = undefined;
 		return this.listProviders();
 	}
@@ -691,10 +693,16 @@ const createDefaultPiSession: PiSessionFactory = async (
 	sessionManager,
 	callbacks,
 ) => {
-	const { createAgentSession, DefaultResourceLoader, SettingsManager } =
-		await import('@earendil-works/pi-coding-agent');
+	const {
+		createAgentSession,
+		DefaultResourceLoader,
+		hasTrustRequiringProjectResources,
+		ProjectTrustStore,
+		SettingsManager,
+	} = await import('@earendil-works/pi-coding-agent');
 	const cwd = options.cwd ?? process.cwd();
-	const agentDir = defaultDataDir();
+	const agentDir =
+		process.env.GIZMO_PI_WEB === '1' ? defaultPiAgentDir() : defaultDataDir();
 	const modelRuntime = await gizmoModelRuntime();
 	const settingsManager = SettingsManager.create(cwd, agentDir);
 	const confirm = (kind: string): Promise<boolean> => {
@@ -711,54 +719,78 @@ const createDefaultPiSession: PiSessionFactory = async (
 				? [{ id: options.domainId, root: '.' }]
 				: []),
 	);
-	// Every resource is supplied explicitly from Gizmo-owned folders: Pi's own
-	// discovery locations contribute nothing, so what the model sees is exactly
-	// what Gizmo's settings say it should.
-	const catalog = new ResourceCatalogService();
-	// enabledSkillPaths already covers extension-shipped skills: the catalog
-	// discovers them from each extension's package. Prompt templates are not
-	// gated by enablement, so their directories are added here directly.
-	const [skillPaths, promptPaths, agentsFiles, fromExtensions] =
-		await Promise.all([
-			catalog.enabledSkillPaths(cwd),
-			existingDirectories(resourceRoots(cwd).prompts),
-			readAgentsFiles(cwd),
-			extensionResourceRoots(registeredExtensions()),
-		]);
-	const resourceLoader = new DefaultResourceLoader({
-		cwd,
-		agentDir,
-		settingsManager,
-		noExtensions: true,
-		noSkills: true,
-		noPromptTemplates: true,
-		noContextFiles: true,
-		additionalSkillPaths: skillPaths,
-		additionalPromptTemplatePaths: [...promptPaths, ...fromExtensions.prompts],
-		agentsFilesOverride: () => ({ agentsFiles }),
-		...(process.env.GIZMO_PI_WEB !== '1' && activeDomains.systemPrompt
-			? { systemPromptOverride: () => activeDomains.systemPrompt! }
-			: {}),
-	});
-	await resourceLoader.reload();
 	const defaultTools = defaultExtensionTools(extensionContext);
 	const runScriptTool = createRunScriptTool({ workspacePath: cwd });
 	const customTools = [...activeDomains.tools, ...defaultTools, runScriptTool];
-	const { session } = await createAgentSession({
-		cwd,
-		agentDir,
-		customTools,
-		tools: [
-			'read',
-			'edit',
-			'write',
-			...customTools.map(({ name }) => name),
-		],
-		resourceLoader,
-		modelRuntime,
-		sessionManager,
-		settingsManager,
-	});
+	const { session } = await (async () => {
+		if (process.env.GIZMO_PI_WEB === '1') {
+			// Pi Web is the normal Pi runtime behind Gizmo's existing web shell.
+			// DefaultResourceLoader discovers Pi packages, extensions, skills,
+			// prompts, themes, and context from its standard global and project
+			// locations. Gizmo tools remain additive rather than replacing them.
+			const resourceLoader = new DefaultResourceLoader({
+				cwd,
+				agentDir,
+				settingsManager,
+			});
+			await resourceLoader.reload({
+				resolveProjectTrust: async () => {
+					if (!hasTrustRequiringProjectResources(cwd)) return true;
+					const saved = new ProjectTrustStore(agentDir).get(cwd);
+					if (saved !== null) return saved;
+					return settingsManager.getDefaultProjectTrust() === 'always';
+				},
+			});
+			return createAgentSession({
+				cwd,
+				agentDir,
+				customTools,
+				resourceLoader,
+				modelRuntime,
+				sessionManager,
+				settingsManager,
+			});
+		}
+
+		// The normal Gizmo runtime deliberately uses only Gizmo-managed resources.
+		const catalog = new ResourceCatalogService();
+		const [skillPaths, promptPaths, agentsFiles, fromExtensions] =
+			await Promise.all([
+				catalog.enabledSkillPaths(cwd),
+				existingDirectories(resourceRoots(cwd).prompts),
+				readAgentsFiles(cwd),
+				extensionResourceRoots(registeredExtensions()),
+			]);
+		const resourceLoader = new DefaultResourceLoader({
+			cwd,
+			agentDir,
+			settingsManager,
+			noExtensions: true,
+			noSkills: true,
+			noPromptTemplates: true,
+			noContextFiles: true,
+			additionalSkillPaths: skillPaths,
+			additionalPromptTemplatePaths: [
+				...promptPaths,
+				...fromExtensions.prompts,
+			],
+			agentsFilesOverride: () => ({ agentsFiles }),
+			...(activeDomains.systemPrompt
+				? { systemPromptOverride: () => activeDomains.systemPrompt! }
+				: {}),
+		});
+		await resourceLoader.reload();
+		return createAgentSession({
+			cwd,
+			agentDir,
+			customTools,
+			tools: ['read', 'edit', 'write', ...customTools.map(({ name }) => name)],
+			resourceLoader,
+			modelRuntime,
+			sessionManager,
+			settingsManager,
+		});
+	})();
 	return Object.assign(session, {
 		domains: activeDomains.extensions.map(({ id }) => id),
 		async generateCommitMessage(context: string): Promise<string> {
@@ -851,22 +883,25 @@ let modelRuntimePromise:
 
 function gizmoModelRuntime() {
 	if (!modelRuntimePromise) {
-		modelRuntimePromise = import('@earendil-works/pi-coding-agent').then(
-			async ({ ModelRuntime }) => {
-				const paths = gizmoPiRuntimePaths();
-				await importPiRuntimeConfig(paths.agentDir);
+		modelRuntimePromise = import('@earendil-works/pi-coding-agent')
+			.then(async ({ ModelRuntime }) => {
+				const piWebMode = process.env.GIZMO_PI_WEB === '1';
+				const paths = piWebMode
+					? defaultPiRuntimePaths()
+					: gizmoPiRuntimePaths();
+				if (!piWebMode) await importPiRuntimeConfig(paths.agentDir);
 				return ModelRuntime.create({
 					authPath: paths.authPath,
 					modelsPath: paths.modelsPath,
 					modelsStorePath: paths.modelsStorePath,
 				});
-			},
-		).catch((error: unknown) => {
-			// Do not cache the rejection: the next caller should retry creation
-			// (e.g. after auth was re-imported) rather than fail forever.
-			modelRuntimePromise = undefined;
-			throw error;
-		});
+			})
+			.catch((error: unknown) => {
+				// Do not cache the rejection: the next caller should retry creation
+				// (e.g. after auth was re-imported) rather than fail forever.
+				modelRuntimePromise = undefined;
+				throw error;
+			});
 	}
 	return modelRuntimePromise;
 }
