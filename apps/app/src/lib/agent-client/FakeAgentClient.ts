@@ -8,6 +8,7 @@ import {
 	type AgentEvent,
 	type ConversationMessage,
 	type CompactionPolicy,
+	type ComposerCommand,
 	type GitCommitResult,
 	type GitStatus,
 	type SessionCatalog,
@@ -52,6 +53,7 @@ type EmittedAgentEvent = WithoutEventEnvelope<AgentEvent>;
 export interface FakeAgentClientOptions {
 	latencyMs?: number;
 	editorOpen?: boolean;
+	commands?: ComposerCommand[];
 }
 
 export class FakeAgentClient implements AgentClient {
@@ -65,6 +67,7 @@ export class FakeAgentClient implements AgentClient {
 		return fakeProviders;
 	}
 	readonly #latencyMs: number;
+	readonly #commands: ComposerCommand[];
 	readonly #listeners = new Set<AgentEventListener>();
 	readonly #disconnectListeners = new Set<AgentDisconnectListener>();
 	readonly #sessions = new Map<string, FakeSession>();
@@ -78,6 +81,7 @@ export class FakeAgentClient implements AgentClient {
 	constructor(options: FakeAgentClientOptions = {}) {
 		this.#latencyMs = options.latencyMs ?? 90;
 		this.#editorOpen = options.editorOpen ?? true;
+		this.#commands = options.commands ?? [];
 	}
 
 	async connect(): Promise<void> {
@@ -435,6 +439,11 @@ export class FakeAgentClient implements AgentClient {
 		_compaction: CompactionPolicy,
 	): Promise<void> {
 		this.#getSession(sessionId);
+	}
+
+	async listCommands(sessionId: string): Promise<ComposerCommand[]> {
+		this.#getSession(sessionId);
+		return this.#commands.map((command) => ({ ...command }));
 	}
 
 	async reloadSession(sessionId: string): Promise<void> {

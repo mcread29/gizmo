@@ -1,5 +1,6 @@
 import {
 	parseAgentModelCatalog,
+	parseComposerCommands,
 	parseAgentResponse,
 	parseFileRevertResult,
 	parseExtensions,
@@ -20,6 +21,7 @@ import {
 	type AgentResponse,
 	type AgentModelCatalog,
 	type CompactionPolicy,
+	type ComposerCommand,
 	type FileRevertResult,
 	type SessionCatalog,
 	type SessionOptions,
@@ -169,6 +171,14 @@ export class WebSocketAgentClient implements AgentClient {
 			compaction,
 			attachments,
 		});
+	}
+
+	async listCommands(sessionId: string): Promise<ComposerCommand[]> {
+		const response = await this.#request({
+			type: 'session.commands',
+			sessionId,
+		});
+		return parseComposerCommands(response.result);
 	}
 
 	async compact(

@@ -662,6 +662,21 @@ export const providerStatusSchema = Type.Object(
 
 export type ProviderStatus = Static<typeof providerStatusSchema>;
 
+export const composerCommandSchema = Type.Object(
+	{
+		name: Type.String({ minLength: 1 }),
+		description: Type.Optional(Type.String()),
+		source: Type.Union([
+			Type.Literal('extension'),
+			Type.Literal('prompt'),
+			Type.Literal('skill'),
+		]),
+	},
+	{ additionalProperties: false },
+);
+
+export type ComposerCommand = Static<typeof composerCommandSchema>;
+
 export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{ ...envelope, type: Type.Literal('providers.list') },
@@ -731,6 +746,14 @@ export const agentRequestSchema = Type.Union([
 			attachments: Type.Optional(
 				Type.Array(agentAttachmentSchema, { maxItems: 8 }),
 			),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.commands'),
+			sessionId: Type.String({ minLength: 1 }),
 		},
 		{ additionalProperties: false },
 	),
@@ -1284,6 +1307,14 @@ export function parseSessionTree(input: unknown): SessionTree {
 
 export function parseSessionSnapshot(input: unknown): SessionSnapshot {
 	if (!Value.Check(sessionSnapshotSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseComposerCommands(input: unknown): ComposerCommand[] {
+	const schema = Type.Array(composerCommandSchema);
+	if (!Value.Check(schema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

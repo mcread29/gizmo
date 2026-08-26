@@ -14,6 +14,7 @@
 	import { toasts } from '../../toasts.svelte';
 	import { maxAttachmentCount, readAttachments } from './attachments';
 	import ComposerAttachments from './ComposerAttachments.svelte';
+	import ComposerCommandMenu from './ComposerCommandMenu.svelte';
 	import ComposerModelControls from './ComposerModelControls.svelte';
 	import UsageMeter from './UsageMeter.svelte';
 	import { autoGrow, isSendKey, resizeComposer } from './composer-actions';
@@ -31,11 +32,30 @@
 	let element = $state<HTMLTextAreaElement>();
 	let picker = $state<HTMLInputElement>();
 	let dragging = $state(false);
+	let selectedCommand = $state(0);
+	let commandMenuDismissed = $state(false);
 	let attachmentsBySession = $state<Record<string, AgentAttachment[]>>({});
 
 	let draft = $derived(drafts.get(store.sessionId));
 	let attachmentKey = $derived(store.sessionId ?? 'unassigned');
 	let attachments = $derived(attachmentsBySession[attachmentKey] ?? []);
+	let commandQuery = $derived(draft.match(/^\/([^\s]*)$/)?.[1]);
+	let matchingCommands = $derived.by(() => {
+		if (commandQuery === undefined || commandMenuDismissed) return [];
+		const query = commandQuery.toLocaleLowerCase();
+		return store.commands
+			.filter(({ name, description }) =>
+				`${name} ${description ?? ''}`.toLocaleLowerCase().includes(query),
+			)
+			.sort((left, right) => {
+				const leftStarts = left.name.toLocaleLowerCase().startsWith(query);
+				const rightStarts = right.name.toLocaleLowerCase().startsWith(query);
+				if (leftStarts !== rightStarts) return leftStarts ? -1 : 1;
+				return left.name.localeCompare(right.name);
+			})
+			.slice(0, 10);
+	});
+	let commandMenuOpen = $derived(matchingCommands.length > 0);
 
 	$effect(() => {
 		if (!store.sessionId) return;
@@ -49,6 +69,19 @@
 
 	function edit(value: string) {
 		drafts.set(store.sessionId, value);
+		selectedCommand = 0;
+		commandMenuDismissed = false;
+	}
+
+	function selectCommand(command = matchingCommands[selectedCommand]) {
+		if (!command) return;
+		drafts.set(store.sessionId, `/${command.name} `);
+		selectedCommand = 0;
+		commandMenuDismissed = true;
+		void tick().then(() => {
+			resizeComposer(element);
+			element?.focus();
+		});
 	}
 
 	focus = () => element?.focus();
@@ -133,6 +166,13 @@
 			event.currentTarget.value = '';
 		}}
 	/>
+	{#if commandMenuOpen}
+		<ComposerCommandMenu
+			commands={matchingCommands}
+			selected={selectedCommand}
+			onSelect={selectCommand}
+		/>
+	{/if}
 	<ComposerAttachments {attachments} onRemove={removeAttachment} />
 	<label for="prompt" data-ui="sr-only">Message Gizmo</label>
 	<textarea
@@ -148,6 +188,26 @@
 		}}
 		use:autoGrow
 		onkeydown={(event) => {
+			if (commandMenuOpen) {
+				if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+					event.preventDefault();
+					const direction = event.key === 'ArrowDown' ? 1 : -1;
+					selectedCommand =
+						(selectedCommand + direction + matchingCommands.length) %
+						matchingCommands.length;
+					return;
+				}
+				if (event.key === 'Tab' || event.key === 'Enter') {
+					event.preventDefault();
+					selectCommand();
+					return;
+				}
+				if (event.key === 'Escape') {
+					event.preventDefault();
+					commandMenuDismissed = true;
+					return;
+				}
+			}
 			// An empty composer recalls the last prompt, for fixing a typo in it.
 			if (event.key === 'ArrowUp' && !draft && store.lastPrompt) {
 				event.preventDefault();
@@ -158,6 +218,11 @@
 			event.preventDefault();
 			send();
 		}}
+		aria-autocomplete="list"
+		aria-controls={commandMenuOpen ? 'composer-command-menu' : undefined}
+		aria-activedescendant={commandMenuOpen
+			? `composer-command-${selectedCommand}`
+			: undefined}
 		rows="1"
 		placeholder={streaming
 			? 'Steer the response while it runs…'

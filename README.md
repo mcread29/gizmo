@@ -45,6 +45,8 @@ Pi's saved project-trust decisions and `defaultProjectTrust` setting. Gizmo's
 workspace extensions remain available, but their custom system-prompt override
 is not applied in this mode. **Reload runtime** on Settings → Agent reloads the
 selected thread's Pi extensions, skills, prompts, packages, and context files.
+Typing `/` in the composer opens the active thread's extension commands, prompt
+templates, and skills; skills are inserted using Pi's `/skill:name` syntax.
 
 Pi conversations are stored as JSONL under `~/.gizmo/sessions`. The app
 restores the last selected session and project on reconnect. Set

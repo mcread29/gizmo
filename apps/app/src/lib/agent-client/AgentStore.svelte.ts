@@ -8,6 +8,7 @@ import {
 	type AgentSessionSummary,
 	type ConversationMessage,
 	type CompactionPolicy,
+	type ComposerCommand,
 	type GitCommitResult,
 	type GitStatus,
 	type SessionSnapshot,
@@ -86,6 +87,7 @@ export class AgentStore {
 	thinkingLevels = $state<string[]>([]);
 	modelLoading = $state(false);
 	activeTools = $state<string[]>([]);
+	commands = $state.raw<ComposerCommand[]>([]);
 	activeDomains = $state<string[]>([]);
 	messages = $state<ConversationMessage[]>([]);
 	messagesLoading = $state(false);
@@ -342,6 +344,7 @@ export class AgentStore {
 		this.model = undefined;
 		this.availableModels = [];
 		this.thinkingLevels = [];
+		this.commands = [];
 		this.sessionState = 'idle';
 		this.usage = undefined;
 		try {
@@ -365,6 +368,7 @@ export class AgentStore {
 			});
 			await Promise.all([
 				this.refreshModelCatalog(),
+				this.refreshCommands(),
 				this.#watchSelectedProject(),
 			]);
 		} catch (error) {
@@ -551,6 +555,7 @@ export class AgentStore {
 			}
 			await Promise.all([
 				this.refreshModelCatalog(),
+				this.refreshCommands(),
 				this.#watchSelectedProject(),
 			]);
 		} catch (error) {
@@ -569,6 +574,17 @@ export class AgentStore {
 			if (activeSessionId && activeSessionId !== sessionId) {
 				await this.#client.resumeSession(activeSessionId);
 			}
+		}
+	}
+
+	async refreshCommands(): Promise<void> {
+		if (!this.sessionId || this.connection !== 'connected') return;
+		const sessionId = this.sessionId;
+		try {
+			const commands = await this.#client.listCommands(sessionId);
+			if (this.sessionId === sessionId) this.commands = commands;
+		} catch (error) {
+			if (this.sessionId === sessionId) this.#fail('session', error);
 		}
 	}
 
@@ -748,6 +764,7 @@ export class AgentStore {
 		this.runtimeReloading = true;
 		try {
 			await this.#client.reloadSession(this.sessionId);
+			await this.refreshCommands();
 			return true;
 		} catch (error) {
 			this.#fail('agent', error);

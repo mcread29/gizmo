@@ -149,6 +149,33 @@ describe('application shell', () => {
 		});
 	});
 
+	it('offers slash commands and skills from the active Pi runtime', async () => {
+		const { findByRole, getByRole } = render(App, {
+			client: new FakeAgentClient({
+				latencyMs: 0,
+				commands: [
+					{
+						name: 'deploy',
+						description: 'Deploy the current workspace',
+						source: 'extension',
+					},
+					{
+						name: 'skill:review',
+						description: 'Review changes before commit',
+						source: 'skill',
+					},
+				],
+			}),
+		});
+		const composer = getByRole('textbox', { name: 'Message Gizmo' });
+		await fireEvent.input(composer, { target: { value: '/skill' } });
+
+		const option = await findByRole('option', { name: /skill:review/i });
+		expect(option).toHaveTextContent('Skill');
+		await fireEvent.keyDown(composer, { key: 'Enter' });
+		expect(composer).toHaveValue('/skill:review ');
+	});
+
 	it('grows the composer before enabling its scrollbar', async () => {
 		const { getByRole } = renderApp();
 		const composer = getByRole('textbox', {
@@ -332,11 +359,16 @@ describe('application shell', () => {
 		const inDialog = within(dialog);
 		await inDialog.findByText('ThirdPersonSandbox');
 
-		await fireEvent.input(inDialog.getByPlaceholderText('Type a path, or search folders…'), {
-			target: { value: 'render' },
-		});
+		await fireEvent.input(
+			inDialog.getByPlaceholderText('Type a path, or search folders…'),
+			{
+				target: { value: 'render' },
+			},
+		);
 
-		expect(await inDialog.findByText('RenderingPlayground')).toBeInTheDocument();
+		expect(
+			await inDialog.findByText('RenderingPlayground'),
+		).toBeInTheDocument();
 		await waitFor(() =>
 			expect(inDialog.queryByText('ThirdPersonSandbox')).toBeNull(),
 		);

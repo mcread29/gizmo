@@ -9,6 +9,7 @@ import {
 	type AgentAttachment,
 	type AgentModelCatalog,
 	type CompactionPolicy,
+	type ComposerCommand,
 	type AgentEvent,
 	type SessionCatalog,
 	type SessionOptions,
@@ -68,6 +69,7 @@ export interface PiSessionLike {
 	readonly isStreaming?: boolean;
 	getActiveToolNames?(): string[];
 	getModelCatalog?(): Promise<AgentModelCatalog>;
+	getCommands?(): ComposerCommand[];
 	selectModel?(provider: string, modelId: string): Promise<void>;
 	selectThinkingLevel?(level: string): void;
 	generateCommitMessage?(context: string): Promise<string>;
@@ -474,6 +476,11 @@ export class PiAgentService {
 		await this.#session(sessionId).abort();
 	}
 
+	async getCommands(sessionId: string): Promise<ComposerCommand[]> {
+		await this.#ensureActive(sessionId);
+		return this.#session(sessionId).getCommands?.() ?? [];
+	}
+
 	async getModelCatalog(sessionId: string): Promise<AgentModelCatalog> {
 		await this.#ensureActive(sessionId);
 		const session = this.#session(sessionId);
@@ -718,6 +725,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 	const agentDir = piWebMode ? getAgentDir() : defaultDataDir();
 	const modelRuntime = piWebMode ? undefined : await gizmoModelRuntime();
 	const settingsManager = SettingsManager.create(cwd, agentDir);
+	let getSkillCommands: () => ComposerCommand[] = () => [];
 	const confirm = (kind: string): Promise<boolean> => {
 		if (kind !== 'stop_play_mode_for_compile') {
 			throw new Error(`Unsupported confirmation: ${kind}`);
@@ -753,6 +761,12 @@ const createDefaultPiSession: PiSessionFactory = async (
 					},
 				},
 			});
+			getSkillCommands = () =>
+				services.resourceLoader.getSkills().skills.map((skill) => ({
+					name: `skill:${skill.name}`,
+					description: skill.description,
+					source: 'skill',
+				}));
 			return createAgentSessionFromServices({
 				services,
 				sessionManager,
@@ -788,6 +802,12 @@ const createDefaultPiSession: PiSessionFactory = async (
 				: {}),
 		});
 		await resourceLoader.reload();
+		getSkillCommands = () =>
+			resourceLoader.getSkills().skills.map((skill) => ({
+				name: `skill:${skill.name}`,
+				description: skill.description,
+				source: 'skill',
+			}));
 		return createAgentSession({
 			cwd,
 			agentDir,
@@ -851,6 +871,21 @@ const createDefaultPiSession: PiSessionFactory = async (
 					fullTurnBoundaries: true,
 				},
 			});
+		},
+		getCommands(): ComposerCommand[] {
+			const extensionCommands = session.extensionRunner
+				.getRegisteredCommands()
+				.map((command) => ({
+					name: command.invocationName,
+					...(command.description ? { description: command.description } : {}),
+					source: 'extension' as const,
+				}));
+			const prompts = session.promptTemplates.map((prompt) => ({
+				name: prompt.name,
+				...(prompt.description ? { description: prompt.description } : {}),
+				source: 'prompt' as const,
+			}));
+			return [...extensionCommands, ...prompts, ...getSkillCommands()];
 		},
 		async getModelCatalog(): Promise<AgentModelCatalog> {
 			const models = await session.modelRuntime.getAvailable();

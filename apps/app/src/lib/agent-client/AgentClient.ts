@@ -2,6 +2,7 @@ import type {
 	AgentAttachment,
 	AgentModelCatalog,
 	CompactionPolicy,
+	ComposerCommand,
 	FileRevertResult,
 	GitCommitResult,
 	GitStatus,
@@ -46,6 +47,7 @@ export interface AgentClient {
 		compaction?: CompactionPolicy,
 		attachments?: AgentAttachment[],
 	): Promise<void>;
+	listCommands(sessionId: string): Promise<ComposerCommand[]>;
 	compact(sessionId: string, compaction: CompactionPolicy): Promise<void>;
 	reloadSession(sessionId: string): Promise<void>;
 	steer(

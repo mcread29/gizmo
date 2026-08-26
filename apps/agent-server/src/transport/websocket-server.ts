@@ -313,6 +313,8 @@ async function dispatch(
 				request.attachments,
 			);
 			return {};
+		case 'session.commands':
+			return { result: await service.getCommands(request.sessionId) };
 		case 'session.compact':
 			await service.compact(request.sessionId, request.compaction);
 			return {};
