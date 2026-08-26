@@ -1,5 +1,10 @@
 # Extensions
 
+> **Planned direction:** The current contract documented below will eventually
+> be rebuilt on Pi extensions, beginning with the generic browser UI bridge in
+> [Pi Extension UI Bridge Plan](pi-extension-ui-bridge-plan.md). Until that
+> migration is complete, this document describes the active implementation.
+
 Gizmo owns exactly one integration contract: the extension. There is no
 separate "domain" concept — workspace detection, tools, system prompt, a live
 project process, and UI (dialogs, panels, tool-result rendering) are all just
