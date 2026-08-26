@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 18 as const;
+export const protocolVersion = 19 as const;
 
 const sessionTitleLimit = 48;
 
