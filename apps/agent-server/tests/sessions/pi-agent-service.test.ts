@@ -112,6 +112,46 @@ describe('PiAgentService', () => {
 		await expect(decision).resolves.toBe(true);
 	});
 
+	it('accepts a browser UI response while a session is still starting', async () => {
+		const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-extension-ui-test-'));
+		temporaryDirectories.push(dataDir);
+		const pi = new FakePiSession();
+		let decision: boolean | undefined;
+		const service = new PiAgentService(async (_options, manager, callbacks) => {
+			pi.sessionId = manager.getSessionId();
+			decision = await callbacks.extensionUi.context.confirm(
+				'Trust helper?',
+				'Allow this extension to continue?',
+			);
+			return pi;
+		}, new PiSessionRepository(dataDir));
+		const events: AgentEvent[] = [];
+		service.subscribe((agentEvent) => events.push(agentEvent));
+
+		const creation = service.createSession({ cwd: '/projects/game' });
+		await vi.waitFor(() =>
+			expect(
+				events.some(
+					(agentEvent) => agentEvent.type === 'extension.ui.requested',
+				),
+			).toBe(true),
+		);
+		const request = events.find(
+			(agentEvent) => agentEvent.type === 'extension.ui.requested',
+		);
+		if (request?.type !== 'extension.ui.requested')
+			throw new Error('missing UI');
+		await service.resolveExtensionUi(
+			request.sessionId,
+			request.runtimeId,
+			request.uiRequestId,
+			{ kind: 'confirmed', confirmed: true },
+		);
+
+		await creation;
+		expect(decision).toBe(true);
+	});
+
 	it('routes commands into the Pi session', async () => {
 		const pi = new FakePiSession();
 		const service = await createTestService(pi);

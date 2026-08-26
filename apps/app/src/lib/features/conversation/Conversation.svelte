@@ -11,12 +11,15 @@
 	import ConversationError from './ConversationError.svelte';
 	import MessageList from './MessageList.svelte';
 	import TranscriptSearch from './TranscriptSearch.svelte';
+	import PiExtensionWidgets from '../extension-ui/PiExtensionWidgets.svelte';
+	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 	import { findMatches, stepIndex } from './transcript-search';
 
 	interface Props {
 		store: AgentStore;
 		layout: WorkspaceLayout;
 		drafts: DraftStore;
+		extensionUi: PiExtensionUiStore;
 		agentName: string;
 		currentSession?: AgentSessionSummary;
 		focusComposer?: () => void;
@@ -32,6 +35,7 @@
 		store,
 		layout,
 		drafts,
+		extensionUi,
 		agentName,
 		currentSession,
 		focusComposer = $bindable(),
@@ -53,10 +57,18 @@
 	let matches = $derived(findMatches(store.messages, query));
 	// The workspace overview is its own screen now; an empty thread is a thread.
 	let empty = $derived(!store.messagesLoading && store.messages.length === 0);
+	let editorCommand = $derived(extensionUi.editorCommandFor(store.sessionId));
 
 	// A shrinking result set must not leave the cursor past the end.
 	$effect(() => {
 		if (matchIndex >= matches.ids.length) matchIndex = 0;
+	});
+
+	$effect(() => {
+		if (!editorCommand) return;
+		drafts.set(store.sessionId, editorCommand.request.text);
+		extensionUi.consumeEditorCommand(editorCommand);
+		void tick().then(() => focusComposer?.());
 	});
 
 	findInThread = () => {
@@ -164,6 +176,7 @@
 	{:else}
 		<MessageList
 			{store}
+			{extensionUi}
 			{agentName}
 			{currentSession}
 			{collapseToken}
@@ -175,11 +188,21 @@
 	{/if}
 
 	<div data-ui="composer-wrap">
+		<PiExtensionWidgets
+			ui={extensionUi}
+			sessionId={store.sessionId}
+			placement="aboveEditor"
+		/>
 		<Composer
 			{store}
 			{drafts}
 			sendOnEnter={layout.sendOnEnter}
 			bind:focus={focusComposer}
+		/>
+		<PiExtensionWidgets
+			ui={extensionUi}
+			sessionId={store.sessionId}
+			placement="belowEditor"
 		/>
 		<p data-ui="disclaimer">
 			Gizmo can modify your project. Review changes before committing.

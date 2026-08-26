@@ -10,6 +10,7 @@ import {
 	type AgentModelCatalog,
 	type CompactionPolicy,
 	type ComposerCommand,
+	type ExtensionUiResponse,
 	type AgentEvent,
 	type SessionCatalog,
 	type SessionOptions,
@@ -49,6 +50,7 @@ import {
 	revealStoredAttachment,
 	type PiImage,
 } from '../attachments/attachment-storage';
+import { PiExtensionUiRuntime } from './pi-extension-ui-runtime';
 import {
 	defaultPiRuntimePaths,
 	gizmoPiRuntimePaths,
@@ -75,7 +77,9 @@ export interface PiSessionLike {
 	generateCommitMessage?(context: string): Promise<string>;
 	configureCompaction?(policy: CompactionPolicy): void;
 	compact?(): Promise<unknown>;
-	reload?(): Promise<void>;
+	reload?(options?: {
+		beforeSessionStart?: () => void | Promise<void>;
+	}): Promise<void>;
 	subscribe(listener: (event: AgentSessionEvent) => void): () => void;
 	prompt(text: string, options?: { images?: PiImage[] }): Promise<void>;
 	steer(text: string, images?: PiImage[]): Promise<void>;
@@ -92,6 +96,7 @@ export type PiSessionFactory = (
 
 export interface PiSessionCallbacks {
 	confirmStopPlayMode(projectPath: string): Promise<boolean>;
+	extensionUi: PiExtensionUiRuntime;
 }
 export type AgentEventListener = (event: AgentEvent) => void;
 
@@ -102,6 +107,7 @@ interface ActiveSession {
 	unsubscribe: () => void;
 	/** Last time this session was activated or interacted with, for idle eviction. */
 	lastActiveAt: number;
+	extensionUi: PiExtensionUiRuntime;
 }
 
 export interface PiAgentServiceOptions {
@@ -125,6 +131,7 @@ export class PiAgentService {
 	readonly #resources: ResourceCatalogService;
 	readonly #listeners = new Set<AgentEventListener>();
 	readonly #sessions = new Map<string, ActiveSession>();
+	readonly #extensionUiRuntimes = new Map<string, PiExtensionUiRuntime>();
 	readonly #confirmations = new Map<
 		string,
 		{ sessionId: string; resolve: (accepted: boolean) => void }
@@ -189,15 +196,23 @@ export class PiAgentService {
 				: await this.#projects.integrationsFor(cwd));
 		const sessionManager = await this.#repository.create(cwd);
 		try {
+			const callbacks = this.#callbacks(sessionManager.getSessionId());
 			const session = await this.#factory(
 				{ cwd, integrations },
 				sessionManager,
-				this.#callbacks(sessionManager.getSessionId()),
+				callbacks,
 			);
-			this.#activate(session, sessionManager, 'New session');
+			this.#activate(
+				session,
+				sessionManager,
+				'New session',
+				callbacks.extensionUi,
+			);
 			await this.#repository.setLastSession(session.sessionId);
 			return session.sessionId;
 		} catch (error) {
+			this.#extensionUiRuntimes.get(sessionManager.getSessionId())?.clear();
+			this.#extensionUiRuntimes.delete(sessionManager.getSessionId());
 			await this.#repository.delete(sessionManager.getSessionId());
 			throw error;
 		}
@@ -226,12 +241,18 @@ export class PiAgentService {
 		snapshot.session.integrations = integrations;
 		if (!this.#sessions.has(sessionId)) {
 			const sessionManager = await this.#repository.open(sessionId);
+			const callbacks = this.#callbacks(sessionId);
 			const session = await this.#factory(
 				{ cwd: workspacePath, integrations },
 				sessionManager,
-				this.#callbacks(sessionId),
+				callbacks,
 			);
-			this.#activate(session, sessionManager, snapshot.session.title);
+			this.#activate(
+				session,
+				sessionManager,
+				snapshot.session.title,
+				callbacks.extensionUi,
+			);
 		} else {
 			this.#touch(sessionId);
 		}
@@ -340,7 +361,25 @@ export class PiAgentService {
 			throw new Error('Cannot reload while the agent is responding');
 		if (!session.reload)
 			throw new Error('Runtime reload is unavailable for this session');
-		await session.reload();
+		const extensionUi = this.#active(sessionId).extensionUi;
+		extensionUi.clear();
+		await session.reload({
+			beforeSessionStart: () => {
+				extensionUi.clear();
+				extensionUi.startNewRuntime();
+			},
+		});
+	}
+
+	async resolveExtensionUi(
+		sessionId: string,
+		runtimeId: string,
+		uiRequestId: string,
+		response: ExtensionUiResponse,
+	): Promise<void> {
+		const extensionUi = this.#extensionUiRuntimes.get(sessionId);
+		if (!extensionUi) throw new Error(`Unknown session: ${sessionId}`);
+		extensionUi.resolve(runtimeId, uiRequestId, response);
 	}
 
 	async generateCommitMessage(
@@ -361,6 +400,7 @@ export class PiAgentService {
 		session: PiSessionLike,
 		manager: SessionManager,
 		title: string,
+		extensionUi: PiExtensionUiRuntime,
 	): void {
 		const sessionId = session.sessionId;
 		const translator = new PiEventTranslator((event) =>
@@ -372,6 +412,7 @@ export class PiAgentService {
 			manager,
 			unsubscribe,
 			lastActiveAt: Date.now(),
+			extensionUi,
 		});
 		this.#emit(sessionId, {
 			type: 'session.created',
@@ -473,6 +514,7 @@ export class PiAgentService {
 	async abort(sessionId: string): Promise<void> {
 		this.#cancelConfirmations(sessionId);
 		await this.#ensureActive(sessionId);
+		this.#active(sessionId).extensionUi.cancelDialogs('abort');
 		await this.#session(sessionId).abort();
 	}
 
@@ -584,16 +626,27 @@ export class PiAgentService {
 		clearInterval(this.#sweepTimer);
 		for (const { resolve } of this.#confirmations.values()) resolve(false);
 		this.#confirmations.clear();
-		for (const { session, unsubscribe } of this.#sessions.values()) {
+		for (const {
+			session,
+			unsubscribe,
+			extensionUi,
+		} of this.#sessions.values()) {
+			extensionUi.clear();
 			unsubscribe();
 			session.dispose();
 		}
 		this.#sessions.clear();
+		this.#extensionUiRuntimes.clear();
 		this.#listeners.clear();
 	}
 
 	#callbacks(sessionId: string): PiSessionCallbacks {
+		const extensionUi = new PiExtensionUiRuntime((event) =>
+			this.#emit(sessionId, event),
+		);
+		this.#extensionUiRuntimes.set(sessionId, extensionUi);
 		return {
+			extensionUi,
 			confirmStopPlayMode: (projectPath) =>
 				new Promise<boolean>((resolve) => {
 					const confirmationId = `confirmation-${++this.#confirmationId}`;
@@ -647,6 +700,8 @@ export class PiAgentService {
 	}
 
 	#evict(sessionId: string, active: ActiveSession): void {
+		active.extensionUi.clear();
+		this.#extensionUiRuntimes.delete(sessionId);
 		active.unsubscribe();
 		active.session.dispose();
 		this.#sessions.delete(sessionId);
@@ -821,7 +876,8 @@ const createDefaultPiSession: PiSessionFactory = async (
 	})();
 	if (process.env.GIZMO_PI_WEB === '1') {
 		await session.bindExtensions({
-			mode: 'json',
+			mode: 'rpc',
+			uiContext: callbacks.extensionUi.context,
 			onError: (error) =>
 				console.error(
 					`Pi extension error (${error.extensionPath}):`,

@@ -257,6 +257,13 @@
 	font-variant-numeric: tabular-nums;
 }
 
+[data-ui='streaming-custom-indicator'] {
+	min-width: 7px;
+	color: var(--color-accent);
+	font-family: var(--font-mono);
+	text-align: center;
+}
+
 [data-ui='streaming-cursor'] {
 	display: inline-block;
 	width: 7px;

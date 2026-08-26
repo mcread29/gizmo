@@ -11,12 +11,14 @@
 	import type { WorkspaceLayout } from './workspace.svelte';
 	import type { WorkspaceView } from '../../extensions/types';
 	import { webExtensions } from '../../extensions/registry.svelte';
+	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 
 	interface Props {
 		agent: AgentIdentity;
 		layout: WorkspaceLayout;
 		view: WorkspaceView;
 		store: AgentStore;
+		extensionUi?: PiExtensionUiStore;
 		/**
 		 * A full screen such as Settings covers the workspace. The bar then keeps
 		 * only what still does something: identity, the theme toggle, and the
@@ -33,6 +35,7 @@
 		layout,
 		view,
 		store,
+		extensionUi,
 		screenOpen = false,
 		settingsOpen = false,
 		onOpenSettings,
@@ -41,8 +44,14 @@
 
 	// Visible even when the conversation is scrolled away from the newest reply.
 	let activity = $derived(
-		streamingActivity(store.messages, store.sessionState),
+		streamingActivity(
+			store.messages,
+			store.sessionState,
+			extensionUi?.workingFor(store.sessionId),
+		),
 	);
+
+	let piStatuses = $derived(extensionUi?.statusesFor(store.sessionId) ?? []);
 
 	let statusBarItems = $derived(
 		webExtensions().flatMap(
@@ -100,6 +109,14 @@
 	{/if}
 	<div data-ui="titlebar-end">
 		{#if !screenOpen}
+			{#each piStatuses as status (`${status.runtimeId}:${status.request.key}`)}
+				<span
+					data-ui="status-bar-item"
+					title={status.request.text ?? undefined}
+				>
+					{status.request.text}
+				</span>
+			{/each}
 			{#each statusBarItems as item (item.id)}
 				{@const Icon = item.icon}
 				<button

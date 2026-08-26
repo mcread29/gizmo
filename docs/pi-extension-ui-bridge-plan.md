@@ -2,7 +2,15 @@
 
 ## Status
 
-Planned.
+In progress. The first functional bridge milestone is implemented:
+
+- Pi extensions run with a browser-backed, UI-capable context in Pi Web mode.
+- Select, confirm, input, and multi-line editor requests round-trip through Gizmo.
+- Notifications, status entries, text widgets, document titles, composer text, and working-state overrides render in the existing shell.
+- Requests are session- and runtime-scoped, with timeout, abort, reload, eviction, deletion, and disconnect cleanup.
+- Protocol, server runtime, frontend state, component, and end-to-end tests cover the bridge.
+
+Remaining phases include extension attribution in Pi, complete theme and synchronous editor/tool-state mapping, richer compatibility rendering, the public browser component SDK, custom frontend pairing, and migration of existing Gizmo extensions.
 
 This document is the stable implementation plan for bringing Pi extension UI into Gizmo. It describes the intended product and architecture without prescribing low-level implementation details.
 

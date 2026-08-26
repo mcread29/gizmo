@@ -15,9 +15,11 @@
 	import { toasts } from './lib/toasts.svelte';
 	import Conversation from './lib/features/conversation/Conversation.svelte';
 	import { DraftStore } from './lib/features/conversation/drafts.svelte';
+	import { PiExtensionUiStore } from './lib/features/extension-ui/PiExtensionUiStore.svelte';
 	import { formatToolResult } from '@gizmo/design/format';
 	import SessionSidebar from './lib/features/sessions/SessionSidebar.svelte';
 	import { SessionActions } from './lib/features/sessions/session-actions.svelte';
+	import { threadTitle } from './lib/features/sessions/session-groups';
 	import AppDialogs from './lib/features/shell/AppDialogs.svelte';
 	import AppContextMenu from './lib/features/shell/AppContextMenu.svelte';
 	import SettingsScreen from './lib/features/settings/SettingsScreen.svelte';
@@ -55,6 +57,7 @@
 		for (const diagnostic of diagnostics) console.warn(diagnostic);
 	});
 	const drafts = new DraftStore();
+	const extensionUi = new PiExtensionUiStore(agentClient, toasts);
 
 	const router = new AppRouter();
 	let focusComposer = $state<() => void>();
@@ -67,6 +70,12 @@
 		store.sessions.find((session) => session.id === store.sessionId),
 	);
 	let workspaceView = $derived(createWorkspaceView(store));
+	let documentTitle = $derived(
+		extensionUi.titleFor(store.sessionId) ??
+			(currentSession
+				? `${threadTitle(currentSession.title)} — Gizmo`
+				: 'Gizmo'),
+	);
 	/** Settings and the tree cover the workspace; the workspace screen is in it. */
 	let overlayOpen = $derived(
 		router.current === 'settings' || router.current === 'tree',
@@ -90,10 +99,12 @@
 		measure();
 		window.addEventListener('resize', measure);
 		const stopRouting = router.start();
+		extensionUi.start();
 		void store.connect();
 		return () => {
 			window.removeEventListener('resize', measure);
 			stopRouting();
+			extensionUi.dispose();
 			void store.disconnect();
 		};
 	});
@@ -125,6 +136,7 @@
 	onDestroy(flushSettings);
 
 	function onKeydown(event: KeyboardEvent) {
+		if (extensionUi.dialogFor(store.sessionId)) return;
 		handleShortcut(event, {
 			newThread: () => void startThread(),
 			openSettings: () => router.go('settings'),
@@ -183,7 +195,7 @@
 </script>
 
 <svelte:head
-	><meta
+	><title>{documentTitle}</title><meta
 		name="description"
 		content="An extensible agent workspace for software projects"
 	/></svelte:head
@@ -222,6 +234,7 @@
 				{agent}
 				{layout}
 				{store}
+				{extensionUi}
 				view={workspaceView}
 				screenOpen={overlayOpen}
 				settingsOpen={router.current === 'settings'}
@@ -275,6 +288,7 @@
 					{store}
 					{layout}
 					{drafts}
+					{extensionUi}
 					agentName={agent.name}
 					{currentSession}
 					bind:focusComposer
@@ -306,6 +320,7 @@
 				{store}
 				{sessions}
 				{layout}
+				{extensionUi}
 				onOpenWorkspace={(projectPath) => showWorkspace(projectPath)}
 				onNewThread={() => void startThread()}
 				onOpenSettings={() => router.go('settings')}

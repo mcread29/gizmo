@@ -327,6 +327,14 @@ async function dispatch(
 		case 'session.abort':
 			await service.abort(request.sessionId);
 			return {};
+		case 'extension.ui.respond':
+			await service.resolveExtensionUi(
+				request.sessionId,
+				request.runtimeId,
+				request.uiRequestId,
+				request.response,
+			);
+			return {};
 		case 'confirmation.resolve':
 			service.resolveConfirmation(
 				request.sessionId,

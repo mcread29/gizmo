@@ -18,6 +18,7 @@ import type {
 	WorkspaceProfiles,
 	ProviderStatus,
 	Extensions,
+	ExtensionUiResponse,
 	WebExtensionBundles,
 	UnityOpenProjectResult,
 	ProjectStatus,
@@ -56,6 +57,12 @@ export interface AgentClient {
 		attachments?: AgentAttachment[],
 	): Promise<void>;
 	abort(sessionId: string): Promise<void>;
+	resolveExtensionUi(
+		sessionId: string,
+		runtimeId: string,
+		uiRequestId: string,
+		response: ExtensionUiResponse,
+	): Promise<void>;
 	resolveConfirmation(
 		sessionId: string,
 		confirmationId: string,

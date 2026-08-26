@@ -28,6 +28,7 @@ import {
 	type SessionSnapshot,
 	type SessionTree,
 	type Extensions,
+	type ExtensionUiResponse,
 	type WebExtensionBundles,
 	type UnityOpenProjectResult,
 	type ProjectStatus,
@@ -207,6 +208,21 @@ export class WebSocketAgentClient implements AgentClient {
 
 	async abort(sessionId: string): Promise<void> {
 		await this.#request({ type: 'session.abort', sessionId });
+	}
+
+	async resolveExtensionUi(
+		sessionId: string,
+		runtimeId: string,
+		uiRequestId: string,
+		response: ExtensionUiResponse,
+	): Promise<void> {
+		await this.#request({
+			type: 'extension.ui.respond',
+			sessionId,
+			runtimeId,
+			uiRequestId,
+			response,
+		});
 	}
 
 	async resolveConfirmation(

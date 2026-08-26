@@ -978,6 +978,8 @@ export class AgentStore {
 		} else if (event.type === 'confirmation.requested') {
 			this.pendingConfirmations.push(event);
 			return;
+		} else if (event.type.startsWith('extension.ui.')) {
+			return;
 		}
 		if (this.sessionId && event.sessionId !== this.sessionId) return;
 

@@ -5,11 +5,14 @@
 	import type { SessionActions } from '../sessions/session-actions.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
 	import ExtensionDialogs from '../../extensions/ExtensionDialogs.svelte';
+	import PiExtensionDialogs from '../extension-ui/PiExtensionDialogs.svelte';
+	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 
 	interface Props {
 		store: AgentStore;
 		sessions: SessionActions;
 		layout: WorkspaceLayout;
+		extensionUi: PiExtensionUiStore;
 		/** A workspace added from the picker is shown, not opened in a thread. */
 		onOpenWorkspace: (projectPath: string) => void;
 		onNewThread: () => void;
@@ -21,6 +24,7 @@
 		store,
 		sessions,
 		layout,
+		extensionUi,
 		onOpenWorkspace,
 		onNewThread,
 		onOpenSettings,
@@ -42,3 +46,4 @@
 />
 <ThreadDialogs {sessions} />
 <ExtensionDialogs {store} {layout} />
+<PiExtensionDialogs ui={extensionUi} sessionId={store.sessionId} />

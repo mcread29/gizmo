@@ -1,0 +1,93 @@
+[data-ui='extension-dialog-timeout'] {
+	margin: 0 0 var(--space-3);
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
+}
+
+[data-ui='extension-select-list'] {
+	display: grid;
+	max-height: min(360px, 50vh);
+	gap: 2px;
+	overflow-y: auto;
+}
+
+[data-ui='extension-select-list'] > button {
+	width: 100%;
+	padding: 10px var(--space-3);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--color-text);
+	font-size: var(--text-sm);
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='extension-select-list'] > button:hover {
+	background: var(--color-surface-soft);
+}
+
+[data-ui='extension-select-list'] > button:focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+}
+
+[data-ui='extension-text-dialog'] {
+	display: grid;
+	gap: var(--space-3);
+}
+
+[data-ui='extension-text-dialog'] > label {
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	font-weight: 600;
+}
+
+[data-ui='extension-text-dialog'] > input,
+[data-ui='extension-text-dialog'] > textarea {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	outline: none;
+	background: var(--color-surface-raised);
+	color: var(--color-text);
+	font-size: var(--text-sm);
+}
+
+[data-ui='extension-text-dialog'] > textarea {
+	min-height: 180px;
+	resize: vertical;
+	font-family: var(--font-mono);
+	line-height: 1.5;
+}
+
+[data-ui='extension-text-dialog'] > input:focus,
+[data-ui='extension-text-dialog'] > textarea:focus {
+	border-color: var(--color-accent);
+	box-shadow: var(--focus-ring);
+}
+
+[data-ui='extension-widgets'] {
+	display: grid;
+	gap: var(--space-2);
+}
+
+[data-ui='extension-widget'] {
+	padding: 9px 11px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text-muted);
+	font: var(--text-xs) / 1.45 var(--font-mono);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+[data-ui='status-bar-item']:is(span) {
+	max-width: 220px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

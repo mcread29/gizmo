@@ -21,7 +21,15 @@
 </script>
 
 <p data-ui="streaming-indicator" data-compact={compact} role="status">
-	{#if !compact}<span data-ui="streaming-cursor" aria-hidden="true"></span>{/if}
+	{#if !compact}
+		{#if activity.indicator}
+			<span data-ui="streaming-custom-indicator" aria-hidden="true"
+				>{activity.indicator}</span
+			>
+		{:else}
+			<span data-ui="streaming-cursor" aria-hidden="true"></span>
+		{/if}
+	{/if}
 	<span>{activity.label}…</span>
 	{#if elapsed}<span data-ui="streaming-elapsed">{elapsed}</span>{/if}
 </p>

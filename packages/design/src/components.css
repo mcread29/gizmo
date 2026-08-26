@@ -368,6 +368,14 @@ summary:focus-visible,
 	color: var(--color-success);
 }
 
+[data-ui='toast'][data-tone='info'] [data-ui='toast-icon'] {
+	color: var(--color-accent);
+}
+
+[data-ui='toast'][data-tone='warning'] [data-ui='toast-icon'] {
+	color: var(--color-warning);
+}
+
 [data-ui='toast'][data-tone='danger'] [data-ui='toast-icon'] {
 	color: var(--color-danger);
 }

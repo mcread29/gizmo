@@ -16,6 +16,8 @@ import {
 	type SessionSnapshot,
 	type SessionTree,
 	type ExtensionDescriptor,
+	type ExtensionUiRequest,
+	type ExtensionUiResponse,
 	type UnityOpenProjectResult,
 	type AgentResource,
 	type ResourceCatalog,
@@ -68,6 +70,12 @@ export class FakeAgentClient implements AgentClient {
 	}
 	readonly #latencyMs: number;
 	readonly #commands: ComposerCommand[];
+	readonly extensionUiResponses: Array<{
+		sessionId: string;
+		runtimeId: string;
+		uiRequestId: string;
+		response: ExtensionUiResponse;
+	}> = [];
 	readonly #listeners = new Set<AgentEventListener>();
 	readonly #disconnectListeners = new Set<AgentDisconnectListener>();
 	readonly #sessions = new Map<string, FakeSession>();
@@ -518,6 +526,33 @@ export class FakeAgentClient implements AgentClient {
 		this.#getSession(sessionId).abortController?.abort();
 	}
 
+	emitExtensionUi(
+		sessionId: string,
+		request: ExtensionUiRequest,
+		options: { runtimeId?: string; uiRequestId?: string } = {},
+	) {
+		this.#emit({
+			type: 'extension.ui.requested',
+			sessionId,
+			runtimeId: options.runtimeId ?? 'fake-runtime',
+			uiRequestId: options.uiRequestId ?? `fake-ui-${++this.#id}`,
+			request,
+		});
+	}
+
+	async resolveExtensionUi(
+		sessionId: string,
+		runtimeId: string,
+		uiRequestId: string,
+		response: ExtensionUiResponse,
+	): Promise<void> {
+		this.extensionUiResponses.push({
+			sessionId,
+			runtimeId,
+			uiRequestId,
+			response,
+		});
+	}
 	async resolveConfirmation(): Promise<void> {}
 
 	async deleteSession(sessionId: string): Promise<void> {

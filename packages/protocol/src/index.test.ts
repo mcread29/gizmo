@@ -44,6 +44,36 @@ describe('agent protocol validation', () => {
 		expect(request.type).toBe('session.prompt');
 	});
 
+	it('validates Pi extension UI requests and responses', () => {
+		expect(
+			parseAgentEvent({
+				protocolVersion,
+				eventId: 1,
+				sessionId: 'session-1',
+				type: 'extension.ui.requested',
+				runtimeId: 'runtime-1',
+				uiRequestId: 'ui-1',
+				request: {
+					method: 'select',
+					title: 'Environment',
+					options: ['dev', 'prod'],
+				},
+			}),
+		).toMatchObject({ type: 'extension.ui.requested' });
+
+		expect(
+			parseAgentRequest({
+				protocolVersion,
+				requestId: 'respond-1',
+				type: 'extension.ui.respond',
+				sessionId: 'session-1',
+				runtimeId: 'runtime-1',
+				uiRequestId: 'ui-1',
+				response: { kind: 'value', value: 'prod' },
+			}),
+		).toMatchObject({ type: 'extension.ui.respond' });
+	});
+
 	it('accepts opaque extension operations through the generic project boundary', () => {
 		const request = parseAgentRequest({
 			protocolVersion,

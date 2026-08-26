@@ -149,6 +149,39 @@ describe('application shell', () => {
 		});
 	});
 
+	it('renders and resolves semantic UI requested by a Pi extension', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const { findByRole, findByText, getByRole } = render(App, { client });
+		await findByRole('textbox', { name: 'Message Gizmo' });
+		await waitFor(async () =>
+			expect((await client.listSessions()).sessions).toHaveLength(1),
+		);
+		const sessionId = (await client.listSessions()).sessions[0]!.id;
+
+		client.emitExtensionUi(sessionId, {
+			method: 'confirm',
+			title: 'Publish changes?',
+			message: 'The extension is ready to publish this workspace.',
+		});
+		expect(
+			await findByText('The extension is ready to publish this workspace.'),
+		).toBeInTheDocument();
+		await fireEvent.click(getByRole('button', { name: 'Yes' }));
+		await waitFor(() =>
+			expect(client.extensionUiResponses[0]?.response).toEqual({
+				kind: 'confirmed',
+				confirmed: true,
+			}),
+		);
+
+		client.emitExtensionUi(sessionId, {
+			method: 'notify',
+			message: 'Extension connected',
+			notificationType: 'info',
+		});
+		expect(await findByText('Extension connected')).toBeInTheDocument();
+	});
+
 	it('offers slash commands and skills from the active Pi runtime', async () => {
 		const { findByRole, getByRole } = render(App, {
 			client: new FakeAgentClient({

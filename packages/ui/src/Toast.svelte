@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { CheckCircle2, CircleAlert, X } from '@lucide/svelte';
+	import {
+		CheckCircle2,
+		CircleAlert,
+		Info,
+		TriangleAlert,
+		X,
+	} from '@lucide/svelte';
 	import type { ToastQueue } from './toasts.svelte';
 	import Button from './Button.svelte';
 
@@ -19,9 +25,15 @@
 			role={toast.tone === 'danger' ? 'alert' : 'status'}
 		>
 			<span data-ui="toast-icon">
-				{#if toast.tone === 'success'}<CheckCircle2
-						size={18}
-					/>{:else}<CircleAlert size={18} />{/if}
+				{#if toast.tone === 'success'}
+					<CheckCircle2 size={18} />
+				{:else if toast.tone === 'info'}
+					<Info size={18} />
+				{:else if toast.tone === 'warning'}
+					<TriangleAlert size={18} />
+				{:else}
+					<CircleAlert size={18} />
+				{/if}
 			</span>
 			<span>{toast.message}</span>
 			<Button

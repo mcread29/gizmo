@@ -1,4 +1,4 @@
-export type ToastTone = 'success' | 'danger';
+export type ToastTone = 'success' | 'info' | 'warning' | 'danger';
 
 export interface ToastMessage {
 	id: string;
@@ -8,6 +8,8 @@ export interface ToastMessage {
 
 const dismissAfter: Record<ToastTone, number> = {
 	success: 4_000,
+	info: 5_000,
+	warning: 8_000,
 	danger: 8_000,
 };
 

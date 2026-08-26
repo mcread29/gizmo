@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 19 as const;
+export const protocolVersion = 20 as const;
 
 const sessionTitleLimit = 48;
 
@@ -677,6 +677,140 @@ export const composerCommandSchema = Type.Object(
 
 export type ComposerCommand = Static<typeof composerCommandSchema>;
 
+export const extensionUiRequestSchema = Type.Union([
+	Type.Object(
+		{
+			method: Type.Literal('select'),
+			title: Type.String({ maxLength: 500 }),
+			options: Type.Array(Type.String({ maxLength: 2_000 }), {
+				minItems: 0,
+				maxItems: 500,
+			}),
+			timeout: Type.Optional(Type.Integer({ minimum: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('confirm'),
+			title: Type.String({ maxLength: 500 }),
+			message: Type.String({ maxLength: 10_000 }),
+			timeout: Type.Optional(Type.Integer({ minimum: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('input'),
+			title: Type.String({ maxLength: 500 }),
+			placeholder: Type.Optional(Type.String({ maxLength: 2_000 })),
+			timeout: Type.Optional(Type.Integer({ minimum: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('editor'),
+			title: Type.String({ maxLength: 500 }),
+			prefill: Type.Optional(Type.String({ maxLength: 100_000 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('notify'),
+			message: Type.String({ maxLength: 10_000 }),
+			notificationType: Type.Union([
+				Type.Literal('info'),
+				Type.Literal('warning'),
+				Type.Literal('error'),
+			]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('setStatus'),
+			key: Type.String({ minLength: 1, maxLength: 200 }),
+			text: Type.Union([Type.String({ maxLength: 2_000 }), Type.Null()]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('setWorkingMessage'),
+			message: Type.Union([Type.String({ maxLength: 2_000 }), Type.Null()]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('setWorkingVisible'),
+			visible: Type.Boolean(),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('setWorkingIndicator'),
+			frames: Type.Union([
+				Type.Array(Type.String({ maxLength: 200 }), { maxItems: 100 }),
+				Type.Null(),
+			]),
+			intervalMs: Type.Optional(Type.Integer({ minimum: 16, maximum: 60_000 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('setWidget'),
+			key: Type.String({ minLength: 1, maxLength: 200 }),
+			lines: Type.Union([
+				Type.Array(Type.String({ maxLength: 5_000 }), { maxItems: 200 }),
+				Type.Null(),
+			]),
+			placement: Type.Union([
+				Type.Literal('aboveEditor'),
+				Type.Literal('belowEditor'),
+			]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('setTitle'),
+			title: Type.String({ maxLength: 1_000 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			method: Type.Literal('setEditorText'),
+			text: Type.String({ maxLength: 100_000 }),
+		},
+		{ additionalProperties: false },
+	),
+]);
+
+export type ExtensionUiRequest = Static<typeof extensionUiRequestSchema>;
+
+export const extensionUiResponseSchema = Type.Union([
+	Type.Object(
+		{ kind: Type.Literal('value'), value: Type.String({ maxLength: 100_000 }) },
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{ kind: Type.Literal('confirmed'), confirmed: Type.Boolean() },
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{ kind: Type.Literal('cancelled') },
+		{ additionalProperties: false },
+	),
+]);
+
+export type ExtensionUiResponse = Static<typeof extensionUiResponseSchema>;
+
 export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{ ...envelope, type: Type.Literal('providers.list') },
@@ -838,6 +972,17 @@ export const agentRequestSchema = Type.Union([
 			...envelope,
 			type: Type.Literal('session.delete'),
 			sessionId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('extension.ui.respond'),
+			sessionId: Type.String({ minLength: 1 }),
+			runtimeId: Type.String({ minLength: 1 }),
+			uiRequestId: Type.String({ minLength: 1 }),
+			response: extensionUiResponseSchema,
 		},
 		{ additionalProperties: false },
 	),
@@ -1111,6 +1256,39 @@ export const agentEventSchema = Type.Union([
 			confirmationId: Type.String({ minLength: 1 }),
 			kind: Type.Literal('stop_play_mode_for_compile'),
 			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('extension.ui.requested'),
+			runtimeId: Type.String({ minLength: 1 }),
+			uiRequestId: Type.String({ minLength: 1 }),
+			request: extensionUiRequestSchema,
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('extension.ui.cancelled'),
+			runtimeId: Type.String({ minLength: 1 }),
+			uiRequestId: Type.String({ minLength: 1 }),
+			reason: Type.Union([
+				Type.Literal('timeout'),
+				Type.Literal('signal'),
+				Type.Literal('runtime'),
+				Type.Literal('abort'),
+			]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('extension.ui.runtime.cleared'),
+			runtimeId: Type.String({ minLength: 1 }),
 		},
 		{ additionalProperties: false },
 	),

@@ -16,9 +16,11 @@
 	import { isAtBottom, scrollIntoEnd } from './follow';
 	import { dayKey, formatDay, groupMessages } from './message-groups';
 	import { streamingActivity } from './streaming';
+	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 
 	interface Props {
 		store: AgentStore;
+		extensionUi?: PiExtensionUiStore;
 		agentName: string;
 		currentSession?: AgentSessionSummary;
 		autoFollowOutput: boolean;
@@ -31,6 +33,7 @@
 
 	let {
 		store,
+		extensionUi,
 		agentName,
 		currentSession,
 		autoFollowOutput,
@@ -49,7 +52,11 @@
 	let rowEstimates: number[] = [];
 	let followTimer: ReturnType<typeof setTimeout> | undefined;
 	let activity = $derived(
-		streamingActivity(store.messages, store.sessionState),
+		streamingActivity(
+			store.messages,
+			store.sessionState,
+			extensionUi?.workingFor(store.sessionId),
+		),
 	);
 	let groups = $derived(groupMessages(store.messages));
 	const initialViewport = { width: 800, height: 800 };

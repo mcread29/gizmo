@@ -4,6 +4,9 @@
 > be rebuilt on Pi extensions, beginning with the generic browser UI bridge in
 > [Pi Extension UI Bridge Plan](pi-extension-ui-bridge-plan.md). Until that
 > migration is complete, this document describes the active implementation.
+> The first bridge milestone is now active: standard Pi extension dialogs,
+> notifications, statuses, text widgets, working-state overrides, titles, and
+> composer text operations use native Gizmo UI.
 
 Gizmo owns exactly one integration contract: the extension. There is no
 separate "domain" concept — workspace detection, tools, system prompt, a live

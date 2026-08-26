@@ -6,16 +6,33 @@ export interface StreamingActivity {
 	/** What the agent is doing right now, in the user's words. */
 	label: string;
 	startedAt?: number;
+	indicator?: string;
+}
+
+export interface StreamingActivityOverride {
+	message?: string | null;
+	visible?: boolean;
+	frames?: string[] | null;
 }
 
 export function streamingActivity(
 	messages: ConversationMessage[],
 	sessionState: string,
+	override?: StreamingActivityOverride,
 ): StreamingActivity {
 	const last = messages.at(-1);
-	if (sessionState !== 'streaming' || !last || last.role !== 'assistant') {
+	if (
+		sessionState !== 'streaming' ||
+		override?.visible === false ||
+		!last ||
+		last.role !== 'assistant'
+	) {
 		return { streaming: false, label: 'Idle' };
 	}
+	const custom = {
+		...(override?.message ? { label: override.message } : {}),
+		...(override?.frames?.[0] ? { indicator: override.frames[0] } : {}),
+	};
 	const running = last.tools.find(
 		(tool: ToolCallView) => tool.status === 'running',
 	);
@@ -24,12 +41,14 @@ export function streamingActivity(
 			streaming: true,
 			label: toolLabel(running.name),
 			startedAt: last.createdAt,
+			...custom,
 		};
 	}
 	return {
 		streaming: true,
 		label: last.content ? 'Responding' : 'Thinking',
 		startedAt: last.createdAt,
+		...custom,
 	};
 }
 
