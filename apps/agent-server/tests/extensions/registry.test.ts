@@ -58,6 +58,21 @@ describe('extension registry', () => {
 		expect(active.tools.some(({ name }) => name === 'unity_status')).toBe(true);
 	});
 
+	it('activates an integration rooted in a nested project directory', async () => {
+		const workspacePath = await workspace();
+		const integrationRoot = join('apps', 'app');
+		await mkdir(join(workspacePath, integrationRoot), { recursive: true });
+
+		await expect(
+			activateExtensions(
+				{ workspacePath, confirm: async () => false },
+				[{ id: 'svelte', root: integrationRoot }],
+			),
+		).resolves.toMatchObject({
+			extensions: [expect.objectContaining({ id: 'svelte' })],
+		});
+	});
+
 	it('uses Pi defaults when nothing is active', async () => {
 		const active = await activateExtensions(
 			{ workspacePath: await workspace(), confirm: async () => false },

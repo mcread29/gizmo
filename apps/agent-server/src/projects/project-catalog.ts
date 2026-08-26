@@ -17,6 +17,7 @@ import {
 	type WorkspaceProfiles,
 } from '@gizmo/protocol';
 import { defaultProfile, detectExtensions } from '../extensions/registry';
+import { isPathWithin } from '../path-utils';
 import { defaultDataDir } from '../sessions/session-repository';
 
 export class ProjectCatalog {
@@ -276,7 +277,7 @@ export class ProjectCatalog {
 			if (!known.has(integration.id))
 				throw new Error(`Unknown extension: ${integration.id}`);
 			const root = resolve(projectPath, integration.root);
-			if (root !== projectPath && !root.startsWith(`${projectPath}/`))
+			if (!isPathWithin(projectPath, root))
 				throw new Error('Extension root must be inside the workspace');
 			if (!(await stat(root)).isDirectory())
 				throw new Error(

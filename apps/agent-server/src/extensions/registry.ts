@@ -6,6 +6,7 @@ import type {
 	ExtensionContext,
 	GizmoServerExtension,
 } from '@gizmo/extensions';
+import { isPathWithin } from '../path-utils';
 
 let extensions: readonly GizmoServerExtension[] = [];
 
@@ -69,10 +70,7 @@ export async function activateExtensions(
 		if (!extension) throw new Error(`Unknown integration: ${integration.id}`);
 		const workspacePath = resolve(context.workspacePath);
 		const integrationPath = resolve(workspacePath, integration.root);
-		if (
-			integrationPath !== workspacePath &&
-			!integrationPath.startsWith(`${workspacePath}/`)
-		) {
+		if (!isPathWithin(workspacePath, integrationPath)) {
 			throw new Error(
 				`Integration root must be inside the workspace: ${integration.root}`,
 			);

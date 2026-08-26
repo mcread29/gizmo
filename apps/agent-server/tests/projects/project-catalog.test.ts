@@ -62,14 +62,17 @@ describe('ProjectCatalog', () => {
 			JSON.stringify({ dependencies: { svelte: '^5.0.0' } }),
 		);
 
-		expect(
-			(await new ProjectCatalog(data).detect(project)).domains,
-		).toContainEqual({
+		const catalog = new ProjectCatalog(data);
+		expect((await catalog.detect(project)).domains).toContainEqual({
 			id: 'svelte',
 			name: 'Svelte',
 			detected: true,
 			root: join('apps', 'app'),
 		});
+
+		await expect(
+			catalog.add(project, [{ id: 'svelte', root: join('apps', 'app') }]),
+		).resolves.toMatchObject({ path: project });
 	});
 
 	it('reads projects saved with the old single-domain format', async () => {
