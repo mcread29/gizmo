@@ -111,7 +111,7 @@
 		{#if !screenOpen}
 			{#each piStatuses as status (`${status.runtimeId}:${status.request.key}`)}
 				<span
-					data-ui="status-bar-item"
+					data-ui="pi-extension-status"
 					title={status.request.text ?? undefined}
 				>
 					{status.request.text}

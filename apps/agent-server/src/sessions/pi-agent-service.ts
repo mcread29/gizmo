@@ -876,7 +876,10 @@ const createDefaultPiSession: PiSessionFactory = async (
 	})();
 	if (process.env.GIZMO_PI_WEB === '1') {
 		await session.bindExtensions({
-			mode: 'rpc',
+			// Gizmo supplies a real UI context, so ctx.hasUI is true. Keep the
+			// headless mode honest: extensions that special-case Pi's JSONL RPC
+			// transport should not mistake the browser bridge for that protocol.
+			mode: 'json',
 			uiContext: callbacks.extensionUi.context,
 			onError: (error) =>
 				console.error(
