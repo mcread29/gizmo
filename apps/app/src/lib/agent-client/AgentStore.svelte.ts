@@ -261,7 +261,13 @@ export class AgentStore {
 	}
 
 	refreshProjectStatus(): Promise<void> {
-		if (this.connection !== 'connected' || !this.selectedProjectPath) {
+		if (
+			this.connection !== 'connected' ||
+			!this.selectedProjectPath ||
+			!this.activeDomains.some((id) => extension(id)?.hasProjectStatus)
+		) {
+			this.projectStatus = undefined;
+			this.statusLoading = false;
 			return Promise.resolve();
 		}
 		const projectPath = this.selectedProjectPath;
@@ -802,6 +808,11 @@ export class AgentStore {
 	}
 
 	async refreshGitStatus(): Promise<void> {
+		if (!this.activeDomains.includes('git')) {
+			this.gitStatus = undefined;
+			this.gitLoading = false;
+			return;
+		}
 		if (this.connection !== 'connected' || !this.selectedProjectPath) return;
 		const projectPath = this.selectedProjectPath;
 		this.gitLoading = true;
@@ -997,6 +1008,7 @@ export class AgentStore {
 			this.projectExtensions = [];
 			return;
 		}
+		await this.refreshGitStatus();
 		if (!this.activeDomains.some((id) => extension(id)?.hasProjectStatus)) {
 			this.projectStatus = undefined;
 			await this.loadProjectExtensions();

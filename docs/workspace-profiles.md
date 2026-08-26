@@ -1,132 +1,85 @@
 # Workspace profiles
 
-Gizmo's core is a general coding workbench. A workspace profile is the saved
-agent configuration for a workspace: the prompt mode, extension roots, tool
-policy, and profile-local skill overrides that should apply to new threads.
+Gizmo is a general coding workbench. It does not inspect a folder to guess a
+workspace type. Gizmo extensions are installed globally through
+`gizmo.extensions.json` and enabled explicitly in each workspace profile.
 
-Extensions can provide profile defaults. When a workspace adds one of those
-profiles, Gizmo copies the definition into `.gizmo/profiles.json`; later
-edits are project-owned and do not mutate the bundled default. How extensions
-themselves are structured, discovered, and loaded is described in
-[extensions.md](extensions.md); this document is about the profile/workspace
-UX built on top of them.
+A newly added workspace starts on **Default** with no Gizmo extensions enabled.
+Opening a folder never enables Unity, Svelte, Git, Activity, or another Gizmo
+extension automatically.
 
-## Boundary
+## Storage and defaults
 
-Core owns sessions, messages, coding tools, Git, files, models, layout, saved
-profile files, and the extension lifecycle. An extension owns:
+`projects.json` stores workspace catalog metadata such as path, title, and added
+time. Workspace-owned profile state is stored in `.gizmo/profiles.json`.
 
-- workspace detection;
-- a default profile definition for that extension;
-- extension-specific system instructions;
-- extension tools and confirmations;
-- inspector UI, dialogs, and settings; and
-- adapters to an external runtime such as the Unity Editor.
+Gizmo materializes canonical profiles from core and the currently installed
+extension packages whenever profiles are read. Canonical profiles use sources
+such as `builtin:default` and `extension:svelte`; a stale saved copy cannot
+replace the installed default.
 
-Workspaces are added explicitly. `projects.json` stores catalog metadata such as
-path, title, and added time. Agent behavior is stored in
-`.gizmo/profiles.json` inside the workspace. Detection supplies the initial
-profile defaults, then Workspace settings lets users choose the active profile,
-add detected extension profiles, and relocate each extension root for the active
-profile.
+Canonical profiles are editable in the Configure screen:
 
-Core coding and Git tools are always available and are not repeated by
-extensions.
+- The first changed value creates a `workspace:temporary` profile based on the
+  canonical profile.
+- The canonical profile itself is never mutated.
+- The override remains saved while at least one value differs, so it survives a
+  restart.
+- Reverting the final difference removes the override and returns selection to
+  the canonical profile.
 
-```text
-workspace folder
-      │
-      ▼
-extension registry ── detect/templates ──┬─ Unity: profile + tools + prompt
-                                        └─ Svelte: profile + guidance + inspector
-      │
-      ├─ .gizmo/profiles.json
-      ├─ active profile composes a Pi session, or Pi defaults for Default
-      └─ contributed web UI
-```
+Profiles created with **New profile** are normal workspace profiles. They remain
+saved even when their values happen to match Default, and they can still be
+renamed, duplicated, activated, and deleted.
+
+## Extension activation
+
+The Configure screen lists every globally installed Gizmo extension. Each row
+is an explicit profile checkbox and defaults to off. Enabled extensions use the
+workspace root (`.`) unless the profile contains another validated relative
+root.
+
+The active profile controls new sessions:
+
+- only listed extensions are activated;
+- extension tools are added only when the profile's tool mode allows them;
+- extension prompt guidance is added only when its prompt mode allows it; and
+- extension commands, titlebar status, inspector tabs, dialogs, and settings are
+  hidden when that extension is inactive.
+
+Live project providers are not probed for disabled extensions. For example, Git
+status is not queried merely because a workspace happens to be a repository.
 
 ## UI workflow
 
-An inspector receives an optional `onCollapse`. Render it in the panel header
-with `PanelToggle` so the inspector can be closed from itself; it is absent
-while the panel is collapsed, because the rail then owns that control.
+Opening a workspace shows its Overview and Configure tabs without creating a
+thread. Configure contains the profile selector, extension activation, tool and
+prompt policy, skill overrides, extension-specific settings, and workspace
+removal.
 
-The new-thread dialog accepts any folder, seeds profiles from detected
-extensions, and stores the initial profile setup. The desktop build uses a
-native folder picker; browser development accepts an absolute path. Stored
-projects appear in the dialog on later launches. The server announces the
-active extension IDs with the session-created event.
-
-There is no current workspace. The sidebar lists every workspace as a row that
-expands to its own threads, and the centre column shows either a thread or a
-workspace. Opening a workspace (`#workspace/<path>`) replaces the thread column
-while the sidebar and inspector stay put; it never opens or creates a thread.
-A workspace screen has Overview, Profile and Settings tabs, so a workspace is
-configured where it is shown rather than on a separate screen.
-
-Threads do not exist outside a workspace: creating one requires a workspace, and
-the row's `+` starts a thread in that workspace.
-
-The Profile tab edits every part of a workspace's profiles: the list of
-profiles on the left, and for the selected one its name, active state,
-extension contributions and their roots, tool and system-prompt modes, and
-profile-local skill overrides. A profile is shown as its departures from the
-profile it starts at — the base is stated rather than chosen, every row that
-differs from it is marked, and each marked row can be reverted to the base
-individually or all at once. Profiles can be created, duplicated from
-detected extension templates or from each other, and deleted; `default` stays
-because every other profile falls back to it. Edits are local until Save, and
-Revert restores the last saved state. Settings keeps what is not part of a
-profile: extension settings and removing the workspace from Gizmo. Removal
-does not touch project files or existing threads. The thread sidebar groups
-sessions by project, sorted by project name, while keeping each project's
-threads in most-recent-first order.
+Edits remain local until **Save**. **Revert** restores the last saved shape.
+**Revert all** restores the selected profile's base. Threads require a workspace;
+the workspace row's `+` starts a thread using its active profile.
 
 ## Included extensions
 
-### Unity
+The default global catalog is configured in `gizmo.extensions.json` and
+currently includes Unity, Svelte, Git, Activity, and Skill Authoring. Their
+presence in that file means they are installed, not enabled for every project.
 
-Detected by `ProjectSettings/`. It contributes Unity CLI/Pipeline tools, the
-Editor lifecycle prompt, Editor inspector, Play Mode compile confirmation, and
-Unity-hosted project extensions such as Console. Unity is the first extension
-that ships only as a runtime web bundle (not a client builtin): it is listed
-in `gizmo.extensions.json` and arrives over `extensions.web` like any
-third-party extension.
-
-### Svelte
-
-Detected when `package.json` declares `svelte` in dependencies or development
-dependencies. It contributes Svelte-specific working guidance and a lightweight
-changes/activity inspector. It intentionally has no custom tools yet; normal
-coding and project scripts already cover the useful baseline. Like Unity, it
-is loaded via `gizmo.extensions.json` (`@gizmo/svelte`) rather than
-special-cased in core.
-
-### Git, Activity, and Skill Authoring
-
-Also listed in `gizmo.extensions.json` by default (`@gizmo/git`,
-`@gizmo/activity`, `@gizmo/skill-authoring`). Git detects any workspace inside
-a repository and contributes the always-on `git_status` tool, a Changes
-inspector tab, and commit/refresh commands. Activity is a web-only extension:
-an inspector tab over the session's tool-call history, with no server-side
-behavior. Skill Authoring contributes no tools or UI — it ships skills (under
-its own `skills/`) that guide the model when authoring new skills.
-
-### Default profile
-
-Every folder can run with the Default profile. This preserves Pi's normal
-default coding-agent prompt and tool behavior, with only Gizmo-managed skills
-added according to global and profile-local settings. Generic coding is core
-behavior rather than a separate extension.
+- **Unity** contributes Unity tools, guidance, project service, and browser UI
+  when enabled.
+- **Svelte** contributes Svelte guidance and browser presentation when enabled.
+- **Git** contributes Git status tooling and UI when enabled.
+- **Activity** is a browser contribution shown when enabled.
+- **Skill Authoring** ships skill resources; skill enablement remains visible in
+  the profile's Skills section.
 
 ## Adding an extension
 
-1. Add detection, a profile default, prompt, and tools in a server extension
-   package, following the `GizmoServerExtension` contract in
-   [extensions.md](extensions.md).
-2. Add its web view and contributions following `GizmoWebExtension`.
-3. Add its specifier to `gizmo.extensions.json`.
-4. Add one focused detection/composition test and tests for any custom tools.
-5. Keep protocol payloads generic. If a new contribution requires a host
-   capability, design a reusable slot rather than adding a product-specific
-   request to core.
+1. Export one `GizmoServerExtension` from the package's `/server` entry.
+2. Optionally provide a canonical profile, prompt guidance, tools, live
+   operations, project service, and browser bundle.
+3. Add the package specifier to `gizmo.extensions.json`.
+4. Do not add workspace detection. Activation is a user decision.
+5. Add focused tests for manual activation and every contributed capability.

@@ -26,6 +26,7 @@ export class ExtensionHostService {
 	constructor(
 		extensions: readonly GizmoServerExtension[],
 		private readonly pollMs = 5_000,
+		private readonly enabledFor?: (workspacePath: string) => Promise<string[]>,
 	) {
 		this.#providers = extensions.filter(
 			(extension): extension is ExtensionProvider =>
@@ -59,9 +60,7 @@ export class ExtensionHostService {
 				throw new Error(
 					`Extension operation requires confirmation: ${operationId}`,
 				);
-			const provider = this.#owners
-				.get(workspacePath)
-				?.get(extensionId);
+			const provider = this.#owners.get(workspacePath)?.get(extensionId);
 			if (!provider)
 				throw new Error(`Extension provider is unavailable: ${extensionId}`);
 			return provider.invoke(
@@ -131,8 +130,14 @@ export class ExtensionHostService {
 	async #listUnchecked(workspacePath: string, signal: AbortSignal) {
 		const cached = this.#cache.get(workspacePath);
 		if (cached && cached.expiresAt > Date.now()) return cached.value;
+		const providers = this.enabledFor
+			? await this.enabledFor(workspacePath).then((ids) => {
+					const enabled = new Set(ids);
+					return this.#providers.filter(({ id }) => enabled.has(id));
+				})
+			: this.#providers;
 		const value = Promise.all(
-			this.#providers.map(async (provider) => ({
+			providers.map(async (provider) => ({
 				provider,
 				extensions: await provider.list(workspacePath, signal),
 			})),

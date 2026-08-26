@@ -1,5 +1,5 @@
 import type { ExtensionDescriptor } from '@gizmo/protocol';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ExtensionHostService } from '../../src/extensions/extension-host-service';
 import type { GizmoServerExtension } from '@gizmo/extensions';
 
@@ -16,6 +16,20 @@ const descriptor: ExtensionDescriptor = {
 };
 
 describe('ExtensionHostService', () => {
+	it('does not probe providers that are disabled for the workspace', async () => {
+		const list = vi.fn(async () => [descriptor]);
+		const provider: GizmoServerExtension = {
+			id: 'notes',
+			name: 'Notes',
+			list,
+			invoke: async () => undefined,
+		};
+		const host = new ExtensionHostService([provider], 5_000, async () => []);
+
+		await expect(host.list('/workspace')).resolves.toEqual([]);
+		expect(list).not.toHaveBeenCalled();
+	});
+
 	it('validates declared operations without knowing the provider runtime', async () => {
 		const calls: string[] = [];
 		const provider: GizmoServerExtension = {

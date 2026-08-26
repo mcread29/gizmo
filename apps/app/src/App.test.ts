@@ -523,14 +523,14 @@ describe('application shell', () => {
 			getByRole('button', { name: 'Open RenderingPlayground' }),
 		);
 
-		// Screen, sidebar highlight and Git state all move together: the view is
-		// already the new workspace, and nothing claims to know its Git state.
+		// Screen and sidebar highlight move together. Git is not enabled for this
+		// workspace, so switching never probes it or mounts source-control UI.
 		expect(getByRole('main', { name: 'Workspace' })).toBeInTheDocument();
 		const active = list.querySelector('[data-ui="workspace-row"][data-active]');
 		expect(active?.textContent).toContain('RenderingPlayground');
 		expect(
 			container.querySelector('[aria-label="Loading source control"]'),
-		).toBeInTheDocument();
+		).toBeNull();
 		expect(container.textContent).not.toContain('Working tree clean');
 
 		release();
@@ -1004,7 +1004,11 @@ describe('application shell', () => {
 			expect(getByRole('button', { name: 'Send message' })).toBeEnabled(),
 		);
 		await fireEvent.click(getByRole('button', { name: 'Send message' }));
-		await findByText(/connected and ready for commands/);
+		await findByText(
+			/connected and ready for commands/,
+			{},
+			{ timeout: 5_000 },
+		);
 
 		// One header for the prompt and one for the whole reply, however many
 		// virtual rows the reply's tool calls need.

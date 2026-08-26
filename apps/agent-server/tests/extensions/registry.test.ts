@@ -6,6 +6,7 @@ import { gizmoExtension as unityExtension } from '@gizmo/unity/server';
 import { gizmoExtension as svelteExtension } from '@gizmo/svelte/server';
 import {
 	activateExtensions,
+	installedExtensionCatalog,
 	registerExtensions,
 } from '../../src/extensions/registry';
 
@@ -22,6 +23,20 @@ afterEach(async () => {
 });
 
 describe('extension registry', () => {
+	it('lists every globally installed extension without inspecting the workspace', async () => {
+		const catalog = installedExtensionCatalog();
+
+		expect(catalog.domains).toEqual([
+			{ id: 'unity', name: 'Unity', root: '.' },
+			{ id: 'svelte', name: 'Svelte', root: '.' },
+		]);
+		expect(catalog.profiles.map(({ id }) => id)).toEqual([
+			'default',
+			'unity',
+			'svelte',
+		]);
+	});
+
 	it('activates Svelte without exposing Unity tools', async () => {
 		const workspacePath = await workspace();
 		await writeFile(
@@ -64,10 +79,9 @@ describe('extension registry', () => {
 		await mkdir(join(workspacePath, integrationRoot), { recursive: true });
 
 		await expect(
-			activateExtensions(
-				{ workspacePath, confirm: async () => false },
-				[{ id: 'svelte', root: integrationRoot }],
-			),
+			activateExtensions({ workspacePath, confirm: async () => false }, [
+				{ id: 'svelte', root: integrationRoot },
+			]),
 		).resolves.toMatchObject({
 			extensions: [expect.objectContaining({ id: 'svelte' })],
 		});

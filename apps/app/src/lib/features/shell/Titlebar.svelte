@@ -54,13 +54,15 @@
 	let piStatuses = $derived(extensionUi?.statusesFor(store.sessionId) ?? []);
 
 	let statusBarItems = $derived(
-		webExtensions().flatMap(
-			(definition) =>
-				definition.statusBar?.({
-					store,
-					projectPath: store.selectedProjectPath,
-				}) ?? [],
-		),
+		webExtensions()
+			.filter(({ id }) => store.activeDomains.includes(id))
+			.flatMap(
+				(definition) =>
+					definition.statusBar?.({
+						store,
+						projectPath: store.selectedProjectPath,
+					}) ?? [],
+			),
 	);
 </script>
 

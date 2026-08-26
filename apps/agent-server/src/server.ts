@@ -9,6 +9,7 @@ import { CompositeProjectService } from '@gizmo/extensions';
 import { ExtensionHostService } from './extensions/extension-host-service';
 import { loadServerExtensions } from './extensions/load-extensions';
 import { registerExtensions } from './extensions/registry';
+import { ProjectCatalog } from './projects/project-catalog';
 
 await restoreDesktopEnvironment();
 
@@ -25,6 +26,7 @@ const extensions = await loadServerExtensions(
 		: resolve(repoRoot, 'gizmo.extensions.json'),
 );
 registerExtensions(extensions);
+const projects = new ProjectCatalog();
 const projectServiceFactories = extensions
 	.filter((extension) => extension.createProjectService)
 	.map((extension) => extension.createProjectService!);
@@ -36,7 +38,10 @@ const allowedOrigins = configuredOrigins(process.env);
 const agentServer = await createAgentWebSocketServer({
 	host,
 	port,
-	createExtensionHost: () => new ExtensionHostService(extensions),
+	createExtensionHost: () =>
+		new ExtensionHostService(extensions, 5_000, async (workspacePath) =>
+			(await projects.integrationsFor(workspacePath)).map(({ id }) => id),
+		),
 	...(projectServiceFactories.length
 		? {
 				createProjectService: () =>

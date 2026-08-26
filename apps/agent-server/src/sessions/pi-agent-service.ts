@@ -31,7 +31,6 @@ import {
 import { sessionTree } from './session-transcript';
 import {
 	activateExtensions,
-	defaultExtensionTools,
 	registeredExtensions,
 } from '../extensions/registry';
 import { extensionResourceRoots } from '../resources/extension-resources';
@@ -88,8 +87,13 @@ export interface PiSessionLike {
 	dispose(): void;
 }
 
+type PiSessionRuntimeOptions = SessionOptions & {
+	extensionTools?: boolean;
+	extensionPrompt?: boolean;
+};
+
 export type PiSessionFactory = (
-	options: SessionOptions,
+	options: PiSessionRuntimeOptions,
 	sessionManager: SessionManager,
 	callbacks: PiSessionCallbacks,
 ) => Promise<PiSessionLike>;
@@ -189,16 +193,23 @@ export class PiAgentService {
 
 	async createSession(options: SessionOptions = {}): Promise<string> {
 		const cwd = options.cwd ?? process.cwd();
+		const profile = await this.#projects.activeProfileFor(cwd);
 		const integrations =
 			options.integrations ??
 			(options.domainId && options.domainId !== 'generic'
 				? [{ id: options.domainId, root: '.' }]
-				: await this.#projects.integrationsFor(cwd));
+				: profile.extensions);
 		const sessionManager = await this.#repository.create(cwd);
 		try {
 			const callbacks = this.#callbacks(sessionManager.getSessionId());
 			const session = await this.#factory(
-				{ cwd, integrations },
+				{
+					cwd,
+					integrations,
+					extensionTools: profile.tools?.mode === 'default-plus-extension',
+					extensionPrompt:
+						profile.prompt?.mode === 'default-plus-extension-fragments',
+				},
 				sessionManager,
 				callbacks,
 			);
@@ -237,13 +248,20 @@ export class PiAgentService {
 		const snapshot = await this.#repository.snapshot(sessionId);
 		const workspacePath =
 			snapshot.session.workspacePath ?? snapshot.session.projectPath;
-		const integrations = await this.#projects.integrationsFor(workspacePath);
+		const profile = await this.#projects.activeProfileFor(workspacePath);
+		const integrations = profile.extensions;
 		snapshot.session.integrations = integrations;
 		if (!this.#sessions.has(sessionId)) {
 			const sessionManager = await this.#repository.open(sessionId);
 			const callbacks = this.#callbacks(sessionId);
 			const session = await this.#factory(
-				{ cwd: workspacePath, integrations },
+				{
+					cwd: workspacePath,
+					integrations,
+					extensionTools: profile.tools?.mode === 'default-plus-extension',
+					extensionPrompt:
+						profile.prompt?.mode === 'default-plus-extension-fragments',
+				},
 				sessionManager,
 				callbacks,
 			);
@@ -795,9 +813,11 @@ const createDefaultPiSession: PiSessionFactory = async (
 				? [{ id: options.domainId, root: '.' }]
 				: []),
 	);
-	const defaultTools = defaultExtensionTools(extensionContext);
 	const runScriptTool = createRunScriptTool({ workspacePath: cwd });
-	const customTools = [...activeDomains.tools, ...defaultTools, runScriptTool];
+	const customTools = [
+		...(options.extensionTools ? activeDomains.tools : []),
+		runScriptTool,
+	];
 	const { session } = await (async () => {
 		if (piWebMode) {
 			// Pi Web is the normal Pi runtime behind Gizmo's existing web shell.
@@ -852,7 +872,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 				...fromExtensions.prompts,
 			],
 			agentsFilesOverride: () => ({ agentsFiles }),
-			...(activeDomains.systemPrompt
+			...(options.extensionPrompt && activeDomains.systemPrompt
 				? { systemPromptOverride: () => activeDomains.systemPrompt! }
 				: {}),
 		});

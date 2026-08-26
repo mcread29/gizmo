@@ -14,6 +14,8 @@ import {
 	type PiSessionLike,
 } from '../../src/sessions/pi-agent-service';
 import { PiSessionRepository } from '../../src/sessions/session-repository';
+import { registerExtensions } from '../../src/extensions/registry';
+import { ProjectCatalog } from '../../src/projects/project-catalog';
 
 class FakePiSession implements PiSessionLike {
 	sessionId: string;
@@ -85,6 +87,72 @@ function event(value: unknown): AgentSessionEvent {
 }
 
 describe('PiAgentService', () => {
+	it('resolves extension tool and prompt policy from the active profile', async () => {
+		const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-profile-policy-'));
+		const projectPath = await mkdtemp(join(tmpdir(), 'gizmo-project-'));
+		temporaryDirectories.push(dataDir, projectPath);
+		registerExtensions([
+			{
+				id: 'notes',
+				name: 'Notes',
+				profile: (root) => ({
+					id: 'notes',
+					name: 'Notes',
+					source: 'extension:notes',
+					base: 'default',
+					extensions: [{ id: 'notes', root }],
+					tools: { mode: 'default-plus-extension' },
+					prompt: { mode: 'default-plus-extension-fragments' },
+				}),
+			},
+		]);
+		const projects = new ProjectCatalog(dataDir);
+		await projects.add(projectPath, [{ id: 'notes', root: '.' }]);
+		const options: Array<{
+			extensionTools?: boolean;
+			extensionPrompt?: boolean;
+		}> = [];
+		const service = new PiAgentService(
+			async (runtimeOptions, manager) => {
+				options.push(runtimeOptions);
+				return new FakePiSession(manager.getSessionId());
+			},
+			new PiSessionRepository(dataDir),
+			projects,
+		);
+
+		await service.createSession({ cwd: projectPath });
+		expect(options.at(-1)).toMatchObject({
+			extensionTools: true,
+			extensionPrompt: true,
+		});
+
+		const profiles = await projects.profilesFor(projectPath);
+		const active = profiles.profiles.find(
+			({ id }) => id === profiles.activeProfileId,
+		)!;
+		const override = {
+			...active,
+			id: 'notes-override',
+			source: 'workspace:temporary',
+			base: active.id,
+			tools: { mode: 'default' as const },
+			prompt: { mode: 'pi-default' as const },
+		};
+		await projects.saveProfiles(projectPath, {
+			...profiles,
+			activeProfileId: override.id,
+			profiles: [...profiles.profiles, override],
+		});
+		await service.createSession({ cwd: projectPath });
+		expect(options.at(-1)).toMatchObject({
+			extensionTools: false,
+			extensionPrompt: false,
+		});
+		service.dispose();
+		registerExtensions([]);
+	});
+
 	it('blocks a Unity compile until the app resolves its confirmation', async () => {
 		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
 		temporaryDirectories.push(dataDir);

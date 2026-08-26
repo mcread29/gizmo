@@ -1,4 +1,3 @@
-import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { ExtensionDescriptor } from '@gizmo/protocol';
 import type { ExtensionContext, GizmoServerExtension } from '@gizmo/extensions';
 import { GitService } from './git-service';
@@ -30,7 +29,7 @@ function descriptor(): ExtensionDescriptor {
 export const gizmoExtension: GizmoServerExtension = {
 	id: 'git',
 	name: 'Git',
-	defaultTools: (context: ExtensionContext): ToolDefinition[] => [
+	createTools: (context: ExtensionContext) => [
 		service.createStatusTool(context.workspacePath),
 	],
 	list: async (workspacePath, signal) =>

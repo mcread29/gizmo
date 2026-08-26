@@ -12,7 +12,6 @@
 	} from '@lucide/svelte';
 	import { Command, Dialog } from 'bits-ui';
 	import type {
-		ProjectDomains,
 		WorkspaceDirectoryListing,
 		WorkspaceIntegration,
 	} from '@gizmo/protocol';
@@ -62,13 +61,15 @@
 	const pins = new PinnedDirectoryStore();
 
 	let extensionCommands = $derived(
-		webExtensions().flatMap(
-			(definition) =>
-				definition.commands?.({
-					store,
-					projectPath: store.selectedProjectPath,
-				}) ?? [],
-		),
+		webExtensions()
+			.filter(({ id }) => store.activeDomains.includes(id))
+			.flatMap(
+				(definition) =>
+					definition.commands?.({
+						store,
+						projectPath: store.selectedProjectPath,
+					}) ?? [],
+			),
 	);
 
 	/**
@@ -83,7 +84,10 @@
 		knownRoot: string | undefined,
 	): { root: string | undefined; filter: string } {
 		const sep = value.includes('\\') ? '\\' : '/';
-		if (knownRoot && (value === knownRoot || value.startsWith(knownRoot + sep))) {
+		if (
+			knownRoot &&
+			(value === knownRoot || value.startsWith(knownRoot + sep))
+		) {
 			const rest = value.slice(knownRoot.length).replace(/^[\\/]+/, '');
 			const lastSep = Math.max(rest.lastIndexOf('/'), rest.lastIndexOf('\\'));
 			if (lastSep === -1) return { root: knownRoot, filter: rest };
@@ -95,7 +99,10 @@
 		}
 		const lastSep = Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\'));
 		if (lastSep === -1) return { root: knownRoot, filter: value };
-		return { root: value.slice(0, lastSep) || sep, filter: value.slice(lastSep + 1) };
+		return {
+			root: value.slice(0, lastSep) || sep,
+			filter: value.slice(lastSep + 1),
+		};
 	}
 
 	let requestToken = 0;
@@ -143,11 +150,7 @@
 		detecting = true;
 		addError = undefined;
 		try {
-			const domains = (await store.detectProject(selectedPath)).domains.filter(
-				({ detected }) => detected,
-			);
-			const integrations = domains.map(({ id, root }) => ({ id, root }));
-			const project = await store.addProject(selectedPath, integrations);
+			const project = await store.addProject(selectedPath, []);
 			onSelectWorkspace(project.path, project.integrations);
 			open = false;
 		} catch (error) {
@@ -232,7 +235,10 @@
 								: 'Type a path, or search folders…'}
 							onkeydown={onInputKeydown}
 						/>
-						{#if searching}<LoaderCircle size={14} data-ui="palette-spinner" />{/if}
+						{#if searching}<LoaderCircle
+								size={14}
+								data-ui="palette-spinner"
+							/>{/if}
 					</div>
 
 					<Command.List data-ui="palette-results">
@@ -309,8 +315,8 @@
 							{#if !location && pins.paths.length > 0}
 								<Command.Group>
 									<Command.GroupHeading data-ui="palette-group-heading"
-									>Pinned</Command.GroupHeading
-								>
+										>Pinned</Command.GroupHeading
+									>
 									<Command.GroupItems>
 										{#each pins.paths as path (path)}
 											<Command.Item
@@ -340,11 +346,9 @@
 											onSelect={() => void submit(directory.path)}
 										>
 											<Folder size={15} />
-											<span data-ui="palette-result-name"
-												>{directory.name}</span
+											<span data-ui="palette-result-name">{directory.name}</span
 											>
-											<span data-ui="palette-result-path"
-												>{directory.path}</span
+											<span data-ui="palette-result-path">{directory.path}</span
 											>
 											<span
 												role="button"

@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 20 as const;
+export const protocolVersion = 21 as const;
 
 const sessionTitleLimit = 48;
 
@@ -389,7 +389,6 @@ export const projectDomainsSchema = Type.Object(
 				{
 					id: Type.String({ minLength: 1, maxLength: 64 }),
 					name: Type.String({ minLength: 1, maxLength: 64 }),
-					detected: Type.Boolean(),
 					root: Type.String({ minLength: 1 }),
 				},
 				{ additionalProperties: false },

@@ -10,10 +10,11 @@ forking the product.
 
 Gizmo stores user-selected workspaces in its app data directory, while each
 workspace owns its agent profiles under `.gizmo/profiles.json`. A profile
-selects the prompt fragments, tools, skills, and extension contributions that
-shape new threads. Extension packages such as Unity and Svelte provide profile
-defaults, but the saved project profile is the source of truth once copied into
-the workspace. See [`docs/workspace-profiles.md`](docs/workspace-profiles.md)
+selects globally installed extensions, prompt/tool policy, and skill overrides
+for new threads. Gizmo never guesses a workspace type: new workspaces start on
+Default with no Gizmo extensions enabled. Built-in and extension defaults stay
+canonical; changing one creates a project override only while values differ.
+See [`docs/workspace-profiles.md`](docs/workspace-profiles.md)
 and [`docs/extensions.md`](docs/extensions.md).
 
 The default profile keeps Pi's default system prompt unchanged, plus any skills

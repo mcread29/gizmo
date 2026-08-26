@@ -9,11 +9,11 @@
 > composer text operations use native Gizmo UI.
 
 Gizmo owns exactly one integration contract: the extension. There is no
-separate "domain" concept — workspace detection, tools, system prompt, a live
-project process, and UI (dialogs, panels, tool-result rendering) are all just
-optional capabilities an extension may contribute. Core knows only that
-contract; it has no extension categories, no runtime-specific types, and no
-hardcoded knowledge of any specific extension (Unity included).
+separate "domain" concept — tools, system prompt guidance, a live project
+process, and UI (dialogs, panels, tool-result rendering) are optional
+capabilities an extension may contribute. Extensions are installed globally
+and explicitly enabled in workspace profiles; Gizmo does not detect workspace
+types. Core knows no runtime-specific extension types.
 
 Unity is the largest extension today. Git, Svelte, and Activity are
 extracted the same way: standalone first-party packages (`@gizmo/unity`,
@@ -31,17 +31,16 @@ web extension would.
 Two small interfaces, one per side, mirror each other:
 
 - **Server** — `GizmoServerExtension` (`@gizmo/extensions`): `id`, `name`,
-  plus optional `detect`/`detectRoots`/`profile`/`systemPrompt`/`createTools`
-  (workspace integration), optional `list`/`invoke` (live RPC-style
+  plus optional `profile`/`systemPrompt`/`createTools` (manually enabled
+  workspace integration), optional `list`/`invoke` (live RPC-style
   operations the web UI can call), and optional `createProjectService`
   (a running external process with status/watch/open/revert).
 - **Client** — `GizmoWebExtension` (`apps/app/src/lib/extensions/types.ts`):
   `id`, plus optional `dialog`/`settings`/`createView`/`hasProjectStatus`
   (workspace UI), optional `apiVersion`/`activate` (matched against a
   server-reported descriptor to activate live operations), optional
-  `inspectorTabs`/`commands`/`statusBar` (static contributions — a workspace
-  inspector tab, a global command-palette entry, and a small always-visible
-  titlebar indicator, respectively — none need per-project activation), and
+  `inspectorTabs`/`commands`/`statusBar` (a workspace inspector tab, command,
+  and titlebar indicator shown only while the extension is active), and
   optional `labels`/`iconFor`/`consoleEntriesKey`/`parametersFor`/`resultFor`/
   `diagnosticsComponent` (tool-result presentation).
 

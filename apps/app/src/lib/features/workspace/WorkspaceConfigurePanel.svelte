@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { Copy, Lock, MoreHorizontal, Plus, Trash2 } from '@lucide/svelte';
+	import { Copy, MoreHorizontal, Plus, Trash2 } from '@lucide/svelte';
 	import type {
 		ProjectDomains,
 		ProjectSkill,
@@ -14,6 +14,11 @@
 	import ExtensionSettings from '../../extensions/ExtensionSettings.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SkillList from '../settings/SkillList.svelte';
+	import {
+		isTemporaryProfile,
+		sameProfileValues,
+		temporaryProfile,
+	} from './profile-overrides';
 
 	interface Props {
 		store: AgentStore;
@@ -113,11 +118,12 @@
 	let editing = $derived(
 		profiles.find(({ id }) => id === editingId) ?? profiles[0],
 	);
-	/** Only workspace-authored profiles are editable; the rest are duplicated. */
-	function isEditable(profile: WorkspaceProfile | undefined): boolean {
+	function isWorkspaceProfile(profile: WorkspaceProfile | undefined): boolean {
 		return (profile?.source ?? 'workspace').startsWith('workspace');
 	}
-	let editable = $derived(isEditable(editing));
+	// Installed defaults are customizable too. Their first changed value creates
+	// a temporary workspace override rather than mutating the canonical profile.
+	let editable = $derived(Boolean(editing));
 	let profileOptions = $derived(
 		profiles.map((profile) => ({
 			value: profile.id,
@@ -125,9 +131,9 @@
 			hint:
 				profile.id === setup?.profiles.activeProfileId
 					? 'active'
-					: isEditable(profile)
-						? undefined
-						: 'read-only',
+					: isTemporaryProfile(profile)
+						? 'temporary override'
+						: undefined,
 		})),
 	);
 	let dirty = $derived(
@@ -236,29 +242,65 @@
 		return profile?.skills?.find((skill) => skill.id === id)?.enabled;
 	}
 
+	function editableProfile() {
+		if (!setup || !editing) return undefined;
+		if (isWorkspaceProfile(editing)) return editing;
+		const baseProfile = editing;
+		const existing = profiles.find(
+			(profile) =>
+				isTemporaryProfile(profile) && profile.base === baseProfile.id,
+		);
+		if (existing) {
+			editingId = existing.id;
+			return existing;
+		}
+		const temporary = temporaryProfile(baseProfile, profiles);
+		setup.profiles.profiles = [...profiles, temporary];
+		if (setup.profiles.activeProfileId === baseProfile.id) {
+			setup.profiles.activeProfileId = temporary.id;
+		}
+		editingId = temporary.id;
+		return setup.profiles.profiles.find(({ id }) => id === temporary.id);
+	}
+
+	function settleTemporary(profile: WorkspaceProfile) {
+		if (!setup || !isTemporaryProfile(profile) || !profile.base) return;
+		const baseProfile = profiles.find(({ id }) => id === profile.base);
+		if (!baseProfile || !sameProfileValues(profile, baseProfile)) return;
+		setup.profiles.profiles = profiles.filter(({ id }) => id !== profile.id);
+		if (setup.profiles.activeProfileId === profile.id) {
+			setup.profiles.activeProfileId = baseProfile.id;
+		}
+		editingId = baseProfile.id;
+	}
+
 	function setExtension(id: string, root: string | undefined) {
-		if (!editing) return;
-		const rest = editing.extensions.filter((extension) => extension.id !== id);
-		editing.extensions =
+		const profile = editableProfile();
+		if (!profile) return;
+		const rest = profile.extensions.filter((extension) => extension.id !== id);
+		profile.extensions =
 			root === undefined ? rest : [...rest, { id, root }].sort(byId);
+		settleTemporary(profile);
 	}
 
 	function toggleExtension(id: string, checked: boolean) {
 		if (!setup) return;
-		const detected =
+		const defaultRoot =
 			setup.available.find((candidate) => candidate.id === id)?.root ?? '.';
 		setExtension(
 			id,
-			checked ? (extensionRoot(base, id) ?? detected) : undefined,
+			checked ? (extensionRoot(base, id) ?? defaultRoot) : undefined,
 		);
 	}
 
 	function setSkill(id: string, enabled: boolean | null) {
-		if (!editing) return;
-		const rest = (editing.skills ?? []).filter((skill) => skill.id !== id);
-		editing.skills = (
+		const profile = editableProfile();
+		if (!profile) return;
+		const rest = (profile.skills ?? []).filter((skill) => skill.id !== id);
+		profile.skills = (
 			enabled === null ? rest : [...rest, { id, enabled }]
 		).sort(byId);
+		settleTemporary(profile);
 	}
 
 	function revertExtension(id: string) {
@@ -270,20 +312,32 @@
 	}
 
 	function revertTools() {
-		if (editing && base) editing.tools = { mode: toolsMode(base) };
+		if (!base) return;
+		const profile = editableProfile();
+		if (!profile) return;
+		profile.tools = { mode: toolsMode(base) };
+		settleTemporary(profile);
 	}
 
 	function revertPrompt() {
-		if (editing && base) editing.prompt = { mode: promptMode(base) };
+		if (!base) return;
+		const profile = editableProfile();
+		if (!profile) return;
+		profile.prompt = { mode: promptMode(base) };
+		settleTemporary(profile);
 	}
 
 	/** One step back to the base for everything that departs from it. */
 	function revertToBase() {
-		if (!editing || !base) return;
-		editing.extensions = base.extensions.map((extension) => ({ ...extension }));
-		editing.skills = (base.skills ?? []).map((skill) => ({ ...skill }));
-		editing.tools = { mode: toolsMode(base) };
-		editing.prompt = { mode: promptMode(base) };
+		if (!base) return;
+		const profile = editableProfile();
+		if (!profile) return;
+		profile.name = base.name;
+		profile.extensions = base.extensions.map((extension) => ({ ...extension }));
+		profile.skills = (base.skills ?? []).map((skill) => ({ ...skill }));
+		profile.tools = { mode: toolsMode(base) };
+		profile.prompt = { mode: promptMode(base) };
+		settleTemporary(profile);
 	}
 
 	function byId(left: { id: string }, right: { id: string }) {
@@ -336,10 +390,14 @@
 		editingId = setup.profiles.activeProfileId;
 	}
 
-	/** A workspace profile can be deleted; the built-in and extension ones stay. */
+	/** User-created profiles can be deleted; defaults and temporary overrides cannot. */
 	let deletable = $derived(
 		Boolean(
-			editing && editable && editing.id !== 'default' && profiles.length > 1,
+			editing &&
+			isWorkspaceProfile(editing) &&
+			!isTemporaryProfile(editing) &&
+			editing.id !== 'default' &&
+			profiles.length > 1,
 		),
 	);
 
@@ -428,14 +486,6 @@
 				: {}),
 		};
 	}
-
-	/** Read-only profiles carry a `builtin:`/`extension:` origin worth naming. */
-	function originLabel(profile: WorkspaceProfile): string {
-		if (profile.source === 'builtin:default') return 'built in';
-		if (profile.source?.startsWith('extension:'))
-			return `from the ${profile.source.replace(/^extension:/, '')} extension`;
-		return 'provided';
-	}
 </script>
 
 {#snippet revertMenu(what: string, label: string, onRevert: () => void)}
@@ -468,9 +518,6 @@
 				options={profileOptions}
 				onValueChange={(id) => (editingId = id)}
 			/>
-			{#if !isEditable(editing)}
-				<span data-ui="config-lock-chip"><Lock size={11} /> read-only</span>
-			{/if}
 			<Menu
 				items={[
 					{ label: 'New profile', onSelect: newProfile },
@@ -487,56 +534,31 @@
 				{/snippet}
 			</Menu>
 			<span data-ui="config-profilebar-spacer"></span>
-			{#if editable}
-				<Button size="sm" variant="ghost" onclick={duplicateProfile}
-					><Copy size={14} /> Duplicate</Button
-				>
-				{#if dirty}
-					<Button size="sm" variant="ghost" disabled={saving} onclick={revert}
-						>Revert</Button
-					>
-				{/if}
-				<Button
-					size="sm"
-					disabled={saving || !dirty}
-					onclick={() => void save()}>{saving ? 'Saving…' : 'Save'}</Button
-				>
-			{:else}
-				<Button size="sm" onclick={duplicateProfile}
-					><Copy size={14} /> Duplicate to edit</Button
+			<Button size="sm" variant="ghost" onclick={duplicateProfile}
+				><Copy size={14} /> Duplicate</Button
+			>
+			{#if dirty}
+				<Button size="sm" variant="ghost" disabled={saving} onclick={revert}
+					>Revert</Button
 				>
 			{/if}
+			<Button size="sm" disabled={saving || !dirty} onclick={() => void save()}
+				>{saving ? 'Saving…' : 'Save'}</Button
+			>
 		</div>
 
 		<p data-ui="config-profilebar-note">
-			{#if editable}
-				Editing <strong>{editing.name}</strong>.
-				{#if editing.id === setup.profiles.activeProfileId}
-					New threads in this workspace use it.
-				{:else}
-					New threads use the active profile.
-				{/if}
+			Editing <strong>{editing.name}</strong>.
+			{#if isTemporaryProfile(editing)}
+				This temporary override disappears when it matches its default again.
+			{:else if editing.id === setup.profiles.activeProfileId}
+				New threads in this workspace use it.
 			{:else}
-				<strong>{editing.name}</strong> is {originLabel(editing)} and read-only. New
-				threads use the active profile.
+				New threads use the active profile.
 			{/if}
 		</p>
 
 		{#if error}<p data-ui="resource-error">{error}</p>{/if}
-
-		{#if !editable}
-			<div data-ui="config-lock-banner">
-				<Lock size={15} />
-				<div>
-					<strong>{editing.name}</strong> is {originLabel(editing)} and can’t be edited
-					in place. Duplicate it to customize — your copy stays editable and keeps
-					inheriting new defaults you don’t override.
-				</div>
-				<Button size="sm" onclick={duplicateProfile}
-					><Copy size={14} /> Duplicate to edit</Button
-				>
-			</div>
-		{/if}
 
 		<!-- ZONE 1 · This profile ------------------------------------------------ -->
 		<div data-ui="config-zone-heading">
@@ -583,7 +605,10 @@
 						disabled={!editable}
 						value={editing.name}
 						oninput={(event) => {
-							if (editing) editing.name = event.currentTarget.value;
+							const profile = editableProfile();
+							if (!profile) return;
+							profile.name = event.currentTarget.value;
+							settleTemporary(profile);
 						}}
 					/>
 				</div>
@@ -612,13 +637,13 @@
 			<div data-ui="settings-subhead">
 				<strong>Extensions</strong>
 				<span
-					>Which extensions this profile turns on, and where each is rooted.</span
+					>Installed globally and enabled here only when you choose them.</span
 				>
 			</div>
 			<div data-ui="settings-card">
 				{#if setup.available.length === 0}
 					<p data-ui="resource-empty">
-						No extensions are available for this workspace.
+						No Gizmo extensions are installed globally.
 					</p>
 				{:else}
 					<div data-ui="integration-list" data-layout="workspace-setup">
@@ -642,11 +667,7 @@
 									/>
 									<span>
 										<strong>{extension.name}</strong>
-										<small
-											>{extension.detected
-												? 'Detected in this workspace'
-												: 'Not detected'}</small
-										>
+										<small>Installed globally</small>
 									</span>
 								</label>
 								{#if root !== undefined && root !== '.'}
@@ -691,7 +712,10 @@
 									: undefined}
 								disabled={!editable}
 								onclick={() => {
-									if (editing) editing.tools = { mode: mode.value };
+									const profile = editableProfile();
+									if (!profile) return;
+									profile.tools = { mode: mode.value };
+									settleTemporary(profile);
 								}}>{mode.label}</button
 							>
 						{/each}
@@ -718,7 +742,10 @@
 									: undefined}
 								disabled={!editable}
 								onclick={() => {
-									if (editing) editing.prompt = { mode: mode.value };
+									const profile = editableProfile();
+									if (!profile) return;
+									profile.prompt = { mode: mode.value };
+									settleTemporary(profile);
 								}}>{mode.label}</button
 							>
 						{/each}

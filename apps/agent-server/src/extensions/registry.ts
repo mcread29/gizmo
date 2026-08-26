@@ -1,5 +1,4 @@
-import { relative, resolve } from 'node:path';
-import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
+import { resolve } from 'node:path';
 import type { WorkspaceIntegration, WorkspaceProfile } from '@gizmo/protocol';
 import type {
 	ActiveExtensions,
@@ -10,7 +9,7 @@ import { isPathWithin } from '../path-utils';
 
 let extensions: readonly GizmoServerExtension[] = [];
 
-/** Installs the extensions available to detect/activate against a workspace. */
+/** Installs the global extension catalog available for manual activation. */
 export function registerExtensions(
 	loaded: readonly GizmoServerExtension[],
 ): void {
@@ -22,40 +21,22 @@ export function registeredExtensions(): readonly GizmoServerExtension[] {
 	return extensions;
 }
 
-/** Tools every session receives, regardless of detected integrations. */
-export function defaultExtensionTools(
-	context: ExtensionContext,
-): ToolDefinition[] {
-	return extensions.flatMap(
-		(extension) => extension.defaultTools?.(context) ?? [],
-	);
-}
-
-export async function detectExtensions(workspacePath: string) {
-	const detectable = extensions.filter((extension) => extension.detect);
-	const detected = await Promise.all(
-		detectable.map(async (extension) => {
-			const roots = extension.detectRoots
-				? await extension.detectRoots(workspacePath)
-				: (await extension.detect!(workspacePath))
-					? [workspacePath]
-					: [];
-			const root = roots[0];
-			return {
-				id: extension.id,
-				name: extension.name,
-				detected: Boolean(root),
-				root: root ? relative(workspacePath, root) || '.' : '.',
-			};
-		}),
-	);
+/**
+ * Lists globally installed Gizmo extensions. Enabling them is always an
+ * explicit per-profile choice; opening a workspace never probes its contents.
+ */
+export function installedExtensionCatalog() {
 	return {
-		domains: detected,
+		domains: extensions.map((extension) => ({
+			id: extension.id,
+			name: extension.name,
+			root: '.',
+		})),
 		profiles: [
 			defaultProfile(),
-			...detected
-				.filter(({ detected }) => detected)
-				.map(({ id, root }) => extensionFor(id).profile!(root)),
+			...extensions.flatMap((extension) =>
+				extension.profile ? [extension.profile('.')] : [],
+			),
 		],
 	};
 }
@@ -114,10 +95,4 @@ export function defaultProfile(): WorkspaceProfile {
 		tools: { mode: 'default' },
 		prompt: { mode: 'pi-default' },
 	};
-}
-
-function extensionFor(id: string): GizmoServerExtension {
-	const extension = extensions.find((candidate) => candidate.id === id);
-	if (!extension) throw new Error(`Unknown extension: ${id}`);
-	return extension;
 }

@@ -28,7 +28,6 @@ describe('ProjectCatalog', () => {
 		expect((await catalog.detect(project)).domains).toContainEqual({
 			id: 'svelte',
 			name: 'Svelte',
-			detected: true,
 			root: '.',
 		});
 		await catalog.add(project, [{ id: 'svelte', root: '.' }]);
@@ -53,7 +52,7 @@ describe('ProjectCatalog', () => {
 		expect(await catalog.list()).toEqual([]);
 	});
 
-	it('detects a Svelte app nested in a monorepo', async () => {
+	it('lists installed extensions without detecting a nested workspace type', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');
 		await mkdir(join(project, 'apps', 'app'), { recursive: true });
@@ -66,13 +65,52 @@ describe('ProjectCatalog', () => {
 		expect((await catalog.detect(project)).domains).toContainEqual({
 			id: 'svelte',
 			name: 'Svelte',
-			detected: true,
-			root: join('apps', 'app'),
+			root: '.',
 		});
 
 		await expect(
 			catalog.add(project, [{ id: 'svelte', root: join('apps', 'app') }]),
 		).resolves.toMatchObject({ path: project });
+	});
+
+	it('keeps changed default overrides and removes them when they match again', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		const catalog = new ProjectCatalog(data);
+		const added = await catalog.add(project, []);
+		const defaults = added.profiles!;
+		const base = defaults.find(({ id }) => id === 'default')!;
+		const override = {
+			...base,
+			id: 'default-override',
+			source: 'workspace:temporary',
+			base: 'default',
+			extensions: [{ id: 'svelte', root: '.' }],
+		};
+
+		const changed = await catalog.saveProfiles(project, {
+			version: 1,
+			activeProfileId: override.id,
+			profiles: [...defaults, override],
+		});
+		expect(changed.activeProfileId).toBe(override.id);
+		expect(changed.profiles).toContainEqual(override);
+
+		const reset = await catalog.saveProfiles(project, {
+			version: 1,
+			activeProfileId: override.id,
+			profiles: [
+				...defaults,
+				{
+					...override,
+					extensions: base.extensions.map((item) => ({ ...item })),
+				},
+			],
+		});
+		expect(reset.activeProfileId).toBe('default');
+		expect(reset.profiles).not.toContainEqual(
+			expect.objectContaining({ id: override.id }),
+		);
 	});
 
 	it('reads projects saved with the old single-domain format', async () => {
@@ -96,10 +134,13 @@ describe('ProjectCatalog', () => {
 				path: project,
 				integrations: [{ id: 'unity', root: '.' }],
 				activeProfileId: 'unity',
-				profiles: [
-					{ id: 'default', extensions: [] },
-					{ id: 'unity', extensions: [{ id: 'unity', root: '.' }] },
-				],
+				profiles: expect.arrayContaining([
+					expect.objectContaining({ id: 'default', extensions: [] }),
+					expect.objectContaining({
+						id: 'unity',
+						extensions: [{ id: 'unity', root: '.' }],
+					}),
+				]),
 				addedAt: 1,
 			},
 		]);
@@ -129,9 +170,9 @@ describe('ProjectCatalog', () => {
 		expect(await catalog.search('Widgets', project)).toMatchObject({
 			directories: [],
 		});
-		expect(await catalog.search('Widgets', join(project, 'Assets'))).toMatchObject(
-			{ directories: [{ name: 'Widgets' }] },
-		);
+		expect(
+			await catalog.search('Widgets', join(project, 'Assets')),
+		).toMatchObject({ directories: [{ name: 'Widgets' }] });
 	});
 
 	it('only matches an actual substring, not a loose subsequence', async () => {

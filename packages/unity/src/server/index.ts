@@ -9,13 +9,19 @@ const extensionProvider = new UnityExtensionProvider();
 export const gizmoExtension: GizmoServerExtension = {
 	id: unityDomain.id!,
 	name: unityDomain.name!,
-	detect: unityDomain.detect,
 	profile: unityDomain.profile,
 	systemPrompt: unityDomain.systemPrompt,
 	createTools: unityDomain.createTools,
-	list: (workspacePath, signal) => extensionProvider.list(workspacePath, signal),
+	list: (workspacePath, signal) =>
+		extensionProvider.list(workspacePath, signal),
 	invoke: (workspacePath, extensionId, operationId, input, signal) =>
-		extensionProvider.invoke(workspacePath, extensionId, operationId, input, signal),
+		extensionProvider.invoke(
+			workspacePath,
+			extensionId,
+			operationId,
+			input,
+			signal,
+		),
 	createProjectService: () => new UnityProjectService(),
 };
 

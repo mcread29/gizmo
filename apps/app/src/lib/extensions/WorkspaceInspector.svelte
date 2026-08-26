@@ -35,7 +35,9 @@
 	// only contributes its own tabs, never the whole panel.
 	$effect(() => {
 		const projectPath = view.workspacePath;
-		const descriptors = store.projectExtensions;
+		const descriptors = store.projectExtensions.filter(({ id }) =>
+			store.activeDomains.includes(id),
+		);
 		const runtimes = projectPath
 			? activateProjectExtensions(descriptors, {
 					projectPath,
@@ -67,6 +69,7 @@
 				]
 			: []),
 		...webExtensions()
+			.filter(({ id }) => store.activeDomains.includes(id))
 			.flatMap(
 				(definition) =>
 					definition.inspectorTabs?.({

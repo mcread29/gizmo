@@ -16,7 +16,10 @@ import {
 	type WorkspaceProfile,
 	type WorkspaceProfiles,
 } from '@gizmo/protocol';
-import { defaultProfile, detectExtensions } from '../extensions/registry';
+import {
+	defaultProfile,
+	installedExtensionCatalog,
+} from '../extensions/registry';
 import { isPathWithin } from '../path-utils';
 import { defaultDataDir } from '../sessions/session-repository';
 
@@ -71,7 +74,7 @@ export class ProjectCatalog {
 
 	async detect(projectPath: string): Promise<ProjectDomains> {
 		const path = await requireDirectory(projectPath);
-		return detectExtensions(path);
+		return installedExtensionCatalog();
 	}
 
 	async browse(input?: string) {
@@ -106,7 +109,8 @@ export class ProjectCatalog {
 		});
 
 		matches.sort(
-			(left, right) => right.score - left.score || left.name.localeCompare(right.name),
+			(left, right) =>
+				right.score - left.score || left.name.localeCompare(right.name),
 		);
 		return {
 			path,
@@ -158,8 +162,12 @@ export class ProjectCatalog {
 		if (!existing) {
 			throw new Error(`Workspace is not registered with Gizmo: ${path}`);
 		}
-		await this.#validateProfiles(path, profiles);
-		await this.#profileMutex(path).run(() => writeProfiles(path, profiles));
+		const canonical = reconcileProfiles(
+			profiles,
+			installedExtensionCatalog().profiles ?? [defaultProfile()],
+		);
+		await this.#validateProfiles(path, canonical);
+		await this.#profileMutex(path).run(() => writeProfiles(path, canonical));
 		return this.#storedProject(existing);
 	}
 
@@ -193,13 +201,22 @@ export class ProjectCatalog {
 		}
 		return this.#profileMutex(path).run(async () => {
 			const profiles = await this.#profiles(path, project);
-			const profile = activeProfile(profiles);
+			let profile = activeProfile(profiles);
 			if (!profile) throw new Error('The active profile is missing');
+			if (!(profile.source ?? 'workspace').startsWith('workspace')) {
+				profile = temporaryProfileFor(profile, profiles.profiles);
+				profiles.profiles.push(profile);
+				profiles.activeProfileId = profile.id;
+			}
 			const skills = (profile.skills ?? []).filter(({ id }) => id !== skillId);
 			if (enabled !== null) skills.push({ id: skillId, enabled });
 			profile.skills = skills;
-			await writeProfiles(path, profiles);
-			return skills;
+			const reconciled = reconcileProfiles(
+				profiles,
+				installedExtensionCatalog().profiles ?? [defaultProfile()],
+			);
+			await writeProfiles(path, reconciled);
+			return activeProfile(reconciled)?.skills ?? [];
 		});
 	}
 
@@ -214,12 +231,17 @@ export class ProjectCatalog {
 		return this.#profiles(path, project);
 	}
 
+	async activeProfileFor(projectPath: string | undefined) {
+		if (!projectPath) return defaultProfile();
+		return (
+			activeProfile(await this.profilesFor(projectPath)) ?? defaultProfile()
+		);
+	}
+
 	async integrationsFor(
 		projectPath: string | undefined,
 	): Promise<WorkspaceIntegration[]> {
-		if (!projectPath) return [];
-		const profiles = await this.profilesFor(projectPath);
-		return activeProfile(profiles)?.extensions ?? [];
+		return (await this.activeProfileFor(projectPath)).extensions;
 	}
 
 	async #storedProject(project: CatalogProject): Promise<StoredProject> {
@@ -240,14 +262,20 @@ export class ProjectCatalog {
 		projectPath: string,
 		project?: CatalogProject,
 	): Promise<WorkspaceProfiles> {
+		const templates = installedExtensionCatalog().profiles ?? [
+			defaultProfile(),
+		];
 		try {
-			return normalizeProfiles(
-				JSON.parse(await readFile(profileFile(projectPath), 'utf8')),
+			return reconcileProfiles(
+				normalizeProfiles(
+					JSON.parse(await readFile(profileFile(projectPath), 'utf8')),
+				),
+				templates,
 			);
 		} catch (error) {
 			if (!missing(error)) throw error;
 			return profilesFromSelection(
-				[],
+				templates,
 				project?.integrations ?? [],
 				project?.skills ?? [],
 			);
@@ -342,9 +370,23 @@ function profilesFromSelection(
 	const defaultEntry = cloneProfile(
 		templates.find(({ id }) => id === 'default') ?? defaultProfile(),
 	);
-	const selected = integrations.length
-		? profileForSelection(templates, integrations, skills)
-		: { ...defaultEntry, ...(skills.length ? { skills: [...skills] } : {}) };
+	const selectedBase = integrations.length
+		? profileForSelection(templates, integrations, [])
+		: defaultEntry;
+	const selected =
+		skills.length &&
+		!(selectedBase.source ?? 'workspace').startsWith('workspace')
+			? {
+					...cloneProfile(selectedBase),
+					id: `${selectedBase.id.slice(0, 54)}-override`,
+					source: 'workspace:temporary',
+					base: selectedBase.id,
+					skills: [...skills],
+				}
+			: {
+					...selectedBase,
+					...(skills.length ? { skills: [...skills] } : {}),
+				};
 	const profiles = uniqueProfiles([
 		defaultEntry,
 		...templates.filter(({ id }) => id !== 'default').map(cloneProfile),
@@ -400,6 +442,81 @@ function normalizeProfiles(input: unknown): WorkspaceProfiles {
 			? candidate.activeProfileId
 			: profiles[0]!.id;
 	return { version: 1, activeProfileId, profiles: uniqueProfiles(profiles) };
+}
+
+function temporaryProfileFor(
+	base: WorkspaceProfile,
+	profiles: readonly WorkspaceProfile[],
+): WorkspaceProfile {
+	const stem = `${base.id.slice(0, 54)}-override`;
+	let id = stem;
+	for (
+		let index = 2;
+		profiles.some((profile) => profile.id === id);
+		index += 1
+	) {
+		const suffix = `-${index}`;
+		id = `${stem.slice(0, 64 - suffix.length)}${suffix}`;
+	}
+	return {
+		...cloneProfile(base),
+		id,
+		source: 'workspace:temporary',
+		base: base.id,
+	};
+}
+
+function reconcileProfiles(
+	stored: WorkspaceProfiles,
+	templates: readonly WorkspaceProfile[],
+): WorkspaceProfiles {
+	const canonical = uniqueProfiles(templates.map(cloneProfile));
+	const canonicalIds = new Set(canonical.map(({ id }) => id));
+	const workspaceProfiles = stored.profiles
+		.filter(({ id }) => !canonicalIds.has(id))
+		.map(cloneProfile);
+	const combined = [...canonical, ...workspaceProfiles];
+	const removed = new Map<string, string>();
+	const profiles = combined.filter((profile) => {
+		if (profile.source !== 'workspace:temporary' || !profile.base) return true;
+		const base = combined.find(({ id }) => id === profile.base);
+		if (!base || !sameProfileValues(profile, base)) return true;
+		removed.set(profile.id, base.id);
+		return false;
+	});
+	const requested =
+		removed.get(stored.activeProfileId) ?? stored.activeProfileId;
+	return {
+		version: 1,
+		activeProfileId: profiles.some(({ id }) => id === requested)
+			? requested
+			: (profiles[0]?.id ?? 'default'),
+		profiles: uniqueProfiles(profiles),
+	};
+}
+
+function sameProfileValues(left: WorkspaceProfile, right: WorkspaceProfile) {
+	return (
+		JSON.stringify(profileValues(left)) === JSON.stringify(profileValues(right))
+	);
+}
+
+function profileValues(profile: WorkspaceProfile) {
+	return {
+		name: profile.name,
+		extensions: [...profile.extensions]
+			.map(({ id, root }) => ({ id, root }))
+			.sort(byId),
+		skills: [...(profile.skills ?? [])]
+			.map(({ id, enabled }) => ({ id, enabled }))
+			.sort(byId),
+		tools: profile.tools?.mode ?? 'default',
+		prompt: profile.prompt?.mode ?? 'pi-default',
+	};
+}
+
+function byId(left: { id: string }, right: { id: string }) {
+	return left.id.localeCompare(right.id);
 }
 
 function activeProfile(

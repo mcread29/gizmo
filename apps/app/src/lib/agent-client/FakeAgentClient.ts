@@ -619,8 +619,15 @@ export class FakeAgentClient implements AgentClient {
 	async detectProject(_projectPath: string): Promise<ProjectDomains> {
 		return {
 			domains: [
-				{ id: 'unity', name: 'Unity', detected: true, root: '.' },
-				{ id: 'svelte', name: 'Svelte', detected: true, root: 'WebFrontend' },
+				{ id: 'unity', name: 'Unity', root: '.' },
+				{ id: 'svelte', name: 'Svelte', root: '.' },
+				{ id: 'git', name: 'Git', root: '.' },
+				{ id: 'activity', name: 'Activity', root: '.' },
+				{
+					id: 'skill-authoring',
+					name: 'Skill Authoring',
+					root: '.',
+				},
 			],
 		};
 	}
@@ -968,11 +975,13 @@ const fakeProjects: StoredProject[] = [
 		integrations: [
 			{ id: 'unity', root: '.' },
 			{ id: 'svelte', root: 'WebFrontend' },
+			{ id: 'git', root: '.' },
 		],
-		activeProfileId: 'unity-svelte',
+		activeProfileId: 'unity-svelte-git',
 		profiles: fakeProfiles([
 			{ id: 'unity', root: '.' },
 			{ id: 'svelte', root: 'WebFrontend' },
+			{ id: 'git', root: '.' },
 		]).profiles,
 		addedAt: 1,
 	},

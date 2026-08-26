@@ -113,7 +113,7 @@ class InvalidEventClient implements AgentClient {
 	}
 	async detectProject() {
 		return {
-			domains: [{ id: 'svelte', name: 'Svelte', detected: true, root: '.' }],
+			domains: [{ id: 'svelte', name: 'Svelte', root: '.' }],
 		};
 	}
 	async browseProjects() {

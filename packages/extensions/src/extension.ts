@@ -22,22 +22,9 @@ export interface GizmoServerExtension {
 	 * convention, so an extension never needs a parallel Gizmo skill system.
 	 */
 	packageRoot?: string;
-	detect?(workspacePath: string): Promise<boolean>;
-	/**
-	 * Roots this extension applies to inside the workspace. Only the first
-	 * root is used: it becomes the integration root for detection and the
-	 * default profile. Multi-root selection is not supported yet — return
-	 * the most relevant root first.
-	 */
-	detectRoots?(workspacePath: string): Promise<string[]>;
 	profile?(root: string): WorkspaceProfile;
 	systemPrompt?: string;
 	createTools?(context: ExtensionContext): ToolDefinition[];
-	/**
-	 * Tools contributed to every session regardless of workspace detection —
-	 * for capabilities that are always on, like Git status.
-	 */
-	defaultTools?(context: ExtensionContext): ToolDefinition[];
 	list?(
 		workspacePath: string,
 		signal: AbortSignal,
