@@ -437,6 +437,10 @@ export class FakeAgentClient implements AgentClient {
 		this.#getSession(sessionId);
 	}
 
+	async reloadSession(sessionId: string): Promise<void> {
+		this.#getSession(sessionId);
+	}
+
 	async steer(
 		sessionId: string,
 		text: string,

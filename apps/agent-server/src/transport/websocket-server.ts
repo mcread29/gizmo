@@ -84,7 +84,8 @@ export async function createAgentWebSocketServer(
 		 * underlying poll); watching a different path replaces it, matching
 		 * the single-watch behavior of the project services.
 		 */
-		let watchedProject: { path: string; stopExtensionWatch: () => void } | undefined;
+		let watchedProject:
+			{ path: string; stopExtensionWatch: () => void } | undefined;
 		/**
 		 * Coalesces project watches for this connection: the same path reuses
 		 * the live watch, a different path replaces it. Without this, every
@@ -92,10 +93,7 @@ export async function createAgentWebSocketServer(
 		 * restart discarded the previous one's listeners.
 		 */
 		const watchCoordinator = {
-			watch(
-				sessionId: string,
-				projectPath: string,
-			): Promise<ProjectStatus> {
+			watch(sessionId: string, projectPath: string): Promise<ProjectStatus> {
 				if (watchedProject?.path === projectPath) {
 					// Already watching: report the current status without
 					// restarting, so the existing listeners stay live.
@@ -104,8 +102,7 @@ export async function createAgentWebSocketServer(
 				watchedProject?.stopExtensionWatch();
 				const stopExtensionWatch = extensionHost.watch(
 					projectPath,
-					(extensions) =>
-						emit.extensions(sessionId, projectPath, extensions),
+					(extensions) => emit.extensions(sessionId, projectPath, extensions),
 				);
 				watchedProject = { path: projectPath, stopExtensionWatch };
 				return projectService.watchStatus(projectPath, {
@@ -318,6 +315,9 @@ async function dispatch(
 			return {};
 		case 'session.compact':
 			await service.compact(request.sessionId, request.compaction);
+			return {};
+		case 'session.reload':
+			await service.reloadSession(request.sessionId);
 			return {};
 		case 'session.steer':
 			await service.steer(request.sessionId, request.text, request.attachments);

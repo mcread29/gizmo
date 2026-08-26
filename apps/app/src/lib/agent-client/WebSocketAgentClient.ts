@@ -178,6 +178,10 @@ export class WebSocketAgentClient implements AgentClient {
 		await this.#request({ type: 'session.compact', sessionId, compaction });
 	}
 
+	async reloadSession(sessionId: string): Promise<void> {
+		await this.#request({ type: 'session.reload', sessionId });
+	}
+
 	async steer(
 		sessionId: string,
 		text: string,

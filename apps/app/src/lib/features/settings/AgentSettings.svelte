@@ -5,6 +5,7 @@
 	import { Button } from '../../components';
 	import SettingsPage from './SettingsPage.svelte';
 	import SkillList from './SkillList.svelte';
+	import { toasts } from '../../toasts.svelte';
 
 	let { store }: { store: AgentStore } = $props();
 
@@ -64,6 +65,15 @@
 	function install(skill: SkillResource, installed: boolean) {
 		void store.setGlobalSkill(skill.id, { installed });
 	}
+
+	async function reloadRuntime() {
+		if (await store.reloadRuntime()) {
+			toasts.show(
+				'Reloaded extensions, skills, prompts, and context',
+				'success',
+			);
+		}
+	}
 </script>
 
 <SettingsPage title="Agent" scope="Applies to every workspace on this machine">
@@ -76,7 +86,16 @@
 			size="sm"
 			disabled={store.resourcesLoading}
 			onclick={() => void store.refreshResources()}
-			>{store.resourcesLoading ? 'Reloading…' : 'Reload'}</Button
+			>{store.resourcesLoading ? 'Refreshing…' : 'Refresh catalog'}</Button
+		>
+		<Button
+			variant="secondary"
+			size="sm"
+			disabled={!store.sessionId ||
+				store.runtimeReloading ||
+				store.sessionState === 'streaming'}
+			onclick={() => void reloadRuntime()}
+			>{store.runtimeReloading ? 'Reloading…' : 'Reload runtime'}</Button
 		>
 	{/snippet}
 

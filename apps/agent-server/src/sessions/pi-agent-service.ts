@@ -49,7 +49,6 @@ import {
 	type PiImage,
 } from '../attachments/attachment-storage';
 import {
-	defaultPiAgentDir,
 	defaultPiRuntimePaths,
 	gizmoPiRuntimePaths,
 	importPiRuntimeConfig,
@@ -74,6 +73,7 @@ export interface PiSessionLike {
 	generateCommitMessage?(context: string): Promise<string>;
 	configureCompaction?(policy: CompactionPolicy): void;
 	compact?(): Promise<unknown>;
+	reload?(): Promise<void>;
 	subscribe(listener: (event: AgentSessionEvent) => void): () => void;
 	prompt(text: string, options?: { images?: PiImage[] }): Promise<void>;
 	steer(text: string, images?: PiImage[]): Promise<void>;
@@ -329,6 +329,16 @@ export class PiAgentService {
 			throw new Error('Compaction is unavailable for this session');
 		session.configureCompaction?.(policy);
 		await session.compact();
+	}
+
+	async reloadSession(sessionId: string): Promise<void> {
+		await this.#ensureActive(sessionId);
+		const session = this.#session(sessionId);
+		if (session.isStreaming)
+			throw new Error('Cannot reload while the agent is responding');
+		if (!session.reload)
+			throw new Error('Runtime reload is unavailable for this session');
+		await session.reload();
 	}
 
 	async generateCommitMessage(
@@ -695,15 +705,18 @@ const createDefaultPiSession: PiSessionFactory = async (
 ) => {
 	const {
 		createAgentSession,
+		createAgentSessionFromServices,
+		createAgentSessionServices,
 		DefaultResourceLoader,
+		getAgentDir,
 		hasTrustRequiringProjectResources,
 		ProjectTrustStore,
 		SettingsManager,
 	} = await import('@earendil-works/pi-coding-agent');
 	const cwd = options.cwd ?? process.cwd();
-	const agentDir =
-		process.env.GIZMO_PI_WEB === '1' ? defaultPiAgentDir() : defaultDataDir();
-	const modelRuntime = await gizmoModelRuntime();
+	const piWebMode = process.env.GIZMO_PI_WEB === '1';
+	const agentDir = piWebMode ? getAgentDir() : defaultDataDir();
+	const modelRuntime = piWebMode ? undefined : await gizmoModelRuntime();
 	const settingsManager = SettingsManager.create(cwd, agentDir);
 	const confirm = (kind: string): Promise<boolean> => {
 		if (kind !== 'stop_play_mode_for_compile') {
@@ -723,32 +736,27 @@ const createDefaultPiSession: PiSessionFactory = async (
 	const runScriptTool = createRunScriptTool({ workspacePath: cwd });
 	const customTools = [...activeDomains.tools, ...defaultTools, runScriptTool];
 	const { session } = await (async () => {
-		if (process.env.GIZMO_PI_WEB === '1') {
+		if (piWebMode) {
 			// Pi Web is the normal Pi runtime behind Gizmo's existing web shell.
-			// DefaultResourceLoader discovers Pi packages, extensions, skills,
-			// prompts, themes, and context from its standard global and project
-			// locations. Gizmo tools remain additive rather than replacing them.
-			const resourceLoader = new DefaultResourceLoader({
+			// Service creation performs discovery before initial model selection so
+			// providers registered by Pi extensions participate from the start.
+			const services = await createAgentSessionServices({
 				cwd,
 				agentDir,
 				settingsManager,
-			});
-			await resourceLoader.reload({
-				resolveProjectTrust: async () => {
-					if (!hasTrustRequiringProjectResources(cwd)) return true;
-					const saved = new ProjectTrustStore(agentDir).get(cwd);
-					if (saved !== null) return saved;
-					return settingsManager.getDefaultProjectTrust() === 'always';
+				resourceLoaderReloadOptions: {
+					resolveProjectTrust: async () => {
+						if (!hasTrustRequiringProjectResources(cwd)) return true;
+						const saved = new ProjectTrustStore(agentDir).get(cwd);
+						if (saved !== null) return saved;
+						return settingsManager.getDefaultProjectTrust() === 'always';
+					},
 				},
 			});
-			return createAgentSession({
-				cwd,
-				agentDir,
-				customTools,
-				resourceLoader,
-				modelRuntime,
+			return createAgentSessionFromServices({
+				services,
 				sessionManager,
-				settingsManager,
+				customTools,
 			});
 		}
 
@@ -791,6 +799,16 @@ const createDefaultPiSession: PiSessionFactory = async (
 			settingsManager,
 		});
 	})();
+	if (process.env.GIZMO_PI_WEB === '1') {
+		await session.bindExtensions({
+			mode: 'json',
+			onError: (error) =>
+				console.error(
+					`Pi extension error (${error.extensionPath}):`,
+					error.error,
+				),
+		});
+	}
 	return Object.assign(session, {
 		domains: activeDomains.extensions.map(({ id }) => id),
 		async generateCommitMessage(context: string): Promise<string> {
@@ -884,10 +902,10 @@ let modelRuntimePromise:
 function gizmoModelRuntime() {
 	if (!modelRuntimePromise) {
 		modelRuntimePromise = import('@earendil-works/pi-coding-agent')
-			.then(async ({ ModelRuntime }) => {
+			.then(async ({ getAgentDir, ModelRuntime }) => {
 				const piWebMode = process.env.GIZMO_PI_WEB === '1';
 				const paths = piWebMode
-					? defaultPiRuntimePaths()
+					? defaultPiRuntimePaths(getAgentDir())
 					: gizmoPiRuntimePaths();
 				if (!piWebMode) await importPiRuntimeConfig(paths.agentDir);
 				return ModelRuntime.create({

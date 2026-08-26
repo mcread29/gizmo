@@ -47,6 +47,7 @@ export interface AgentClient {
 		attachments?: AgentAttachment[],
 	): Promise<void>;
 	compact(sessionId: string, compaction: CompactionPolicy): Promise<void>;
+	reloadSession(sessionId: string): Promise<void>;
 	steer(
 		sessionId: string,
 		text: string,

@@ -57,6 +57,7 @@ class InvalidEventClient implements AgentClient {
 	async renameSession() {}
 	async prompt() {}
 	async compact() {}
+	async reloadSession() {}
 	async steer() {}
 	async abort() {}
 	async resolveConfirmation() {}

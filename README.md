@@ -43,7 +43,8 @@ under `~/.pi/agent`: packages, extensions, skills, prompt templates, context
 files, settings, models, and providers. Project-local executable resources obey
 Pi's saved project-trust decisions and `defaultProjectTrust` setting. Gizmo's
 workspace extensions remain available, but their custom system-prompt override
-is not applied in this mode.
+is not applied in this mode. **Reload runtime** on Settings → Agent reloads the
+selected thread's Pi extensions, skills, prompts, packages, and context files.
 
 Pi conversations are stored as JSONL under `~/.gizmo/sessions`. The app
 restores the last selected session and project on reconnect. Set

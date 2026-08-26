@@ -18,7 +18,7 @@
 
 	async function reimport() {
 		if (await store.reimportPiAuth()) {
-			toasts.show('Imported Pi authentication for new threads', 'success');
+			toasts.show('Refreshed Pi authentication for new threads', 'success');
 		}
 	}
 </script>
@@ -80,10 +80,11 @@
 	<div data-ui="settings-card">
 		<div data-ui="setting-field">
 			<div>
-				<strong>Import from Pi</strong>
+				<strong>Refresh from Pi</strong>
 				<span>
-					Replace Gizmo's credentials with ~/.pi/agent/auth.json. Existing live
-					threads keep their current runtime; new threads use the import.
+					Refresh credentials from Pi. Normal Gizmo mode imports
+					~/.pi/agent/auth.json; Pi Web reads it directly. Existing live threads
+					keep their current runtime.
 				</span>
 			</div>
 			<Button
@@ -92,7 +93,7 @@
 				disabled={store.providersLoading}
 				onclick={() => void reimport()}
 			>
-				Re-import Pi auth
+				Refresh Pi auth
 			</Button>
 		</div>
 	</div>

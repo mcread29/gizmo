@@ -110,6 +110,7 @@ export class AgentStore {
 	gitCommitting = $state(false);
 	resources = $state<ResourceCatalog>();
 	resourcesLoading = $state(false);
+	runtimeReloading = $state(false);
 	resourceError = $state<string>();
 	providers = $state.raw<ProviderStatus[]>([]);
 	providersLoading = $state(false);
@@ -733,6 +734,26 @@ export class AgentStore {
 			this.#fail('agent', error);
 		} finally {
 			this.compacting = false;
+		}
+	}
+
+	async reloadRuntime(): Promise<boolean> {
+		if (
+			!this.sessionId ||
+			this.runtimeReloading ||
+			this.sessionState === 'streaming'
+		)
+			return false;
+		this.error = undefined;
+		this.runtimeReloading = true;
+		try {
+			await this.#client.reloadSession(this.sessionId);
+			return true;
+		} catch (error) {
+			this.#fail('agent', error);
+			return false;
+		} finally {
+			this.runtimeReloading = false;
 		}
 	}
 

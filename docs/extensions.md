@@ -177,6 +177,14 @@ extension tools are additive there, as are Gizmo extension tools for the active
 workspace. The mode is intended for users who deliberately want the same broad
 local capabilities as Pi rather than the bounded desktop harness policy.
 
+Pi Web binds Pi extensions in headless (`json`) mode. Tools, commands, provider
+registration, lifecycle hooks, resource discovery, and prompt/context hooks run.
+Terminal-specific UI contributions—custom TUI components, headers, footers,
+editors, themes, and keybindings—have no web renderer and therefore degrade to
+Pi's non-interactive behavior. A future generic web UI bridge can add select,
+confirm, input, notification, and status primitives without replacing Gizmo's
+shell.
+
 ### `run_script`: the one execution primitive
 
 Skills that ship an attached script (the [Agent Skills

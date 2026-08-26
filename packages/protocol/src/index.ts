@@ -746,6 +746,14 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('session.reload'),
+			sessionId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('session.steer'),
 			sessionId: Type.String({ minLength: 1 }),
 			text: Type.String({ minLength: 1 }),

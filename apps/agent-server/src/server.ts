@@ -14,10 +14,7 @@ await restoreDesktopEnvironment();
 
 // Dev runs with the package dir as cwd; fall back to the repo root so a
 // missing local config does not silently disable every extension.
-const repoRoot = resolve(
-	dirname(fileURLToPath(import.meta.url)),
-	'../../..',
-);
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const extensionsConfigPath =
 	process.env.GIZMO_EXTENSIONS_CONFIG ??
 	resolve(process.cwd(), 'gizmo.extensions.json');
@@ -43,7 +40,9 @@ const agentServer = await createAgentWebSocketServer({
 	...(projectServiceFactories.length
 		? {
 				createProjectService: () =>
-					new CompositeProjectService(projectServiceFactories.map((create) => create())),
+					new CompositeProjectService(
+						projectServiceFactories.map((create) => create()),
+					),
 			}
 		: {}),
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),
@@ -73,6 +72,9 @@ process.on('uncaughtException', (error) => {
 });
 process.on('unhandledRejection', (reason) => {
 	console.error('Unhandled rejection:', reason);
+	// Pi Web intentionally runs user-installed Pi extensions. A rejected
+	// fire-and-forget task in one extension must not take down every thread.
+	if (piWebMode) return;
 	void close().finally(() => process.exit(1));
 });
 

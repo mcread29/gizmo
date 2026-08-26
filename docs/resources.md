@@ -86,7 +86,14 @@ skills, prompts, themes, and context files load from their standard global and
 project locations. Project-local executable resources follow Pi's saved trust
 decision; when no decision exists, `defaultProjectTrust: "always"` enables them
 and `"ask"` or `"never"` leaves them disabled because the web trust prompt has
-not yet been implemented.
+not yet been implemented. Settings → Agent → **Reload runtime** calls Pi's reload
+lifecycle for the selected thread, including extension shutdown/startup and
+resource rediscovery.
+
+The resource catalog and skill toggles on Settings → Agent still describe
+Gizmo-managed resources. In Pi Web mode, Pi's `settings.json` and package
+configuration are authoritative instead; making this catalog reflect Pi's full
+effective resource set is follow-up UI work.
 
 ## Protocol
 
