@@ -1,0 +1,33 @@
+{
+	"northStar": "Quiet Workbench",
+	"rules": [
+		"Use accent color only for action, focus, or selection.",
+		"Choose semantic surface and border roles before adding elevation.",
+		"Keep advanced capabilities progressively discoverable.",
+		"Never set interface text below 11px."
+	],
+	"shadows": {
+		"small": "0 1px 2px rgb(28 34 22 / 0.06)",
+		"panel": "0 10px 32px rgb(25 30 21 / 0.08)",
+		"dialog": "0 16px 48px rgb(28 34 22 / 0.14)",
+		"focus": "0 0 0 3px rgb(213 79 53 / 0.2)"
+	},
+	"breakpoints": {
+		"contentMax": "780px"
+	},
+	"motion": {
+		"control": "120ms ease",
+		"reducedMotion": "0.01ms"
+	},
+	"dos": [
+		"Use compact familiar controls and semantic tokens.",
+		"Preserve keyboard navigation and visible focus.",
+		"Keep the current thread and workspace central."
+	],
+	"donts": [
+		"Do not use consumer-chatbot decoration.",
+		"Do not overload the shell with permanently visible options.",
+		"Do not build generic SaaS card grids.",
+		"Do not use shadows decoratively."
+	]
+}
