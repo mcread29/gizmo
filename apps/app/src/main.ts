@@ -1,4 +1,7 @@
 import '@gizmo/design';
+// Vite currently drops the second nested @import from @gizmo/design/index.css.
+// Load the shared component layer explicitly so native button/dialog styles ship.
+import '../../../packages/design/src/components.css';
 import { mount } from 'svelte';
 import App from './App.svelte';
 
