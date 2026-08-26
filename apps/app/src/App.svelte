@@ -1,4 +1,5 @@
 <script lang="ts">
+	import './app.css';
 	import type { AgentIdentity } from '@gizmo/protocol';
 	import { Tooltip } from 'bits-ui';
 	import { onDestroy, onMount, untrack } from 'svelte';

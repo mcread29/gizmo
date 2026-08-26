@@ -69,6 +69,7 @@ interface SessionSelection {
 const reconnectDelays = [500, 1_000, 2_000, 5_000, 10_000, 15_000];
 
 export class AgentStore {
+	readonly #allowUnscopedSessions: boolean;
 	compactionPolicy: CompactionPolicy = {
 		enabled: true,
 		fillPercent: 25,
@@ -121,8 +122,12 @@ export class AgentStore {
 	#reconnectTimer?: ReturnType<typeof setTimeout>;
 	#autoReconnect = true;
 
-	constructor(client: AgentClient) {
+	constructor(
+		client: AgentClient,
+		options: { allowUnscopedSessions?: boolean } = {},
+	) {
 		this.#client = client;
+		this.#allowUnscopedSessions = options.allowUnscopedSessions ?? false;
 	}
 
 	async refreshProviders(): Promise<void> {
@@ -319,7 +324,7 @@ export class AgentStore {
 		const workspacePath = projectPath ?? this.selectedProjectPath;
 		// Threads do not exist outside a workspace; without one there is nothing
 		// to create the thread in.
-		if (!workspacePath) return;
+		if (!workspacePath && !this.#allowUnscopedSessions) return;
 		const previous = this.#captureSelection();
 		if (workspacePath !== this.selectedProjectPath) {
 			this.selectedProjectPath = workspacePath;

@@ -21,11 +21,14 @@ const repoRoot = resolve(
 const extensionsConfigPath =
 	process.env.GIZMO_EXTENSIONS_CONFIG ??
 	resolve(process.cwd(), 'gizmo.extensions.json');
-const extensions = await loadServerExtensions(
-	existsSync(extensionsConfigPath)
-		? extensionsConfigPath
-		: resolve(repoRoot, 'gizmo.extensions.json'),
-);
+const piWebMode = process.env.GIZMO_PI_WEB === '1';
+const extensions = piWebMode
+	? []
+	: await loadServerExtensions(
+			existsSync(extensionsConfigPath)
+				? extensionsConfigPath
+				: resolve(repoRoot, 'gizmo.extensions.json'),
+	);
 registerExtensions(extensions);
 const projectServiceFactories = extensions
 	.filter((extension) => extension.createProjectService)
@@ -48,7 +51,9 @@ const agentServer = await createAgentWebSocketServer({
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),
 });
 
-console.log(`Gizmo server listening on ws://${host}:${port}/agent`);
+console.log(
+	`${piWebMode ? 'Pi Web' : 'Gizmo'} server listening on ws://${host}:${port}/agent`,
+);
 
 let closing = false;
 async function close() {

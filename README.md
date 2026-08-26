@@ -31,6 +31,16 @@ pnpm dev
 Open <http://localhost:5173>. The Vite development server proxies `/agent` to
 the local WebSocket server on port `8787`.
 
+For a minimal web frontend for Pi's normal coding agent, run:
+
+```sh
+pnpm pi-web:dev
+```
+
+This mode skips Gizmo extensions and project UI and gives Pi its standard
+`read`, `edit`, `write`, and `bash` tools. It is implemented as a separate
+runtime mode so the full Gizmo frontend remains available.
+
 Pi conversations are stored as JSONL under `~/.gizmo/sessions`. The app
 restores the last selected session and project on reconnect. Set
 `GIZMO_DATA_DIR` to use a different application-data directory. The older

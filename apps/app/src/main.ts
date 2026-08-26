@@ -1,7 +1,5 @@
 import '@gizmo/design';
 import { mount } from 'svelte';
-import App from './App.svelte';
-import './app.css';
 
 /*
  * `?fake` runs the workspace against the in-memory agent, so the interface can
@@ -14,6 +12,10 @@ const useFakeAgent =
 const client = useFakeAgent
 	? new (await import('./lib/agent-client/FakeAgentClient')).FakeAgentClient()
 	: undefined;
+
+const App = import.meta.env.VITE_PI_WEB === '1'
+	? (await import('./PiWebApp.svelte')).default
+	: (await import('./App.svelte')).default;
 
 mount(App, {
 	target: document.getElementById('app')!,

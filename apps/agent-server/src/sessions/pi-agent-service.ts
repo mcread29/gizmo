@@ -697,6 +697,24 @@ const createDefaultPiSession: PiSessionFactory = async (
 	const agentDir = defaultDataDir();
 	const modelRuntime = await gizmoModelRuntime();
 	const settingsManager = SettingsManager.create(cwd, agentDir);
+	if (process.env.GIZMO_PI_WEB === '1') {
+		const resourceLoader = new DefaultResourceLoader({
+			cwd,
+			agentDir,
+			settingsManager,
+		});
+		await resourceLoader.reload();
+		const { session } = await createAgentSession({
+			cwd,
+			agentDir,
+			tools: ['read', 'edit', 'write', 'bash'],
+			resourceLoader,
+			modelRuntime,
+			sessionManager,
+			settingsManager,
+		});
+		return session;
+	}
 	const confirm = (kind: string): Promise<boolean> => {
 		if (kind !== 'stop_play_mode_for_compile') {
 			throw new Error(`Unsupported confirmation: ${kind}`);
