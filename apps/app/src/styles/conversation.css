@@ -162,6 +162,7 @@
 /* An empty thread is just a thread: the workspace overview is its own screen. */
 [data-ui='thread-empty'] {
 	display: grid;
+	flex: 1;
 	align-content: center;
 	justify-items: center;
 	gap: var(--space-1);
@@ -181,6 +182,7 @@
 
 [data-ui='transcript-skeleton'] {
 	display: grid;
+	flex: 1;
 	align-content: start;
 	gap: var(--space-6);
 	min-height: 0;
