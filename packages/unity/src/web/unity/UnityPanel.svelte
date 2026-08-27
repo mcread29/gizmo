@@ -37,7 +37,8 @@
 				type="button"
 				aria-pressed={activePanel === tab.id}
 				onclick={() => onSelectPanel(tab.id)}
-				>{tab.label}{#if tab.badge} <span>{tab.badge}</span>{/if}</button
+				>{tab.label}{#if tab.badge}
+					<span>{tab.badge}</span>{/if}</button
 			>
 		{/each}
 	</div>

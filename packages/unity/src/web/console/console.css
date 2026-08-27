@@ -31,15 +31,18 @@
 	background: var(--color-surface-soft);
 }
 
-[data-ui='console-level-filters'] button[data-level='log'][aria-pressed='true'] {
+[data-ui='console-level-filters']
+	button[data-level='log'][aria-pressed='true'] {
 	color: var(--color-text-muted);
 }
 
-[data-ui='console-level-filters'] button[data-level='warn'][aria-pressed='true'] {
+[data-ui='console-level-filters']
+	button[data-level='warn'][aria-pressed='true'] {
 	color: var(--color-warning);
 }
 
-[data-ui='console-level-filters'] button[data-level='error'][aria-pressed='true'] {
+[data-ui='console-level-filters']
+	button[data-level='error'][aria-pressed='true'] {
 	color: var(--color-danger);
 }
 

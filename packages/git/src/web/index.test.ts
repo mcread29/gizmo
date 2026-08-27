@@ -15,7 +15,12 @@ describe('git statusBar', () => {
 
 	it('shows just the branch when clean', () => {
 		const items = gizmoWebExtension.statusBar({
-			store: store({ rootPath: '/repo', branch: 'main', clean: true, files: [] }),
+			store: store({
+				rootPath: '/repo',
+				branch: 'main',
+				clean: true,
+				files: [],
+			}),
 		});
 		expect(items).toEqual([
 			{ id: 'git.branch', label: 'main', tone: 'default' },

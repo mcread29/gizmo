@@ -4,14 +4,14 @@
 
 The most defensible architecture is responsibility-based rather than framework-based. Harness-Bench defines the harness as the layer that conditions model calls and turns outputs into actions in an external workspace, while keeping the environment and evaluator conceptually external. Its compact decomposition is `Agent = Model + Harness`. ([HC001](claims/HC001.md)) [H32, Section 3] [H01] names six coupled runtime responsibilities:
 
-| Responsibility | Core question | Typical mechanisms | Common failure |
-|---|---|---|---|
-| Observation | What environment state is visible, and how? | terminal output, diffs, DOM/accessibility state, structured logs | stale, noisy, or missing evidence |
-| Context | What enters this model call? | retrieval, ordering, compaction, tool descriptions, task state | lost provenance, distraction, summary distortion |
-| Control | What happens next and when does it stop? | ReAct, plan/execute, retries, routing, delegation | drift, loops, premature completion |
-| Action | What can the model do? | typed function calls, shell/editor, browser, subagent calls | invalid arguments, excessive authority |
-| State/artifacts | What persists beyond the active window? | plans, checkpoints, files, traces, memory records | stale or conflicting state |
-| Verification/governance | What is accepted, denied, retried, or escalated? | tests, assertions, policy, sandbox, approval, rollback | weak oracle, unenforced policy |
+| Responsibility          | Core question                                    | Typical mechanisms                                               | Common failure                                   |
+| ----------------------- | ------------------------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------ |
+| Observation             | What environment state is visible, and how?      | terminal output, diffs, DOM/accessibility state, structured logs | stale, noisy, or missing evidence                |
+| Context                 | What enters this model call?                     | retrieval, ordering, compaction, tool descriptions, task state   | lost provenance, distraction, summary distortion |
+| Control                 | What happens next and when does it stop?         | ReAct, plan/execute, retries, routing, delegation                | drift, loops, premature completion               |
+| Action                  | What can the model do?                           | typed function calls, shell/editor, browser, subagent calls      | invalid arguments, excessive authority           |
+| State/artifacts         | What persists beyond the active window?          | plans, checkpoints, files, traces, memory records                | stale or conflicting state                       |
+| Verification/governance | What is accepted, denied, retried, or escalated? | tests, assertions, policy, sandbox, approval, rollback           | weak oracle, unenforced policy                   |
 
 These parts should not be optimized independently. Aggressive compression may undermine verification; expressive tools raise the governance burden; richer state increases retrieval and staleness risk. [H01, Section 5.7]
 

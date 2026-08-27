@@ -97,8 +97,7 @@ export async function runScript(
 			stderr?: string;
 			message?: string;
 		};
-		const timedOut =
-			failure.killed === true || failure.signal === 'SIGTERM';
+		const timedOut = failure.killed === true || failure.signal === 'SIGTERM';
 		const overflowed =
 			typeof failure.code === 'string' &&
 			failure.code.toLowerCase().includes('maxbuffer');
@@ -110,7 +109,7 @@ export async function runScript(
 				failure.stderr ??
 				(overflowed
 					? 'Output exceeded the capture limit and was truncated.'
-					: failure.message ?? ''),
+					: (failure.message ?? '')),
 			timedOut,
 			truncated: overflowed,
 		});
@@ -128,9 +127,7 @@ function report(
 		stderr: stderr.text,
 		ok: result.exitCode === 0 && !result.timedOut,
 		truncated:
-			result.truncated === true ||
-			stdout.truncated ||
-			stderr.truncated,
+			result.truncated === true || stdout.truncated || stderr.truncated,
 	};
 }
 

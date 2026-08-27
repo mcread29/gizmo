@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { formatToolResult, recordValue, stringValue } from '@gizmo/design/format';
+	import {
+		formatToolResult,
+		recordValue,
+		stringValue,
+	} from '@gizmo/design/format';
 	import { highlightCode } from '@gizmo/design/highlight';
 
 	let { input, result }: { input: unknown; result: unknown } = $props();

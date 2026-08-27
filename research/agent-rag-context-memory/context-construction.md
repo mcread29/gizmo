@@ -93,12 +93,12 @@ The gate may return `NO_RETRIEVAL`. Repoformer reported retrieval helpful on ~20
 
 ## Timing and stage-specific context
 
-| Stage | Prefer | Avoid |
-|---|---|---|
-| Exploration | broad structural map, exact search hits, diverse hypotheses, prior known failures | verbose full artifacts and premature workflows |
-| Action | current typed state, exact local source/API contract, selected applicable workflow, approvals | speculative reflections and stale variants |
-| Verification | acceptance criteria, diff/side effects, raw test output handles, unresolved failures | action rationale replacing executable evidence |
-| Handoff | versioned state snapshot, owners/obligations, decisions with provenance, open conflicts | prose-only transcript dump |
+| Stage        | Prefer                                                                                        | Avoid                                          |
+| ------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Exploration  | broad structural map, exact search hits, diverse hypotheses, prior known failures             | verbose full artifacts and premature workflows |
+| Action       | current typed state, exact local source/API contract, selected applicable workflow, approvals | speculative reflections and stale variants     |
+| Verification | acceptance criteria, diff/side effects, raw test output handles, unresolved failures          | action rationale replacing executable evidence |
+| Handoff      | versioned state snapshot, owners/obligations, decisions with provenance, open conflicts       | prose-only transcript dump                     |
 
 ContextBench found agents often encountered relevant evidence but failed to carry it forward. [M03, Table 5] Protected stage slots for plans, obligations, failures, and verifier feedback are therefore more defensible than one uniform top-k.
 

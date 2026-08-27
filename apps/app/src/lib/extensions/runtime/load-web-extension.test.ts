@@ -168,7 +168,10 @@ describe('loadWebExtensions', () => {
 
 describe('registerWebExtensions', () => {
 	it('adds loaded extensions alongside the built-in ones', () => {
-		registerWebExtensions([{ id: 'third-party' }, { id: 'unity', labels: { ok: 'yes' } }]);
+		registerWebExtensions([
+			{ id: 'third-party' },
+			{ id: 'unity', labels: { ok: 'yes' } },
+		]);
 
 		expect(webExtensions().map(({ id }) => id)).toContain('third-party');
 		expect(webExtensions().map(({ id }) => id)).toContain('unity');

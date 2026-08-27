@@ -1,7 +1,4 @@
-import type {
-	UnityCommandRunner,
-	UnityRunResult,
-} from '@gizmo/unity-tools';
+import type { UnityCommandRunner, UnityRunResult } from '@gizmo/unity-tools';
 import { describe, expect, it, vi } from 'vitest';
 import { UnityProjectService } from '@gizmo/unity/server';
 import { UnityExtensionProvider } from '@gizmo/unity/server';
@@ -146,19 +143,12 @@ describe('UnityProjectService', () => {
 		const service = new ExtensionHostService([unityExtension(runner)]);
 		await service.list('/projects/game');
 		await expect(
-			service.invoke(
-				'/projects/game',
-				'unity',
-				'console.snapshot',
-				{ tail: 1 },
-			),
+			service.invoke('/projects/game', 'unity', 'console.snapshot', {
+				tail: 1,
+			}),
 		).resolves.toEqual({ opaque: true });
 		await expect(
-			service.invoke(
-				'/projects/game',
-				'unity',
-				'missing',
-			),
+			service.invoke('/projects/game', 'unity', 'missing'),
 		).rejects.toThrow('does not expose operation');
 
 		expect(runner.run.mock.calls.flatMap(([args]) => args)).toContain(

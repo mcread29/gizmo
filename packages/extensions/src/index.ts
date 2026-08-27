@@ -3,9 +3,7 @@ export type {
 	ExtensionContext,
 	GizmoServerExtension,
 } from './extension';
-export {
-	CompositeProjectService,
-} from './project-service';
+export { CompositeProjectService } from './project-service';
 export type {
 	ProjectService,
 	ProjectStatus,

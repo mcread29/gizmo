@@ -1,6 +1,6 @@
 ---
 name: principle-fix-root-causes
-description: "Apply when debugging. Trace each symptom to its root cause and fix it there; reproduce first, ask why until you reach it, resist nil-check guards that silence crashes."
+description: 'Apply when debugging. Trace each symptom to its root cause and fix it there; reproduce first, ask why until you reach it, resist nil-check guards that silence crashes.'
 disable-model-invocation: true
 ---
 
@@ -11,6 +11,7 @@ When debugging, do not paper over symptoms. Trace every problem to its root caus
 **Why:** Symptom fixes accumulate. Each workaround makes the system harder to reason about, and the real bug remains. Root-cause fixes are slower upfront but reduce total debugging time.
 
 **Pattern:**
+
 - Reproduce first (if you can't reproduce it, you can't verify your fix)
 - Ask "why" until you hit the root cause
 - Resist the urge to add guards (adding a nil check to silence a crash is a symptom fix)

@@ -4,7 +4,10 @@ export interface UnityHost {
 	projectOpening: boolean;
 	projectError?: string;
 	pendingConfirmations: PendingConfirmation[];
-	resolveConfirmation(confirmation: PendingConfirmation, accepted: boolean): Promise<void>;
+	resolveConfirmation(
+		confirmation: PendingConfirmation,
+		accepted: boolean,
+	): Promise<void>;
 }
 
 export interface PendingConfirmation {

@@ -10,7 +10,9 @@ import {
 
 /** Adapts Unity Pipeline's extension commands to Gizmo's generic contract. */
 export class UnityExtensionProvider {
-	constructor(private readonly runner: UnityCommandRunner = new UnityRunner()) {}
+	constructor(
+		private readonly runner: UnityCommandRunner = new UnityRunner(),
+	) {}
 
 	async list(
 		workspacePath: string,
@@ -27,7 +29,11 @@ export class UnityExtensionProvider {
 			)
 		)
 			return [];
-		const result = await listUnityExtensions(this.runner, workspacePath, signal);
+		const result = await listUnityExtensions(
+			this.runner,
+			workspacePath,
+			signal,
+		);
 		const console = result.ok
 			? result.extensions.find(({ id }) => id === 'com.gizmo.extras.console')
 			: undefined;
@@ -58,7 +64,9 @@ export class UnityExtensionProvider {
 		signal: AbortSignal,
 	): Promise<unknown> {
 		if (extensionId !== 'unity' || operationId !== 'console.snapshot') {
-			return Promise.reject(new Error(`Unknown Unity operation: ${operationId}`));
+			return Promise.reject(
+				new Error(`Unknown Unity operation: ${operationId}`),
+			);
 		}
 		return invokeUnityExtension(
 			this.runner,

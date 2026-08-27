@@ -71,14 +71,14 @@ export class ConsoleExtensionRuntime implements WebExtensionRuntime {
 
 	async #refreshSnapshot(): Promise<void> {
 		const probe = parseSnapshot(
-		await this.#context.invoke('console.snapshot', { tail: 1 }),
+			await this.#context.invoke('console.snapshot', { tail: 1 }),
 		);
 		if (!probe) return this.#markSnapshotError();
 		if (this.#disposed) return;
 		this.counts = probe.counts;
 		if (probe.revision === this.#revision) return;
 		const snapshot = parseSnapshot(
-		await this.#context.invoke('console.snapshot', { tail: consoleLimit }),
+			await this.#context.invoke('console.snapshot', { tail: consoleLimit }),
 		);
 		if (!snapshot) return this.#markSnapshotError();
 		if (this.#disposed) return;

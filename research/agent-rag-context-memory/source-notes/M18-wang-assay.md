@@ -32,7 +32,7 @@ AppWorld 90 train, 15 dev, 168 normal + 417 challenge test; τ-bench 500 train, 
 - DeepSeek-V3 challenge 47.0 bare, 63.1 upstream, 69.3 Assay. [Table 1]
 - GPT-4.1 τ-bench 68.0→73.9; GPT-5.1 62.6→62.6 and Sonnet-4.5 73.0→73.0. [Table 2; §3.2]
 - Per-task masking is largest ablation increment (~10.7% relative); reverse masking -4.7 points. [§3.3; Appendix A.1]
-- >90% of 103 GPT-5.1 skills had per-task causal range >.40; 97.2% masking decisions directionally stable under resampling. [Appendix A.1; §3.1]
+- > 90% of 103 GPT-5.1 skills had per-task causal range >.40; 97.2% masking decisions directionally stable under resampling. [Appendix A.1; §3.1]
 
 ## Limitations / validity threats
 

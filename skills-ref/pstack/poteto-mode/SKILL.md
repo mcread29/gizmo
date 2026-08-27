@@ -107,7 +107,7 @@ Every playbook ends with a reply written this way, PR link as `https://github.co
 
 ## Comments
 
-Comments follow the same rule as the reply. Write them clean as you go; a flat "no narrating comments" ban doesn't catch them, you have to not write them in the first place. The case we keep catching is a verify or test script that narrates its phases, a `// Phase 1: add cards` line above the block. Delete it; the assertion or log string is the only doc you need. Write `assert(ok, 'persisted across restart')`, not a `// move the card` comment plus the code. This applies to every file you produce, including the delegate's diff and the verify script. Keep a comment only for a non-obvious *why* the code can't show.
+Comments follow the same rule as the reply. Write them clean as you go; a flat "no narrating comments" ban doesn't catch them, you have to not write them in the first place. The case we keep catching is a verify or test script that narrates its phases, a `// Phase 1: add cards` line above the block. Delete it; the assertion or log string is the only doc you need. Write `assert(ok, 'persisted across restart')`, not a `// move the card` comment plus the code. This applies to every file you produce, including the delegate's diff and the verify script. Keep a comment only for a non-obvious _why_ the code can't show.
 
 ## Playbooks
 

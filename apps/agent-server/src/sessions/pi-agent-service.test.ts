@@ -73,7 +73,9 @@ class FakeRepository implements SessionRepository {
 	async setLastSession(): Promise<void> {}
 }
 
-function fakeSession(sessionId: string): PiSessionLike & { isStreaming: boolean } {
+function fakeSession(
+	sessionId: string,
+): PiSessionLike & { isStreaming: boolean } {
 	return {
 		sessionId,
 		isStreaming: false,
@@ -116,7 +118,9 @@ describe('PiAgentService idle eviction', () => {
 		vi.useRealTimers();
 	});
 
-	function createService(options?: ConstructorParameters<typeof PiAgentService>[4]) {
+	function createService(
+		options?: ConstructorParameters<typeof PiAgentService>[4],
+	) {
 		service = new PiAgentService(
 			fakeFactory(sessions),
 			repository,

@@ -30,7 +30,9 @@
 
 	let { runtime }: Props = $props();
 
-	let visibleLevels = $state(new Set<ConsoleEntry['level']>(['log', 'warn', 'error']));
+	let visibleLevels = $state(
+		new Set<ConsoleEntry['level']>(['log', 'warn', 'error']),
+	);
 	let filter = $state('');
 	let viewport = $state<HTMLDivElement | null>(null);
 	let following = true;
@@ -40,7 +42,9 @@
 	let rows = $derived(
 		runtime.entries
 			.map((entry, index) => ({ entry, key: entry.seq ?? index }))
-			.filter(({ entry }) => matchesConsoleFilter(entry, visibleLevels, filter)),
+			.filter(({ entry }) =>
+				matchesConsoleFilter(entry, visibleLevels, filter),
+			),
 	);
 	let entries = $derived(rows.map(({ entry }) => entry));
 	let counts = $derived(runtime.counts);
@@ -128,19 +132,14 @@
 			/>
 		</div>
 		<div data-ui="console-level-filters" aria-label="Visible console messages">
-			{#each [
-				{ value: 'log' as const, label: 'Show logs', icon: MessageSquareText },
-				{ value: 'warn' as const, label: 'Show warnings', icon: TriangleAlert },
-				{ value: 'error' as const, label: 'Show errors', icon: CircleX },
-			] as option (option.value)}
+			{#each [{ value: 'log' as const, label: 'Show logs', icon: MessageSquareText }, { value: 'warn' as const, label: 'Show warnings', icon: TriangleAlert }, { value: 'error' as const, label: 'Show errors', icon: CircleX }] as option (option.value)}
 				{@const Icon = option.icon}
 				<button
 					type="button"
 					data-level={option.value}
 					aria-label={option.label}
 					aria-pressed={visibleLevels.has(option.value)}
-					onclick={() => toggleLevel(option.value)}
-					><Icon size={14} /></button
+					onclick={() => toggleLevel(option.value)}><Icon size={14} /></button
 				>
 			{/each}
 		</div>

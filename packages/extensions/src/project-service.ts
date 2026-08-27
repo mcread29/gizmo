@@ -53,7 +53,9 @@ export class CompositeProjectService implements ProjectService {
 		projectPath: string,
 		listeners: ProjectWatchListeners,
 	): Promise<ProjectStatus> {
-		return this.#first((service) => service.watchStatus(projectPath, listeners));
+		return this.#first((service) =>
+			service.watchStatus(projectPath, listeners),
+		);
 	}
 
 	async openProject(projectPath: string): Promise<unknown> {
@@ -65,7 +67,9 @@ export class CompositeProjectService implements ProjectService {
 		file: string,
 		patch: string,
 	): Promise<void> {
-		return this.#first((service) => service.revertFile(projectPath, file, patch));
+		return this.#first((service) =>
+			service.revertFile(projectPath, file, patch),
+		);
 	}
 
 	dispose(): void {

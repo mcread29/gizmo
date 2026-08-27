@@ -37,9 +37,10 @@ describe('ConsoleExtensionRuntime', () => {
 				return snapshot({
 					revision,
 					counts: { logs: 1, warnings: 0, errors: 0 },
-					entries: tail === 1 ? [{ seq: 1, message: 'Ready' }] : [
-						{ seq: 1, message: 'Ready' },
-					],
+					entries:
+						tail === 1
+							? [{ seq: 1, message: 'Ready' }]
+							: [{ seq: 1, message: 'Ready' }],
 				});
 			}
 			return snapshot({
@@ -59,7 +60,9 @@ describe('ConsoleExtensionRuntime', () => {
 		revision = 'b';
 		await runtime.refresh();
 
-		expect(runtime.entries).toEqual([{ seq: 1, level: 'log', message: 'Ready' }]);
+		expect(runtime.entries).toEqual([
+			{ seq: 1, level: 'log', message: 'Ready' },
+		]);
 		expect(runtime.error).toBe('Console extension returned invalid data');
 		runtime.dispose();
 	});

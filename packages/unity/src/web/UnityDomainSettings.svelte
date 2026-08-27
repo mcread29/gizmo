@@ -13,6 +13,17 @@
 				Mode.</span
 			>
 		</div>
-		<SelectField value={layout.compilePlayModePolicy} label="When Play Mode is active" options={[{ value: 'ask', label: 'Ask' }, { value: 'stop', label: 'Stop Play Mode' }, { value: 'keep_playing', label: 'Keep playing' }]} onValueChange={(value) => layout.compilePlayModePolicy = value as UnityLayout['compilePlayModePolicy']} />
+		<SelectField
+			value={layout.compilePlayModePolicy}
+			label="When Play Mode is active"
+			options={[
+				{ value: 'ask', label: 'Ask' },
+				{ value: 'stop', label: 'Stop Play Mode' },
+				{ value: 'keep_playing', label: 'Keep playing' },
+			]}
+			onValueChange={(value) =>
+				(layout.compilePlayModePolicy =
+					value as UnityLayout['compilePlayModePolicy'])}
+		/>
 	</div>
 </div>

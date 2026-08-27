@@ -14,17 +14,17 @@
 For every search, append a row rather than rewriting history.
 
 | Query ID | Date | Database/index | Exact query | Filters | Results | Notes |
-|---|---|---|---|---|---:|---|
+| -------- | ---- | -------------- | ----------- | ------- | ------: | ----- |
 
 Document backward/forward citation chaining, author-page searches, benchmark leaderboards, and discovery sources separately. A survey may discover evidence without serving as the evidence for a numerical claim.
 
 ## Screening
 
-| Stage | Included | Excluded | Duplicate | Exclusion reasons |
-|---|---:|---:|---:|---|
-| Search results | | | | |
-| Title/abstract | | | | |
-| Full text | | | | |
+| Stage          | Included | Excluded | Duplicate | Exclusion reasons |
+| -------------- | -------: | -------: | --------: | ----------------- |
+| Search results |          |          |           |                   |
+| Title/abstract |          |          |           |                   |
+| Full text      |          |          |           |                   |
 
 Define duplicate handling, reviewer agreement, conflict resolution, and the searched universe behind every absence-of-evidence statement.
 

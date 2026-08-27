@@ -34,7 +34,7 @@ model_harness_version: ...
 operation: ...
 normalized_arguments: ...
 status: proposed|approved|started|succeeded|failed|reconciled
-artifact_handles: [{uri, sha256, media_type}]
+artifact_handles: [{ uri, sha256, media_type }]
 side_effects: [...]
 trust_taint: ...
 retention_acl: ...
@@ -125,18 +125,18 @@ MemoryAgentBench supplies another strong warning: on incremental memories up to 
 
 ## Write gate
 
-| Check | Mechanical action |
-|---|---|
-| Identity/namespace | Resolve stable ID; reject cross-tenant alias |
-| Authorization | Verify actor's write capability and field-level ACL |
-| Provenance | Require source event/artifact IDs |
-| Objective validity | Run test/query/policy/oracle where available |
-| Schema/invariants | Parse and validate before commit |
-| Temporal/conflict | Compare valid time, scope, and authority |
-| Safety/privacy | Secret/PII classifier, taint, retention policy |
-| Duplicate/idempotency | Exact key and semantic duplicate check |
-| Promotion | Quarantine uncertain derived memory |
-| Audit/rollback | Record decision and previous version |
+| Check                 | Mechanical action                                   |
+| --------------------- | --------------------------------------------------- |
+| Identity/namespace    | Resolve stable ID; reject cross-tenant alias        |
+| Authorization         | Verify actor's write capability and field-level ACL |
+| Provenance            | Require source event/artifact IDs                   |
+| Objective validity    | Run test/query/policy/oracle where available        |
+| Schema/invariants     | Parse and validate before commit                    |
+| Temporal/conflict     | Compare valid time, scope, and authority            |
+| Safety/privacy        | Secret/PII classifier, taint, retention policy      |
+| Duplicate/idempotency | Exact key and semantic duplicate check              |
+| Promotion             | Quarantine uncertain derived memory                 |
+| Audit/rollback        | Record decision and previous version                |
 
 The EHR defense study illustrates why an LLM's confidence cannot be this gate: one configuration rejected all 23 candidates, while another accepted 54 poison entries with trust 1.0. [M24, §§8.1–8.2]
 

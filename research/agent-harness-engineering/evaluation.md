@@ -10,16 +10,16 @@ A bare model name or agent name is insufficient: results are model–harness–b
 
 ## Minimum metric set
 
-| Dimension | Measures |
-|---|---|
-| Outcome | task success, partial credit, pass@k/pass^k where appropriate |
-| Reliability | repeated-run variance, worst-case/stress success, recovery rate |
-| Efficiency | input/output tokens, tool calls, retries, API/compute cost |
-| Latency | wall time, model time, tool/environment time, timeouts |
-| Process | invalid actions, loops, context redundancy/drop, rollback, trace completeness |
-| Safety | policy violations, harmful side effects, attack success, false-positive denials |
-| Oversight | intervention/approval rate and human time |
-| Generalization | held-out tasks, repositories, tools, environments, and distribution shifts |
+| Dimension      | Measures                                                                        |
+| -------------- | ------------------------------------------------------------------------------- |
+| Outcome        | task success, partial credit, pass@k/pass^k where appropriate                   |
+| Reliability    | repeated-run variance, worst-case/stress success, recovery rate                 |
+| Efficiency     | input/output tokens, tool calls, retries, API/compute cost                      |
+| Latency        | wall time, model time, tool/environment time, timeouts                          |
+| Process        | invalid actions, loops, context redundancy/drop, rollback, trace completeness   |
+| Safety         | policy violations, harmful side effects, attack success, false-positive denials |
+| Oversight      | intervention/approval rate and human time                                       |
+| Generalization | held-out tasks, repositories, tools, environments, and distribution shifts      |
 
 ## Experimental design
 

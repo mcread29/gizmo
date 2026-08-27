@@ -73,14 +73,14 @@ Strict atomic commit is available only across enlisted resource managers sharing
 
 **Atomicity options, strongest first:**
 
-| Mechanism | What can be atomic | Principal cost/limit |
-|---|---|---|
-| One local transaction | records in one transactional resource | does not include remote effects |
-| Distributed commit / enlisted resources | participants implementing the protocol | stable logs, blocking/quorum cost, operational coupling |
-| Transactional outbox | source state plus durable intent to publish | relay can duplicate; consumer needs dedup; remote effect not in source transaction |
-| Try/confirm/cancel or reservation | providers exposing provisional state | reservation expiry, capacity lock, provider-specific protocol |
-| Saga | committed steps plus semantic compensators | visible intermediate state; compensation can fail/be inexact |
-| Best-effort orchestration | arbitrary tools | partial commit is an expected state, not rollback |
+| Mechanism                               | What can be atomic                          | Principal cost/limit                                                               |
+| --------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| One local transaction                   | records in one transactional resource       | does not include remote effects                                                    |
+| Distributed commit / enlisted resources | participants implementing the protocol      | stable logs, blocking/quorum cost, operational coupling                            |
+| Transactional outbox                    | source state plus durable intent to publish | relay can duplicate; consumer needs dedup; remote effect not in source transaction |
+| Try/confirm/cancel or reservation       | providers exposing provisional state        | reservation expiry, capacity lock, provider-specific protocol                      |
+| Saga                                    | committed steps plus semantic compensators  | visible intermediate state; compensation can fail/be inexact                       |
+| Best-effort orchestration               | arbitrary tools                             | partial commit is an expected state, not rollback                                  |
 
 **Normative recommendation (premises: HC025–HC027):** before execution, classify every side effect as local-transactional, bufferable, reservable, naturally idempotent, key-idempotent, compensable, or irreversible. Reject a workflow whose required invariant exceeds the weakest provider protocol unless explicit partial-commit/manual-repair policy exists.
 
@@ -152,13 +152,13 @@ Record external **observations** used by decisions, because replaying a query to
 
 Ask “exactly once **what**?”
 
-| Claim object | Possible bounded meaning | Missing implication |
-|---|---|---|
-| delivery | broker exposes one delivery under stated protocol | consumer processed once |
-| invocation | server procedure invoked at most/exactly once | downstream effect occurred once |
-| local transition | database state committed once | messages/external effects committed once |
-| logical business effect | provider deduplicated stable operation ID | unrelated downstream providers deduplicated |
-| whole workflow | every required effect settled to one legal state | generally requires all endpoints to participate or explicit partial states |
+| Claim object            | Possible bounded meaning                          | Missing implication                                                        |
+| ----------------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
+| delivery                | broker exposes one delivery under stated protocol | consumer processed once                                                    |
+| invocation              | server procedure invoked at most/exactly once     | downstream effect occurred once                                            |
+| local transition        | database state committed once                     | messages/external effects committed once                                   |
+| logical business effect | provider deduplicated stable operation ID         | unrelated downstream providers deduplicated                                |
+| whole workflow          | every required effect settled to one legal state  | generally requires all endpoints to participate or explicit partial states |
 
 RIFL shows exactly-once RPC completion inside a service with unique IDs, atomic completion records, migration, and reclamation. Helland shows that transactional source intent still feeds at-least-once messaging and recipient dedup. Therefore exactly-once is neither universally impossible nor a free transport property. It is conditional on the named effect, failure model, identity lifetime, durability, atomicity scope, ownership consistency, downstream participation, and retention. ([HC032](claims/HC032.md)) [H43, H48]
 
@@ -177,19 +177,19 @@ A claim should publish:
 
 The matrix is a **normative evaluation design** grounded in FoundationDB's deterministic fault simulation and Atomix's direct agent cut points; its complete protocol has not itself been validated as a benchmark. ([HC033](claims/HC033.md)) [H46, H49]
 
-| Dimension | Required cells | Primary oracle |
-|---|---|---|
-| Topology | one call; serial chain; fan-out/fan-in; alternatives; speculation; concurrent agents | legal workflow states |
-| Effect class | read-only; natural idempotent; keyed idempotent; bufferable; reservable; compensable; irreversible | semantic effect count/state |
-| Cut point | before durable intent; after intent/before send; after send/before provider; after effect/before log; after effect/before reply; after reply/before durable receipt; during compensation; during release/recovery | durable/event/external-state agreement |
-| Delivery | request loss; response loss; duplicate; delay; reorder; late success after timeout | operation-ID history |
-| Concurrency | stale read; CAS conflict; lease expiry; old-owner delayed write; 3/2 partition; ABA recreation | version/fence invariant |
-| External drift | inventory change; authorization change; schema version change; object delete/recreate; eventually visible settlement | current authoritative state plus recorded historical observation |
-| Harness crash | process death; stale checkpoint; torn/missing event; duplicate/out-of-order event; crash during reconciliation | restart from durable state only |
-| Compensation | success; timeout/unknown; precondition invalid; partial repair; compensator unavailable; compensation itself duplicated | repair invariant and residue class |
-| Multi-effect outcome | none; prefix; arbitrary subset; all applied/reply lost; partial compensation | legal final-state set |
-| Visibility | query by operation ID; query only by business key; eventually visible; non-queryable/irreversible | reconciliation coverage |
-| Schedule | exhaustive single cut; pairwise/t-wise; seeded random; state-conditioned/adversarial | reproducible seed and minimized counterexample |
+| Dimension            | Required cells                                                                                                                                                                                                    | Primary oracle                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Topology             | one call; serial chain; fan-out/fan-in; alternatives; speculation; concurrent agents                                                                                                                              | legal workflow states                                            |
+| Effect class         | read-only; natural idempotent; keyed idempotent; bufferable; reservable; compensable; irreversible                                                                                                                | semantic effect count/state                                      |
+| Cut point            | before durable intent; after intent/before send; after send/before provider; after effect/before log; after effect/before reply; after reply/before durable receipt; during compensation; during release/recovery | durable/event/external-state agreement                           |
+| Delivery             | request loss; response loss; duplicate; delay; reorder; late success after timeout                                                                                                                                | operation-ID history                                             |
+| Concurrency          | stale read; CAS conflict; lease expiry; old-owner delayed write; 3/2 partition; ABA recreation                                                                                                                    | version/fence invariant                                          |
+| External drift       | inventory change; authorization change; schema version change; object delete/recreate; eventually visible settlement                                                                                              | current authoritative state plus recorded historical observation |
+| Harness crash        | process death; stale checkpoint; torn/missing event; duplicate/out-of-order event; crash during reconciliation                                                                                                    | restart from durable state only                                  |
+| Compensation         | success; timeout/unknown; precondition invalid; partial repair; compensator unavailable; compensation itself duplicated                                                                                           | repair invariant and residue class                               |
+| Multi-effect outcome | none; prefix; arbitrary subset; all applied/reply lost; partial compensation                                                                                                                                      | legal final-state set                                            |
+| Visibility           | query by operation ID; query only by business key; eventually visible; non-queryable/irreversible                                                                                                                 | reconciliation coverage                                          |
+| Schedule             | exhaustive single cut; pairwise/t-wise; seeded random; state-conditioned/adversarial                                                                                                                              | reproducible seed and minimized counterexample                   |
 
 ### Minimum protocol
 

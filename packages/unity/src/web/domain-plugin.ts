@@ -58,7 +58,11 @@ export const unityDomainPlugin = {
 				id: 'unity',
 				label: 'Unity',
 				component: UnityPanel,
-				props: { view, store, onOpenProject: () => store.openSelectedProject() },
+				props: {
+					view,
+					store,
+					onOpenProject: () => store.openSelectedProject(),
+				},
 			},
 		};
 	},

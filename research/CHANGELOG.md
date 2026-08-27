@@ -6,7 +6,7 @@ All dates are ISO dates. This file records corpus-level migrations and audit cla
 
 ### Added
 
-- Added five 2026 preprints on agent harness engineering, surfaced by a web-search sweep for research published 2026-07-15 through 2026-08-20 and abstract-verified directly against arXiv on 2026-08-20: *ACM: Agentic Context Management for Long Horizon Tasks* (arXiv:2607.23809), *Diagnosis Before Recovery (DARC)* (arXiv:2608.11772), *Looping Is Not Reliability* (arXiv:2607.24604), *Self-Authored Verification Is Unreliable in Heuristic Self-Improving Agents (SEAL)* (arXiv:2607.24300), and *EA-Graph: Artifact-Anchored Verification Memory for Coding Agents under Upstream Drift* (arXiv:2608.04278).
+- Added five 2026 preprints on agent harness engineering, surfaced by a web-search sweep for research published 2026-07-15 through 2026-08-20 and abstract-verified directly against arXiv on 2026-08-20: _ACM: Agentic Context Management for Long Horizon Tasks_ (arXiv:2607.23809), _Diagnosis Before Recovery (DARC)_ (arXiv:2608.11772), _Looping Is Not Reliability_ (arXiv:2607.24604), _Self-Authored Verification Is Unreliable in Heuristic Self-Improving Agents (SEAL)_ (arXiv:2607.24300), and _EA-Graph: Artifact-Anchored Verification Memory for Coding Agents under Upstream Drift_ (arXiv:2608.04278).
 - Added canonical works `W074–W078` and topic aliases `H52–H56`, five modern-schema source notes, five claims `HC036–HC040`, and five evidence observations `HE056–HE060`.
 - Appended search-log rows `H-20260820-000` through `H-20260820-005`, including the discovery sweep and per-paper exact-identifier verification, and the explicit exclusion of one meta-synthesis (arXiv:2607.05775) that predated the requested window.
 

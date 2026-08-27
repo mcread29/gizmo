@@ -45,9 +45,7 @@ describe('Titlebar', () => {
 			onOpenSettings: () => {},
 			onCloseSettings: () => {},
 		});
-		const item = result.container.querySelector(
-			'[data-ui="status-bar-item"]',
-		);
+		const item = result.container.querySelector('[data-ui="status-bar-item"]');
 		expect(item?.textContent?.trim()).toBe('main (2)');
 		expect(item?.getAttribute('data-tone')).toBe('accent');
 	});

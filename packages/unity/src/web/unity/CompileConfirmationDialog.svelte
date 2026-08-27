@@ -38,4 +38,12 @@
 	}
 </script>
 
-<ConfirmDialog bind:open title="Stop Play Mode to compile?" description="Unity must leave Play Mode before the agent can compile scripts." confirmLabel="Stop and compile" cancelLabel="Keep playing" onConfirm={() => answer(true)} onCancel={() => answer(false)} />
+<ConfirmDialog
+	bind:open
+	title="Stop Play Mode to compile?"
+	description="Unity must leave Play Mode before the agent can compile scripts."
+	confirmLabel="Stop and compile"
+	cancelLabel="Keep playing"
+	onConfirm={() => answer(true)}
+	onCancel={() => answer(false)}
+/>

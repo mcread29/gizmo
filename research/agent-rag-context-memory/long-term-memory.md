@@ -12,14 +12,14 @@ Major evidence-bearing conclusions on this page use the following canonical reco
 
 ## Memory types are different products
 
-| Type | Typical contents | Correct handling |
-|---|---|---|
-| Working | recent turns, active plan, current failures | bounded context; pinned control state |
-| Semantic/factual | names, preferences, constraints, learned facts | source provenance, temporal scope, conflict/update operations |
-| Episodic | task trajectories, outcomes, failures | objective outcome labels, applicability retrieval, raw handles |
-| Procedural | workflows, runbooks, executable skills | held-out promotion, versions/dependencies, sandbox, rollback |
-| Event/audit | exact actions, observations, outputs, side effects | append-only, integrity protected, access controlled |
-| Structured state | entities, counters, ledgers, obligations, temporal values | typed external authority and deterministic updates |
+| Type             | Typical contents                                          | Correct handling                                               |
+| ---------------- | --------------------------------------------------------- | -------------------------------------------------------------- |
+| Working          | recent turns, active plan, current failures               | bounded context; pinned control state                          |
+| Semantic/factual | names, preferences, constraints, learned facts            | source provenance, temporal scope, conflict/update operations  |
+| Episodic         | task trajectories, outcomes, failures                     | objective outcome labels, applicability retrieval, raw handles |
+| Procedural       | workflows, runbooks, executable skills                    | held-out promotion, versions/dependencies, sandbox, rollback   |
+| Event/audit      | exact actions, observations, outputs, side effects        | append-only, integrity protected, access controlled            |
+| Structured state | entities, counters, ledgers, obligations, temporal values | typed external authority and deterministic updates             |
 
 One vector store should not silently implement all six.
 

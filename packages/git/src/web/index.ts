@@ -43,7 +43,10 @@ async function commitAll(store: GitHostStore): Promise<void> {
 		const result = await store.commitAll(message);
 		toasts.show(`Committed ${result.commit.slice(0, 7)}`);
 	} catch (error) {
-		toasts.show(error instanceof Error ? error.message : String(error), 'danger');
+		toasts.show(
+			error instanceof Error ? error.message : String(error),
+			'danger',
+		);
 	}
 }
 
@@ -51,7 +54,10 @@ async function refreshGitStatus(store: GitHostStore): Promise<void> {
 	try {
 		await store.refreshGitStatus();
 	} catch (error) {
-		toasts.show(error instanceof Error ? error.message : String(error), 'danger');
+		toasts.show(
+			error instanceof Error ? error.message : String(error),
+			'danger',
+		);
 	}
 }
 
