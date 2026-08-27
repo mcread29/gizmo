@@ -12,8 +12,8 @@ Gizmo owns exactly one integration contract: the extension. There is no
 separate "domain" concept — tools, system prompt guidance, a live project
 process, and UI (dialogs, panels, tool-result rendering) are optional
 capabilities an extension may contribute. Extensions are installed globally
-and explicitly enabled in workspace profiles; Gizmo does not detect workspace
-types. Core knows no runtime-specific extension types.
+and enabled by default; workspaces may override them, and Gizmo does not
+detect workspace types. Core knows no runtime-specific extension types.
 
 Unity is the largest extension today. Git, Svelte, and Activity are
 extracted the same way: standalone first-party packages (`@gizmo/unity`,
@@ -31,8 +31,8 @@ web extension would.
 Two small interfaces, one per side, mirror each other:
 
 - **Server** — `GizmoServerExtension` (`@gizmo/extensions`): `id`, `name`,
-  plus optional `profile`/`systemPrompt`/`createTools` (manually enabled
-  workspace integration), optional `list`/`invoke` (live RPC-style
+  plus optional `systemPrompt`/`createTools` (active wherever the extension is
+  enabled), optional `list`/`invoke` (live RPC-style
   operations the web UI can call), and optional `createProjectService`
   (a running external process with status/watch/open/revert).
 - **Client** — `GizmoWebExtension` (`apps/app/src/lib/extensions/types.ts`):

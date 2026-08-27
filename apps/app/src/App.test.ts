@@ -646,7 +646,7 @@ describe('application shell', () => {
 	});
 
 	it('opens workspace settings as a tab on the workspace screen', async () => {
-		const { findByRole, findByText } = renderApp();
+		const { findByRole, findAllByText } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		await fireEvent.click(
 			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
@@ -655,14 +655,16 @@ describe('application shell', () => {
 		expect(await findByRole('main', { name: 'Workspace' })).toBeInTheDocument();
 		expect(location.hash).toContain('/configure');
 
-		// Extensions belong to a profile, so they are listed on the Configure tab;
-		// one rooted outside the workspace root shows where it lives.
+		// Installed extensions are listed on the Configure tab, inheriting the
+		// global state until this workspace overrides them.
 		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
-		expect(await findByText('WebFrontend')).toBeInTheDocument();
+		expect(
+			(await findAllByText('Inherits global · on')).length,
+		).toBeGreaterThan(0);
 	});
 
 	it('overrides a skill for the open workspace only', async () => {
-		const { findByRole, getByRole } = renderApp();
+		const { findByRole, findByText, getByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		await fireEvent.click(
 			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
@@ -682,17 +684,11 @@ describe('application shell', () => {
 			).toHaveAttribute('aria-checked', 'false'),
 		);
 
-		// The override is part of the profile, so it lands when the profile saves.
-		await fireEvent.click(getByRole('button', { name: 'Save' }));
-		await waitFor(() =>
-			expect(getByRole('button', { name: 'Save' })).toBeDisabled(),
-		);
-		expect(
-			getByRole('switch', { name: 'svelte-code-writer enabled' }),
-		).toHaveAttribute('aria-checked', 'false');
+		// The override lands immediately; there is no profile save step anymore.
+		expect(await findByText('Off here')).toBeInTheDocument();
 	});
 
-	it('marks what a profile changes from its base and reverts a row', async () => {
+	it('overrides a Gizmo extension for the workspace and reverts it', async () => {
 		const { findByRole, getByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
 		await fireEvent.click(
@@ -701,52 +697,26 @@ describe('application shell', () => {
 		await findByRole('main', { name: 'Workspace' });
 		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
 
-		// The workspace profile turns on both extensions; Default turns on none.
-		const unity = (await findByRole('checkbox', { name: /Unity/ })).closest(
-			'[data-ui="integration-row"]',
-		)!;
-		expect(unity).toHaveAttribute('data-changed', 'true');
-
+		// The workspace turns Unity off despite the global switch being on.
 		await fireEvent.click(
-			getByRole('button', { name: 'Unity changed from Default' }),
+			await findByRole('switch', { name: 'Unity enabled here' }),
 		);
-		await fireEvent.click(
-			await findByRole('menuitem', { name: 'Revert to Default' }),
+		const unity = await findByRole('switch', { name: 'Unity enabled here' });
+		await waitFor(() =>
+			expect(unity.closest('[data-ui="integration-row"]')).toHaveAttribute(
+				'data-changed',
+				'true',
+			),
 		);
 
+		// Clearing the override inherits the global state again.
+		await fireEvent.click(getByRole('button', { name: 'Use global' }));
 		await waitFor(() =>
 			expect(
-				getByRole('checkbox', { name: /Unity/ }).closest(
+				getByRole('switch', { name: 'Unity enabled here' }).closest(
 					'[data-ui="integration-row"]',
 				),
 			).not.toHaveAttribute('data-changed'),
-		);
-	});
-
-	it('duplicates a profile and makes the copy the active one', async () => {
-		const { findByRole, getByRole } = renderApp();
-		await findByRole('button', { name: 'Model' });
-		await fireEvent.click(
-			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
-		);
-		await findByRole('main', { name: 'Workspace' });
-		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
-
-		// Duplicating keeps the extensions the workspace already had, and the copy
-		// becomes the active profile without a separate step.
-		await fireEvent.click(await findByRole('button', { name: 'Duplicate' }));
-		const name = getByRole('textbox', { name: 'Profile name' });
-		await fireEvent.input(name, { target: { value: 'Docs only' } });
-		await fireEvent.click(getByRole('button', { name: 'Save' }));
-
-		await waitFor(() =>
-			expect(getByRole('button', { name: 'Save' })).toBeDisabled(),
-		);
-		// The saved profile is the active one, and reloading the tab keeps it.
-		await fireEvent.click(getByRole('tab', { name: 'Overview' }));
-		await fireEvent.click(getByRole('tab', { name: 'Configure' }));
-		expect(await findByRole('textbox', { name: 'Profile name' })).toHaveValue(
-			'Docs only',
 		);
 	});
 

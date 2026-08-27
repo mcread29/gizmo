@@ -11,6 +11,7 @@ import {
 	parseUnityOpenProjectResult,
 	parseProjectStatus,
 	parseStoredProjects,
+	parseProjectConfig,
 	parseProjectDomains,
 	parseResourceCatalog,
 	parseWorkspaceDirectoryListing,
@@ -34,13 +35,12 @@ import {
 	type ProjectStatus,
 	type StoredProject,
 	type ProjectDomains,
+	type ProjectConfig,
 	type ResourceCatalog,
 	type SkillFile,
 	parseToolPolicy,
 	type ToolPolicy,
-	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
-	type WorkspaceProfiles,
 	type ProviderStatus,
 } from '@gizmo/protocol';
 import type {
@@ -372,28 +372,40 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseWorkspaceDirectoryListing(response.result);
 	}
 
-	async addProject(
-		projectPath: string,
-		integrations: WorkspaceIntegration[],
-	): Promise<StoredProject> {
+	async addProject(projectPath: string): Promise<StoredProject> {
 		const response = await this.#request({
 			type: 'project.add',
 			projectPath,
-			integrations,
 		});
 		return parseStoredProjects([response.result])[0]!;
 	}
 
-	async saveProjectProfiles(
+	async setProjectGizmoExtension(
 		projectPath: string,
-		profiles: WorkspaceProfiles,
-	): Promise<StoredProject> {
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<ProjectConfig> {
 		const response = await this.#request({
-			type: 'project.profiles.save',
+			type: 'project.gizmo-extension.set',
 			projectPath,
-			profiles,
+			extensionId,
+			enabled,
 		});
-		return parseStoredProjects([response.result])[0]!;
+		return parseProjectConfig(response.result);
+	}
+
+	async setProjectPiExtension(
+		projectPath: string,
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<ProjectConfig> {
+		const response = await this.#request({
+			type: 'project.pi-extension.set',
+			projectPath,
+			extensionId,
+			enabled,
+		});
+		return parseProjectConfig(response.result);
 	}
 
 	async removeProject(projectPath: string): Promise<void> {
@@ -465,6 +477,18 @@ export class WebSocketAgentClient implements AgentClient {
 		const response = await this.#request({
 			type: 'resources.extension.global',
 			extensionId,
+			enabled,
+		});
+		return parseResourceCatalog(response.result);
+	}
+
+	async setGlobalGizmoExtension(
+		gizmoExtensionId: string,
+		enabled: boolean,
+	): Promise<ResourceCatalog> {
+		const response = await this.#request({
+			type: 'resources.gizmo-extension.global',
+			gizmoExtensionId,
 			enabled,
 		});
 		return parseResourceCatalog(response.result);

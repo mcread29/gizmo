@@ -1,5 +1,5 @@
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
-import type { ExtensionDescriptor, WorkspaceProfile } from '@gizmo/protocol';
+import type { ExtensionDescriptor } from '@gizmo/protocol';
 import type { ProjectService } from './project-service';
 
 export interface ExtensionContext {
@@ -22,7 +22,6 @@ export interface GizmoServerExtension {
 	 * convention, so an extension never needs a parallel Gizmo skill system.
 	 */
 	packageRoot?: string;
-	profile?(root: string): WorkspaceProfile;
 	systemPrompt?: string;
 	createTools?(context: ExtensionContext): ToolDefinition[];
 	list?(

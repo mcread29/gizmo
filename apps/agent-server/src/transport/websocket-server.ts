@@ -388,17 +388,21 @@ async function dispatch(
 				result: await service.searchProjects(request.query, request.root),
 			};
 		case 'project.add':
+			return { result: await service.addProject(request.projectPath) };
+		case 'project.gizmo-extension.set':
 			return {
-				result: await service.addProject(
+				result: await service.setProjectGizmoExtension(
 					request.projectPath,
-					request.integrations,
+					request.extensionId,
+					request.enabled,
 				),
 			};
-		case 'project.profiles.save':
+		case 'project.pi-extension.set':
 			return {
-				result: await service.saveProjectProfiles(
+				result: await service.setProjectPiExtension(
 					request.projectPath,
-					request.profiles,
+					request.extensionId,
+					request.enabled,
 				),
 			};
 		case 'project.remove':
@@ -431,6 +435,13 @@ async function dispatch(
 			return {
 				result: await service.setGlobalExtension(
 					request.extensionId,
+					request.enabled,
+				),
+			};
+		case 'resources.gizmo-extension.global':
+			return {
+				result: await service.setGlobalGizmoExtension(
+					request.gizmoExtensionId,
 					request.enabled,
 				),
 			};

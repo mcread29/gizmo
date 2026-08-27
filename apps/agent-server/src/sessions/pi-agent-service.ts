@@ -18,7 +18,6 @@ import {
 	type SessionTree,
 	type ProviderStatus,
 	type ToolPolicy,
-	type WorkspaceProfiles,
 } from '@gizmo/protocol';
 import {
 	PiEventTranslator,
@@ -111,8 +110,8 @@ export interface PiSessionLike {
 }
 
 type PiSessionRuntimeOptions = SessionOptions & {
-	extensionTools?: boolean;
-	extensionPrompt?: boolean;
+	/** Pi extension ids this workspace disables despite the global state. */
+	disabledPiExtensions?: readonly string[];
 };
 
 export type PiSessionFactory = (
@@ -240,12 +239,13 @@ export class PiAgentService {
 
 	async createSession(options: SessionOptions = {}): Promise<string> {
 		const cwd = options.cwd ?? process.cwd();
-		const profile = await this.#projects.activeProfileFor(cwd);
 		const integrations =
 			options.integrations ??
 			(options.domainId && options.domainId !== 'generic'
 				? [{ id: options.domainId, root: '.' }]
-				: profile.extensions);
+				: await this.#projects.integrationsFor(cwd));
+		const disabledPiExtensions =
+			await this.#projects.disabledPiExtensionsFor(cwd);
 		const sessionManager = await this.#repository.create(cwd);
 		try {
 			const callbacks = this.#callbacks(sessionManager.getSessionId());
@@ -253,9 +253,7 @@ export class PiAgentService {
 				{
 					cwd,
 					integrations,
-					extensionTools: profile.tools?.mode === 'default-plus-extension',
-					extensionPrompt:
-						profile.prompt?.mode === 'default-plus-extension-fragments',
+					disabledPiExtensions,
 				},
 				sessionManager,
 				callbacks,
@@ -295,8 +293,10 @@ export class PiAgentService {
 		const snapshot = await this.#repository.snapshot(sessionId);
 		const workspacePath =
 			snapshot.session.workspacePath ?? snapshot.session.projectPath;
-		const profile = await this.#projects.activeProfileFor(workspacePath);
-		const integrations = profile.extensions;
+		const integrations = await this.#projects.integrationsFor(workspacePath);
+		const disabledPiExtensions = workspacePath
+			? await this.#projects.disabledPiExtensionsFor(workspacePath)
+			: [];
 		snapshot.session.integrations = integrations;
 		if (!this.#sessions.has(sessionId)) {
 			const sessionManager = await this.#repository.open(sessionId);
@@ -305,9 +305,7 @@ export class PiAgentService {
 				{
 					cwd: workspacePath,
 					integrations,
-					extensionTools: profile.tools?.mode === 'default-plus-extension',
-					extensionPrompt:
-						profile.prompt?.mode === 'default-plus-extension-fragments',
+					disabledPiExtensions,
 				},
 				sessionManager,
 				callbacks,
@@ -342,15 +340,24 @@ export class PiAgentService {
 		return this.#projects.search(query, root);
 	}
 
-	addProject(
-		projectPath: string,
-		integrations: NonNullable<SessionOptions['integrations']>,
-	) {
-		return this.#projects.add(projectPath, integrations);
+	addProject(projectPath: string) {
+		return this.#projects.add(projectPath);
 	}
 
-	saveProjectProfiles(projectPath: string, profiles: WorkspaceProfiles) {
-		return this.#projects.saveProfiles(projectPath, profiles);
+	setProjectGizmoExtension(
+		projectPath: string,
+		extensionId: string,
+		enabled: boolean | null,
+	) {
+		return this.#projects.setGizmoExtension(projectPath, extensionId, enabled);
+	}
+
+	setProjectPiExtension(
+		projectPath: string,
+		extensionId: string,
+		enabled: boolean | null,
+	) {
+		return this.#projects.setPiExtension(projectPath, extensionId, enabled);
 	}
 
 	removeProject(projectPath: string) {
@@ -401,6 +408,10 @@ export class PiAgentService {
 	async setGlobalExtension(extensionId: string, enabled: boolean) {
 		await setPiExtensionEnabled(extensionId, enabled);
 		return this.#resources.list();
+	}
+
+	async setGlobalGizmoExtension(extensionId: string, enabled: boolean) {
+		return this.#resources.setGlobalGizmoExtension(extensionId, enabled);
 	}
 
 	/**
@@ -962,10 +973,8 @@ const createDefaultPiSession: PiSessionFactory = async (
 				: []),
 	);
 	const runScriptTool = createRunScriptTool({ workspacePath: cwd });
-	const customTools = [
-		...(options.extensionTools ? activeDomains.tools : []),
-		runScriptTool,
-	];
+	// An enabled Gizmo extension always contributes its tools and guidance.
+	const customTools = [...activeDomains.tools, runScriptTool];
 	const catalog = new ResourceCatalogService();
 	const [
 		skillPaths,
@@ -978,7 +987,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 		existingDirectories(resourceRoots(cwd).prompts),
 		readAgentsFiles(cwd),
 		extensionResourceRoots(registeredExtensions()),
-		enabledPiExtensionPaths(),
+		enabledPiExtensionPaths(new Set(options.disabledPiExtensions ?? [])),
 	]);
 	const managedResourceOptions = {
 		noExtensions: true,
@@ -989,7 +998,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 		additionalPromptTemplatePaths: [...promptPaths, ...fromExtensions.prompts],
 		noContextFiles: true,
 		agentsFilesOverride: () => ({ agentsFiles }),
-		...(options.extensionPrompt && activeDomains.systemPrompt
+		...(activeDomains.systemPrompt
 			? { systemPromptOverride: () => activeDomains.systemPrompt! }
 			: {}),
 	};

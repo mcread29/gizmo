@@ -6,7 +6,7 @@ import { gizmoExtension as unityExtension } from '@gizmo/unity/server';
 import { gizmoExtension as svelteExtension } from '@gizmo/svelte/server';
 import {
 	activateExtensions,
-	installedExtensionCatalog,
+	installedGizmoExtensions,
 	registerExtensions,
 } from '../../src/extensions/registry';
 
@@ -23,17 +23,10 @@ afterEach(async () => {
 });
 
 describe('extension registry', () => {
-	it('lists every globally installed extension without inspecting the workspace', async () => {
-		const catalog = installedExtensionCatalog();
-
-		expect(catalog.domains).toEqual([
+	it('lists every globally installed extension without inspecting the workspace', () => {
+		expect(installedGizmoExtensions()).toEqual([
 			{ id: 'unity', name: 'Unity', root: '.' },
 			{ id: 'svelte', name: 'Svelte', root: '.' },
-		]);
-		expect(catalog.profiles.map(({ id }) => id)).toEqual([
-			'default',
-			'unity',
-			'svelte',
 		]);
 	});
 

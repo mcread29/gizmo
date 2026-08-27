@@ -66,9 +66,15 @@ export class ResourceCatalogService {
 		);
 		const installed = new Set(settings.installedSkills);
 		const enabledGlobally = new Set(settings.enabledSkills);
+		const globallyDisabled = new Set(settings.disabledGizmoExtensions);
 		return {
 			...(path ? { workspacePath: path } : {}),
 			extensions: await listPiExtensions(),
+			gizmoExtensions: registeredExtensions().map(({ id, name }) => ({
+				id,
+				name,
+				enabled: !globallyDisabled.has(id),
+			})),
 			skills: discovery.skills.map((skill) => {
 				const override = overrides.get(skill.id);
 				const globallyOn = enabledGlobally.has(skill.id);
@@ -117,11 +123,28 @@ export class ResourceCatalogService {
 			} else enabled.delete(skillId);
 		}
 		await this.#global.write({
+			...settings,
 			installedSkills: [...installed],
 			enabledSkills: [...enabled],
 			uninstalledSkills: [...uninstalled],
 		});
 		return this.list(workspacePath);
+	}
+
+	/** Installed means on globally; this records the exceptions. */
+	async setGlobalGizmoExtension(
+		extensionId: string,
+		enabled: boolean,
+	): Promise<ResourceCatalog> {
+		const settings = await this.#global.read();
+		const disabled = new Set(settings.disabledGizmoExtensions);
+		if (enabled) disabled.delete(extensionId);
+		else disabled.add(extensionId);
+		await this.#global.write({
+			...settings,
+			disabledGizmoExtensions: [...disabled],
+		});
+		return this.list();
 	}
 
 	async setProjectSkill(

@@ -19,6 +19,7 @@
 	let agentsFiles = $derived(catalog?.agentsFiles ?? []);
 	let prompts = $derived(catalog?.prompts ?? []);
 	let extensions = $derived(catalog?.extensions ?? []);
+	let gizmoExtensions = $derived(catalog?.gizmoExtensions ?? []);
 
 	let policy = $derived(store.toolPolicy);
 	/** Null global means Pi's default: every built-in enabled. */
@@ -134,6 +135,45 @@
 								<small>{tool}</small>
 							</span>
 						</label>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</div>
+
+	<div data-ui="settings-subhead">
+		<strong>Gizmo extensions</strong>
+		<span
+			>Gizmo's own integrations, on wherever they are installed. Workspaces
+			inherit this state and may override it in their Configure screen.</span
+		>
+	</div>
+
+	<div data-ui="settings-card">
+		{#if gizmoExtensions.length === 0}
+			<p data-ui="resource-empty">No Gizmo extensions are installed.</p>
+		{:else}
+			<div data-ui="skill-list">
+				{#each gizmoExtensions as extension (extension.id)}
+					<div data-ui="skill-row">
+						<div data-ui="skill-row-main">
+							<div data-ui="skill-row-title">
+								<strong>{extension.name}</strong>
+								<span data-ui="skill-row-state" data-on={extension.enabled}
+									>{extension.enabled ? 'On' : 'Off'}</span
+								>
+							</div>
+						</div>
+						<Switch.Root
+							data-ui="switch"
+							checked={extension.enabled}
+							disabled={store.resourcesLoading}
+							aria-label={`${extension.name} enabled globally`}
+							onCheckedChange={(enabled) =>
+								void store.setGlobalGizmoExtension(extension.id, enabled)}
+						>
+							<Switch.Thumb data-ui="switch-thumb" />
+						</Switch.Root>
 					</div>
 				{/each}
 			</div>

@@ -19,10 +19,9 @@ import {
 	type ResourceCatalog,
 	type StoredProject,
 	type ProjectDomains,
+	type ProjectConfig,
 	type ToolPolicy,
-	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
-	type WorkspaceProfiles,
 	type ProjectStatus,
 	type ProviderStatus,
 } from '@gizmo/protocol';
@@ -326,10 +325,7 @@ export class AgentStore {
 		}
 	}
 
-	async newSession(
-		projectPath?: string,
-		integrations?: WorkspaceIntegration[],
-	): Promise<void> {
+	async newSession(projectPath?: string): Promise<void> {
 		if (this.connection !== 'connected') return;
 		const workspacePath = projectPath ?? this.selectedProjectPath;
 		// Threads do not exist outside a workspace; without one there is nothing
@@ -340,12 +336,12 @@ export class AgentStore {
 			this.selectedProjectPath = workspacePath;
 			this.projectStatus = undefined;
 		}
-		const selectedIntegrations =
-			integrations ??
+		// The server resolves the workspace's effective extensions; the cached
+		// list only feeds the optimistic UI until the session reports back.
+		this.activeDomains = (
 			this.projects.find(({ path }) => path === this.selectedProjectPath)
-				?.integrations ??
-			[];
-		this.activeDomains = selectedIntegrations.map(({ id }) => id);
+				?.integrations ?? []
+		).map(({ id }) => id);
 		this.sessionId = undefined;
 		this.messages = [];
 		this.model = undefined;
@@ -357,7 +353,6 @@ export class AgentStore {
 		try {
 			const sessionId = await this.#client.createSession({
 				...(this.selectedProjectPath ? { cwd: this.selectedProjectPath } : {}),
-				integrations: selectedIntegrations,
 			});
 			this.sessionId = sessionId;
 			this.sessionStates[sessionId] = 'idle';
@@ -368,7 +363,9 @@ export class AgentStore {
 				...(this.selectedProjectPath
 					? { workspacePath: this.selectedProjectPath }
 					: {}),
-				integrations: selectedIntegrations,
+				integrations:
+					this.projects.find(({ path }) => path === this.selectedProjectPath)
+						?.integrations ?? [],
 				createdAt: now,
 				lastActiveAt: now,
 				messageCount: 0,
@@ -399,11 +396,8 @@ export class AgentStore {
 		return this.#client.searchProjects(query, root);
 	}
 
-	async addProject(
-		projectPath: string,
-		integrations: WorkspaceIntegration[],
-	): Promise<StoredProject> {
-		const project = await this.#client.addProject(projectPath, integrations);
+	async addProject(projectPath: string): Promise<StoredProject> {
+		const project = await this.#client.addProject(projectPath);
 		this.projects = [
 			project,
 			...this.projects.filter(({ path }) => path !== project.path),
@@ -411,21 +405,27 @@ export class AgentStore {
 		return project;
 	}
 
-	async saveProjectProfiles(
+	/** Per-workspace extension overrides; null reverts to the global state. */
+	async setProjectGizmoExtension(
 		projectPath: string,
-		profiles: WorkspaceProfiles,
-	): Promise<StoredProject> {
-		const project = await this.#client.saveProjectProfiles(
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<void> {
+		await this.#client.setProjectGizmoExtension(
 			projectPath,
-			profiles,
+			extensionId,
+			enabled,
 		);
-		this.projects = this.projects.map((candidate) =>
-			candidate.path === project.path ? project : candidate,
-		);
-		if (this.selectedProjectPath === project.path) {
-			this.activeDomains = project.integrations.map(({ id }) => id);
-		}
-		return project;
+		await this.refreshProjects();
+	}
+
+	async setProjectPiExtension(
+		projectPath: string,
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<void> {
+		await this.#client.setProjectPiExtension(projectPath, extensionId, enabled);
+		await this.refreshProjects();
 	}
 
 	/**
@@ -488,6 +488,22 @@ export class AgentStore {
 				extensionId,
 				enabled,
 			);
+		} catch (error) {
+			this.resourceError = errorMessage(error);
+		}
+	}
+
+	async setGlobalGizmoExtension(
+		gizmoExtensionId: string,
+		enabled: boolean,
+	): Promise<void> {
+		this.resourceError = undefined;
+		try {
+			this.resources = await this.#client.setGlobalGizmoExtension(
+				gizmoExtensionId,
+				enabled,
+			);
+			await this.refreshProjects();
 		} catch (error) {
 			this.resourceError = errorMessage(error);
 		}

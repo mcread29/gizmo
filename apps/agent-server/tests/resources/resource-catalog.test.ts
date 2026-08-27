@@ -112,7 +112,7 @@ async function setup() {
 	const project = await temporary('gizmo-project-');
 	await writeFile(join(project, 'package.json'), '{}');
 	const projects = new ProjectCatalog(data);
-	await projects.add(project, []);
+	await projects.add(project);
 	const service = new ResourceCatalogService(
 		projects,
 		new GlobalResourceStore(data),

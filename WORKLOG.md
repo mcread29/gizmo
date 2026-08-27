@@ -1,5 +1,35 @@
 # Work log
 
+## 2026-08-28 — Project configuration replaces profiles
+
+- Retired the workspace profile system entirely. A workspace now follows the
+  global settings — Gizmo extensions, Pi extensions, skills, and built-in
+  tools — until individual items are overridden, with no profiles, canonical
+  templates, or temporary-override machinery anywhere in the stack.
+- Gizmo extensions gained a global toggle (installed means on; the off set is
+  `resources.json`'s `disabledGizmoExtensions`). The Configure screen lists
+  each installed extension with an inherit/override switch; toggling toward
+  the global state clears the override, and "Use global" resets a row.
+- Pi extension enablement can now be overridden per workspace (only turning
+  an on extension off; the global toggle remains the folder move). Sessions
+  filter `additionalExtensionPaths` by the workspace's disabled ids.
+- Dropped the per-profile tools/prompt modes and extension-contributed
+  canonical profiles: an enabled Gizmo extension always contributes its tools
+  and system-prompt guidance.
+- Storage: `.gizmo/config.json` holds only overrides per workspace; a legacy
+  `.gizmo/profiles.json` is migrated once (active profile's extensions become
+  an explicit snapshot, skills carry over) and removed. Built-in tool
+  overrides stay in `.pi/settings.json`.
+- Protocol 24: `project.config.save` replaced by granular
+  `project.gizmo-extension.set` / `project.pi-extension.set` (null clears),
+  `project.add` lost its integrations argument, `StoredProject` and
+  `ProjectDomains` lost profile fields, and `ResourceCatalog` gained
+  `gizmoExtensions` plus a `resources.gizmo-extension.global` message.
+- Configure screen rewritten: no Save/Revert — every change applies
+  immediately, mirroring the skills model. Removed `profile-overrides.ts`,
+  the profile switcher/duplicate/delete UI, and their tests; added override
+  and migration tests in their place.
+
 ## 2026-08-27 — Returning to a streaming thread no longer loses the reply
 
 - genge hit it while testing: leave a thread mid-stream, come back, and the

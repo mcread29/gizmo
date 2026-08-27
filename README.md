@@ -9,16 +9,16 @@ forking the product.
 ## Architecture
 
 Gizmo stores user-selected workspaces in its app data directory, while each
-workspace owns its agent profiles under `.gizmo/profiles.json`. A profile
-selects globally installed extensions, prompt/tool policy, and skill overrides
-for new threads. Gizmo never guesses a workspace type: new workspaces start on
-Default with no Gizmo extensions enabled. Built-in and extension defaults stay
-canonical; changing one creates a project override only while values differ.
-See [`docs/workspace-profiles.md`](docs/workspace-profiles.md)
+workspace owns its configuration overrides under `.gizmo/config.json`. A
+workspace follows the global settings — Gizmo extensions, Pi extensions,
+skills, and built-in tools — until it overrides individual items. Gizmo never
+guesses a workspace type: adding one enables nothing and inspects nothing.
+See [`docs/project-configuration.md`](docs/project-configuration.md)
 and [`docs/extensions.md`](docs/extensions.md).
 
-The default profile keeps Pi's default system prompt unchanged, plus any skills
-enabled through Gizmo's global and profile-local settings.
+Gizmo extensions are installed globally and on by default; Pi extensions and
+skills are managed in Settings → Agent, and any of them can be overridden per
+workspace in its Configure screen.
 
 ## Development
 
@@ -132,7 +132,7 @@ Candidate extensions are collected in
 Skills, `AGENTS.md` files, prompt templates, and Pi extensions use Pi's global
 folders under `~/.pi/agent` plus cross-harness skills under `~/.agents/`.
 Gizmo edits skill Markdown in place, can disable global Pi extensions without
-deleting them, and supports skill overrides per workspace profile; see
+deleting them, and supports skill and extension overrides per workspace; see
 [`docs/resources.md`](docs/resources.md).
 
 ```sh

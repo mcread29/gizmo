@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 23 as const;
+export const protocolVersion = 24 as const;
 
 const sessionTitleLimit = 48;
 
@@ -355,66 +355,42 @@ export const projectSkillSchema = Type.Object(
 	{ additionalProperties: false },
 );
 
-export const workspaceProfileSchema = Type.Object(
+/** One extension enablement override; absent entries inherit the global state. */
+const extensionOverrideSchema = Type.Object(
 	{
-		id: Type.String({ minLength: 1, maxLength: 64 }),
-		name: Type.String({ minLength: 1, maxLength: 80 }),
-		source: Type.Optional(Type.String({ minLength: 1, maxLength: 120 })),
-		base: Type.Optional(
-			Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
-		),
-		extensions: Type.Array(workspaceProfileExtensionSchema),
-		/** Overrides of global skill enablement for this profile. */
-		skills: Type.Optional(Type.Array(projectSkillSchema)),
-		tools: Type.Optional(
-			Type.Object(
-				{
-					mode: Type.Union([
-						Type.Literal('default'),
-						Type.Literal('default-plus-extension'),
-					]),
-				},
-				{ additionalProperties: false },
-			),
-		),
-		prompt: Type.Optional(
-			Type.Object(
-				{
-					mode: Type.Union([
-						Type.Literal('pi-default'),
-						Type.Literal('default-plus-extension-fragments'),
-					]),
-				},
-				{ additionalProperties: false },
-			),
-		),
+		id: Type.String({ minLength: 1, maxLength: 255 }),
+		enabled: Type.Boolean(),
 	},
 	{ additionalProperties: false },
 );
 
-export const workspaceProfilesSchema = Type.Object(
+/**
+ * Project-scoped configuration: only the departures from the global settings
+ * live here. Every section is optional, and an empty file means the project
+ * inherits everything global — Gizmo extensions, Pi extensions, skills, and
+ * the global built-in tool policy.
+ */
+export const projectConfigSchema = Type.Object(
 	{
 		version: Type.Literal(1),
-		activeProfileId: Type.String({ minLength: 1, maxLength: 64 }),
-		profiles: Type.Array(workspaceProfileSchema),
+		gizmoExtensions: Type.Optional(Type.Array(extensionOverrideSchema)),
+		piExtensions: Type.Optional(Type.Array(extensionOverrideSchema)),
+		/** Overrides of each skill's global enablement. */
+		skills: Type.Optional(Type.Array(projectSkillSchema)),
 	},
 	{ additionalProperties: false },
 );
 
-export type WorkspaceProfile = Static<typeof workspaceProfileSchema>;
-export type WorkspaceProfiles = Static<typeof workspaceProfilesSchema>;
+export type ProjectConfig = Static<typeof projectConfigSchema>;
+export type ExtensionOverride = Static<typeof extensionOverrideSchema>;
 
 export const storedProjectSchema = Type.Object(
 	{
 		title: Type.String({ minLength: 1 }),
 		path: Type.String({ minLength: 1 }),
-		/** Compatibility alias for the active profile's extensions. */
+		/** Gizmo extensions effectively enabled for new sessions. */
 		integrations: Type.Array(workspaceProfileExtensionSchema),
-		activeProfileId: Type.Optional(
-			Type.String({ minLength: 1, maxLength: 64 }),
-		),
-		profiles: Type.Optional(Type.Array(workspaceProfileSchema)),
-		/** Per-workspace overrides of each skill's global enablement. */
+		/** Skill overrides in effect; absent rows follow the global setting. */
 		skills: Type.Optional(Type.Array(projectSkillSchema)),
 		addedAt: Type.Integer({ minimum: 0 }),
 	},
@@ -436,7 +412,8 @@ export const projectDomainsSchema = Type.Object(
 				{ additionalProperties: false },
 			),
 		),
-		profiles: Type.Optional(Type.Array(workspaceProfileSchema)),
+		/** The project's stored overrides, if any. */
+		config: Type.Optional(projectConfigSchema),
 	},
 	{ additionalProperties: false },
 );
@@ -522,6 +499,19 @@ export const resourceCatalogSchema = Type.Object(
 		agentsFiles: Type.Array(agentResourceSchema),
 		prompts: Type.Array(agentResourceSchema),
 		extensions: Type.Optional(Type.Array(piExtensionResourceSchema)),
+		/** Installed Gizmo extensions with their global enablement. */
+		gizmoExtensions: Type.Optional(
+			Type.Array(
+				Type.Object(
+					{
+						id: Type.String({ minLength: 1, maxLength: 64 }),
+						name: Type.String({ minLength: 1, maxLength: 64 }),
+						enabled: Type.Boolean(),
+					},
+					{ additionalProperties: false },
+				),
+			),
+		),
 		diagnostics: Type.Array(Type.String({ minLength: 1 })),
 	},
 	{ additionalProperties: false },
@@ -1117,16 +1107,28 @@ export const agentRequestSchema = Type.Union([
 			...envelope,
 			type: Type.Literal('project.add'),
 			projectPath: Type.String({ minLength: 1 }),
-			integrations: Type.Array(workspaceProfileExtensionSchema),
 		},
 		{ additionalProperties: false },
 	),
 	Type.Object(
 		{
 			...envelope,
-			type: Type.Literal('project.profiles.save'),
+			type: Type.Literal('project.gizmo-extension.set'),
 			projectPath: Type.String({ minLength: 1 }),
-			profiles: workspaceProfilesSchema,
+			extensionId: Type.String({ minLength: 1, maxLength: 64 }),
+			/** Null clears the override so the global setting applies again. */
+			enabled: Type.Union([Type.Boolean(), Type.Null()]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.pi-extension.set'),
+			projectPath: Type.String({ minLength: 1 }),
+			extensionId: Type.String({ minLength: 1, maxLength: 255 }),
+			/** Null clears the override so the global setting applies again. */
+			enabled: Type.Union([Type.Boolean(), Type.Null()]),
 		},
 		{ additionalProperties: false },
 	),
@@ -1223,6 +1225,15 @@ export const agentRequestSchema = Type.Union([
 			type: Type.Literal('resources.skill.write'),
 			path: Type.String({ minLength: 1 }),
 			content: Type.String({ maxLength: 1_000_000 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('resources.gizmo-extension.global'),
+			gizmoExtensionId: Type.String({ minLength: 1, maxLength: 64 }),
+			enabled: Type.Boolean(),
 		},
 		{ additionalProperties: false },
 	),
@@ -1575,6 +1586,13 @@ export function parseProviderStatuses(input: unknown): ProviderStatus[] {
 
 export function parseProjectDomains(input: unknown): ProjectDomains {
 	if (!Value.Check(projectDomainsSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
+export function parseProjectConfig(input: unknown): ProjectConfig {
+	if (!Value.Check(projectConfigSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;

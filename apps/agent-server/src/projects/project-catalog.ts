@@ -3,41 +3,51 @@ import {
 	readFile,
 	readdir,
 	rename,
+	rm,
 	stat,
 	writeFile,
 } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import {
+	type ExtensionOverride,
+	type ProjectConfig,
 	type ProjectDomains,
 	type ProjectSkill,
 	type StoredProject,
 	type WorkspaceIntegration,
-	type WorkspaceProfile,
-	type WorkspaceProfiles,
 } from '@gizmo/protocol';
-import {
-	defaultProfile,
-	installedExtensionCatalog,
-} from '../extensions/registry';
+import { registeredExtensions } from '../extensions/registry';
 import { isPathWithin } from '../path-utils';
+import { GlobalResourceStore } from '../resources/global-resource-settings';
+import { listPiExtensions } from '../resources/pi-global-resources';
 import { defaultDataDir } from '../sessions/session-repository';
 
+/**
+ * Project-scoped configuration, stored as `.gizmo/config.json` inside the
+ * workspace. Only overrides live here; anything absent inherits the global
+ * setting. A legacy `.gizmo/profiles.json` is migrated once and removed.
+ */
 export class ProjectCatalog {
 	readonly #file: string;
+	readonly #global: GlobalResourceStore;
 	readonly #catalogMutex = new AsyncMutex();
-	readonly #profileMutexes = new Map<string, AsyncMutex>();
+	readonly #configMutexes = new Map<string, AsyncMutex>();
 
-	constructor(dataDir = defaultDataDir()) {
+	constructor(
+		dataDir = defaultDataDir(),
+		global: GlobalResourceStore = new GlobalResourceStore(dataDir),
+	) {
 		this.#file = join(dataDir, 'projects.json');
+		this.#global = global;
 	}
 
-	#profileMutex(projectPath: string): AsyncMutex {
+	#configMutex(projectPath: string): AsyncMutex {
 		const key = resolve(projectPath);
-		let mutex = this.#profileMutexes.get(key);
+		let mutex = this.#configMutexes.get(key);
 		if (!mutex) {
 			mutex = new AsyncMutex();
-			this.#profileMutexes.set(key, mutex);
+			this.#configMutexes.set(key, mutex);
 		}
 		return mutex;
 	}
@@ -59,12 +69,6 @@ export class ProjectCatalog {
 				title: project.title,
 				path: project.path,
 				addedAt: project.addedAt,
-				...(project.skills?.length ? { skills: project.skills } : {}),
-				integrations:
-					project.integrations ??
-					(project.domainId && project.domainId !== 'generic'
-						? [{ id: project.domainId, root: '.' }]
-						: []),
 			}));
 		} catch (error) {
 			if (missing(error)) return [];
@@ -73,8 +77,15 @@ export class ProjectCatalog {
 	}
 
 	async detect(projectPath: string): Promise<ProjectDomains> {
-		const path = await requireDirectory(projectPath);
-		return installedExtensionCatalog();
+		await requireDirectory(projectPath);
+		return {
+			domains: registeredExtensions().map(({ id, name }) => ({
+				id,
+				name,
+				root: '.',
+			})),
+			config: await this.configFor(projectPath),
+		};
 	}
 
 	async browse(input?: string) {
@@ -121,28 +132,18 @@ export class ProjectCatalog {
 		};
 	}
 
-	async add(
-		projectPath: string,
-		integrations: WorkspaceIntegration[],
-	): Promise<StoredProject> {
+	async add(projectPath: string): Promise<StoredProject> {
 		const path = await requireDirectory(projectPath);
-		await this.#validateIntegrations(path, integrations);
 		return this.#catalogMutex.run(async () => {
 			const projects = await this.#readCatalog();
-			const existing = projects.find((item) => item.path === path);
-			const detected = await this.detect(path);
-			const existingProfiles = await this.#profiles(path, existing);
-			const profiles = profilesFromSelection(
-				detected.profiles ?? [],
-				integrations,
-				activeProfile(existingProfiles)?.skills ?? [],
-			);
-			await this.#validateProfiles(path, profiles);
-			await this.#profileMutex(path).run(() => writeProfiles(path, profiles));
+			// Reading the configuration migrates a legacy profiles.json if one
+			// exists, so a workspace re-added to Gizmo keeps its overrides.
+			await this.configFor(path);
 			const project: CatalogProject = {
 				title: basename(path),
 				path,
-				addedAt: existing?.addedAt ?? Date.now(),
+				addedAt:
+					projects.find((item) => item.path === path)?.addedAt ?? Date.now(),
 			};
 			await this.#write([
 				project,
@@ -150,25 +151,6 @@ export class ProjectCatalog {
 			]);
 			return this.#storedProject(project);
 		});
-	}
-
-	async saveProfiles(
-		projectPath: string,
-		profiles: WorkspaceProfiles,
-	): Promise<StoredProject> {
-		const path = await requireDirectory(projectPath);
-		const projects = await this.#readCatalog();
-		const existing = projects.find((item) => item.path === path);
-		if (!existing) {
-			throw new Error(`Workspace is not registered with Gizmo: ${path}`);
-		}
-		const canonical = reconcileProfiles(
-			profiles,
-			installedExtensionCatalog().profiles ?? [defaultProfile()],
-		);
-		await this.#validateProfiles(path, canonical);
-		await this.#profileMutex(path).run(() => writeProfiles(path, canonical));
-		return this.#storedProject(existing);
 	}
 
 	async remove(projectPath: string): Promise<void> {
@@ -180,11 +162,10 @@ export class ProjectCatalog {
 		});
 	}
 
-	/** Per-profile overrides of the global skill enablement. */
+	/** Overrides of the global skill enablement for this workspace. */
 	async skillsFor(projectPath: string | undefined): Promise<ProjectSkill[]> {
 		if (!projectPath) return [];
-		const profiles = await this.profilesFor(projectPath);
-		return activeProfile(profiles)?.skills ?? [];
+		return (await this.configFor(projectPath)).skills ?? [];
 	}
 
 	/** Passing null clears the override so the global setting applies again. */
@@ -193,125 +174,171 @@ export class ProjectCatalog {
 		skillId: string,
 		enabled: boolean | null,
 	): Promise<ProjectSkill[]> {
-		const path = resolve(projectPath);
-		const projects = await this.#readCatalog();
-		const project = projects.find((item) => item.path === path);
-		if (!project) {
-			throw new Error(`Workspace is not registered with Gizmo: ${path}`);
-		}
-		return this.#profileMutex(path).run(async () => {
-			const profiles = await this.#profiles(path, project);
-			let profile = activeProfile(profiles);
-			if (!profile) throw new Error('The active profile is missing');
-			if (!(profile.source ?? 'workspace').startsWith('workspace')) {
-				profile = temporaryProfileFor(profile, profiles.profiles);
-				profiles.profiles.push(profile);
-				profiles.activeProfileId = profile.id;
-			}
-			const skills = (profile.skills ?? []).filter(({ id }) => id !== skillId);
-			if (enabled !== null) skills.push({ id: skillId, enabled });
-			profile.skills = skills;
-			const reconciled = reconcileProfiles(
-				profiles,
-				installedExtensionCatalog().profiles ?? [defaultProfile()],
-			);
-			await writeProfiles(path, reconciled);
-			return activeProfile(reconciled)?.skills ?? [];
-		});
+		return this.#updateConfig(projectPath, (config) => ({
+			...config,
+			skills: withOverrides(
+				config.skills ?? [],
+				skillId,
+				enabled,
+				(skill) => skill.id,
+			),
+		})).then(({ config }) => config.skills ?? []);
 	}
 
-	async profilesFor(
-		projectPath: string | undefined,
-	): Promise<WorkspaceProfiles> {
-		if (!projectPath) return profilesFromSelection([], []);
-		const path = resolve(projectPath);
-		const project = (await this.#readCatalog()).find(
-			(item) => item.path === path,
-		);
-		return this.#profiles(path, project);
+	/** Removes an override so the global setting applies again. */
+	async setGizmoExtension(
+		projectPath: string,
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<ProjectConfig> {
+		return this.#updateConfig(projectPath, (config) => ({
+			...config,
+			gizmoExtensions: withOverrides(
+				config.gizmoExtensions ?? [],
+				extensionId,
+				enabled,
+				(override) => override.id,
+			),
+		})).then(({ config }) => config);
 	}
 
-	async activeProfileFor(projectPath: string | undefined) {
-		if (!projectPath) return defaultProfile();
-		return (
-			activeProfile(await this.profilesFor(projectPath)) ?? defaultProfile()
-		);
+	/** Removes an override so the global setting applies again. */
+	async setPiExtension(
+		projectPath: string,
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<ProjectConfig> {
+		return this.#updateConfig(projectPath, (config) => ({
+			...config,
+			piExtensions: withOverrides(
+				config.piExtensions ?? [],
+				extensionId,
+				enabled,
+				(override) => override.id,
+			),
+		})).then(({ config }) => config);
 	}
 
+	/**
+	 * Gizmo extensions effectively enabled for new sessions: the global
+	 * toggles, adjusted by this workspace's overrides.
+	 */
 	async integrationsFor(
 		projectPath: string | undefined,
 	): Promise<WorkspaceIntegration[]> {
-		return (await this.activeProfileFor(projectPath)).extensions;
+		if (!projectPath) return [];
+		const { integrations } = await this.#resolve(projectPath);
+		return integrations;
 	}
 
+	/** Pi extension ids this workspace turns off despite the global state. */
+	async disabledPiExtensionsFor(path: string): Promise<string[]> {
+		const config = await this.configFor(path);
+		return (config.piExtensions ?? [])
+			.filter((override) => !override.enabled)
+			.map((override) => override.id);
+	}
+
+	async #updateConfig(
+		projectPath: string,
+		update: (config: ProjectConfig) => ProjectConfig,
+	): Promise<{ path: string; config: ProjectConfig }> {
+		const path = await requireDirectory(projectPath);
+		const projects = await this.#readCatalog();
+		if (!projects.some((item) => item.path === path)) {
+			throw new Error(`Workspace is not registered with Gizmo: ${path}`);
+		}
+		return this.#configMutex(path).run(async () => {
+			const config = normalizeConfig(update(await this.configFor(path)));
+			await this.#validateConfig(config);
+			await writeConfig(path, config);
+			return { path, config };
+		});
+	}
+
+	async #resolve(projectPath: string): Promise<{
+		config: ProjectConfig;
+		integrations: WorkspaceIntegration[];
+	}> {
+		const config = await this.configFor(projectPath);
+		const overrides = new Map(
+			(config.gizmoExtensions ?? []).map(({ id, enabled }) => [id, enabled]),
+		);
+		const globallyDisabled = new Set(
+			(await this.#global.read()).disabledGizmoExtensions,
+		);
+		const integrations = registeredExtensions()
+			.filter(({ id }) => overrides.get(id) ?? !globallyDisabled.has(id))
+			.map(({ id }) => ({ id, root: '.' }));
+		return { config, integrations };
+	}
+
+	/**
+	 * Gizmo extensions effectively enabled for a workspace, plus any skill
+	 * overrides — the shape the UI and session catalog display.
+	 */
 	async #storedProject(project: CatalogProject): Promise<StoredProject> {
-		const profiles = await this.#profiles(project.path, project);
-		const active = activeProfile(profiles);
+		const { config, integrations } = await this.#resolve(project.path);
 		return {
 			title: project.title,
 			path: project.path,
-			integrations: active?.extensions ?? [],
-			activeProfileId: profiles.activeProfileId,
-			profiles: profiles.profiles,
-			...(active?.skills?.length ? { skills: active.skills } : {}),
+			integrations,
+			...(config.skills?.length ? { skills: config.skills } : {}),
 			addedAt: project.addedAt,
 		};
 	}
 
-	async #profiles(
-		projectPath: string,
-		project?: CatalogProject,
-	): Promise<WorkspaceProfiles> {
-		const templates = installedExtensionCatalog().profiles ?? [
-			defaultProfile(),
-		];
+	async configFor(projectPath: string): Promise<ProjectConfig> {
+		const path = resolve(projectPath);
 		try {
-			return reconcileProfiles(
-				normalizeProfiles(
-					JSON.parse(await readFile(profileFile(projectPath), 'utf8')),
-				),
-				templates,
+			return normalizeConfig(
+				JSON.parse(await readFile(configFile(path), 'utf8')),
 			);
 		} catch (error) {
 			if (!missing(error)) throw error;
-			return profilesFromSelection(
-				templates,
-				project?.integrations ?? [],
-				project?.skills ?? [],
-			);
 		}
+		// No config file: a legacy profiles.json is migrated once, otherwise
+		// the project simply inherits every global setting.
+		const migrated = await this.#migrateLegacyProfiles(path);
+		return migrated ?? { version: 1 };
 	}
 
-	async #validateProfiles(
-		projectPath: string,
-		profiles: WorkspaceProfiles,
-	): Promise<void> {
-		if (!profiles.profiles.some(({ id }) => id === profiles.activeProfileId)) {
-			throw new Error(`Unknown active profile: ${profiles.activeProfileId}`);
+	/**
+	 * Derives overrides from a legacy `.gizmo/profiles.json` active profile and
+	 * removes the file. Under the old system every workspace started with no
+	 * extensions enabled, so the active profile's extension list becomes an
+	 * explicit snapshot: installed extensions it listed stay on, the rest off.
+	 */
+	async #migrateLegacyProfiles(path: string): Promise<ProjectConfig | null> {
+		const legacy = join(path, '.gizmo', 'profiles.json');
+		let active: LegacyProfile;
+		try {
+			const stored = JSON.parse(await readFile(legacy, 'utf8')) as {
+				activeProfileId?: string;
+				profiles?: LegacyProfile[];
+			};
+			const profiles = stored.profiles ?? [];
+			active =
+				profiles.find(({ id }) => id === stored.activeProfileId) ??
+				profiles[0] ??
+				{};
+		} catch {
+			return null;
 		}
-		for (const profile of profiles.profiles) {
-			await this.#validateIntegrations(projectPath, profile.extensions);
-		}
-	}
-
-	async #validateIntegrations(
-		projectPath: string,
-		integrations: WorkspaceIntegration[],
-	): Promise<void> {
-		const known = new Set(
-			(await this.detect(projectPath)).domains.map(({ id }) => id),
-		);
-		for (const integration of integrations) {
-			if (!known.has(integration.id))
-				throw new Error(`Unknown extension: ${integration.id}`);
-			const root = resolve(projectPath, integration.root);
-			if (!isPathWithin(projectPath, root))
-				throw new Error('Extension root must be inside the workspace');
-			if (!(await stat(root)).isDirectory())
-				throw new Error(
-					`Extension root is not a directory: ${integration.root}`,
-				);
-		}
+		const enabled = new Set((active.extensions ?? []).map(({ id }) => id));
+		const config: ProjectConfig = {
+			version: 1,
+			gizmoExtensions: registeredExtensions().map(({ id }) => ({
+				id,
+				enabled: enabled.has(id),
+			})),
+			...(active.skills?.length ? { skills: active.skills } : {}),
+		};
+		await this.#configMutex(path).run(async () => {
+			await writeConfig(path, config);
+			await rm(legacy, { force: true });
+		});
+		return config;
 	}
 
 	async #write(projects: CatalogProject[]): Promise<void> {
@@ -328,224 +355,100 @@ export class ProjectCatalog {
 		);
 		await rename(temporary, this.#file);
 	}
+
+	async #validateConfig(config: ProjectConfig): Promise<void> {
+		if (config.version !== 1) {
+			throw new Error(
+				`Unsupported project configuration version: ${config.version}`,
+			);
+		}
+		const gizmoIds = new Set(registeredExtensions().map(({ id }) => id));
+		for (const { id } of config.gizmoExtensions ?? []) {
+			if (!gizmoIds.has(id)) throw new Error(`Unknown Gizmo extension: ${id}`);
+		}
+		const piIds = new Set((await listPiExtensions()).map(({ id }) => id));
+		for (const { id } of config.piExtensions ?? []) {
+			if (!piIds.has(id)) throw new Error(`Unknown Pi extension: ${id}`);
+		}
+	}
+}
+
+interface LegacyProfile {
+	id?: string;
+	extensions?: WorkspaceIntegration[];
+	skills?: ProjectSkill[];
 }
 
 interface CatalogProject {
 	title: string;
 	path: string;
 	addedAt: number;
-	integrations?: WorkspaceIntegration[];
-	skills?: ProjectSkill[];
 }
 
 interface LegacyProject {
 	title: string;
 	path: string;
 	addedAt: number;
-	domainId?: string;
-	integrations?: WorkspaceIntegration[];
-	skills?: ProjectSkill[];
 }
 
-function profileFile(projectPath: string): string {
-	return join(projectPath, '.gizmo', 'profiles.json');
+function configFile(projectPath: string): string {
+	return join(projectPath, '.gizmo', 'config.json');
 }
 
-async function writeProfiles(
+async function writeConfig(
 	projectPath: string,
-	profiles: WorkspaceProfiles,
+	config: ProjectConfig,
 ): Promise<void> {
-	const file = profileFile(projectPath);
+	const file = configFile(projectPath);
 	await mkdir(dirname(file), { recursive: true });
 	const temporary = `${file}.tmp`;
-	await writeFile(temporary, `${JSON.stringify(profiles, null, 2)}\n`, 'utf8');
+	await writeFile(temporary, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
 	await rename(temporary, file);
 }
 
-function profilesFromSelection(
-	templates: readonly WorkspaceProfile[],
-	integrations: readonly WorkspaceIntegration[],
-	skills: readonly ProjectSkill[] = [],
-): WorkspaceProfiles {
-	const defaultEntry = cloneProfile(
-		templates.find(({ id }) => id === 'default') ?? defaultProfile(),
-	);
-	const selectedBase = integrations.length
-		? profileForSelection(templates, integrations, [])
-		: defaultEntry;
-	const selected =
-		skills.length &&
-		!(selectedBase.source ?? 'workspace').startsWith('workspace')
-			? {
-					...cloneProfile(selectedBase),
-					id: `${selectedBase.id.slice(0, 54)}-override`,
-					source: 'workspace:temporary',
-					base: selectedBase.id,
-					skills: [...skills],
-				}
-			: {
-					...selectedBase,
-					...(skills.length ? { skills: [...skills] } : {}),
-				};
-	const profiles = uniqueProfiles([
-		defaultEntry,
-		...templates.filter(({ id }) => id !== 'default').map(cloneProfile),
-		selected,
-	]);
-	return {
-		version: 1,
-		activeProfileId: selected.id,
-		profiles,
-	};
-}
-
-function profileForSelection(
-	templates: readonly WorkspaceProfile[],
-	integrations: readonly WorkspaceIntegration[],
-	skills: readonly ProjectSkill[],
-): WorkspaceProfile {
-	if (integrations.length === 1) {
-		const integration = integrations[0]!;
-		const template = templates.find(({ id }) => id === integration.id);
-		if (template) {
-			return {
-				...cloneProfile(template),
-				extensions: [{ ...integration }],
-				...(skills.length ? { skills: [...skills] } : {}),
-			};
+/** Removes empty sections and duplicate rows so stored files stay minimal. */
+function normalizeConfig(input: unknown): ProjectConfig {
+	const candidate = input as Partial<ProjectConfig>;
+	const overrides = (overrides?: ExtensionOverride[]) => {
+		const byId = new Map<string, ExtensionOverride>();
+		for (const override of overrides ?? []) {
+			if (
+				typeof override?.id === 'string' &&
+				typeof override.enabled === 'boolean'
+			) {
+				byId.set(override.id, { id: override.id, enabled: override.enabled });
+			}
 		}
-	}
-	const id = integrations.map(({ id }) => id).join('-') || 'default';
-	return {
-		id,
-		name: title(id),
-		source: 'workspace:legacy',
-		base: 'default',
-		extensions: integrations.map((integration) => ({ ...integration })),
-		...(skills.length ? { skills: [...skills] } : {}),
-		tools: { mode: 'default-plus-extension' },
-		prompt: { mode: 'default-plus-extension-fragments' },
+		return [...byId.values()].sort((left, right) =>
+			left.id.localeCompare(right.id),
+		);
 	};
-}
-
-function normalizeProfiles(input: unknown): WorkspaceProfiles {
-	const candidate = input as Partial<WorkspaceProfiles>;
-	const profiles = Array.isArray(candidate.profiles)
-		? candidate.profiles.map(cloneProfile)
-		: [defaultProfile()];
-	if (!profiles.some(({ id }) => id === 'default')) {
-		profiles.unshift(defaultProfile());
-	}
-	const activeProfileId =
-		typeof candidate.activeProfileId === 'string' &&
-		profiles.some(({ id }) => id === candidate.activeProfileId)
-			? candidate.activeProfileId
-			: profiles[0]!.id;
-	return { version: 1, activeProfileId, profiles: uniqueProfiles(profiles) };
-}
-
-function temporaryProfileFor(
-	base: WorkspaceProfile,
-	profiles: readonly WorkspaceProfile[],
-): WorkspaceProfile {
-	const stem = `${base.id.slice(0, 54)}-override`;
-	let id = stem;
-	for (
-		let index = 2;
-		profiles.some((profile) => profile.id === id);
-		index += 1
-	) {
-		const suffix = `-${index}`;
-		id = `${stem.slice(0, 64 - suffix.length)}${suffix}`;
-	}
-	return {
-		...cloneProfile(base),
+	const skills = (overrides(candidate.skills) ?? []).map(({ id, enabled }) => ({
 		id,
-		source: 'workspace:temporary',
-		base: base.id,
-	};
-}
-
-function reconcileProfiles(
-	stored: WorkspaceProfiles,
-	templates: readonly WorkspaceProfile[],
-): WorkspaceProfiles {
-	const canonical = uniqueProfiles(templates.map(cloneProfile));
-	const canonicalIds = new Set(canonical.map(({ id }) => id));
-	const workspaceProfiles = stored.profiles
-		.filter(({ id }) => !canonicalIds.has(id))
-		.map(cloneProfile);
-	const combined = [...canonical, ...workspaceProfiles];
-	const removed = new Map<string, string>();
-	const profiles = combined.filter((profile) => {
-		if (profile.source !== 'workspace:temporary' || !profile.base) return true;
-		const base = combined.find(({ id }) => id === profile.base);
-		if (!base || !sameProfileValues(profile, base)) return true;
-		removed.set(profile.id, base.id);
-		return false;
-	});
-	const requested =
-		removed.get(stored.activeProfileId) ?? stored.activeProfileId;
+		enabled,
+	}));
+	const gizmoExtensions = overrides(candidate.gizmoExtensions);
+	const piExtensions = overrides(candidate.piExtensions);
 	return {
 		version: 1,
-		activeProfileId: profiles.some(({ id }) => id === requested)
-			? requested
-			: (profiles[0]?.id ?? 'default'),
-		profiles: uniqueProfiles(profiles),
+		...(gizmoExtensions.length ? { gizmoExtensions } : {}),
+		...(piExtensions.length ? { piExtensions } : {}),
+		...(skills.length ? { skills } : {}),
 	};
 }
 
-function sameProfileValues(left: WorkspaceProfile, right: WorkspaceProfile) {
-	return (
-		JSON.stringify(profileValues(left)) === JSON.stringify(profileValues(right))
-	);
-}
-
-function profileValues(profile: WorkspaceProfile) {
-	return {
-		name: profile.name,
-		extensions: [...profile.extensions]
-			.map(({ id, root }) => ({ id, root }))
-			.sort(byId),
-		skills: [...(profile.skills ?? [])]
-			.map(({ id, enabled }) => ({ id, enabled }))
-			.sort(byId),
-		tools: profile.tools?.mode ?? 'default',
-		prompt: profile.prompt?.mode ?? 'pi-default',
-	};
-}
-
-function byId(left: { id: string }, right: { id: string }) {
-	return left.id.localeCompare(right.id);
-}
-
-function activeProfile(
-	profiles: WorkspaceProfiles,
-): WorkspaceProfile | undefined {
-	return profiles.profiles.find(({ id }) => id === profiles.activeProfileId);
-}
-
-function uniqueProfiles(profiles: WorkspaceProfile[]): WorkspaceProfile[] {
-	const byId = new Map<string, WorkspaceProfile>();
-	for (const profile of profiles) byId.set(profile.id, profile);
-	return [...byId.values()];
-}
-
-function cloneProfile(profile: WorkspaceProfile): WorkspaceProfile {
-	return {
-		...profile,
-		extensions: profile.extensions.map((extension) => ({ ...extension })),
-		...(profile.skills
-			? { skills: profile.skills.map((skill) => ({ ...skill })) }
-			: {}),
-	};
-}
-
-function title(id: string): string {
-	return id
-		.split('-')
-		.map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
-		.join(' + ');
+function withOverrides<T>(
+	rows: T[],
+	id: string,
+	enabled: boolean | null,
+	key: (row: T) => string,
+): T[] {
+	const rest = rows.filter((row) => key(row) !== id);
+	if (enabled === null) return rest;
+	return [
+		...rest,
+		{ ...(rows.find((row) => key(row) === id) ?? {}), id, enabled } as T,
+	].sort((left, right) => key(left).localeCompare(key(right)));
 }
 
 async function requireDirectory(input: string): Promise<string> {

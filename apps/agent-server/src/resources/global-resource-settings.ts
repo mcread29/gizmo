@@ -12,12 +12,15 @@ export interface GlobalResourceSettings {
 	enabledSkills: string[];
 	/** Explicitly uninstalled, so discovery does not reinstall them. */
 	uninstalledSkills: string[];
+	/** Installed Gizmo extensions switched off globally; absent means on. */
+	disabledGizmoExtensions: string[];
 }
 
 export const emptyGlobalResourceSettings: GlobalResourceSettings = {
 	installedSkills: [],
 	enabledSkills: [],
 	uninstalledSkills: [],
+	disabledGizmoExtensions: [],
 };
 
 export class GlobalResourceStore {
@@ -34,6 +37,7 @@ export class GlobalResourceStore {
 				installedSkills: strings(input, 'installedSkills'),
 				enabledSkills: strings(input, 'enabledSkills'),
 				uninstalledSkills: strings(input, 'uninstalledSkills'),
+				disabledGizmoExtensions: strings(input, 'disabledGizmoExtensions'),
 			};
 		} catch (error) {
 			if (missing(error)) return { ...emptyGlobalResourceSettings };

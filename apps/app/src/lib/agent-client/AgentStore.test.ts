@@ -4,6 +4,7 @@ import {
 	type AgentModelCatalog,
 	type GitCommitResult,
 	type GitStatus,
+	type ProjectConfig,
 	type ResourceCatalog,
 	type SessionCatalog,
 	type SessionOptions,
@@ -13,7 +14,6 @@ import {
 	type UnityOpenProjectResult,
 	type UnityStatus,
 	type ProviderStatus,
-	type WorkspaceProfiles,
 } from '@gizmo/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentClient, AgentEventListener } from './AgentClient';
@@ -125,24 +125,22 @@ class InvalidEventClient implements AgentClient {
 	async searchProjects() {
 		return { path: '/projects', directories: [] };
 	}
-	async addProject(
-		projectPath: string,
-		integrations: { id: string; root: string }[],
-	) {
-		return { title: 'project', path: projectPath, integrations, addedAt: 0 };
-	}
-	async saveProjectProfiles(projectPath: string, profiles: WorkspaceProfiles) {
-		const active = profiles.profiles.find(
-			({ id }) => id === profiles.activeProfileId,
-		);
+	async addProject(projectPath: string) {
 		return {
 			title: 'project',
 			path: projectPath,
-			integrations: active?.extensions ?? [],
-			activeProfileId: profiles.activeProfileId,
-			profiles: profiles.profiles,
+			integrations: [],
 			addedAt: 0,
 		};
+	}
+	async setProjectGizmoExtension(): Promise<ProjectConfig> {
+		return { version: 1 };
+	}
+	async setProjectPiExtension(): Promise<ProjectConfig> {
+		return { version: 1 };
+	}
+	async setGlobalGizmoExtension(): Promise<ResourceCatalog> {
+		return emptyCatalog;
 	}
 	async removeProject() {}
 	async listResources(): Promise<ResourceCatalog> {

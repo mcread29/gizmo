@@ -3,9 +3,9 @@
 Gizmo manages the Pi resources that shape a session: skills, `AGENTS.md`
 context files, prompt templates, and global Pi extensions. Pi's global folders
 are canonical for both Gizmo and the rest of the Pi installation. These are separate from
-workspace profiles ([workspace-profiles.md](workspace-profiles.md)) and from
-Gizmo extensions ([extensions.md](extensions.md)) — there is no separate
-"domain" concept; see [extensions.md](extensions.md) for why.
+workspace configuration ([project-configuration.md](project-configuration.md))
+and from Gizmo extensions ([extensions.md](extensions.md)) — there is no
+separate "domain" concept; see [extensions.md](extensions.md) for why.
 
 ## Model
 
@@ -16,9 +16,9 @@ whether a skill reaches a session:
   installed globally, so a skill is managed in one place no matter which
   directory it came from. A newly discovered skill is **off**: installing it
   makes it manageable, not active.
-- **Profile (enabled here).** A workspace profile may override the global
-  setting for one skill, in either direction. Clearing the override restores the
-  global setting.
+- **Project override.** A workspace may override the global setting for one
+  skill, in either direction. Clearing the override restores the global
+  setting.
 
 Effective state is therefore `override ?? enabledGlobally`, and an uninstalled
 skill is off everywhere regardless of any override.
@@ -31,10 +31,10 @@ next listing, so explicitly uninstalled IDs are recorded and skipped.
 | State                                                  | Location                                   |
 | ------------------------------------------------------ | ------------------------------------------ |
 | Installed, globally enabled, and uninstalled skill IDs | `resources.json` in Gizmo's data directory |
-| Profile-local overrides                                | `.gizmo/profiles.json` in the workspace    |
+| Project overrides                                      | `.gizmo/config.json` in the workspace      |
 
-Global state stays in Gizmo's data directory. Profile overrides are project
-configuration and are written into the workspace's `.gizmo/profiles.json`. A
+Global state stays in Gizmo's data directory. Overrides are project
+configuration and are written into the workspace's `.gizmo/config.json`. A
 workspace must be registered with Gizmo before it can hold overrides.
 
 ## Locations
@@ -51,7 +51,7 @@ second copy. Workspace resources remain project-local.
 location, so skills shared with other tools work without being copied.
 `~/.gizmo/` is also Gizmo's data directory, holding sessions, `projects.json`,
 and `resources.json`; `GIZMO_DATA_DIR` moves all of that app data. Workspace
-profiles remain in the selected project under `.gizmo/profiles.json`.
+overrides remain in the selected project under `.gizmo/config.json`.
 
 Skills can be opened and saved as Markdown in the dedicated Settings → Skills
 workbench.
@@ -106,15 +106,16 @@ Settings is a set of pages behind a left nav, grouped by who each page affects:
 About. Each page states its scope under the title, because the screen mixes
 device preferences with machine-wide agent configuration.
 
-**Agent** lists shared instructions, extensions, and prompts. **Skills** is a
+**Agent** lists shared instructions, Gizmo extensions, Pi extensions, and
+prompts. **Skills** is a
 wide split workbench: a searchable, filterable skill library stays visible on
 the left while the selected skill's raw Markdown fills the editor on the right.
 Global Pi extensions can be enabled or disabled. The rest is
 reported so you can see what is influencing a session.
 
-**Workspace settings** is part of the workspace screen: the Profile tab edits
-the workspace's profiles, including profile-local skill overrides, and the
-Settings tab covers domain settings and removal.
+**Workspace settings** is part of the workspace screen: the Configure tab
+edits the workspace's overrides — Gizmo and Pi extensions and skills — and
+covers extension settings and removal.
 
 Pages are addressable: `#settings/agent` opens straight to Agent, and moving
 between pages replaces the history entry rather than stacking one per click.

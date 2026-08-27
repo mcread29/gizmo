@@ -4,19 +4,10 @@ import { unitySystemPrompt } from './unity-system-prompt';
 
 export const unityDomain: Pick<
 	GizmoServerExtension,
-	'id' | 'name' | 'profile' | 'systemPrompt' | 'createTools'
+	'id' | 'name' | 'systemPrompt' | 'createTools'
 > = {
 	id: 'unity',
 	name: 'Unity',
-	profile: (root) => ({
-		id: 'unity',
-		name: 'Unity',
-		source: 'extension:unity',
-		base: 'default',
-		extensions: [{ id: 'unity', root }],
-		tools: { mode: 'default-plus-extension' },
-		prompt: { mode: 'default-plus-extension-fragments' },
-	}),
 	systemPrompt: unitySystemPrompt,
 	createTools: ({ workspacePath, confirm }) =>
 		createUnityTools({

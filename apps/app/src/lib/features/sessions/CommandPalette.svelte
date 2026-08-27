@@ -11,10 +11,7 @@
 		Settings,
 	} from '@lucide/svelte';
 	import { Command, Dialog } from 'bits-ui';
-	import type {
-		WorkspaceDirectoryListing,
-		WorkspaceIntegration,
-	} from '@gizmo/protocol';
+	import type { WorkspaceDirectoryListing } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
 	import { isDesktop, pickWorkspaceDirectory } from '../../desktop';
@@ -27,10 +24,7 @@
 		open?: boolean;
 		initialMode?: Mode;
 		store: AgentStore;
-		onSelectWorkspace: (
-			projectPath: string,
-			integrations: WorkspaceIntegration[],
-		) => void;
+		onSelectWorkspace: (projectPath: string) => void;
 		onNewThread: () => void;
 		onOpenSettings: () => void;
 		onSearchThreads: () => void;
@@ -150,8 +144,8 @@
 		detecting = true;
 		addError = undefined;
 		try {
-			const project = await store.addProject(selectedPath, []);
-			onSelectWorkspace(project.path, project.integrations);
+			const project = await store.addProject(selectedPath);
+			onSelectWorkspace(project.path);
 			open = false;
 		} catch (error) {
 			addError = error instanceof Error ? error.message : String(error);

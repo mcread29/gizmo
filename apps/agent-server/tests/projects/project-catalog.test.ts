@@ -5,6 +5,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { gizmoExtension as svelteExtension } from '@gizmo/svelte/server';
 import { ProjectCatalog } from '../../src/projects/project-catalog';
 import { registerExtensions } from '../../src/extensions/registry';
+import { GlobalResourceStore } from '../../src/resources/global-resource-settings';
 
 beforeAll(() => {
 	registerExtensions([svelteExtension]);
@@ -16,7 +17,7 @@ afterEach(async () =>
 );
 
 describe('ProjectCatalog', () => {
-	it('stores the selected workspace integrations', async () => {
+	it('inherits the global extensions until the workspace overrides them', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');
 		await writeFile(
@@ -25,31 +26,68 @@ describe('ProjectCatalog', () => {
 		);
 		const catalog = new ProjectCatalog(data);
 
-		expect((await catalog.detect(project)).domains).toContainEqual({
+		const detected = await catalog.detect(project);
+		expect(detected.domains).toContainEqual({
 			id: 'svelte',
 			name: 'Svelte',
 			root: '.',
 		});
-		await catalog.add(project, [{ id: 'svelte', root: '.' }]);
-		expect(await catalog.list()).toMatchObject([
-			{ path: project, integrations: [{ id: 'svelte', root: '.' }] },
+		expect(detected.config).toEqual({ version: 1 });
+
+		await catalog.add(project);
+		// Registered extensions are on globally, so the project inherits Svelte.
+		expect(await catalog.integrationsFor(project)).toEqual([
+			{ id: 'svelte', root: '.' },
 		]);
-		expect(
-			JSON.parse(await readFile(join(data, 'projects.json'), 'utf8')),
-		).toHaveLength(1);
+
+		// Turning it off here records an override without touching globals.
+		await catalog.setGizmoExtension(project, 'svelte', false);
+		expect(await catalog.integrationsFor(project)).toEqual([]);
 		expect(
 			JSON.parse(
-				await readFile(join(project, '.gizmo', 'profiles.json'), 'utf8'),
+				await readFile(join(project, '.gizmo', 'config.json'), 'utf8'),
 			),
 		).toMatchObject({
-			activeProfileId: 'svelte',
-			profiles: [
-				{ id: 'default', extensions: [] },
-				{ id: 'svelte', extensions: [{ id: 'svelte', root: '.' }] },
-			],
+			gizmoExtensions: [{ id: 'svelte', enabled: false }],
 		});
+
+		// Clearing the override returns the workspace to the global state.
+		await catalog.setGizmoExtension(project, 'svelte', null);
+		expect((await catalog.detect(project)).config).toEqual({ version: 1 });
+		expect(await catalog.integrationsFor(project)).toEqual([
+			{ id: 'svelte', root: '.' },
+		]);
+
 		await catalog.remove(project);
 		expect(await catalog.list()).toEqual([]);
+	});
+
+	it('resolves overrides against the global disabled set', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		await writeFile(
+			join(data, 'resources.json'),
+			JSON.stringify({ disabledGizmoExtensions: ['svelte'] }),
+		);
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project);
+
+		expect(await catalog.integrationsFor(project)).toEqual([]);
+		await catalog.setGizmoExtension(project, 'svelte', true);
+		expect(await catalog.integrationsFor(project)).toEqual([
+			{ id: 'svelte', root: '.' },
+		]);
+	});
+
+	it('refuses overrides for an extension it does not know', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project);
+
+		await expect(
+			catalog.setGizmoExtension(project, 'nope', false),
+		).rejects.toThrow('Unknown Gizmo extension');
 	});
 
 	it('lists installed extensions without detecting a nested workspace type', async () => {
@@ -68,52 +106,51 @@ describe('ProjectCatalog', () => {
 			root: '.',
 		});
 
-		await expect(
-			catalog.add(project, [{ id: 'svelte', root: join('apps', 'app') }]),
-		).resolves.toMatchObject({ path: project });
+		await expect(catalog.add(project)).resolves.toMatchObject({
+			path: project,
+		});
 	});
 
-	it('keeps changed default overrides and removes them when they match again', async () => {
+	it('migrates a legacy profiles.json into config overrides once', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');
-		const catalog = new ProjectCatalog(data);
-		const added = await catalog.add(project, []);
-		const defaults = added.profiles!;
-		const base = defaults.find(({ id }) => id === 'default')!;
-		const override = {
-			...base,
-			id: 'default-override',
-			source: 'workspace:temporary',
-			base: 'default',
-			extensions: [{ id: 'svelte', root: '.' }],
-		};
-
-		const changed = await catalog.saveProfiles(project, {
-			version: 1,
-			activeProfileId: override.id,
-			profiles: [...defaults, override],
-		});
-		expect(changed.activeProfileId).toBe(override.id);
-		expect(changed.profiles).toContainEqual(override);
-
-		const reset = await catalog.saveProfiles(project, {
-			version: 1,
-			activeProfileId: override.id,
-			profiles: [
-				...defaults,
-				{
-					...override,
-					extensions: base.extensions.map((item) => ({ ...item })),
-				},
-			],
-		});
-		expect(reset.activeProfileId).toBe('default');
-		expect(reset.profiles).not.toContainEqual(
-			expect.objectContaining({ id: override.id }),
+		await mkdir(join(project, '.gizmo'), { recursive: true });
+		await writeFile(
+			join(project, '.gizmo', 'profiles.json'),
+			JSON.stringify({
+				version: 1,
+				activeProfileId: 'svelte',
+				profiles: [
+					{ id: 'default', extensions: [] },
+					{
+						id: 'svelte',
+						extensions: [{ id: 'svelte', root: '.' }],
+						skills: [{ id: 'global/review', enabled: true }],
+					},
+				],
+			}),
 		);
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project);
+
+		expect((await catalog.detect(project)).config).toMatchObject({
+			gizmoExtensions: [{ id: 'svelte', enabled: true }],
+			skills: [{ id: 'global/review', enabled: true }],
+		});
+		expect(await catalog.skillsFor(project)).toEqual([
+			{ id: 'global/review', enabled: true },
+		]);
+		// The legacy file is consumed: only config.json remains.
+		await expect(
+			readFile(join(project, '.gizmo', 'profiles.json'), 'utf8'),
+		).rejects.toThrow();
+		// A second read is stable and does not resurrect overrides.
+		expect((await catalog.detect(project)).config).toMatchObject({
+			gizmoExtensions: [{ id: 'svelte', enabled: true }],
+		});
 	});
 
-	it('reads projects saved with the old single-domain format', async () => {
+	it('registers legacy projects without deriving extensions from them', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');
 		await writeFile(
@@ -132,15 +169,8 @@ describe('ProjectCatalog', () => {
 			{
 				title: 'Legacy game',
 				path: project,
-				integrations: [{ id: 'unity', root: '.' }],
-				activeProfileId: 'unity',
-				profiles: expect.arrayContaining([
-					expect.objectContaining({ id: 'default', extensions: [] }),
-					expect.objectContaining({
-						id: 'unity',
-						extensions: [{ id: 'unity', root: '.' }],
-					}),
-				]),
+				// Extensions follow the global state; legacy integrations do not.
+				integrations: [{ id: 'svelte', root: '.' }],
 				addedAt: 1,
 			},
 		]);
@@ -191,7 +221,7 @@ describe('ProjectCatalog', () => {
 		const project = await temporary('gizmo-project-');
 		await writeFile(join(project, 'package.json'), '{}');
 		const catalog = new ProjectCatalog(data);
-		await catalog.add(project, []);
+		await catalog.add(project);
 
 		await catalog.setSkill(project, 'global/review', true);
 		expect(await catalog.skillsFor(project)).toEqual([
@@ -199,7 +229,7 @@ describe('ProjectCatalog', () => {
 		]);
 
 		// Re-adding the workspace to change integrations keeps skill state.
-		await catalog.add(project, []);
+		await catalog.add(project);
 		expect(await catalog.skillsFor(project)).toEqual([
 			{ id: 'global/review', enabled: true },
 		]);

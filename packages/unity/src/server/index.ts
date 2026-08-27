@@ -9,7 +9,6 @@ const extensionProvider = new UnityExtensionProvider();
 export const gizmoExtension: GizmoServerExtension = {
 	id: unityDomain.id!,
 	name: unityDomain.name!,
-	profile: unityDomain.profile,
 	systemPrompt: unityDomain.systemPrompt,
 	createTools: unityDomain.createTools,
 	list: (workspacePath, signal) =>

@@ -26,10 +26,9 @@ import {
 	type SkillResource,
 	type StoredProject,
 	type ProjectDomains,
+	type ProjectConfig,
 	type ToolPolicy,
-	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
-	type WorkspaceProfiles,
 	type UnityStatus,
 	type ProjectStatus,
 	type ProviderStatus,
@@ -138,7 +137,10 @@ export class FakeAgentClient implements AgentClient {
 				id: sessionId,
 				title: 'New session',
 				workspacePath: options.cwd ?? fakeProjects[0]!.path,
-				integrations: options.integrations ?? [{ id: 'unity', root: '.' }],
+				integrations: options.cwd
+					? (fakeProjects.find(({ path }) => path === options.cwd)
+							?.integrations ?? [])
+					: [{ id: 'unity', root: '.' }],
 				createdAt: now,
 				lastActiveAt: now,
 				messageCount: 0,
@@ -613,6 +615,9 @@ export class FakeAgentClient implements AgentClient {
 	}
 
 	readonly #skillOverrides = new Map<string, Map<string, boolean>>();
+	readonly #gizmoOverrides = new Map<string, Map<string, boolean>>();
+	readonly #piOverrides = new Map<string, Map<string, boolean>>();
+	readonly #disabledGizmoGlobally = new Set<string>();
 	readonly #projectToolPolicies = new Map<string, string[]>();
 	#globalToolPolicy: string[] = [...seededToolPolicy];
 
@@ -665,20 +670,38 @@ export class FakeAgentClient implements AgentClient {
 		return fakeProjects;
 	}
 
-	async detectProject(_projectPath: string): Promise<ProjectDomains> {
+	async detectProject(projectPath: string): Promise<ProjectDomains> {
+		this.#assertProject(projectPath);
 		return {
-			domains: [
-				{ id: 'unity', name: 'Unity', root: '.' },
-				{ id: 'svelte', name: 'Svelte', root: '.' },
-				{ id: 'git', name: 'Git', root: '.' },
-				{ id: 'activity', name: 'Activity', root: '.' },
-				{
-					id: 'skill-authoring',
-					name: 'Skill Authoring',
-					root: '.',
-				},
-			],
+			domains: fakeDomains,
+			config: this.#projectConfig(projectPath),
 		};
+	}
+
+	#projectConfig(projectPath: string): ProjectConfig {
+		return {
+			version: 1,
+			...(this.#gizmoOverrides.get(projectPath)?.size
+				? {
+						gizmoExtensions: [...this.#gizmoOverrides.get(projectPath)!].map(
+							([id, enabled]) => ({ id, enabled }),
+						),
+					}
+				: {}),
+			...(this.#piOverrides.get(projectPath)?.size
+				? {
+						piExtensions: [...this.#piOverrides.get(projectPath)!].map(
+							([id, enabled]) => ({ id, enabled }),
+						),
+					}
+				: {}),
+		};
+	}
+
+	/** Mirrors the server: overrides win, otherwise the global toggle. */
+	#gizmoEnabled(projectPath: string, id: string): boolean {
+		const override = this.#gizmoOverrides.get(projectPath)?.get(id);
+		return override ?? !this.#disabledGizmoGlobally.has(id);
 	}
 
 	async browseProjects(path = '/projects'): Promise<WorkspaceDirectoryListing> {
@@ -708,17 +731,11 @@ export class FakeAgentClient implements AgentClient {
 		};
 	}
 
-	async addProject(
-		projectPath: string,
-		integrations: WorkspaceIntegration[],
-	): Promise<StoredProject> {
-		const profiles = fakeProfiles(integrations);
+	async addProject(projectPath: string): Promise<StoredProject> {
 		const project = {
 			title: projectPath.split('/').at(-1) ?? projectPath,
 			path: projectPath,
-			integrations,
-			activeProfileId: profiles.activeProfileId,
-			profiles: profiles.profiles,
+			integrations: [],
 			addedAt: Date.now(),
 		};
 		fakeProjects.splice(
@@ -730,30 +747,39 @@ export class FakeAgentClient implements AgentClient {
 		return project;
 	}
 
-	async saveProjectProfiles(
+	async setProjectGizmoExtension(
 		projectPath: string,
-		profiles: WorkspaceProfiles,
-	): Promise<StoredProject> {
-		const existing = fakeProjects.find(({ path }) => path === projectPath);
-		if (!existing) throw new Error(`Unknown workspace: ${projectPath}`);
-		const active = profiles.profiles.find(
-			({ id }) => id === profiles.activeProfileId,
-		);
-		const project = {
-			...existing,
-			integrations: active?.extensions ?? [],
-			activeProfileId: profiles.activeProfileId,
-			profiles: profiles.profiles,
-		};
-		const index = fakeProjects.findIndex(({ path }) => path === projectPath);
-		fakeProjects.splice(index, 1, project);
-		// The server resolves skill overrides from the active profile, so the
-		// catalog has to follow a save the same way.
-		this.#skillOverrides.set(
-			projectPath,
-			new Map((active?.skills ?? []).map(({ id, enabled }) => [id, enabled])),
-		);
-		return project;
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<ProjectConfig> {
+		this.#assertProject(projectPath);
+		const overrides = this.#gizmoOverrides.get(projectPath) ?? new Map();
+		if (enabled === null) overrides.delete(extensionId);
+		else overrides.set(extensionId, enabled);
+		this.#gizmoOverrides.set(projectPath, overrides);
+		this.#syncIntegrations(projectPath);
+		return this.#projectConfig(projectPath);
+	}
+
+	async setProjectPiExtension(
+		projectPath: string,
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<ProjectConfig> {
+		this.#assertProject(projectPath);
+		const overrides = this.#piOverrides.get(projectPath) ?? new Map();
+		if (enabled === null) overrides.delete(extensionId);
+		else overrides.set(extensionId, enabled);
+		this.#piOverrides.set(projectPath, overrides);
+		return this.#projectConfig(projectPath);
+	}
+
+	#syncIntegrations(projectPath: string): void {
+		const project = fakeProjects.find(({ path }) => path === projectPath);
+		if (!project) return;
+		project.integrations = fakeDomains
+			.filter(({ id }) => this.#gizmoEnabled(projectPath, id))
+			.map(({ id }) => ({ id, root: '.' }));
 	}
 
 	async removeProject(projectPath: string): Promise<void> {
@@ -801,6 +827,16 @@ export class FakeAgentClient implements AgentClient {
 		return this.#catalog();
 	}
 
+	async setGlobalGizmoExtension(
+		gizmoExtensionId: string,
+		enabled: boolean,
+	): Promise<ResourceCatalog> {
+		if (enabled) this.#disabledGizmoGlobally.delete(gizmoExtensionId);
+		else this.#disabledGizmoGlobally.add(gizmoExtensionId);
+		for (const { path } of fakeProjects) this.#syncIntegrations(path);
+		return this.#catalog();
+	}
+
 	async setProjectSkill(
 		workspacePath: string,
 		skillId: string,
@@ -836,6 +872,11 @@ export class FakeAgentClient implements AgentClient {
 			}),
 			agentsFiles: fakeAgentsFiles,
 			prompts: fakePrompts,
+			gizmoExtensions: fakeDomains.map(({ id, name }) => ({
+				id,
+				name,
+				enabled: !this.#disabledGizmoGlobally.has(id),
+			})),
 			diagnostics: [],
 		};
 	}
@@ -1007,37 +1048,13 @@ const fakeModels = [
 
 const fakeThinkingLevels = ['off', 'low', 'medium', 'high', 'xhigh'];
 
-function fakeProfiles(integrations: WorkspaceIntegration[]): WorkspaceProfiles {
-	const defaultProfile = {
-		id: 'default',
-		name: 'Default',
-		source: 'builtin:default',
-		base: null,
-		extensions: [],
-		tools: { mode: 'default' },
-		prompt: { mode: 'pi-default' },
-	} satisfies WorkspaceProfiles['profiles'][number];
-	const profile =
-		integrations.length === 0
-			? defaultProfile
-			: ({
-					id: integrations.map(({ id }) => id).join('-'),
-					name: integrations.map(({ id }) => id).join(' + '),
-					source: 'workspace:fake',
-					base: 'default',
-					extensions: integrations,
-					tools: { mode: 'default-plus-extension' },
-					prompt: { mode: 'default-plus-extension-fragments' },
-				} satisfies WorkspaceProfiles['profiles'][number]);
-	return {
-		version: 1,
-		activeProfileId: profile.id,
-		profiles:
-			profile.id === defaultProfile.id
-				? [defaultProfile]
-				: [defaultProfile, profile],
-	};
-}
+const fakeDomains = [
+	{ id: 'unity', name: 'Unity', root: '.' },
+	{ id: 'svelte', name: 'Svelte', root: '.' },
+	{ id: 'git', name: 'Git', root: '.' },
+	{ id: 'activity', name: 'Activity', root: '.' },
+	{ id: 'skill-authoring', name: 'Skill Authoring', root: '.' },
+];
 
 const fakeProjects: StoredProject[] = [
 	{
@@ -1045,23 +1062,15 @@ const fakeProjects: StoredProject[] = [
 		path: '/projects/ThirdPersonSandbox',
 		integrations: [
 			{ id: 'unity', root: '.' },
-			{ id: 'svelte', root: 'WebFrontend' },
+			{ id: 'svelte', root: '.' },
 			{ id: 'git', root: '.' },
 		],
-		activeProfileId: 'unity-svelte-git',
-		profiles: fakeProfiles([
-			{ id: 'unity', root: '.' },
-			{ id: 'svelte', root: 'WebFrontend' },
-			{ id: 'git', root: '.' },
-		]).profiles,
 		addedAt: 1,
 	},
 	{
 		title: 'RenderingPlayground',
 		path: '/projects/RenderingPlayground',
 		integrations: [{ id: 'unity', root: '.' }],
-		activeProfileId: 'unity',
-		profiles: fakeProfiles([{ id: 'unity', root: '.' }]).profiles,
 		addedAt: 0,
 	},
 ];

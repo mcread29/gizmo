@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import type { WorkspaceIntegration, WorkspaceProfile } from '@gizmo/protocol';
+import type { WorkspaceIntegration } from '@gizmo/protocol';
 import type {
 	ActiveExtensions,
 	ExtensionContext,
@@ -22,23 +22,16 @@ export function registeredExtensions(): readonly GizmoServerExtension[] {
 }
 
 /**
- * Lists globally installed Gizmo extensions. Enabling them is always an
- * explicit per-profile choice; opening a workspace never probes its contents.
+ * Lists globally installed Gizmo extensions. Enablement is global by default
+ * (installed means on) with per-workspace overrides; opening a workspace never
+ * probes its contents.
  */
-export function installedExtensionCatalog() {
-	return {
-		domains: extensions.map((extension) => ({
-			id: extension.id,
-			name: extension.name,
-			root: '.',
-		})),
-		profiles: [
-			defaultProfile(),
-			...extensions.flatMap((extension) =>
-				extension.profile ? [extension.profile('.')] : [],
-			),
-		],
-	};
+export function installedGizmoExtensions() {
+	return registeredExtensions().map(({ id, name }) => ({
+		id,
+		name,
+		root: '.',
+	}));
 }
 
 export async function activateExtensions(
@@ -84,15 +77,3 @@ export async function activateExtensions(
 const coreSystemPrompt = `You are an expert software development assistant operating inside Gizmo. You help users understand and modify the selected workspace.
 
 Use the available tools to inspect the workspace before making assumptions. Keep changes focused, preserve existing conventions, and report verification results clearly.`;
-
-export function defaultProfile(): WorkspaceProfile {
-	return {
-		id: 'default',
-		name: 'Default',
-		source: 'builtin:default',
-		base: null,
-		extensions: [],
-		tools: { mode: 'default' },
-		prompt: { mode: 'pi-default' },
-	};
-}

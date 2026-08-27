@@ -45,10 +45,7 @@ export class SessionActions {
 			this.openCommandPalette('workspace');
 			return;
 		}
-		const integrations = this.#store.projects.find(
-			(project) => project.path === projectPath,
-		)?.integrations;
-		await this.#store.newSession(projectPath, integrations);
+		await this.#store.newSession(projectPath);
 	}
 
 	openCommandPalette(mode: 'root' | 'workspace' = 'root'): void {

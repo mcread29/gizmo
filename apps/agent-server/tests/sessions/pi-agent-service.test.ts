@@ -34,6 +34,7 @@ class FakePiSession implements PiSessionLike {
 		role: string;
 		content?: unknown;
 		timestamp?: number;
+		[key: string]: unknown;
 	}> = [];
 	readonly getModelCatalog = vi.fn(async (): Promise<AgentModelCatalog> => ({
 		current: { ...this.model, thinkingLevel: this.thinkingLevel },
@@ -92,7 +93,7 @@ function event(value: unknown): AgentSessionEvent {
 }
 
 describe('PiAgentService', () => {
-	it('resolves extension tool and prompt policy from the active profile', async () => {
+	it('resolves extension activation from the global state and workspace overrides', async () => {
 		const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-profile-policy-'));
 		const projectPath = await mkdtemp(join(tmpdir(), 'gizmo-project-'));
 		temporaryDirectories.push(dataDir, projectPath);
@@ -100,23 +101,26 @@ describe('PiAgentService', () => {
 			{
 				id: 'notes',
 				name: 'Notes',
-				profile: (root) => ({
-					id: 'notes',
-					name: 'Notes',
-					source: 'extension:notes',
-					base: 'default',
-					extensions: [{ id: 'notes', root }],
-					tools: { mode: 'default-plus-extension' },
-					prompt: { mode: 'default-plus-extension-fragments' },
-				}),
+				systemPrompt: 'Notes guidance.',
+				createTools: () => [
+					{
+						name: 'notes_tool',
+						label: 'Notes tool',
+						description: 'A notes tool.',
+						parameters: { type: 'object', properties: {} },
+						execute: () =>
+							Promise.resolve({
+								output: 'ok',
+								content: [],
+								details: undefined,
+							}),
+					},
+				],
 			},
 		]);
 		const projects = new ProjectCatalog(dataDir);
-		await projects.add(projectPath, [{ id: 'notes', root: '.' }]);
-		const options: Array<{
-			extensionTools?: boolean;
-			extensionPrompt?: boolean;
-		}> = [];
+		await projects.add(projectPath);
+		const options: Array<{ integrations?: { id: string }[] }> = [];
 		const service = new PiAgentService(
 			async (runtimeOptions, manager) => {
 				options.push(runtimeOptions);
@@ -126,34 +130,16 @@ describe('PiAgentService', () => {
 			projects,
 		);
 
+		// The workspace inherits the global state, so the extension is active.
 		await service.createSession({ cwd: projectPath });
 		expect(options.at(-1)).toMatchObject({
-			extensionTools: true,
-			extensionPrompt: true,
+			integrations: [{ id: 'notes', root: '.' }],
 		});
 
-		const profiles = await projects.profilesFor(projectPath);
-		const active = profiles.profiles.find(
-			({ id }) => id === profiles.activeProfileId,
-		)!;
-		const override = {
-			...active,
-			id: 'notes-override',
-			source: 'workspace:temporary',
-			base: active.id,
-			tools: { mode: 'default' as const },
-			prompt: { mode: 'pi-default' as const },
-		};
-		await projects.saveProfiles(projectPath, {
-			...profiles,
-			activeProfileId: override.id,
-			profiles: [...profiles.profiles, override],
-		});
+		// Disabling the extension for the workspace removes it from new sessions.
+		await projects.setGizmoExtension(projectPath, 'notes', false);
 		await service.createSession({ cwd: projectPath });
-		expect(options.at(-1)).toMatchObject({
-			extensionTools: false,
-			extensionPrompt: false,
-		});
+		expect(options.at(-1)).toMatchObject({ integrations: [] });
 		service.dispose();
 		registerExtensions([]);
 	});
@@ -510,9 +496,7 @@ describe('PiAgentService', () => {
 				id: 'message-1',
 				role: 'assistant',
 				complete: false,
-				tools: [
-					{ id: 'call-1', name: 'read', status: 'running' },
-				],
+				tools: [{ id: 'call-1', name: 'read', status: 'running' }],
 			});
 		});
 
@@ -537,9 +521,7 @@ describe('PiAgentService', () => {
 			const service = await createTestService(pi);
 			const sessionId = await service.createSession();
 
-			pi.messages = [
-				{ role: 'assistant', content: 'Done', timestamp: 1 },
-			];
+			pi.messages = [{ role: 'assistant', content: 'Done', timestamp: 1 }];
 
 			const snapshot = await service.resumeSession(sessionId);
 

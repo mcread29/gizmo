@@ -27,9 +27,10 @@ export async function listPiExtensions(): Promise<PiExtensionResource[]> {
 	return [...enabled, ...disabled].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function enabledPiExtensionPaths() {
+/** Paths of globally enabled Pi extensions, minus any ids the project disables. */
+export async function enabledPiExtensionPaths(disabled?: ReadonlySet<string>) {
 	return (await listPiExtensions())
-		.filter((extension) => extension.enabled)
+		.filter((extension) => extension.enabled && !disabled?.has(extension.id))
 		.map((extension) => extension.path);
 }
 

@@ -13,11 +13,10 @@ import type {
 	ResourceCatalog,
 	SkillFile,
 	StoredProject,
+	ProjectConfig,
 	ProjectDomains,
 	ToolPolicy,
-	WorkspaceIntegration,
 	WorkspaceDirectoryListing,
-	WorkspaceProfiles,
 	ProviderStatus,
 	Extensions,
 	ExtensionUiResponse,
@@ -103,14 +102,17 @@ export interface AgentClient {
 		query: string,
 		root?: string,
 	): Promise<WorkspaceDirectoryListing>;
-	addProject(
+	addProject(projectPath: string): Promise<StoredProject>;
+	setProjectGizmoExtension(
 		projectPath: string,
-		integrations: WorkspaceIntegration[],
-	): Promise<StoredProject>;
-	saveProjectProfiles(
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<ProjectConfig>;
+	setProjectPiExtension(
 		projectPath: string,
-		profiles: WorkspaceProfiles,
-	): Promise<StoredProject>;
+		extensionId: string,
+		enabled: boolean | null,
+	): Promise<ProjectConfig>;
 	removeProject(projectPath: string): Promise<void>;
 	listResources(workspacePath?: string): Promise<ResourceCatalog>;
 	setGlobalSkill(
@@ -122,6 +124,10 @@ export interface AgentClient {
 		workspacePath: string,
 		skillId: string,
 		enabled: boolean | null,
+	): Promise<ResourceCatalog>;
+	setGlobalGizmoExtension(
+		gizmoExtensionId: string,
+		enabled: boolean,
 	): Promise<ResourceCatalog>;
 	readSkill(path: string): Promise<SkillFile>;
 	writeSkill(path: string, content: string): Promise<SkillFile>;
