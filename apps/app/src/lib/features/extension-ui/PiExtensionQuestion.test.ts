@@ -7,6 +7,7 @@ function stubUi(respond: ReturnType<typeof vi.fn>) {
 	return {
 		responding: new Set<string>(),
 		respond,
+		queueCustomAnswer: vi.fn(),
 	} as never;
 }
 
@@ -20,8 +21,8 @@ function selectDialog(): PiExtensionDialog {
 		uiRequestId: 'extension-ui-1',
 		request: {
 			method: 'select',
-			title: 'Which database should we use?',
-			options: ['Postgres', 'SQLite'],
+			title: 'Which color do you prefer?',
+			options: ['1. Red', '2. Blue', '3. Write my own answer…'],
 		},
 	} as PiExtensionDialog;
 }
@@ -43,25 +44,57 @@ function inputDialog(): PiExtensionDialog {
 }
 
 describe('PiExtensionQuestion', () => {
-	it('renders the question and answers with the picked option', async () => {
+	it('hides the custom-answer sentinel from the option list', () => {
 		const respond = vi.fn().mockResolvedValue(undefined);
 		render(PiExtensionQuestion, {
 			ui: stubUi(respond),
 			question: selectDialog(),
 		});
 
+		expect(screen.getByRole('button', { name: '1. Red' })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: '2. Blue' })).toBeInTheDocument();
 		expect(
-			screen.getByText('Which database should we use?'),
-		).toBeInTheDocument();
-		await fireEvent.click(screen.getByRole('button', { name: 'SQLite' }));
+			screen.queryByRole('button', { name: /write my own answer/i }),
+		).toBeNull();
+	});
+
+	it('answers with the picked option', async () => {
+		const respond = vi.fn().mockResolvedValue(undefined);
+		render(PiExtensionQuestion, {
+			ui: stubUi(respond),
+			question: selectDialog(),
+		});
+
+		await fireEvent.click(screen.getByRole('button', { name: '2. Blue' }));
 
 		expect(respond).toHaveBeenCalledWith(expect.anything(), {
 			kind: 'value',
-			value: 'SQLite',
+			value: '2. Blue',
 		});
 	});
 
-	it('submits a typed answer for input requests', async () => {
+	it('submits typed text through the queued custom answer', async () => {
+		const respond = vi.fn().mockResolvedValue(undefined);
+		const queueCustomAnswer = vi.fn();
+		const ui = {
+			responding: new Set<string>(),
+			respond,
+			queueCustomAnswer,
+		} as never;
+		render(PiExtensionQuestion, { ui, question: selectDialog() });
+
+		const input = screen.getByLabelText('Your answer');
+		await fireEvent.input(input, { target: { value: 'Teal, mostly' } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Answer' }));
+
+		expect(queueCustomAnswer).toHaveBeenCalledWith('session-1', 'Teal, mostly');
+		expect(respond).toHaveBeenCalledWith(expect.anything(), {
+			kind: 'value',
+			value: '3. Write my own answer…',
+		});
+	});
+
+	it('submits typed text directly for input requests', async () => {
 		const respond = vi.fn().mockResolvedValue(undefined);
 		render(PiExtensionQuestion, {
 			ui: stubUi(respond),

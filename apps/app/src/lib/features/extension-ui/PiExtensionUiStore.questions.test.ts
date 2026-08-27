@@ -60,3 +60,29 @@ describe('PiExtensionUiStore questions', () => {
 		expect(store.questionsFor('session-1')).toHaveLength(0);
 	});
 });
+
+describe('PiExtensionUiStore queued custom answers', () => {
+	it('answers the follow-up input silently with the queued text', () => {
+		const { store, emit, client } = makeStore();
+		store.queueCustomAnswer('session-1', 'Teal, mostly');
+
+		emit({
+			...selectEvent,
+			uiRequestId: 'extension-ui-2',
+			request: {
+				method: 'input',
+				title: 'Your answer',
+			},
+		});
+
+		// The follow-up input never becomes a visible question; it is
+		// answered immediately with the stashed text.
+		expect(client.resolveExtensionUi).toHaveBeenCalledWith(
+			'session-1',
+			'runtime-1',
+			'extension-ui-2',
+			{ kind: 'value', value: 'Teal, mostly' },
+		);
+		expect(store.questionsFor('session-1')).toHaveLength(0);
+	});
+});

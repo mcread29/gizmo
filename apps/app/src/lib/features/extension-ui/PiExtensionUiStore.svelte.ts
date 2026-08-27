@@ -58,6 +58,18 @@ export class PiExtensionUiStore {
 		this.clear();
 	}
 
+	/**
+	 * Free text typed for a select request. Select responses must be one of
+	 * the offered options, so the card submits the (hidden) custom-answer
+	 * option and the follow-up input request is answered automatically with
+	 * the stashed text — one seamless step for the user.
+	 */
+	#queuedCustomAnswer?: { sessionId: string; text: string };
+
+	queueCustomAnswer(sessionId: string, text: string) {
+		this.#queuedCustomAnswer = { sessionId, text };
+	}
+
 	dialogFor(sessionId: string | undefined) {
 		// Select and input render inline in the chat as agent questions; only
 		// confirmations and editors stay modal.
@@ -186,6 +198,7 @@ export class PiExtensionUiStore {
 	}
 
 	clear() {
+		this.#queuedCustomAnswer = undefined;
 		this.dialogs = [];
 		this.widgets = [];
 		this.statuses = [];
@@ -214,6 +227,21 @@ export class PiExtensionUiStore {
 
 		const method = event.request.method;
 		if (dialogMethods.has(method)) {
+			// A queued custom answer is delivered silently through the follow-up
+			// input request instead of showing the user a second dialog.
+			const queued = this.#queuedCustomAnswer;
+			if (
+				queued &&
+				queued.sessionId === event.sessionId &&
+				method === 'input'
+			) {
+				this.#queuedCustomAnswer = undefined;
+				const dialog = event as PiExtensionDialog;
+				this.respond(dialog, { kind: 'value', value: queued.text }).catch(() =>
+					this.dialogs.push(dialog),
+				);
+				return;
+			}
 			this.dialogs = [...this.dialogs, event as PiExtensionDialog];
 			return;
 		}

@@ -321,23 +321,20 @@ kbd {
 }
 
 /*
- * Agent questions (extension UI select/input requests) render inline in the
- * chat, between the transcript and the composer, so an ask_user tool call
- * reads as part of the conversation instead of a modal dialog.
+ * Agent questions (extension UI select/input requests) take the composer's
+ * place while the agent waits for an answer: the question, a vertical list
+ * of uniform option buttons, and a custom-answer input where the editor
+ * would normally be.
  */
 [data-ui='agent-question'] {
 	width: min(var(--content-max), 100%);
-	margin: 0 auto var(--space-3);
+	margin: 0 auto;
 	padding: var(--space-3);
 	display: grid;
 	gap: var(--space-2);
 	border: 1px solid var(--color-border-strong);
-	border-radius: var(--radius-md);
-	background: color-mix(
-		in srgb,
-		var(--color-accent, var(--color-text)) 5%,
-		var(--color-surface-raised)
-	);
+	border-radius: 13px;
+	background: var(--color-surface-raised);
 	box-shadow: var(--shadow-panel);
 }
 
@@ -367,20 +364,28 @@ kbd {
 }
 
 [data-ui='agent-question-options'] {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
 	gap: var(--space-2);
 }
 
-[data-ui='agent-question-form'] {
+[data-ui='agent-question-options'] [data-ui='button'] {
+	width: 100%;
+	min-height: 36px;
+	justify-content: flex-start;
+	padding-inline: var(--space-3);
+	text-align: left;
+	overflow-wrap: anywhere;
+}
+
+[data-ui='agent-question-input'] form {
 	display: flex;
 	gap: var(--space-2);
 }
 
-[data-ui='agent-question-form'] input {
+[data-ui='agent-question-input'] input {
 	flex: 1;
 	min-width: 0;
-	padding: 7px 9px;
+	padding: 9px 11px;
 	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius-sm);
 	background: var(--color-surface-soft);
@@ -388,7 +393,7 @@ kbd {
 	font-size: var(--text-xs);
 }
 
-[data-ui='agent-question-form'] input:focus-visible {
+[data-ui='agent-question-input'] input:focus-visible {
 	outline: 2px solid var(--color-accent, var(--color-text));
 	outline-offset: 1px;
 }

@@ -188,22 +188,28 @@
 		/>
 	{/if}
 
-	{#each extensionUi.questionsFor(store.sessionId) as question (question.uiRequestId)}
-		<PiExtensionQuestion ui={extensionUi} {question} />
-	{/each}
-
 	<div data-ui="composer-wrap">
 		<PiExtensionWidgets
 			ui={extensionUi}
 			sessionId={store.sessionId}
 			placement="aboveEditor"
 		/>
-		<Composer
-			{store}
-			{drafts}
-			sendOnEnter={layout.sendOnEnter}
-			bind:focus={focusComposer}
-		/>
+		{#if extensionUi.questionsFor(store.sessionId)[0]}
+			<!-- While the agent waits for an answer, the question takes the
+				composer's place: options and a custom-answer input instead of
+				the regular message editor. -->
+			<PiExtensionQuestion
+				ui={extensionUi}
+				question={extensionUi.questionsFor(store.sessionId)[0]}
+			/>
+		{:else}
+			<Composer
+				{store}
+				{drafts}
+				sendOnEnter={layout.sendOnEnter}
+				bind:focus={focusComposer}
+			/>
+		{/if}
 		<PiExtensionWidgets
 			ui={extensionUi}
 			sessionId={store.sessionId}

@@ -14,6 +14,7 @@
 	} = $props();
 
 	let submitted = false;
+	let inputEl: HTMLInputElement | undefined = $state();
 	let request = $derived(question.request);
 	let busy = $derived(ui.responding.has(question.uiRequestId));
 	const openedAt = Date.now();
@@ -32,6 +33,26 @@
 
 	$effect(() => () => clearInterval(countdown));
 
+	/**
+	 * Extensions that ask multiple-choice questions may offer a custom-answer
+	 * escape hatch; it is an implementation detail of the tool and is hidden
+	 * from the option list, with the text input taking its place.
+	 */
+	const customAnswerPattern = /write my own answer/i;
+	let options = $derived(
+		request.method === 'select'
+			? request.options.filter((option) => !customAnswerPattern.test(option))
+			: [],
+	);
+	let acceptsText = $derived(
+		request.method === 'input' ||
+			request.options.some((option) => customAnswerPattern.test(option)),
+	);
+
+	$effect(() => {
+		inputEl?.focus();
+	});
+
 	async function respond(
 		response: { kind: 'value'; value: string } | { kind: 'cancelled' },
 	) {
@@ -42,6 +63,19 @@
 		} catch {
 			submitted = false;
 		}
+	}
+
+	function submitText(text: string) {
+		if (request.method === 'input') {
+			void respond({ kind: 'value', value: text });
+			return;
+		}
+		const sentinel = request.options.find((option) =>
+			customAnswerPattern.test(option),
+		);
+		if (!sentinel) return;
+		ui.queueCustomAnswer(question.sessionId, text);
+		void respond({ kind: 'value', value: sentinel });
 	}
 </script>
 
@@ -56,41 +90,46 @@
 
 	{#if request.method === 'select'}
 		<div data-ui="agent-question-options">
-			{#each request.options as option, index (`${index}:${option}`)}
+			{#each options as option, index (`${index}:${option}`)}
 				<Button
 					variant="secondary"
-					size="sm"
 					disabled={busy}
 					onclick={() => void respond({ kind: 'value', value: option })}
 					>{option}</Button
 				>
 			{/each}
 		</div>
-	{:else}
+	{/if}
+
+	<div data-ui="agent-question-input">
 		<form
-			data-ui="agent-question-form"
 			onsubmit={(event) => {
 				event.preventDefault();
 				const data = new FormData(event.currentTarget);
-				void respond({ kind: 'value', value: String(data.get('value') ?? '') });
+				const text = String(data.get('value') ?? '').trim();
+				if (!text) return;
+				submitText(text);
 			}}
 		>
-			<input
-				name="value"
-				placeholder={request.method === 'input'
-					? (request.placeholder ?? 'Type your answer…')
-					: undefined}
+			{#if acceptsText}
+				<input
+					bind:this={inputEl}
+					name="value"
+					placeholder={request.method === 'input' && request.placeholder
+						? request.placeholder
+						: 'Write your own answer…'}
+					disabled={busy}
+					aria-label="Your answer"
+				/>
+				<Button type="submit" variant="primary" disabled={busy}>Answer</Button>
+			{/if}
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
 				disabled={busy}
-				aria-label="Your answer"
-			/>
-			<Button type="submit" size="sm" disabled={busy}>Answer</Button>
+				onclick={() => void respond({ kind: 'cancelled' })}>Skip</Button
+			>
 		</form>
-	{/if}
-
-	<Button
-		variant="ghost"
-		size="sm"
-		disabled={busy}
-		onclick={() => void respond({ kind: 'cancelled' })}>Skip</Button
-	>
+	</div>
 </div>
