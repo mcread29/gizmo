@@ -1,12 +1,12 @@
 [package]
-name = "unity-agent"
+name = "gizmo"
 version = "0.1.0"
-description = "Gizmo, an AI workbench for Unity"
+description = "Gizmo, an extensible AI workbench built on Pi"
 authors = ["genge"]
 edition = "2021"
 
 [lib]
-name = "unity_agent_lib"
+name = "gizmo_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

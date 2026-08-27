@@ -1,4 +1,4 @@
-const storageKey = 'unity-agent.drafts.v1';
+const storageKey = 'gizmo.drafts.v1';
 
 /**
  * Unsent composer text, kept per thread and across restarts. Switching threads

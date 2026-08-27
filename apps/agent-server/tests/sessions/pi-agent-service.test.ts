@@ -74,7 +74,7 @@ afterEach(async () => {
 });
 
 async function createTestService(pi: FakePiSession) {
-	const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+	const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-test-'));
 	temporaryDirectories.push(dataDir);
 	return new PiAgentService(async (_options, manager) => {
 		pi.sessionId = manager.getSessionId();
@@ -154,7 +154,7 @@ describe('PiAgentService', () => {
 	});
 
 	it('blocks a Unity compile until the app resolves its confirmation', async () => {
-		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+		const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-test-'));
 		temporaryDirectories.push(dataDir);
 		const pi = new FakePiSession();
 		let requestConfirmation!: (projectPath: string) => Promise<boolean>;
@@ -255,7 +255,7 @@ describe('PiAgentService', () => {
 	});
 
 	it('stores attachments with the session and sends images to Pi', async () => {
-		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+		const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-test-'));
 		temporaryDirectories.push(dataDir);
 		const pi = new FakePiSession();
 		let sessionDir = dataDir;
@@ -279,7 +279,7 @@ describe('PiAgentService', () => {
 			Buffer.from('image bytes'),
 		);
 		expect(pi.prompt).toHaveBeenCalledWith(
-			expect.stringContaining('<unity-agent-attachments>'),
+			expect.stringContaining('<gizmo-attachments>'),
 			{
 				images: [{ type: 'image', mimeType: 'image/png', data }],
 			},
@@ -333,7 +333,7 @@ describe('PiAgentService', () => {
 	});
 
 	it('does not leave a persisted session when Pi creation fails', async () => {
-		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+		const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-test-'));
 		temporaryDirectories.push(dataDir);
 		const repository = new PiSessionRepository(dataDir);
 		const service = new PiAgentService(async () => {

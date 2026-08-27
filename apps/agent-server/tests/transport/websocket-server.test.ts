@@ -94,7 +94,7 @@ afterEach(async () => {
 describe('agent WebSocket server', () => {
 	it('correlates requests and streams Pi events over one connection', async () => {
 		const pi = new StreamingPiSession();
-		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+		const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-test-'));
 		temporaryDirectories.push(dataDir);
 		const server = await start(
 			() =>

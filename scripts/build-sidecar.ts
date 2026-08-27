@@ -13,7 +13,7 @@ const extension = host.includes('windows') ? '.exe' : '';
 const output = join(
 	root,
 	'apps/app/src-tauri/binaries',
-	`unity-agent-server-${host}${extension}`,
+	`gizmo-server-${host}${extension}`,
 );
 await mkdir(dirname(output), { recursive: true });
 

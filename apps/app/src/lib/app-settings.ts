@@ -121,7 +121,7 @@ export function systemThemeMode(): ThemeMode {
 		: 'dark';
 }
 
-const settingsKey = 'unity-agent.settings.v1';
+const settingsKey = 'gizmo.settings.v1';
 
 export function loadAppSettings(storage = browserStorage()): AppSettings {
 	const fallback: AppSettings = { ...defaultAppSettings, theme: systemTheme() };

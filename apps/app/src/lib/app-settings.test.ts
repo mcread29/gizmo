@@ -49,7 +49,7 @@ describe('app settings', () => {
 
 	it('migrates the previous Vesper theme value to its dark variant', () => {
 		localStorage.setItem(
-			'unity-agent.settings.v1',
+			'gizmo.settings.v1',
 			JSON.stringify({ ...defaultAppSettings, theme: 'vesper' }),
 		);
 
@@ -57,14 +57,14 @@ describe('app settings', () => {
 	});
 
 	it('falls back safely when stored settings are invalid', () => {
-		localStorage.setItem('unity-agent.settings.v1', '{broken');
+		localStorage.setItem('gizmo.settings.v1', '{broken');
 
 		expect(loadAppSettings()).toEqual(defaultAppSettings);
 	});
 
 	it('clamps persisted compaction settings', () => {
 		localStorage.setItem(
-			'unity-agent.settings.v1',
+			'gizmo.settings.v1',
 			JSON.stringify({
 				...defaultAppSettings,
 				autoCompactFillPercent: 100,

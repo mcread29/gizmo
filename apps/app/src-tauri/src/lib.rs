@@ -53,7 +53,7 @@ pub fn run() {
             std::fs::create_dir_all(&data_dir)?;
             let (_events, child) = app
                 .shell()
-                .sidecar("unity-agent-server")?
+                .sidecar("gizmo-server")?
                 .env("GIZMO_DATA_DIR", data_dir)
                 .env("GIZMO_HOST", "127.0.0.1")
                 .env("GIZMO_PORT", "8787")

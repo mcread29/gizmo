@@ -1,7 +1,7 @@
 import type { ConversationAttachment } from '@gizmo/protocol';
 
-const manifestStart = '<unity-agent-attachments>';
-const manifestEnd = '</unity-agent-attachments>';
+const manifestStart = '<gizmo-attachments>';
+const manifestEnd = '</gizmo-attachments>';
 
 export interface StoredAttachment {
 	id?: string;
@@ -19,17 +19,29 @@ export function attachmentPrompt(
 	return `${text}\n\n${manifestStart}\n${JSON.stringify(attachments)}\n${manifestEnd}`;
 }
 
+/**
+ * Locates the manifest JSON in a message body. Returns undefined when absent.
+ */
+function manifestSpan(
+	text: string,
+): { start: number; jsonStart: number; jsonEnd: number } | undefined {
+	const start = text.lastIndexOf(`\n\n${manifestStart}\n`);
+	if (start < 0 || !text.endsWith(`\n${manifestEnd}`)) return undefined;
+	return {
+		start,
+		jsonStart: start + manifestStart.length + 3,
+		jsonEnd: text.length - manifestEnd.length - 1,
+	};
+}
+
 export function displayedUserMessage(content: unknown): {
 	text: string;
 	attachments: ConversationAttachment[];
 } {
 	const text = textContent(content);
-	const start = text.lastIndexOf(`\n\n${manifestStart}\n`);
-	if (start < 0 || !text.endsWith(`\n${manifestEnd}`)) {
-		return { text, attachments: [] };
-	}
-	const jsonStart = start + manifestStart.length + 3;
-	const jsonEnd = text.length - manifestEnd.length - 1;
+	const span = manifestSpan(text);
+	if (!span) return { text, attachments: [] };
+	const { start, jsonStart, jsonEnd } = span;
 	try {
 		const manifest = JSON.parse(text.slice(jsonStart, jsonEnd));
 		if (!Array.isArray(manifest)) return { text, attachments: [] };
@@ -57,12 +69,10 @@ export function displayedUserMessage(content: unknown): {
 
 export function storedAttachments(content: unknown): StoredAttachment[] {
 	const text = textContent(content);
-	const start = text.lastIndexOf(`\n\n${manifestStart}\n`);
-	if (start < 0 || !text.endsWith(`\n${manifestEnd}`)) return [];
-	const jsonStart = start + manifestStart.length + 3;
-	const jsonEnd = text.length - manifestEnd.length - 1;
+	const span = manifestSpan(text);
+	if (!span) return [];
 	try {
-		const manifest = JSON.parse(text.slice(jsonStart, jsonEnd));
+		const manifest = JSON.parse(text.slice(span.jsonStart, span.jsonEnd));
 		return Array.isArray(manifest) ? manifest.filter(validManifestItem) : [];
 	} catch {
 		return [];

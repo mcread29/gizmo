@@ -1,4 +1,4 @@
-const storageKey = 'unity-agent.pinned-directories.v1';
+const storageKey = 'gizmo.pinned-directories.v1';
 
 /**
  * Folder shortcuts for the workspace picker, e.g. `~/repos`. Kept across

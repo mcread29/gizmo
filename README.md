@@ -63,8 +63,7 @@ templates, and skills; skills are inserted using Pi's `/skill:name` syntax.
 
 Pi conversations are stored as JSONL under `~/.gizmo/sessions`. The app
 restores the last selected session and project on reconnect. Set
-`GIZMO_DATA_DIR` to use a different application-data directory. The older
-`UNITY_AGENT_DATA_DIR` name remains supported for migration.
+`GIZMO_DATA_DIR` to use a different application-data directory.
 
 In normal Gizmo mode, the backend keeps Pi SDK configuration in Gizmo's
 application-data directory: `auth.json`, `settings.json`, `models.json`, and

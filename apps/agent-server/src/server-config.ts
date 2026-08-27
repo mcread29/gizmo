@@ -1,10 +1,7 @@
 export function configuredOrigins(
 	environment: NodeJS.ProcessEnv,
 ): string[] | undefined {
-	const configured = (
-		environment.GIZMO_ORIGINS ?? environment.UNITY_AGENT_ORIGINS
-	)
-		?.split(',')
+	const configured = environment.GIZMO_ORIGINS?.split(',')
 		.map((origin) => origin.trim())
 		.filter(Boolean);
 	if (configured?.length) return configured;

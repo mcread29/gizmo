@@ -31,9 +31,8 @@ const projectServiceFactories = extensions
 	.filter((extension) => extension.createProjectService)
 	.map((extension) => extension.createProjectService!);
 
-const host =
-	process.env.GIZMO_HOST ?? process.env.UNITY_AGENT_HOST ?? '127.0.0.1';
-const port = parsePort(process.env.GIZMO_PORT ?? process.env.UNITY_AGENT_PORT);
+const host = process.env.GIZMO_HOST ?? '127.0.0.1';
+const port = parsePort(process.env.GIZMO_PORT);
 const allowedOrigins = configuredOrigins(process.env);
 const agentServer = await createAgentWebSocketServer({
 	host,

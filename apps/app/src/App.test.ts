@@ -328,7 +328,7 @@ describe('application shell', () => {
 		expect(getByText('⌘/Ctrl Enter')).toBeInTheDocument();
 		await waitFor(() => {
 			const saved = JSON.parse(
-				localStorage.getItem('unity-agent.settings.v1') ?? '{}',
+				localStorage.getItem('gizmo.settings.v1') ?? '{}',
 			);
 			expect(saved.sendOnEnter).toBe(false);
 			expect(saved.expandReasoning).toBe(true);
@@ -361,7 +361,7 @@ describe('application shell', () => {
 
 		await waitFor(() => {
 			const saved = JSON.parse(
-				localStorage.getItem('unity-agent.settings.v1') ?? '{}',
+				localStorage.getItem('gizmo.settings.v1') ?? '{}',
 			);
 			expect(saved.followSystemTheme).toBe(true);
 		});

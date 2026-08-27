@@ -16,7 +16,7 @@ afterEach(async () => {
 
 describe('PiSessionRepository', () => {
 	it('restores durable transcripts and keeps projects isolated', async () => {
-		const dataDir = await mkdtemp(join(tmpdir(), 'unity-agent-test-'));
+		const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-test-'));
 		temporaryDirectories.push(dataDir);
 		const repository = new PiSessionRepository(dataDir);
 		const game = await repository.create('/projects/game');

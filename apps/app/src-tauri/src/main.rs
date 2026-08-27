@@ -1,3 +1,3 @@
 fn main() {
-    unity_agent_lib::run();
+    gizmo_lib::run();
 }
