@@ -30,6 +30,11 @@ class FakePiSession implements PiSessionLike {
 	readonly configureCompaction = vi.fn((_policy: CompactionPolicy) => {});
 	readonly setSessionName = vi.fn((name: string) => (this.sessionName = name));
 	readonly dispose = vi.fn();
+	messages: ReadonlyArray<{
+		role: string;
+		content?: unknown;
+		timestamp?: number;
+	}> = [];
 	readonly getModelCatalog = vi.fn(async (): Promise<AgentModelCatalog> => ({
 		current: { ...this.model, thinkingLevel: this.thinkingLevel },
 		models: [
@@ -433,5 +438,112 @@ describe('PiAgentService', () => {
 				isError: false,
 			},
 		);
+	});
+
+	describe('resuming a streaming session', () => {
+		it('splices the in-flight assistant message into the snapshot', async () => {
+			const pi = new FakePiSession();
+			const service = await createTestService(pi);
+			const sessionId = await service.createSession();
+
+			pi.isStreaming = true;
+			pi.messages = [
+				{ role: 'user', content: 'Inspect this', timestamp: 1 },
+				{
+					role: 'assistant',
+					content: [
+						{ type: 'thinking', thinking: 'Looking around' },
+						{ type: 'text', text: 'Partial ans' },
+					],
+					timestamp: 2,
+				},
+			];
+			// The translator mints the id later deltas will reference here.
+			pi.emit(
+				event({
+					type: 'message_start',
+					message: { role: 'assistant', content: [], timestamp: 2 },
+				}),
+			);
+
+			const snapshot = await service.resumeSession(sessionId);
+
+			expect(snapshot.messages.at(-1)).toMatchObject({
+				id: 'message-1',
+				role: 'assistant',
+				content: 'Partial ans',
+				reasoning: 'Looking around',
+				complete: false,
+			});
+		});
+
+		it('includes the in-flight tool calls as running', async () => {
+			const pi = new FakePiSession();
+			const service = await createTestService(pi);
+			const sessionId = await service.createSession();
+
+			pi.isStreaming = true;
+			pi.messages = [
+				{
+					role: 'assistant',
+					content: [
+						{
+							type: 'toolCall',
+							id: 'call-1',
+							name: 'read',
+							args: { path: 'README.md' },
+						},
+					],
+					timestamp: 3,
+				},
+			];
+			pi.emit(
+				event({
+					type: 'message_start',
+					message: { role: 'assistant', content: [], timestamp: 3 },
+				}),
+			);
+
+			const snapshot = await service.resumeSession(sessionId);
+
+			expect(snapshot.messages.at(-1)).toMatchObject({
+				id: 'message-1',
+				role: 'assistant',
+				complete: false,
+				tools: [
+					{ id: 'call-1', name: 'read', status: 'running' },
+				],
+			});
+		});
+
+		it('splices nothing when the stream has no open assistant message', async () => {
+			const pi = new FakePiSession();
+			const service = await createTestService(pi);
+			const sessionId = await service.createSession();
+
+			pi.isStreaming = true;
+			pi.messages = [
+				{ role: 'user', content: 'Inspect this', timestamp: 1 },
+				{ role: 'toolResult', toolCallId: 'call-1', content: [], timestamp: 2 },
+			];
+
+			const snapshot = await service.resumeSession(sessionId);
+
+			expect(snapshot.messages).toHaveLength(0);
+		});
+
+		it('splices nothing once the session is no longer streaming', async () => {
+			const pi = new FakePiSession();
+			const service = await createTestService(pi);
+			const sessionId = await service.createSession();
+
+			pi.messages = [
+				{ role: 'assistant', content: 'Done', timestamp: 1 },
+			];
+
+			const snapshot = await service.resumeSession(sessionId);
+
+			expect(snapshot.messages).toHaveLength(0);
+		});
 	});
 });

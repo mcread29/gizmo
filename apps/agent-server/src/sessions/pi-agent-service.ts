@@ -24,6 +24,7 @@ import {
 	PiEventTranslator,
 	type TranslatedPiEvent,
 } from './pi-event-translator';
+import { inFlightAssistantView } from './session-transcript';
 import {
 	readToolPolicy,
 	writeGlobalToolPolicy,
@@ -95,6 +96,16 @@ export interface PiSessionLike {
 	prompt(text: string, options?: { images?: PiImage[] }): Promise<void>;
 	steer(text: string, images?: PiImage[]): Promise<void>;
 	abort(): Promise<void>;
+	/**
+	 * Pi's live agent state, including the assistant message currently being
+	 * streamed. The session file does not gain a message until it completes,
+	 * so mid-stream snapshots need this to render the partial message.
+	 */
+	readonly messages?: ReadonlyArray<{
+		role: string;
+		content?: unknown;
+		timestamp?: number;
+	}>;
 	setSessionName?(name: string): void;
 	dispose(): void;
 }
@@ -124,6 +135,8 @@ interface ActiveSession {
 	/** Last time this session was activated or interacted with, for idle eviction. */
 	lastActiveAt: number;
 	extensionUi: PiExtensionUiRuntime;
+	/** Owns the streaming message ids live events reference. */
+	translator: PiEventTranslator;
 }
 
 export interface PiAgentServiceOptions {
@@ -307,6 +320,7 @@ export class PiAgentService {
 			);
 		} else {
 			this.#touch(sessionId);
+			this.#spliceInFlightMessage(sessionId, snapshot);
 		}
 		await this.#repository.setLastSession(sessionId);
 		return snapshot;
@@ -542,6 +556,7 @@ export class PiAgentService {
 			unsubscribe,
 			lastActiveAt: Date.now(),
 			extensionUi,
+			translator,
 		});
 		this.#emit(sessionId, {
 			type: 'session.created',
@@ -574,6 +589,30 @@ export class PiAgentService {
 	async getTree(sessionId: string): Promise<SessionTree> {
 		await this.resumeSession(sessionId);
 		return sessionTree(this.#active(sessionId).manager);
+	}
+
+	/**
+	 * The transcript file gains an assistant message only when it completes, so
+	 * a snapshot taken while a session streams omits the in-flight message.
+	 * The client drops live message events for sessions it is not viewing, so
+	 * returning to a streaming thread would render nothing for it and every
+	 * remaining delta would find no message to attach to. Splice the live
+	 * partial message in under the id the translator is still emitting, so the
+	 * rebuilt view converges with the ongoing stream instead of losing it.
+	 */
+	#spliceInFlightMessage(sessionId: string, snapshot: SessionSnapshot): void {
+		const active = this.#sessions.get(sessionId);
+		if (!active?.session.isStreaming) return;
+		const messageId = active.translator.activeAssistantMessageId;
+		const last = active.session.messages?.at(-1);
+		if (!messageId || !last || last.role !== 'assistant') return;
+		snapshot.messages = [
+			...snapshot.messages,
+			inFlightAssistantView(
+				{ role: 'assistant', content: last.content, timestamp: last.timestamp },
+				messageId,
+			),
+		];
 	}
 
 	/**

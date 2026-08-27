@@ -1,5 +1,35 @@
 # Work log
 
+## 2026-08-27 — Returning to a streaming thread no longer loses the reply
+
+- genge hit it while testing: leave a thread mid-stream, come back, and the
+  assistant's entire reply never rendered — even after it finished.
+- Three facts combined to cause it. Pi persists an assistant message to the
+  session file only when it completes (`SessionManager.appendMessage` fires
+  on `message_end`, never during streaming). The client drops live message
+  events for any session it is not viewing (`#receive`'s sessionId guard),
+  which is correct — otherwise switching threads would double-apply. And
+  `PiSessionRepository.snapshot()` re-opens the session file from disk even
+  when the session is live in memory. So the snapshot taken on return
+  omitted the in-flight message, and every later `message.delta` referenced
+  a translator-minted id (`message-N`) that `findMessage` could not locate —
+  deltas, tool events, and `message.completed` all silently no-oped.
+- Fix (`apps/agent-server/src/sessions/pi-agent-service.ts`):
+  `resumeSession` now splices the live partial assistant message into the
+  snapshot when the session is active and streaming. `ActiveSession` keeps
+  its `PiEventTranslator`, which exposes `activeAssistantMessageId` — the
+  id subsequent deltas will use — and `session-transcript.ts` gained
+  `inFlightAssistantView` to convert the agent-state message (text,
+  reasoning, running tool calls) into a `ConversationMessage` with
+  `complete: false`. The rebuilt view therefore converges with the ongoing
+  stream: remaining deltas append, completion marks it done, tool results
+  attach by call id. The translator clears the active id at `message_end`,
+  so a stream that finished between leaving and returning splices nothing
+  and the persisted message wins.
+- Four regression tests: in-flight splice with text + reasoning, in-flight
+  tool calls rendered as running, no splice when the stream is between
+  messages (toolResult tail), no splice once the stream has settled.
+
 ## 2026-08-27 — Tool policy moved to Pi's `defaultTools` setting
 
 - Gizmo no longer keeps its own tool allowlist. The hard-coded

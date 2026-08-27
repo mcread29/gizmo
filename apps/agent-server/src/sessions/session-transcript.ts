@@ -91,6 +91,51 @@ export function sessionTranscript(
 	return messages;
 }
 
+/**
+	* Builds the view of an assistant message that is still streaming. The
+	* transcript file only gains an assistant message when it completes, so a
+	* snapshot taken mid-stream must splice this in — otherwise a client
+	* returning to the thread never sees the message and has nothing to attach
+	* the remaining stream deltas to.
+	*/
+export function inFlightAssistantView(
+	message: { role: 'assistant'; content: unknown; timestamp?: number },
+	id: string,
+): ConversationMessage {
+	const messageTools = Array.isArray(message.content)
+		? message.content
+				.filter(
+					(item): item is Record<string, unknown> =>
+						Boolean(
+							item &&
+							typeof item === 'object' &&
+							'type' in item &&
+							item.type === 'toolCall',
+						),
+				)
+				.map((toolCall) => ({
+					id: String(toolCall.id ?? ''),
+					name: String(toolCall.name ?? 'tool'),
+					status: 'running' as const,
+					statusText: 'Running',
+					...(toolCallInput(toolCall) === undefined
+						? {}
+						: { input: toolCallInput(toolCall) }),
+				}))
+		: [];
+	const reasoning = reasoningContent(message.content);
+	return {
+		id,
+		role: 'assistant',
+		content: textContent(message.content),
+		...(reasoning.text ? { reasoning: reasoning.text } : {}),
+		...(reasoning.redacted ? { reasoningRedacted: true } : {}),
+		createdAt: message.timestamp ?? Date.now(),
+		complete: false,
+		tools: messageTools,
+	};
+}
+
 function treeEntry(
 	entry: SessionEntry,
 	label: string | undefined,

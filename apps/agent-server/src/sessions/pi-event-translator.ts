@@ -70,6 +70,15 @@ export class PiEventTranslator {
 		this.#emit = emit;
 	}
 
+	/**
+	 * The id the in-flight assistant message is streaming under, if any. A
+	 * client that subscribes mid-stream needs this to splice the partial
+	 * message into its view so later deltas land on the right message.
+	 */
+	get activeAssistantMessageId(): string | undefined {
+		return this.#activeMessageIds.get('assistant');
+	}
+
 	receive(event: AgentSessionEvent): void {
 		switch (event.type) {
 			case 'compaction_start':
