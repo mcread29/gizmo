@@ -58,17 +58,16 @@
 		};
 	});
 
-	async function reapply(work: Promise<unknown>) {
+	/**
+	 * Applies one change without touching anything else: the server returns
+	 * the stored config, and only the rows it affects re-render. Swapping in
+	 * fresh catalogs here would flash the whole screen on every toggle.
+	 */
+	async function reapply(work: Promise<ProjectConfig | void>) {
 		error = undefined;
 		try {
-			await work;
-			const detected = await store.detectProject(workspacePath);
-			setup = {
-				available: detected.domains,
-				config: detected.config ?? { version: 1 },
-			};
-			await store.refreshResources(workspacePath);
-			await store.refreshProjects();
+			const config = await work;
+			if (config && setup) setup = { ...setup, config };
 		} catch (cause) {
 			error = message(cause);
 		} finally {

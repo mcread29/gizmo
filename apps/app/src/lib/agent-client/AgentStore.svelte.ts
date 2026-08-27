@@ -405,27 +405,61 @@ export class AgentStore {
 		return project;
 	}
 
-	/** Per-workspace extension overrides; null reverts to the global state. */
+	/**
+	 * Per-workspace extension overrides; null reverts to the global state.
+	 * The server returns the stored config, which patches the workspace in
+	 * place — a full project reload here would flash the whole shell.
+	 */
 	async setProjectGizmoExtension(
 		projectPath: string,
 		extensionId: string,
 		enabled: boolean | null,
-	): Promise<void> {
-		await this.#client.setProjectGizmoExtension(
+	): Promise<ProjectConfig> {
+		const config = await this.#client.setProjectGizmoExtension(
 			projectPath,
 			extensionId,
 			enabled,
 		);
-		await this.refreshProjects();
+		this.#applyExtensionConfig(projectPath, config);
+		return config;
 	}
 
 	async setProjectPiExtension(
 		projectPath: string,
 		extensionId: string,
 		enabled: boolean | null,
-	): Promise<void> {
-		await this.#client.setProjectPiExtension(projectPath, extensionId, enabled);
-		await this.refreshProjects();
+	): Promise<ProjectConfig> {
+		return this.#client.setProjectPiExtension(
+			projectPath,
+			extensionId,
+			enabled,
+		);
+	}
+
+	/**
+	 * Recomputes one workspace's Gizmo extension list from the new overrides
+	 * and the global catalog, without touching any other workspace.
+	 */
+	#applyExtensionConfig(projectPath: string, config: ProjectConfig): void {
+		const overrides = new Map(
+			(config.gizmoExtensions ?? []).map(({ id, enabled }) => [id, enabled]),
+		);
+		const globals = this.resources?.gizmoExtensions;
+		const integrations = globals
+			? globals
+					.filter(
+						(extension) => overrides.get(extension.id) ?? extension.enabled,
+					)
+					.map(({ id }) => ({ id, root: '.' }))
+			: undefined;
+		this.projects = this.projects.map((project) =>
+			project.path === projectPath && integrations
+				? { ...project, integrations }
+				: project,
+		);
+		if (this.selectedProjectPath === projectPath && integrations) {
+			this.activeDomains = integrations.map(({ id }) => id);
+		}
 	}
 
 	/**
