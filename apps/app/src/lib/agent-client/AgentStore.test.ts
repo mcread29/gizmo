@@ -151,6 +151,15 @@ class InvalidEventClient implements AgentClient {
 	async setProjectSkill(): Promise<ResourceCatalog> {
 		return emptyCatalog;
 	}
+	async readSkill(path: string) {
+		return { path, content: '' };
+	}
+	async writeSkill(path: string, content: string) {
+		return { path, content };
+	}
+	async setGlobalExtension(): Promise<ResourceCatalog> {
+		return emptyCatalog;
+	}
 	async getProjectStatus(): Promise<UnityStatus> {
 		throw new Error('No selected project');
 	}

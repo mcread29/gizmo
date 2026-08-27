@@ -10,6 +10,7 @@ export const settingsPages = [
 	'connection',
 	'providers',
 	'agent',
+	'skills',
 	'about',
 ] as const;
 
@@ -63,9 +64,9 @@ export function locationFromHash(hash: string): AppLocation {
 	};
 }
 
-/** Skills and Resources merged into Agent; their links still land there. */
+/** Resources merged into Agent; old links still land there. */
 function settingsPage(name: string | undefined): SettingsPage | undefined {
-	if (name === 'resources' || name === 'skills') return 'agent';
+	if (name === 'resources') return 'agent';
 	return settingsPages.includes(name as SettingsPage)
 		? (name as SettingsPage)
 		: undefined;

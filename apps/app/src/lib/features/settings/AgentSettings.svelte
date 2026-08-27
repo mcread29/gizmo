@@ -1,70 +1,21 @@
 <script lang="ts">
-	import { Search } from '@lucide/svelte';
-	import type { SkillResource } from '@gizmo/protocol';
+	import { onMount } from 'svelte';
+	import { Puzzle } from '@lucide/svelte';
+	import { Switch } from 'bits-ui';
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
 	import SettingsPage from './SettingsPage.svelte';
-	import SkillList from './SkillList.svelte';
 	import { toasts } from '../../toasts.svelte';
 
 	let { store }: { store: AgentStore } = $props();
 
-	let query = $state('');
-	let filter = $state<'all' | 'on' | 'off'>('all');
-
-	const filters = [
-		{ value: 'all', label: 'All' },
-		{ value: 'on', label: 'On' },
-		{ value: 'off', label: 'Off' },
-	] as const;
-
-	// The global page describes every workspace, so no workspace is passed.
-	$effect(() => {
-		if (!store.resources) void store.refreshResources();
-	});
+	// Always replace a workspace-scoped catalog with the global view on entry.
+	onMount(() => void store.refreshResources());
 
 	let catalog = $derived(store.resources);
-	let all = $derived(catalog?.skills ?? []);
-	let matching = $derived(
-		all.filter((skill) => {
-			if (filter === 'on' && !skill.enabledGlobally) return false;
-			if (filter === 'off' && skill.enabledGlobally) return false;
-			const term = query.trim().toLowerCase();
-			return (
-				!term ||
-				skill.name.toLowerCase().includes(term) ||
-				skill.description.toLowerCase().includes(term)
-			);
-		}),
-	);
-	let groups = $derived([
-		{
-			scope: 'global' as const,
-			title: 'Global',
-			note: 'Found in your Gizmo and shared agent folders.',
-			skills: matching.filter((skill) => skill.scope === 'global'),
-		},
-		{
-			scope: 'project' as const,
-			title: 'Project',
-			note: 'Found inside a workspace. Still installed and managed here.',
-			skills: matching.filter((skill) => skill.scope === 'project'),
-		},
-	]);
-	let enabledCount = $derived(
-		all.filter((skill) => skill.enabledGlobally).length,
-	);
-
 	let agentsFiles = $derived(catalog?.agentsFiles ?? []);
 	let prompts = $derived(catalog?.prompts ?? []);
-
-	function toggle(skill: SkillResource, enabled: boolean) {
-		void store.setGlobalSkill(skill.id, { enabled });
-	}
-
-	function install(skill: SkillResource, installed: boolean) {
-		void store.setGlobalSkill(skill.id, { installed });
-	}
+	let extensions = $derived(catalog?.extensions ?? []);
 
 	async function reloadRuntime() {
 		if (await store.reloadRuntime()) {
@@ -78,9 +29,6 @@
 
 <SettingsPage title="Agent" scope="Applies to every workspace on this machine">
 	{#snippet actions()}
-		<span data-ui="settings-page-count"
-			>{enabledCount} of {all.length} skills on</span
-		>
 		<Button
 			variant="secondary"
 			size="sm"
@@ -98,6 +46,10 @@
 			>{store.runtimeReloading ? 'Reloading…' : 'Reload runtime'}</Button
 		>
 	{/snippet}
+
+	{#if store.resourceError}
+		<p data-ui="resource-error">{store.resourceError}</p>
+	{/if}
 
 	<div data-ui="settings-card">
 		<div data-ui="settings-section-header">
@@ -123,66 +75,47 @@
 	</div>
 
 	<div data-ui="settings-subhead">
-		<strong>Skills</strong>
+		<strong>Extensions</strong>
 		<span
-			>Every skill found in your Gizmo folders is installed here and starts off.
-			A workspace can override any of these from its own settings.</span
+			>Global Pi capabilities loaded by Gizmo and every other Pi session.
+			Disable an extension without deleting it.</span
 		>
 	</div>
 
-	<div data-ui="skill-toolbar">
-		<div data-ui="search-field">
-			<Search size={15} />
-			<input
-				bind:value={query}
-				placeholder="Search skills"
-				aria-label="Search skills"
-				autocomplete="off"
-				spellcheck="false"
-			/>
-		</div>
-		<div data-ui="segmented" role="group" aria-label="Filter skills">
-			{#each filters as option (option.value)}
-				<button
-					data-ui="segmented-option"
-					data-state={filter === option.value ? 'active' : 'inactive'}
-					aria-pressed={filter === option.value}
-					onclick={() => (filter = option.value)}>{option.label}</button
-				>
-			{/each}
-		</div>
-	</div>
-
-	{#if store.resourceError}
-		<p data-ui="resource-error">{store.resourceError}</p>
-	{/if}
-
-	{#if store.resourcesLoading && !catalog}
-		<div data-ui="skeleton" data-shape="workspace-card"></div>
-	{:else}
-		{#each groups as group (group.scope)}
-			{#if group.skills.length}
-				<div data-ui="settings-card">
-					<div data-ui="settings-section-header">
-						<strong>{group.title}</strong>
-						<span>{group.note}</span>
+	<div data-ui="settings-card">
+		{#if extensions.length === 0}
+			<p data-ui="resource-empty">No global Pi extensions found.</p>
+		{:else}
+			<div data-ui="skill-list">
+				{#each extensions as extension (extension.id)}
+					<div data-ui="skill-row">
+						<div data-ui="skill-row-main">
+							<div data-ui="skill-row-title">
+								<Puzzle size={15} />
+								<strong>{extension.name}</strong>
+								<span data-ui="skill-row-state" data-on={extension.enabled}
+									>{extension.enabled ? 'On' : 'Off'}</span
+								>
+							</div>
+							<small data-ui="resource-detail" title={extension.path}
+								>{extension.kind} · {extension.path}</small
+							>
+						</div>
+						<Switch.Root
+							data-ui="switch"
+							checked={extension.enabled}
+							disabled={store.resourcesLoading}
+							aria-label={`${extension.name} enabled globally`}
+							onCheckedChange={(enabled) =>
+								void store.setGlobalExtension(extension.id, enabled)}
+						>
+							<Switch.Thumb data-ui="switch-thumb" />
+						</Switch.Root>
 					</div>
-					<SkillList
-						skills={group.skills}
-						mode="global"
-						busy={store.resourcesLoading}
-						onToggle={toggle}
-						onInstall={install}
-					/>
-				</div>
-			{/if}
-		{/each}
-		{#if matching.length === 0}
-			<p data-ui="resource-empty">
-				{all.length ? 'No skills match.' : 'No skills found on disk.'}
-			</p>
+				{/each}
+			</div>
 		{/if}
-	{/if}
+	</div>
 
 	<div data-ui="settings-subhead">
 		<strong>Prompts</strong>

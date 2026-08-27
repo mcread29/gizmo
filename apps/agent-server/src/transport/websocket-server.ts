@@ -421,6 +421,19 @@ async function dispatch(
 					request.workspacePath,
 				),
 			};
+		case 'resources.skill.read':
+			return { result: await service.readSkill(request.path) };
+		case 'resources.skill.write':
+			return {
+				result: await service.writeSkill(request.path, request.content),
+			};
+		case 'resources.extension.global':
+			return {
+				result: await service.setGlobalExtension(
+					request.extensionId,
+					request.enabled,
+				),
+			};
 		case 'resources.skill.project':
 			return {
 				result: await service.setProjectSkill(

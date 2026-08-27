@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 21 as const;
+export const protocolVersion = 22 as const;
 
 const sessionTitleLimit = 48;
 
@@ -421,6 +421,8 @@ export const skillResourceSchema = Type.Object(
 		scope: resourceScopeSchema,
 		path: Type.String({ minLength: 1 }),
 		source: Type.String({ minLength: 1 }),
+		/** True when Gizmo can safely edit this Markdown file in place. */
+		editable: Type.Optional(Type.Boolean()),
 		installed: Type.Boolean(),
 		enabledGlobally: Type.Boolean(),
 		/** Effective state for the workspace the catalog was requested for. */
@@ -432,6 +434,29 @@ export const skillResourceSchema = Type.Object(
 );
 
 export type SkillResource = Static<typeof skillResourceSchema>;
+
+export const piExtensionResourceSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1, maxLength: 255 }),
+		name: Type.String({ minLength: 1, maxLength: 255 }),
+		path: Type.String({ minLength: 1 }),
+		enabled: Type.Boolean(),
+		kind: Type.Union([Type.Literal('file'), Type.Literal('directory')]),
+	},
+	{ additionalProperties: false },
+);
+
+export type PiExtensionResource = Static<typeof piExtensionResourceSchema>;
+
+export const skillFileSchema = Type.Object(
+	{
+		path: Type.String({ minLength: 1 }),
+		content: Type.String({ maxLength: 1_000_000 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type SkillFile = Static<typeof skillFileSchema>;
 
 /** Read-only companion resources: AGENTS.md files and prompt templates. */
 export const agentResourceSchema = Type.Object(
@@ -454,6 +479,7 @@ export const resourceCatalogSchema = Type.Object(
 		skills: Type.Array(skillResourceSchema),
 		agentsFiles: Type.Array(agentResourceSchema),
 		prompts: Type.Array(agentResourceSchema),
+		extensions: Type.Optional(Type.Array(piExtensionResourceSchema)),
 		diagnostics: Type.Array(Type.String({ minLength: 1 })),
 	},
 	{ additionalProperties: false },
@@ -1138,6 +1164,32 @@ export const agentRequestSchema = Type.Union([
 			installed: Type.Optional(Type.Boolean()),
 			enabled: Type.Optional(Type.Boolean()),
 			workspacePath: Type.Optional(Type.String({ minLength: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('resources.skill.read'),
+			path: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('resources.skill.write'),
+			path: Type.String({ minLength: 1 }),
+			content: Type.String({ maxLength: 1_000_000 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('resources.extension.global'),
+			extensionId: Type.String({ minLength: 1, maxLength: 255 }),
+			enabled: Type.Boolean(),
 		},
 		{ additionalProperties: false },
 	),

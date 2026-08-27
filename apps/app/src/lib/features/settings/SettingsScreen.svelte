@@ -7,6 +7,7 @@
 		Plug,
 		Layers,
 		Sparkles,
+		BookOpenText,
 		KeyRound,
 	} from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
@@ -21,9 +22,11 @@
 	import SettingsNav, { type SettingsNavItem } from './SettingsNav.svelte';
 	import AgentSettings from './AgentSettings.svelte';
 	import ProvidersSettings from './ProvidersSettings.svelte';
+	import SkillsSettings from './SkillsSettings.svelte';
 
 	interface Props {
 		open?: boolean;
+		dirty?: boolean;
 		page: SettingsPageName;
 		layout: WorkspaceLayout;
 		store: AgentStore;
@@ -34,6 +37,7 @@
 
 	let {
 		open = false,
+		dirty = $bindable(false),
 		page,
 		layout,
 		store,
@@ -45,6 +49,30 @@
 	let skillCount = $derived(
 		store.resources?.skills.filter((skill) => skill.enabledGlobally).length,
 	);
+
+	function selectPage(next: SettingsPageName) {
+		if (
+			page === 'skills' &&
+			dirty &&
+			!confirm('Discard the unsaved changes to this skill?')
+		) {
+			return;
+		}
+		dirty = false;
+		onSelectPage(next);
+	}
+
+	function openWorkspace() {
+		if (
+			page === 'skills' &&
+			dirty &&
+			!confirm('Discard the unsaved changes to this skill?')
+		) {
+			return;
+		}
+		dirty = false;
+		onOpenWorkspace();
+	}
 
 	let groups = $derived([
 		{
@@ -63,6 +91,11 @@
 					page: 'agent',
 					label: 'Agent',
 					icon: Sparkles,
+				},
+				{
+					page: 'skills',
+					label: 'Skills',
+					icon: BookOpenText,
 					...(skillCount ? { badge: skillCount } : {}),
 				},
 			] satisfies SettingsNavItem[],
@@ -84,16 +117,16 @@
 
 		<div data-ui="settings-body">
 			<div data-ui="settings-sidebar">
-				<SettingsNav {groups} current={page} onSelect={onSelectPage} />
+				<SettingsNav {groups} current={page} onSelect={selectPage} />
 				<!-- Workspace configuration is its own screen; this is the way in. -->
-				<button data-ui="settings-nav-item" onclick={onOpenWorkspace}>
+				<button data-ui="settings-nav-item" onclick={openWorkspace}>
 					<FolderCog size={15} />
 					<span>Workspace settings</span>
 				</button>
 			</div>
 
 			<ScrollPanel>
-				<div data-ui="settings-content">
+				<div data-ui="settings-content" data-page={page}>
 					{#if page === 'appearance'}
 						<AppearanceSettings {layout} />
 					{:else if page === 'chat'}
@@ -106,6 +139,8 @@
 						<AgentSettings {store} />
 					{:else if page === 'providers'}
 						<ProvidersSettings {store} />
+					{:else if page === 'skills'}
+						<SkillsSettings {store} bind:dirty />
 					{:else}
 						<AboutSettings {layout} {version} />
 					{/if}

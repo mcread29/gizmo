@@ -1,13 +1,9 @@
 import { cp, mkdir, readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { defaultDataDir } from '../sessions/session-repository';
 
-/**
- * Gizmo owns the resources it loads. Pi's agent directory still holds runtime
- * concerns such as credentials and model configuration, but nothing Gizmo puts
- * in front of the model is read from there.
- */
+/** Global resources stay canonical in Pi's directories; workspace resources
+ * remain local to the selected project. */
 export interface ResourceRoots {
 	/** Directories holding skills, in precedence order. */
 	skills: string[];
@@ -17,11 +13,24 @@ export interface ResourceRoots {
 	agentsFiles: string[];
 }
 
-export function globalResourceRoots(dataDir = defaultDataDir()): ResourceRoots {
+export function globalResourceRoots(dataDir?: string): ResourceRoots {
+	if (dataDir) {
+		return {
+			skills: [join(dataDir, 'skills')],
+			prompts: [join(dataDir, 'prompts')],
+			agentsFiles: [join(dataDir, 'AGENTS.md')],
+		};
+	}
+	const home = homedir();
+	const configured = process.env.PI_CODING_AGENT_DIR;
+	const piAgent = configured
+		? configured.replace(/^~(?=$|[\\/])/, home)
+		: join(home, '.pi', 'agent');
+	const sharedAgent = join(home, '.agents');
 	return {
-		skills: [join(dataDir, 'skills')],
-		prompts: [join(dataDir, 'prompts')],
-		agentsFiles: [join(dataDir, 'AGENTS.md')],
+		skills: [join(piAgent, 'skills'), join(sharedAgent, 'skills')],
+		prompts: [join(piAgent, 'prompts'), join(sharedAgent, 'prompts')],
+		agentsFiles: [join(piAgent, 'AGENTS.md')],
 	};
 }
 
@@ -44,7 +53,7 @@ export function workspaceResourceRoots(workspacePath: string): ResourceRoots {
 
 export function resourceRoots(
 	workspacePath?: string,
-	dataDir = defaultDataDir(),
+	dataDir?: string,
 ): ResourceRoots {
 	const global = globalResourceRoots(dataDir);
 	if (!workspacePath) return global;
@@ -56,21 +65,18 @@ export function resourceRoots(
 	};
 }
 
-/**
- * Copies skills and AGENTS.md out of Pi's agent directory the first time, so
- * moving to Gizmo-owned folders does not silently drop what was already set up.
- * Runs once: a Gizmo skills directory that already exists is left alone, and
- * the originals are never modified.
- */
+/** Legacy explicit migration helper. Normal discovery no longer copies Pi
+ * resources because Pi's directory is the canonical source. */
 export async function adoptPiResources(
-	dataDir = defaultDataDir(),
+	dataDir?: string,
 	piAgentDir = join(homedir(), '.pi', 'agent'),
 ): Promise<boolean> {
+	// With no migration target, Pi's own directories are canonical.
+	if (!dataDir) return false;
 	const target = join(dataDir, 'skills');
 	if (await exists(target)) return false;
 	const source = join(piAgentDir, 'skills');
 	if (!(await exists(source))) return false;
-
 	await mkdir(dataDir, { recursive: true });
 	await cp(source, target, { recursive: true });
 	const agentsFile = join(piAgentDir, 'AGENTS.md');

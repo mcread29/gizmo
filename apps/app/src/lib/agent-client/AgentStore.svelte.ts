@@ -461,6 +461,37 @@ export class AgentStore {
 		}
 	}
 
+	readSkill(path: string) {
+		return this.#client.readSkill(path);
+	}
+
+	async writeSkill(path: string, content: string): Promise<boolean> {
+		this.resourceError = undefined;
+		try {
+			await this.#client.writeSkill(path, content);
+			await this.refreshResources();
+			return true;
+		} catch (error) {
+			this.resourceError = errorMessage(error);
+			return false;
+		}
+	}
+
+	async setGlobalExtension(
+		extensionId: string,
+		enabled: boolean,
+	): Promise<void> {
+		this.resourceError = undefined;
+		try {
+			this.resources = await this.#client.setGlobalExtension(
+				extensionId,
+				enabled,
+			);
+		} catch (error) {
+			this.resourceError = errorMessage(error);
+		}
+	}
+
 	async setProjectSkill(
 		workspacePath: string,
 		skillId: string,

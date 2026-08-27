@@ -19,6 +19,9 @@
 		onToggle: (skill: SkillResource, enabled: boolean) => void;
 		onReset?: (skill: SkillResource) => void;
 		onInstall?: (skill: SkillResource, installed: boolean) => void;
+		onEdit?: (skill: SkillResource) => void;
+		selectedId?: string;
+		onSelect?: (skill: SkillResource) => void;
 	}
 
 	let {
@@ -30,6 +33,9 @@
 		onToggle,
 		onReset,
 		onInstall,
+		onEdit,
+		selectedId,
+		onSelect,
 	}: Props = $props();
 
 	/** A row resets when it overrides the global setting or its baseline. */
@@ -66,6 +72,9 @@
 				onSelect: () => onReset(skill),
 			});
 		}
+		if (mode === 'global' && skill.editable && onEdit) {
+			items.push({ label: 'Edit Markdown', onSelect: () => onEdit(skill) });
+		}
 		if (mode === 'global' && onInstall) {
 			items.push(
 				skill.installed
@@ -90,9 +99,10 @@
 			<div
 				data-ui="skill-row"
 				data-state={skill.installed ? 'installed' : 'uninstalled'}
+				data-selected={selectedId === skill.id || undefined}
 				data-changed={changed?.has(skill.id) || undefined}
 			>
-				<div data-ui="skill-row-main">
+				{#snippet main()}
 					<div data-ui="skill-row-title">
 						<strong>{skill.name}</strong>
 						<em data-ui="resource-scope">{skill.scope}</em>
@@ -104,7 +114,20 @@
 						<p data-ui="skill-row-description">{skill.description}</p>
 					{/if}
 					<small data-ui="resource-detail">{note(skill)}</small>
-				</div>
+				{/snippet}
+				{#if onSelect}
+					<button
+						data-ui="skill-row-main"
+						data-interactive="true"
+						disabled={!skill.editable}
+						aria-current={selectedId === skill.id ? 'true' : undefined}
+						onclick={() => onSelect(skill)}
+					>
+						{@render main()}
+					</button>
+				{:else}
+					<div data-ui="skill-row-main">{@render main()}</div>
+				{/if}
 				<div data-ui="skill-row-actions">
 					<Switch.Root
 						data-ui="switch"

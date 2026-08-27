@@ -35,6 +35,7 @@ import {
 	type StoredProject,
 	type ProjectDomains,
 	type ResourceCatalog,
+	type SkillFile,
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
 	type WorkspaceProfiles,
@@ -418,6 +419,51 @@ export class WebSocketAgentClient implements AgentClient {
 				: { installed: change.installed }),
 			...(change.enabled === undefined ? {} : { enabled: change.enabled }),
 			...(workspacePath ? { workspacePath } : {}),
+		});
+		return parseResourceCatalog(response.result);
+	}
+
+	async readSkill(path: string): Promise<SkillFile> {
+		const response = await this.#request({
+			type: 'resources.skill.read',
+			path,
+		});
+		const result = response.result as Partial<SkillFile> | undefined;
+		if (
+			!result ||
+			typeof result.path !== 'string' ||
+			typeof result.content !== 'string'
+		) {
+			throw new Error('Agent server returned an invalid skill file');
+		}
+		return result as SkillFile;
+	}
+
+	async writeSkill(path: string, content: string): Promise<SkillFile> {
+		const response = await this.#request({
+			type: 'resources.skill.write',
+			path,
+			content,
+		});
+		const result = response.result as Partial<SkillFile> | undefined;
+		if (
+			!result ||
+			typeof result.path !== 'string' ||
+			typeof result.content !== 'string'
+		) {
+			throw new Error('Agent server returned an invalid skill file');
+		}
+		return result as SkillFile;
+	}
+
+	async setGlobalExtension(
+		extensionId: string,
+		enabled: boolean,
+	): Promise<ResourceCatalog> {
+		const response = await this.#request({
+			type: 'resources.extension.global',
+			extensionId,
+			enabled,
 		});
 		return parseResourceCatalog(response.result);
 	}

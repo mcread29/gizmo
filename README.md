@@ -38,6 +38,18 @@ To run the full Gizmo web interface against Pi's default runtime, run:
 pnpm pi-web:dev
 ```
 
+For a background Pi Web server managed without a persistent terminal, use:
+
+```sh
+pnpm dev:server:start
+pnpm dev:server:status
+pnpm dev:server:restart
+pnpm dev:server:stop
+```
+
+Output is appended to `.gizmo-dev/dev-server.log`; runtime PID state stays in
+that ignored directory.
+
 Pi Web keeps Gizmo's thread, workspace, settings, Git, and extension UI. New
 threads use Pi's standard built-in tools and discover the resources configured
 under `~/.pi/agent`: packages, extensions, skills, prompt templates, context
@@ -118,10 +130,11 @@ and forwards declared operations without interpreting extension payloads.
 Candidate extensions are collected in
 [`docs/extension-ideas.md`](docs/extension-ideas.md).
 
-Skills, `AGENTS.md` files, and prompt templates are loaded from Gizmo's own
-folders under `~/.gizmo/` and the cross-harness `~/.agents/`, never from Pi's
-agent directory. Skills are installed globally, start disabled, and can be
-overridden per workspace profile; see [`docs/resources.md`](docs/resources.md).
+Skills, `AGENTS.md` files, prompt templates, and Pi extensions use Pi's global
+folders under `~/.pi/agent` plus cross-harness skills under `~/.agents/`.
+Gizmo edits skill Markdown in place, can disable global Pi extensions without
+deleting them, and supports skill overrides per workspace profile; see
+[`docs/resources.md`](docs/resources.md).
 
 ```sh
 pnpm check

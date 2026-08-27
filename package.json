@@ -8,6 +8,11 @@
 		"desktop:build": "pnpm --filter @gizmo/app desktop:build",
 		"desktop:dev": "pnpm --filter @gizmo/app desktop:dev",
 		"dev": "test -f packages/unity/dist/web.js || pnpm extensions:build && pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
+		"dev:server": "tsx scripts/dev-server.ts",
+		"dev:server:start": "pnpm dev:server start",
+		"dev:server:stop": "pnpm dev:server stop",
+		"dev:server:restart": "pnpm dev:server restart",
+		"dev:server:status": "pnpm dev:server status",
 		"pi-web:dev": "cross-env GIZMO_PI_WEB=1 pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
 		"extensions:build": "pnpm --filter @gizmo/app extension:build ../../packages/unity",
 		"format": "prettier --write .",
@@ -18,6 +23,7 @@
 		"cross-env": "^10.1.0",
 		"prettier": "latest",
 		"prettier-plugin-svelte": "latest",
+		"tsx": "^4.23.12",
 		"typescript": "^6.0.0"
 	}
 }

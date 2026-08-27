@@ -12,4 +12,5 @@ apps/app/src-tauri/gen/
 .env.*
 !.env.example
 *.log
+.gizmo-dev/
 .DS_Store

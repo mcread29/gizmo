@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { basename, resolve } from 'node:path';
+import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
 import type {
 	AgentResource,
 	ResourceCatalog,
@@ -11,6 +11,7 @@ import { registeredExtensions } from '../extensions/registry';
 import { ProjectCatalog } from '../projects/project-catalog';
 import { extensionResourceRoots } from './extension-resources';
 import { GlobalResourceStore } from './global-resource-settings';
+import { listPiExtensions } from './pi-global-resources';
 import {
 	adoptPiResources,
 	existingDirectories,
@@ -26,6 +27,7 @@ export interface DiscoveredSkill {
 	scope: ResourceScope;
 	path: string;
 	source: string;
+	editable?: boolean;
 }
 
 export interface Discovery {
@@ -66,6 +68,7 @@ export class ResourceCatalogService {
 		const enabledGlobally = new Set(settings.enabledSkills);
 		return {
 			...(path ? { workspacePath: path } : {}),
+			extensions: await listPiExtensions(),
 			skills: discovery.skills.map((skill) => {
 				const override = overrides.get(skill.id);
 				const globallyOn = enabledGlobally.has(skill.id);
@@ -209,6 +212,7 @@ export async function discoverResources(
 				scope,
 				path: skill.filePath,
 				source: skill.baseDir,
+				editable: roots.skills.some((root) => isInside(skill.filePath, root)),
 			};
 		}),
 		agentsFiles: await Promise.all(
@@ -236,9 +240,24 @@ export async function discoverResources(
 
 /** Anything inside the open workspace is project scope; the rest is global. */
 function pathScope(path: string, workspacePath?: string): ResourceScope {
-	return workspacePath && path.startsWith(`${workspacePath}/`)
+	if (!workspacePath) return 'global';
+	const fromWorkspace = relative(resolve(workspacePath), resolve(path));
+	return fromWorkspace !== '' &&
+		!isAbsolute(fromWorkspace) &&
+		fromWorkspace !== '..' &&
+		!fromWorkspace.startsWith(`..${sep}`)
 		? 'project'
 		: 'global';
+}
+
+function isInside(path: string, root: string) {
+	const fromRoot = relative(resolve(root), resolve(path));
+	return (
+		fromRoot !== '' &&
+		!isAbsolute(fromRoot) &&
+		fromRoot !== '..' &&
+		!fromRoot.startsWith(`..${sep}`)
+	);
 }
 
 function firstLine(content: string): string {

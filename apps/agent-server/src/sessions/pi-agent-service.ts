@@ -39,6 +39,12 @@ import { createRunScriptTool } from '../scripts/run-script-tool';
 import { ProjectCatalog } from '../projects/project-catalog';
 import { ResourceCatalogService } from '../resources/resource-catalog';
 import {
+	enabledPiExtensionPaths,
+	readManagedSkill,
+	setPiExtensionEnabled,
+	writeManagedSkill,
+} from '../resources/pi-global-resources';
+import {
 	existingDirectories,
 	existingFiles,
 	resourceRoots,
@@ -327,6 +333,32 @@ export class PiAgentService {
 		enabled: boolean | null,
 	) {
 		return this.#resources.setProjectSkill(workspacePath, skillId, enabled);
+	}
+
+	async readSkill(path: string) {
+		const catalog = await this.#resources.list();
+		return readManagedSkill(
+			path,
+			catalog.skills
+				.filter((skill) => skill.editable)
+				.map((skill) => skill.path),
+		);
+	}
+
+	async writeSkill(path: string, content: string) {
+		const catalog = await this.#resources.list();
+		return writeManagedSkill(
+			path,
+			content,
+			catalog.skills
+				.filter((skill) => skill.editable)
+				.map((skill) => skill.path),
+		);
+	}
+
+	async setGlobalExtension(extensionId: string, enabled: boolean) {
+		await setPiExtensionEnabled(extensionId, enabled);
+		return this.#resources.list();
 	}
 
 	async renameSession(sessionId: string, title: string): Promise<void> {
@@ -784,10 +816,8 @@ const createDefaultPiSession: PiSessionFactory = async (
 	callbacks,
 ) => {
 	const {
-		createAgentSession,
 		createAgentSessionFromServices,
 		createAgentSessionServices,
-		DefaultResourceLoader,
 		getAgentDir,
 		hasTrustRequiringProjectResources,
 		ProjectTrustStore,
@@ -818,6 +848,33 @@ const createDefaultPiSession: PiSessionFactory = async (
 		...(options.extensionTools ? activeDomains.tools : []),
 		runScriptTool,
 	];
+	const catalog = new ResourceCatalogService();
+	const [
+		skillPaths,
+		promptPaths,
+		agentsFiles,
+		fromExtensions,
+		piExtensionPaths,
+	] = await Promise.all([
+		catalog.enabledSkillPaths(cwd),
+		existingDirectories(resourceRoots(cwd).prompts),
+		readAgentsFiles(cwd),
+		extensionResourceRoots(registeredExtensions()),
+		enabledPiExtensionPaths(),
+	]);
+	const managedResourceOptions = {
+		noExtensions: true,
+		additionalExtensionPaths: piExtensionPaths,
+		noSkills: true,
+		additionalSkillPaths: skillPaths,
+		noPromptTemplates: true,
+		additionalPromptTemplatePaths: [...promptPaths, ...fromExtensions.prompts],
+		noContextFiles: true,
+		agentsFilesOverride: () => ({ agentsFiles }),
+		...(options.extensionPrompt && activeDomains.systemPrompt
+			? { systemPromptOverride: () => activeDomains.systemPrompt! }
+			: {}),
+	};
 	const { session } = await (async () => {
 		if (piWebMode) {
 			// Pi Web is the normal Pi runtime behind Gizmo's existing web shell.
@@ -827,6 +884,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 				cwd,
 				agentDir,
 				settingsManager,
+				resourceLoaderOptions: managedResourceOptions,
 				resourceLoaderReloadOptions: {
 					resolveProjectTrust: async () => {
 						if (!hasTrustRequiringProjectResources(cwd)) return true;
@@ -849,65 +907,50 @@ const createDefaultPiSession: PiSessionFactory = async (
 			});
 		}
 
-		// The normal Gizmo runtime deliberately uses only Gizmo-managed resources.
-		const catalog = new ResourceCatalogService();
-		const [skillPaths, promptPaths, agentsFiles, fromExtensions] =
-			await Promise.all([
-				catalog.enabledSkillPaths(cwd),
-				existingDirectories(resourceRoots(cwd).prompts),
-				readAgentsFiles(cwd),
-				extensionResourceRoots(registeredExtensions()),
-			]);
-		const resourceLoader = new DefaultResourceLoader({
+		// Normal Gizmo keeps its bounded tool policy while using the same managed
+		// global resources. Service creation lets provider extensions register
+		// before initial model selection.
+		const services = await createAgentSessionServices({
 			cwd,
 			agentDir,
 			settingsManager,
-			noExtensions: true,
-			noSkills: true,
-			noPromptTemplates: true,
-			noContextFiles: true,
-			additionalSkillPaths: skillPaths,
-			additionalPromptTemplatePaths: [
-				...promptPaths,
-				...fromExtensions.prompts,
-			],
-			agentsFilesOverride: () => ({ agentsFiles }),
-			...(options.extensionPrompt && activeDomains.systemPrompt
-				? { systemPromptOverride: () => activeDomains.systemPrompt! }
-				: {}),
+			modelRuntime,
+			resourceLoaderOptions: managedResourceOptions,
 		});
-		await resourceLoader.reload();
 		getSkillCommands = () =>
-			resourceLoader.getSkills().skills.map((skill) => ({
+			services.resourceLoader.getSkills().skills.map((skill) => ({
 				name: `skill:${skill.name}`,
 				description: skill.description,
 				source: 'skill',
 			}));
-		return createAgentSession({
-			cwd,
-			agentDir,
+		const piExtensionToolNames = services.resourceLoader
+			.getExtensions()
+			.extensions.flatMap((extension) => [...extension.tools.keys()]);
+		return createAgentSessionFromServices({
+			services,
 			customTools,
-			tools: ['read', 'edit', 'write', ...customTools.map(({ name }) => name)],
-			resourceLoader,
-			modelRuntime,
+			tools: [
+				'read',
+				'edit',
+				'write',
+				...customTools.map(({ name }) => name),
+				...piExtensionToolNames,
+			],
 			sessionManager,
-			settingsManager,
 		});
 	})();
-	if (process.env.GIZMO_PI_WEB === '1') {
-		await session.bindExtensions({
-			// Gizmo supplies a real UI context, so ctx.hasUI is true. Keep the
-			// headless mode honest: extensions that special-case Pi's JSONL RPC
-			// transport should not mistake the browser bridge for that protocol.
-			mode: 'json',
-			uiContext: callbacks.extensionUi.context,
-			onError: (error) =>
-				console.error(
-					`Pi extension error (${error.extensionPath}):`,
-					error.error,
-				),
-		});
-	}
+	await session.bindExtensions({
+		// Gizmo supplies a real UI context, so ctx.hasUI is true. Keep the
+		// headless mode honest: extensions that special-case Pi's JSONL RPC
+		// transport should not mistake the browser bridge for that protocol.
+		mode: 'json',
+		uiContext: callbacks.extensionUi.context,
+		onError: (error) =>
+			console.error(
+				`Pi extension error (${error.extensionPath}):`,
+				error.error,
+			),
+	});
 	return Object.assign(session, {
 		domains: activeDomains.extensions.map(({ id }) => id),
 		async generateCommitMessage(context: string): Promise<string> {

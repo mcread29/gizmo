@@ -63,6 +63,7 @@
 	let focusComposer = $state<() => void>();
 	let findInThread = $state<() => void>();
 	let focusThreadSearch = $state<() => void>();
+	let settingsDirty = $state(false);
 	let settingsSaveTimer: ReturnType<typeof setTimeout> | undefined;
 	let pendingSettings = layout.settings;
 
@@ -135,6 +136,17 @@
 
 	onDestroy(flushSettings);
 
+	function closeSettings() {
+		if (
+			settingsDirty &&
+			!confirm('Discard the unsaved changes to this skill?')
+		) {
+			return;
+		}
+		settingsDirty = false;
+		router.close();
+	}
+
 	function onKeydown(event: KeyboardEvent) {
 		if (extensionUi.dialogFor(store.sessionId)) return;
 		handleShortcut(event, {
@@ -153,6 +165,7 @@
 			dismiss: () => {
 				if (sessions.commandPaletteOpen) return;
 				if (router.current === 'workspace') layout.closeDrawers();
+				else if (router.current === 'settings') closeSettings();
 				else router.close();
 			},
 		});
@@ -239,7 +252,7 @@
 				screenOpen={overlayOpen}
 				settingsOpen={router.current === 'settings'}
 				onOpenSettings={() => router.go('settings')}
-				onCloseSettings={() => router.close()}
+				onCloseSettings={closeSettings}
 			/>
 
 			{#if layout.drawerOpen}<button
@@ -334,6 +347,7 @@
 
 	<SettingsScreen
 		open={router.current === 'settings'}
+		bind:dirty={settingsDirty}
 		page={router.settingsPage}
 		{layout}
 		{store}

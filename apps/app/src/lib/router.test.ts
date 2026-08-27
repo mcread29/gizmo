@@ -34,14 +34,14 @@ describe('routeFromHash', () => {
 		expect(
 			locationFromHash(hashForRoute('settings', { page: 'chat' })),
 		).toEqual({ route: 'settings', page: 'chat', tab: 'overview' });
-		// Agent absorbed the old Skills and Resources pages.
+		// Resources merged into Agent; Skills is now its own editor area.
 		expect(locationFromHash('#settings/resources')).toMatchObject({
 			route: 'settings',
 			page: 'agent',
 		});
 		expect(locationFromHash('#settings/skills')).toMatchObject({
 			route: 'settings',
-			page: 'agent',
+			page: 'skills',
 		});
 	});
 });

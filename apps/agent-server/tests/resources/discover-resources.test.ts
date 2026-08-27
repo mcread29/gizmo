@@ -24,10 +24,10 @@ afterEach(async () => {
 });
 
 describe('discoverResources', () => {
-	it('reads skills, prompts, and AGENTS.md from Gizmo-owned folders', async () => {
-		const data = await temporary('gizmo-data-');
+	it('reads global Pi resources and project resources together', async () => {
+		const data = await temporary('gizmo-pi-');
 		const project = await temporary('gizmo-project-');
-		process.env[dataDirEnv] = data;
+		process.env[agentDirEnv] = data;
 		await skill(join(data, 'skills', 'review'), 'review', 'Review changes');
 		await skill(
 			join(project, '.gizmo', 'skills', 'release'),
@@ -74,13 +74,12 @@ describe('discoverResources', () => {
 		);
 	});
 
-	it('ignores what Pi would load from its own agent directory', async () => {
+	it('uses Pi global resources and ignores project-local .pi resources', async () => {
 		const data = await temporary('gizmo-data-');
 		const agentDir = await temporary('gizmo-pi-');
 		const project = await temporary('gizmo-project-');
 		process.env[dataDirEnv] = data;
 		process.env[agentDirEnv] = agentDir;
-		// A Gizmo skills folder already exists, so nothing is adopted from Pi.
 		await skill(join(data, 'skills', 'review'), 'review', 'Review changes');
 		await skill(join(agentDir, 'skills', 'pi-only'), 'pi-only', 'From Pi');
 		await mkdir(join(agentDir, 'prompts'), { recursive: true });
@@ -93,9 +92,13 @@ describe('discoverResources', () => {
 
 		const discovery = await discoverResources(project);
 
-		expect(discovery.skills.map(({ name }) => name)).toEqual(['review']);
-		expect(discovery.prompts).toEqual([]);
-		expect(discovery.agentsFiles).toEqual([]);
+		expect(discovery.skills.map(({ name }) => name)).toContain('pi-only');
+		expect(discovery.prompts).toEqual([
+			expect.objectContaining({ name: 'pi-only', scope: 'global' }),
+		]);
+		expect(discovery.agentsFiles).toEqual([
+			expect.objectContaining({ path: join(agentDir, 'AGENTS.md') }),
+		]);
 	});
 
 	it('adopts existing Pi skills once, without touching the originals', async () => {
@@ -108,11 +111,11 @@ describe('discoverResources', () => {
 		// A second run is a no-op, so later edits are never overwritten.
 		expect(await adoptPiResources(data, agentDir)).toBe(false);
 
-		process.env[dataDirEnv] = data;
+		process.env[agentDirEnv] = agentDir;
 		const discovery = await discoverResources();
-		expect(discovery.skills.map(({ name }) => name)).toEqual(['review']);
+		expect(discovery.skills.map(({ name }) => name)).toContain('review');
 		expect(discovery.agentsFiles).toEqual([
-			expect.objectContaining({ path: join(data, 'AGENTS.md') }),
+			expect.objectContaining({ path: join(agentDir, 'AGENTS.md') }),
 		]);
 	});
 });

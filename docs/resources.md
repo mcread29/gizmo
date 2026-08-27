@@ -1,7 +1,8 @@
 # Skills and agent resources
 
 Gizmo manages the Pi resources that shape a session: skills, `AGENTS.md`
-context files, prompt templates, and Pi extensions. These are separate from
+context files, prompt templates, and global Pi extensions. Pi's global folders
+are canonical for both Gizmo and the rest of the Pi installation. These are separate from
 workspace profiles ([workspace-profiles.md](workspace-profiles.md)) and from
 Gizmo extensions ([extensions.md](extensions.md)) — there is no separate
 "domain" concept; see [extensions.md](extensions.md) for why.
@@ -38,14 +39,13 @@ workspace must be registered with Gizmo before it can hold overrides.
 
 ## Locations
 
-Gizmo reads only from folders it owns. Pi's agent directory keeps runtime
-concerns — credentials, model configuration, its own settings — and nothing
-there is put in front of the model.
+Gizmo reads global resources from Pi's own folders instead of maintaining a
+second copy. Workspace resources remain project-local.
 
-| Scope     | Skills                                  | Prompts                                   | Context                         |
-| --------- | --------------------------------------- | ----------------------------------------- | ------------------------------- |
-| Global    | `~/.gizmo/skills/`, `~/.agents/skills/` | `~/.gizmo/prompts/`, `~/.agents/prompts/` | `~/.gizmo/AGENTS.md`            |
-| Workspace | `.gizmo/skills/`, `.agents/skills/`     | `.gizmo/prompts/`, `.agents/prompts/`     | `AGENTS.md`, `.gizmo/AGENTS.md` |
+| Scope     | Skills                                     | Prompts                                      | Context                         |
+| --------- | ------------------------------------------ | -------------------------------------------- | ------------------------------- |
+| Global    | `~/.pi/agent/skills/`, `~/.agents/skills/` | `~/.pi/agent/prompts/`, `~/.agents/prompts/` | `~/.pi/agent/AGENTS.md`         |
+| Workspace | `.gizmo/skills/`, `.agents/skills/`        | `.gizmo/prompts/`, `.agents/prompts/`        | `AGENTS.md`, `.gizmo/AGENTS.md` |
 
 `~/.agents/` is the cross-harness [Agent Skills](https://agentskills.io)
 location, so skills shared with other tools work without being copied.
@@ -53,9 +53,9 @@ location, so skills shared with other tools work without being copied.
 and `resources.json`; `GIZMO_DATA_DIR` moves all of that app data. Workspace
 profiles remain in the selected project under `.gizmo/profiles.json`.
 
-The first time Gizmo runs without a `~/.gizmo/skills/` directory, it copies
-`~/.pi/agent/skills` and `~/.pi/agent/AGENTS.md` across, leaving the originals
-untouched. It never does so again, so later edits are safe.
+Skills can be opened and saved as Markdown in the dedicated Settings → Skills
+workbench.
+Writes are restricted to files already present in the discovered catalog.
 
 ## Discovery
 
@@ -65,43 +65,37 @@ one of Pi's own discovery locations disabled (`noSkills`, `noPromptTemplates`,
 decides what exists. A skill's scope is its location: inside the open workspace
 is project scope, anything else is global.
 
-Extensions are not listed or loaded. Gizmo runs sessions with `noExtensions`,
-so showing Pi's extensions would imply an influence they do not have.
+Global Pi extensions are listed from `~/.pi/agent/extensions`. Disabling one
+moves its top-level file or directory to `~/.pi/agent/extensions-disabled`;
+enabling it moves it back. This applies the state to Pi itself rather than only
+hiding the extension in Gizmo. Reload active runtimes after changing it.
 
 A skill's ID is `<scope>/<name>`, so a project skill never collides with a
 global skill of the same name.
 
 ## Sessions
 
-Normal Gizmo sessions do not let Pi discover anything. `createDefaultPiSession`
-asks the catalog for the enabled skill paths of the session's workspace and
-passes them as `additionalSkillPaths`, supplies prompt directories the same way,
-and injects `AGENTS.md` files through `agentsFilesOverride`. The catalog is the
-single source of truth for what is active, and a skill that is off cannot leak
-into a normal Gizmo session through a Pi settings file or ancestor directory.
+Both normal Gizmo and Pi Web sessions ask the catalog for the enabled skill
+paths of the session's workspace and pass them as `additionalSkillPaths`.
+Prompt directories, `AGENTS.md` files, and enabled global extension paths are
+supplied explicitly the same way. This keeps the catalog authoritative and
+prevents an off skill or extension from leaking back through ambient discovery.
 
-Pi Web mode is intentionally different. It points `DefaultResourceLoader` at
-`~/.pi/agent` with Pi discovery enabled, so Pi settings, packages, extensions,
-skills, prompts, themes, and context files load from their standard global and
-project locations. Project-local executable resources follow Pi's saved trust
-decision; when no decision exists, `defaultProjectTrust: "always"` enables them
-and `"ask"` or `"never"` leaves them disabled because the web trust prompt has
-not yet been implemented. Settings → Agent → **Reload runtime** calls Pi's reload
-lifecycle for the selected thread, including extension shutdown/startup and
-resource rediscovery.
-
-The resource catalog and skill toggles on Settings → Agent still describe
-Gizmo-managed resources. In Pi Web mode, Pi's `settings.json` and package
-configuration are authoritative instead; making this catalog reflect Pi's full
-effective resource set is follow-up UI work.
+Pi Web still uses Pi's model, provider, authentication, and settings files.
+Normal Gizmo keeps its bounded default tool policy; enabled Pi extension tools
+are added explicitly. Settings → Agent → **Reload runtime** applies extension,
+skill, prompt, and context changes to the selected thread.
 
 ## Protocol
 
-| Request                   | Effect                                                         |
-| ------------------------- | -------------------------------------------------------------- |
-| `resources.list`          | Catalog for a workspace, or global state when no path is given |
-| `resources.skill.global`  | Change installed and/or enabled globally                       |
-| `resources.skill.project` | Set or clear (`null`) one workspace's override                 |
+| Request                      | Effect                                                         |
+| ---------------------------- | -------------------------------------------------------------- |
+| `resources.list`             | Catalog for a workspace, or global state when no path is given |
+| `resources.skill.global`     | Change installed and/or enabled globally                       |
+| `resources.skill.project`    | Set or clear (`null`) one workspace's override                 |
+| `resources.skill.read`       | Read editable Markdown from a catalogued skill                 |
+| `resources.skill.write`      | Validate and atomically save editable skill Markdown           |
+| `resources.extension.global` | Move a global extension between enabled and disabled folders   |
 
 Each returns the recomputed catalog, so the client never merges state itself.
 
@@ -112,12 +106,11 @@ Settings is a set of pages behind a left nav, grouped by who each page affects:
 About. Each page states its scope under the title, because the screen mixes
 device preferences with machine-wide agent configuration.
 
-**Agent** is one page covering everything the model loads, ordered by how
-directly it applies: `AGENTS.md` files first, since they reach every session
-unconditionally; then skills, which are installed and enabled here with search,
-an on/off filter, and grouping by scope; then prompts. Only skills are
-editable in the UI — the rest is reported so you can see what is influencing a
-session, and edited on disk.
+**Agent** lists shared instructions, extensions, and prompts. **Skills** is a
+wide split workbench: a searchable, filterable skill library stays visible on
+the left while the selected skill's raw Markdown fills the editor on the right.
+Global Pi extensions can be enabled or disabled. The rest is
+reported so you can see what is influencing a session.
 
 **Workspace settings** is part of the workspace screen: the Profile tab edits
 the workspace's profiles, including profile-local skill overrides, and the
@@ -128,9 +121,12 @@ between pages replaces the history entry rather than stacking one per click.
 
 ## Limitations
 
-- Only skills are toggleable. Prompts and `AGENTS.md` files are listed for
-  inspection.
+- Skills and global extensions are toggleable. Prompts and `AGENTS.md` files
+  are listed for inspection.
 - Installing means "discovered and managed". Downloading a skill from a
   repository is not implemented.
+- Extension toggles currently cover auto-discovered top-level `.ts`/`.js` files
+  and `index.ts`/`index.js` directories. Package-provided extensions remain
+  managed through Pi's package settings.
 - The catalog is read on demand; there is no file watcher, so a skill added on
   disk appears the next time the screen is opened.

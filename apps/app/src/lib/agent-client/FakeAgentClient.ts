@@ -734,6 +734,24 @@ export class FakeAgentClient implements AgentClient {
 		return this.#catalog(workspacePath);
 	}
 
+	async readSkill(path: string) {
+		return {
+			path,
+			content: '---\nname: example\ndescription: Example skill\n---\n',
+		};
+	}
+
+	async writeSkill(path: string, content: string) {
+		return { path, content };
+	}
+
+	async setGlobalExtension(
+		_extensionId: string,
+		_enabled: boolean,
+	): Promise<ResourceCatalog> {
+		return this.#catalog();
+	}
+
 	async setProjectSkill(
 		workspacePath: string,
 		skillId: string,

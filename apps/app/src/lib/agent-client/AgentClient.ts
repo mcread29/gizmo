@@ -11,6 +11,7 @@ import type {
 	SessionSnapshot,
 	SessionTree,
 	ResourceCatalog,
+	SkillFile,
 	StoredProject,
 	ProjectDomains,
 	WorkspaceIntegration,
@@ -120,6 +121,12 @@ export interface AgentClient {
 		workspacePath: string,
 		skillId: string,
 		enabled: boolean | null,
+	): Promise<ResourceCatalog>;
+	readSkill(path: string): Promise<SkillFile>;
+	writeSkill(path: string, content: string): Promise<SkillFile>;
+	setGlobalExtension(
+		extensionId: string,
+		enabled: boolean,
 	): Promise<ResourceCatalog>;
 	getProjectStatus(projectPath: string): Promise<ProjectStatus>;
 	watchProjectStatus(
