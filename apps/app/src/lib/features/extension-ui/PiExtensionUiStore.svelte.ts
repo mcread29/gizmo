@@ -59,9 +59,29 @@ export class PiExtensionUiStore {
 	}
 
 	dialogFor(sessionId: string | undefined) {
-		return sessionId
-			? this.dialogs.find((dialog) => dialog.sessionId === sessionId)
-			: this.dialogs[0];
+		// Select and input render inline in the chat as agent questions; only
+		// confirmations and editors stay modal.
+		const candidates = (
+			sessionId
+				? this.dialogs.filter((dialog) => dialog.sessionId === sessionId)
+				: this.dialogs
+		).filter(
+			(dialog) =>
+				dialog.request.method === 'confirm' ||
+				dialog.request.method === 'editor',
+		);
+		return candidates[0];
+	}
+
+	/** Pending select/input requests for a session, rendered in the chat. */
+	questionsFor(sessionId: string | undefined) {
+		if (!sessionId) return [];
+		return this.dialogs.filter(
+			(dialog) =>
+				dialog.sessionId === sessionId &&
+				(dialog.request.method === 'select' ||
+					dialog.request.method === 'input'),
+		);
 	}
 
 	widgetsFor(

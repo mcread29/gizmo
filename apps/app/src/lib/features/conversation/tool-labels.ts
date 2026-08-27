@@ -4,6 +4,7 @@ const baseLabels: Record<string, string> = {
 	read: 'Read file',
 	edit: 'Edit file',
 	write: 'Write file',
+	ask_user: 'Ask the user',
 };
 
 // Read per call rather than built once: extensions can be installed after

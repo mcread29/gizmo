@@ -12,6 +12,7 @@
 	import MessageList from './MessageList.svelte';
 	import TranscriptSearch from './TranscriptSearch.svelte';
 	import PiExtensionWidgets from '../extension-ui/PiExtensionWidgets.svelte';
+	import PiExtensionQuestion from '../extension-ui/PiExtensionQuestion.svelte';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 	import { findMatches, stepIndex } from './transcript-search';
 
@@ -186,6 +187,10 @@
 			expandReasoning={layout.expandReasoning}
 		/>
 	{/if}
+
+	{#each extensionUi.questionsFor(store.sessionId) as question (question.uiRequestId)}
+		<PiExtensionQuestion {ui} {question} />
+	{/each}
 
 	<div data-ui="composer-wrap">
 		<PiExtensionWidgets

@@ -319,3 +319,76 @@ kbd {
 [data-ui='usage-meter'][data-level='full'] [data-ui='usage-fill'] {
 	background: var(--color-danger);
 }
+
+/*
+ * Agent questions (extension UI select/input requests) render inline in the
+ * chat, between the transcript and the composer, so an ask_user tool call
+ * reads as part of the conversation instead of a modal dialog.
+ */
+[data-ui='agent-question'] {
+	width: min(var(--content-max), 100%);
+	margin: 0 auto var(--space-3);
+	padding: var(--space-3);
+	display: grid;
+	gap: var(--space-2);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-md);
+	background: color-mix(
+		in srgb,
+		var(--color-accent, var(--color-text)) 5%,
+		var(--color-surface-raised)
+	);
+	box-shadow: var(--shadow-panel);
+}
+
+[data-ui='agent-question-head'] {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+}
+
+[data-ui='agent-question-origin'] {
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--color-accent, var(--color-text-muted));
+}
+
+[data-ui='agent-question-timeout'] {
+	font-size: var(--text-2xs);
+	color: var(--color-text-muted);
+}
+
+[data-ui='agent-question-text'] {
+	margin: 0;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+[data-ui='agent-question-options'] {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+}
+
+[data-ui='agent-question-form'] {
+	display: flex;
+	gap: var(--space-2);
+}
+
+[data-ui='agent-question-form'] input {
+	flex: 1;
+	min-width: 0;
+	padding: 7px 9px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	font-size: var(--text-xs);
+}
+
+[data-ui='agent-question-form'] input:focus-visible {
+	outline: 2px solid var(--color-accent, var(--color-text));
+	outline-offset: 1px;
+}
