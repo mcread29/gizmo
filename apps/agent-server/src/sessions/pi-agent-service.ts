@@ -42,7 +42,6 @@ import {
 import { extensionResourceRoots } from '../resources/extension-resources';
 import { attachmentPrompt } from '../attachments/attachment-message';
 import { createRunScriptTool } from '../scripts/run-script-tool';
-import { createAskUserTool } from '../tools/ask-user-tool';
 import { ProjectCatalog } from '../projects/project-catalog';
 import { ResourceCatalogService } from '../resources/resource-catalog';
 import {
@@ -975,11 +974,7 @@ const createDefaultPiSession: PiSessionFactory = async (
 	);
 	const runScriptTool = createRunScriptTool({ workspacePath: cwd });
 	// An enabled Gizmo extension always contributes its tools and guidance.
-	const customTools = [
-		...activeDomains.tools,
-		runScriptTool,
-		createAskUserTool(callbacks.extensionUi),
-	];
+	const customTools = [...activeDomains.tools, runScriptTool];
 	const catalog = new ResourceCatalogService();
 	const [
 		skillPaths,
