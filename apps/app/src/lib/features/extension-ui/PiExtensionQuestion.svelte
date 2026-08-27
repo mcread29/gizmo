@@ -45,8 +45,9 @@
 			: [],
 	);
 	let acceptsText = $derived(
-		request.method === 'input' ||
-			request.options.some((option) => customAnswerPattern.test(option)),
+		request.method === 'select'
+			? request.options.some((option) => customAnswerPattern.test(option))
+			: request.method === 'input',
 	);
 
 	$effect(() => {
@@ -70,6 +71,7 @@
 			void respond({ kind: 'value', value: text });
 			return;
 		}
+		if (request.method !== 'select') return;
 		const sentinel = request.options.find((option) =>
 			customAnswerPattern.test(option),
 		);

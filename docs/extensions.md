@@ -52,6 +52,15 @@ Unity's server package exports exactly one object, `gizmoExtension`, from
 `unityWebExtension`, from `@gizmo/unity/web`. Nothing else about Unity's
 internals is part of the public surface.
 
+## First-party Pi extensions
+
+Capabilities that belong to every Gizmo install ship as Pi extensions in
+`pi-extensions/` at the repo root (currently `ask-user.ts`, the multiple-choice
+question tool). The agent server embeds their source, seeds it into the data
+dir at startup, and loads it for every session; a same-named extension in the
+user's agent dir takes precedence. Edit the file in `pi-extensions/` and run
+`pnpm extensions:generate` to refresh the embedded copy.
+
 ## Discovery
 
 ### Server: runtime-loaded, config-driven

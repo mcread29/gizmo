@@ -14,6 +14,7 @@
 		"dev:server:restart": "pnpm dev:server restart",
 		"dev:server:status": "pnpm dev:server status",
 		"pi-web:dev": "cross-env GIZMO_PI_WEB=1 pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
+		"extensions:generate": "tsx scripts/generate-pi-extension-source.ts",
 		"extensions:build": "pnpm --filter @gizmo/app extension:build ../../packages/unity",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
