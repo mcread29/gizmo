@@ -60,14 +60,15 @@
 
 	/**
 	 * Applies one change without touching anything else: the server returns
-	 * the stored config, and only the rows it affects re-render. Swapping in
-	 * fresh catalogs here would flash the whole screen on every toggle.
+	 * the stored config and it is merged in place, so only the rows it affects
+	 * re-render. Replacing catalogs or the setup object here would flash and
+	 * reflow the screen on every toggle.
 	 */
 	async function reapply(work: Promise<ProjectConfig | void>) {
 		error = undefined;
 		try {
 			const config = await work;
-			if (config && setup) setup = { ...setup, config };
+			if (config && setup) setup.config = config;
 		} catch (cause) {
 			error = message(cause);
 		} finally {

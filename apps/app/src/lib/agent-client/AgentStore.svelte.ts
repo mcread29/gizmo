@@ -407,21 +407,22 @@ export class AgentStore {
 
 	/**
 	 * Per-workspace extension overrides; null reverts to the global state.
-	 * The server returns the stored config, which patches the workspace in
-	 * place — a full project reload here would flash the whole shell.
+	 * The server returns the stored config so the caller can update just the
+	 * affected rows. Shared caches (projects, activeDomains) are deliberately
+	 * left alone: the inspector re-keys on activeDomains, so swapping it here
+	 * would remount the whole panel on every toggle, and new sessions resolve
+	 * the effective extensions server-side anyway.
 	 */
 	async setProjectGizmoExtension(
 		projectPath: string,
 		extensionId: string,
 		enabled: boolean | null,
 	): Promise<ProjectConfig> {
-		const config = await this.#client.setProjectGizmoExtension(
+		return this.#client.setProjectGizmoExtension(
 			projectPath,
 			extensionId,
 			enabled,
 		);
-		this.#applyExtensionConfig(projectPath, config);
-		return config;
 	}
 
 	async setProjectPiExtension(
@@ -434,32 +435,6 @@ export class AgentStore {
 			extensionId,
 			enabled,
 		);
-	}
-
-	/**
-	 * Recomputes one workspace's Gizmo extension list from the new overrides
-	 * and the global catalog, without touching any other workspace.
-	 */
-	#applyExtensionConfig(projectPath: string, config: ProjectConfig): void {
-		const overrides = new Map(
-			(config.gizmoExtensions ?? []).map(({ id, enabled }) => [id, enabled]),
-		);
-		const globals = this.resources?.gizmoExtensions;
-		const integrations = globals
-			? globals
-					.filter(
-						(extension) => overrides.get(extension.id) ?? extension.enabled,
-					)
-					.map(({ id }) => ({ id, root: '.' }))
-			: undefined;
-		this.projects = this.projects.map((project) =>
-			project.path === projectPath && integrations
-				? { ...project, integrations }
-				: project,
-		);
-		if (this.selectedProjectPath === projectPath && integrations) {
-			this.activeDomains = integrations.map(({ id }) => id);
-		}
 	}
 
 	/**

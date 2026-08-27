@@ -1076,6 +1076,17 @@ button[data-ui='skill-row-main']:disabled {
 }
 
 /*
+ * Configure-screen rows keep the bleed margin even when unchanged, so
+ * recording or clearing an override never resizes the row — only the
+ * background and the inset marker switch on.
+ */
+[data-ui='integration-list'][data-layout='workspace-setup']
+	[data-ui='integration-row'] {
+	margin-inline: calc(-1 * var(--space-3));
+	padding-inline: var(--space-3);
+}
+
+/*
  * An extension row now ends in a revert menu, so the row itself is the grid and
  * the label only groups the checkbox with its text.
  */
