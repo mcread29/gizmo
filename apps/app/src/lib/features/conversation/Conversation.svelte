@@ -189,7 +189,7 @@
 	{/if}
 
 	{#each extensionUi.questionsFor(store.sessionId) as question (question.uiRequestId)}
-		<PiExtensionQuestion {ui} {question} />
+		<PiExtensionQuestion ui={extensionUi} {question} />
 	{/each}
 
 	<div data-ui="composer-wrap">
