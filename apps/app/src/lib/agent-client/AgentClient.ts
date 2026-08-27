@@ -14,6 +14,7 @@ import type {
 	SkillFile,
 	StoredProject,
 	ProjectDomains,
+	ToolPolicy,
 	WorkspaceIntegration,
 	WorkspaceDirectoryListing,
 	WorkspaceProfiles,
@@ -128,6 +129,12 @@ export interface AgentClient {
 		extensionId: string,
 		enabled: boolean,
 	): Promise<ResourceCatalog>;
+	getToolPolicy(workspacePath?: string): Promise<ToolPolicy>;
+	setGlobalToolPolicy(tools: string[]): Promise<ToolPolicy>;
+	setProjectToolPolicy(
+		workspacePath: string,
+		tools: string[] | null,
+	): Promise<ToolPolicy>;
 	getProjectStatus(projectPath: string): Promise<ProjectStatus>;
 	watchProjectStatus(
 		sessionId: string,

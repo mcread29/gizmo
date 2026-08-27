@@ -1,11 +1,50 @@
 # Work log
 
+## 2026-08-27 — Tool policy moved to Pi's `defaultTools` setting
+
+- Gizmo no longer keeps its own tool allowlist. The hard-coded
+  `tools: ['read', 'edit', 'write', ...customTools, ...piExtensionToolNames]`
+  array in `createDefaultPiSession` is gone; built-in tool availability is
+  Pi's `defaultTools` setting, which the session reads like any other Pi
+  setting. Extension tools, `run_script`, and custom tools were never gated
+  by that array in practice (every discovered Pi extension tool was appended
+  anyway), so behavior is unchanged for the seeded default.
+- New `apps/agent-server/src/settings/tool-policy.ts` owns reading and
+  writing `defaultTools` where Pi reads it: global `settings.json` in the
+  agent dir (Gizmo's data dir in normal mode, `~/.pi/agent` in Pi Web mode)
+  and a per-workspace `.pi/settings.json` override. Writes are atomic
+  (temp file + rename); a project override cleared down to nothing removes
+  the file instead of leaving `{}` behind.
+- Gizmo seeds `read`/`edit`/`write` on first read when the global file has
+  no `defaultTools` key, preserving the historical no-shell default. An
+  explicit Pi default (every built-in) is representable and preserved; only
+  an absent key is seeded.
+- Project overrides follow Pi's project-trust rules: `tools.policy.get`
+  reports `projectApplied` using the same resolution the session factory
+  uses at reload (`hasTrustRequiringProjectResources` → saved
+  `ProjectTrustStore` decision → `defaultProjectTrust`). Normal Gizmo mode
+  keeps Pi's trusted-by-default behavior; Pi Web resolves trust explicitly.
+- UI: Settings → Agent gained a "Built-in tools" card (global, checkbox list
+  of Pi's eight built-ins); the workspace Configure screen gained an
+  inherit/override editor in its "This workspace" zone with an explicit
+  "not trusted, ignored" warning when an override cannot apply. Writes are
+  immediate, matching how skill overrides behave there; changes take effect
+  for new threads or after Reload runtime.
+- Protocol bumped to 23 with `tools.policy.get` / `tools.policy.global.set`
+  / `tools.policy.project.set` and a validated `ToolPolicy` result.
+- This is step one of the UI-extension direction agreed today: Pi owns
+  capabilities (tools included), Gizmo extensions become UI-only. The
+  decisions and migration order are recorded in
+  `docs/pi-extension-ui-bridge-plan.md` under "Decisions";
+  `docs/extensions.md`'s tool-policy section now describes the setting
+  instead of the removed allowlist.
+
 ## 2026-08-21 — Removed recursive search from the workspace picker entirely
 
 - Typing a path like `/home/genge/repos/fo` was still surfacing "fonts"
   folders several directories deep (`ghostling/dev/fonts`,
   `stalberg-grid/build-release/assets/fonts`, ...) — none of them children
-  of `repos`. The earlier fix only stopped recursion for *unscoped* queries;
+  of `repos`. The earlier fix only stopped recursion for _unscoped_ queries;
   once a `root` was given at all (which typing an absolute path always
   produces, same as clicking a pin), the server still walked the whole
   subtree fuzzy-matching every descendant. That distinction was never the
@@ -25,7 +64,7 @@
 - genge called out that the pill-plus-separate-placeholder-field from the
   last pass wasn't actually "one text input" — it was two things dressed up
   to look like one. Rebuilt `CommandPalette.svelte`'s workspace mode as a
-  real address bar instead: a single `location` string *is* the input's
+  real address bar instead: a single `location` string _is_ the input's
   value, full stop. No chip, no separate root state exposed as UI.
 - Typed text is parsed by `splitLocation()`: if it extends the last resolved
   directory, everything after the last separator is a filter on that
@@ -55,7 +94,7 @@
   subfolders — Enter still commits ("Add"), Tab now browses deeper. Needed
   `Command.Root`'s `value` bound so the palette knows which item is
   currently highlighted.
-- The scope chip now shows the highlighted folder's *full* path rather than
+- The scope chip now shows the highlighted folder's _full_ path rather than
   just its last segment, so drilling in visibly confirms where you are —
   which was really the point of the request ("tab should fill with the
   path"). Truncates from the left (`direction: rtl` trick) when too long,
@@ -75,7 +114,7 @@
   `homedir()` and then recursed up to 4-6 levels deep — so typing anything
   before scoping into a pin walked the user's entire home directory,
   surfacing noise from `~/snap/chromium/...` caches and deeply nested Unity
-  asset folders. Pins were supposed to be *how* you opt into that recursive
+  asset folders. Pins were supposed to be _how_ you opt into that recursive
   search; instead it ran unconditionally. Fixed in
   `ProjectCatalog.search()` (`apps/agent-server/src/projects/project-catalog.ts`):
   recursion now only happens when `root` is explicitly passed (i.e. the user
@@ -108,7 +147,7 @@
   in-panel button offers, which is a deliberate tradeoff for a one-shot
   palette command, worth revisiting if it surprises anyone.
 - Left out for now: "Refresh console" / "Clear console" for Unity. Those
-  live on the *activated* per-project `ConsoleExtensionRuntime`
+  live on the _activated_ per-project `ConsoleExtensionRuntime`
   (`console-extension.svelte.ts`), not the static extension definition, and
   `CommandPalette` only reads static `commands()` today — wiring those in
   would mean adding `commands` to `WebExtensionRuntime` too and threading the
@@ -124,7 +163,7 @@
   needed), context is just `{ store, projectPath }`. A contribution is
   `{ id, label, keywords?, icon?, run() }`.
 - `CommandPalette.svelte` aggregates `webExtensions().flatMap(ext =>
-  ext.commands?.(...) ?? [])` into an "Extensions" group in the root command
+ext.commands?.(...) ?? [])` into an "Extensions" group in the root command
   list, same pattern `WorkspaceInspector.svelte` already uses for tabs.
   Commands without an icon fall back to a generic `Puzzle` glyph.
 - Added `commands` to the runtime bundle validator's `keep()` list

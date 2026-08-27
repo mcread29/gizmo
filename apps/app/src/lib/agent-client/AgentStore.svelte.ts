@@ -19,6 +19,7 @@ import {
 	type ResourceCatalog,
 	type StoredProject,
 	type ProjectDomains,
+	type ToolPolicy,
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
 	type WorkspaceProfiles,
@@ -489,6 +490,55 @@ export class AgentStore {
 			);
 		} catch (error) {
 			this.resourceError = errorMessage(error);
+		}
+	}
+
+	/**
+	 * Built-in tool availability. Global state is machine-wide; a workspace
+	 * may override it through its own `.pi/settings.json`.
+	 */
+	toolPolicy = $state<ToolPolicy>();
+	toolPolicyLoading = $state(false);
+	toolPolicyError = $state<string>();
+
+	async refreshToolPolicy(workspacePath?: string): Promise<void> {
+		if (this.connection !== 'connected') return;
+		this.toolPolicyLoading = true;
+		this.toolPolicyError = undefined;
+		try {
+			this.toolPolicy = await this.#client.getToolPolicy(workspacePath);
+		} catch (error) {
+			this.toolPolicyError = errorMessage(error);
+		} finally {
+			this.toolPolicyLoading = false;
+		}
+	}
+
+	async setGlobalToolPolicy(tools: string[]): Promise<boolean> {
+		this.toolPolicyError = undefined;
+		try {
+			this.toolPolicy = await this.#client.setGlobalToolPolicy(tools);
+			return true;
+		} catch (error) {
+			this.toolPolicyError = errorMessage(error);
+			return false;
+		}
+	}
+
+	async setProjectToolPolicy(
+		workspacePath: string,
+		tools: string[] | null,
+	): Promise<boolean> {
+		this.toolPolicyError = undefined;
+		try {
+			this.toolPolicy = await this.#client.setProjectToolPolicy(
+				workspacePath,
+				tools,
+			);
+			return true;
+		} catch (error) {
+			this.toolPolicyError = errorMessage(error);
+			return false;
 		}
 	}
 

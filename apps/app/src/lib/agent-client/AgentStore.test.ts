@@ -1,16 +1,19 @@
-import type {
-	AgentModelCatalog,
-	GitCommitResult,
-	GitStatus,
-	ResourceCatalog,
-	SessionCatalog,
-	SessionOptions,
-	SessionSnapshot,
-	SessionTree,
-	UnityOpenProjectResult,
-	UnityStatus,
-	ProviderStatus,
-	WorkspaceProfiles,
+import {
+	builtInAgentTools,
+	seededToolPolicy,
+	type AgentModelCatalog,
+	type GitCommitResult,
+	type GitStatus,
+	type ResourceCatalog,
+	type SessionCatalog,
+	type SessionOptions,
+	type SessionSnapshot,
+	type SessionTree,
+	type ToolPolicy,
+	type UnityOpenProjectResult,
+	type UnityStatus,
+	type ProviderStatus,
+	type WorkspaceProfiles,
 } from '@gizmo/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentClient, AgentEventListener } from './AgentClient';
@@ -159,6 +162,21 @@ class InvalidEventClient implements AgentClient {
 	}
 	async setGlobalExtension(): Promise<ResourceCatalog> {
 		return emptyCatalog;
+	}
+	async getToolPolicy(): Promise<ToolPolicy> {
+		return {
+			builtIn: [...builtInAgentTools],
+			global: [...seededToolPolicy],
+			project: null,
+			effective: [...seededToolPolicy],
+			projectApplied: false,
+		};
+	}
+	async setGlobalToolPolicy(): Promise<ToolPolicy> {
+		return this.getToolPolicy();
+	}
+	async setProjectToolPolicy(): Promise<ToolPolicy> {
+		return this.getToolPolicy();
 	}
 	async getProjectStatus(): Promise<UnityStatus> {
 		throw new Error('No selected project');

@@ -14,6 +14,35 @@ Remaining phases include extension attribution in Pi, complete theme and synchro
 
 This document is the stable implementation plan for bringing Pi extension UI into Gizmo. It describes the intended product and architecture without prescribing low-level implementation details.
 
+## Decisions
+
+Two direction-setting decisions are made:
+
+1. **Gizmo extensions become UI-only.** Pi extensions own all agent
+   capabilities — tools, commands, hooks, providers, state. A Gizmo extension
+   shrinks to a pure Svelte web bundle paired with a Pi extension by id,
+   contributing presentation: richer renderings of bridge UI requests,
+   inspector tabs, panels, and purpose-built views. The
+   `GizmoServerExtension` capabilities that duplicate Pi (`createTools`,
+   `systemPrompt`, `profile`, server-side `list`/`invoke`) are retired once
+   every backend has migrated; `createProjectService` process management
+   moves inside the owning Pi extension module.
+
+2. **The events protocol is the Gizmo UI contract.** Pi extensions that want
+   rich UI publish versioned declarative views (the `pi-declarative-ui`
+   model already proven in Pi's TUI: view state as widget lines, validated
+   action routing back). The generic `ctx.ui` bridge remains the universal
+   fallback renderer, so an extension without a Gizmo bundle still works
+   (Principle 4). A future `extension.invoke` protocol message may replace
+   the events channel for request/response operations beyond view/action.
+
+Migration order follows the phases below: attribution first, then the events
+contract, then the extensions whose Pi backends already exist (ask-user,
+subagents, workflows), then Git/Activity/Svelte, then Unity last. Built-in
+tool availability is no longer a Gizmo policy: it is Pi's `defaultTools`
+setting, seeded to `read`/`edit`/`write` and editable globally and per
+workspace (see `docs/extensions.md`).
+
 ## Objective
 
 Make existing Pi extensions feel native in Gizmo by implementing Pi's extension UI capabilities as browser interfaces.
@@ -304,6 +333,7 @@ The bridge must preserve the current Gizmo shell rather than introducing a separ
 - Match browser bundles to active Pi extensions using canonical provenance and explicit identity.
 - Activate and dispose custom frontends with the owning Pi session runtime.
 - Ensure extensions continue to work when the browser bundle is absent or fails.
+- Carry the declarative events contract: view state flows extension → browser, validated actions flow browser → extension runtime.
 
 ### Phase 9: Gizmo extension migration
 
@@ -311,8 +341,10 @@ After the generic bridge is established:
 
 - Convert first-party Gizmo backends into normal Pi extensions.
 - Keep their existing frontend panels as optional browser companions.
+- Migrate the UI-first extensions whose Pi backends already exist (ask-user,
+  subagents, workflows) before touching anything with server state.
 - Use Git as the first migration and validation case.
-- Migrate Unity, Svelte, activity, and skill-authoring according to whether each needs a backend or belongs in core UI.
+- Migrate Unity, Svelte, activity, and skill-authoring according to whether each needs a backend or belongs in core UI; Unity's project-service process management moves inside its Pi extension module.
 - Retire duplicate Gizmo server-extension behavior when equivalent Pi-backed paths are complete.
 
 ## Testing strategy

@@ -36,6 +36,8 @@ import {
 	type ProjectDomains,
 	type ResourceCatalog,
 	type SkillFile,
+	parseToolPolicy,
+	type ToolPolicy,
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
 	type WorkspaceProfiles,
@@ -466,6 +468,34 @@ export class WebSocketAgentClient implements AgentClient {
 			enabled,
 		});
 		return parseResourceCatalog(response.result);
+	}
+
+	async getToolPolicy(workspacePath?: string): Promise<ToolPolicy> {
+		const response = await this.#request({
+			type: 'tools.policy.get',
+			...(workspacePath ? { workspacePath } : {}),
+		});
+		return parseToolPolicy(response.result);
+	}
+
+	async setGlobalToolPolicy(tools: string[]): Promise<ToolPolicy> {
+		const response = await this.#request({
+			type: 'tools.policy.global.set',
+			tools,
+		});
+		return parseToolPolicy(response.result);
+	}
+
+	async setProjectToolPolicy(
+		workspacePath: string,
+		tools: string[] | null,
+	): Promise<ToolPolicy> {
+		const response = await this.#request({
+			type: 'tools.policy.project.set',
+			workspacePath,
+			tools,
+		});
+		return parseToolPolicy(response.result);
 	}
 
 	async setProjectSkill(

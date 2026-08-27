@@ -1,6 +1,8 @@
 import {
 	agentToolPolicy,
+	builtInAgentTools,
 	protocolVersion,
+	seededToolPolicy,
 	sessionTitle,
 	type AgentAttachment,
 	type AgentModelCatalog,
@@ -24,6 +26,7 @@ import {
 	type SkillResource,
 	type StoredProject,
 	type ProjectDomains,
+	type ToolPolicy,
 	type WorkspaceIntegration,
 	type WorkspaceDirectoryListing,
 	type WorkspaceProfiles,
@@ -610,6 +613,52 @@ export class FakeAgentClient implements AgentClient {
 	}
 
 	readonly #skillOverrides = new Map<string, Map<string, boolean>>();
+	readonly #projectToolPolicies = new Map<string, string[]>();
+	#globalToolPolicy: string[] = [...seededToolPolicy];
+
+	async getToolPolicy(workspacePath?: string): Promise<ToolPolicy> {
+		this.#assertConnected();
+		return this.#toolPolicy(workspacePath);
+	}
+
+	async setGlobalToolPolicy(tools: string[]): Promise<ToolPolicy> {
+		this.#assertConnected();
+		this.#globalToolPolicy = this.#normalizeTools(tools);
+		return this.#toolPolicy();
+	}
+
+	async setProjectToolPolicy(
+		workspacePath: string,
+		tools: string[] | null,
+	): Promise<ToolPolicy> {
+		this.#assertConnected();
+		this.#assertProject(workspacePath);
+		if (tools === null) this.#projectToolPolicies.delete(workspacePath);
+		else this.#projectToolPolicies.set(workspacePath, tools);
+		return this.#toolPolicy(workspacePath);
+	}
+
+	#toolPolicy(workspacePath?: string): ToolPolicy {
+		const project = workspacePath
+			? (this.#projectToolPolicies.get(workspacePath) ?? null)
+			: null;
+		return {
+			builtIn: [...builtInAgentTools],
+			global: [...this.#globalToolPolicy],
+			project,
+			effective: project ?? this.#globalToolPolicy ?? [...builtInAgentTools],
+			projectApplied: project !== null,
+		};
+	}
+
+	#normalizeTools(tools: string[]): string[] {
+		const known: Set<string> = new Set(builtInAgentTools);
+		const normalized = [...new Set(tools)].filter((tool) => known.has(tool));
+		if (normalized.length !== tools.length) {
+			throw new Error('Tool policy may only name built-in tools');
+		}
+		return normalized;
+	}
 
 	async listProjects(): Promise<StoredProject[]> {
 		this.#assertConnected();
@@ -887,7 +936,11 @@ export class FakeAgentClient implements AgentClient {
 				...session.model,
 				thinkingLevel: session.thinkingLevel,
 			},
-			tools: [...agentToolPolicy.tools],
+			tools: [
+				...this.#toolPolicy(session.summary.workspacePath ?? undefined)
+					.effective,
+				...agentToolPolicy.tools.filter((tool) => tool === 'git_status'),
+			],
 			domains: session.summary.integrations?.map(({ id }) => id) ?? [],
 		});
 		this.#emit({

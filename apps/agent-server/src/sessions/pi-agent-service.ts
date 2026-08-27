@@ -17,12 +17,18 @@ import {
 	type SessionSnapshot,
 	type SessionTree,
 	type ProviderStatus,
+	type ToolPolicy,
 	type WorkspaceProfiles,
 } from '@gizmo/protocol';
 import {
 	PiEventTranslator,
 	type TranslatedPiEvent,
 } from './pi-event-translator';
+import {
+	readToolPolicy,
+	writeGlobalToolPolicy,
+	writeProjectToolPolicy,
+} from '../settings/tool-policy';
 import {
 	PiSessionRepository,
 	defaultDataDir,
@@ -133,6 +139,28 @@ type WithoutEventEnvelope<T> = T extends AgentEvent
 	? Omit<T, 'protocolVersion' | 'eventId' | 'sessionId'>
 	: never;
 type ServiceEvent = WithoutEventEnvelope<AgentEvent>;
+
+/**
+ * Pi applies a workspace's `.pi/settings.json` only when the project is
+ * trusted. Resolution matches the session factory's reload-time behavior:
+ * no trust-requiring resources means trusted, otherwise a saved decision or
+ * the global `defaultProjectTrust` fallback decides.
+ */
+async function projectSettingsTrusted(
+	cwd: string,
+	agentDir: string,
+): Promise<boolean> {
+	const {
+		hasTrustRequiringProjectResources,
+		ProjectTrustStore,
+		SettingsManager,
+	} = await import('@earendil-works/pi-coding-agent');
+	if (!hasTrustRequiringProjectResources(cwd)) return true;
+	const saved = new ProjectTrustStore(agentDir).get(cwd);
+	if (saved !== null) return saved;
+	const settingsManager = SettingsManager.create(cwd, agentDir);
+	return settingsManager.getDefaultProjectTrust() === 'always';
+}
 
 export class PiAgentService {
 	readonly #factory: PiSessionFactory;
@@ -359,6 +387,57 @@ export class PiAgentService {
 	async setGlobalExtension(extensionId: string, enabled: boolean) {
 		await setPiExtensionEnabled(extensionId, enabled);
 		return this.#resources.list();
+	}
+
+	/**
+	 * Built-in tool availability, stored as Pi's `defaultTools` setting so the
+	 * files Gizmo writes are the same ones `pi` itself reads. Resolved for the
+	 * workspace the way a session would resolve it: project overrides apply
+	 * only when Pi's project-trust rules let them.
+	 */
+	async getToolPolicy(workspacePath?: string): Promise<ToolPolicy> {
+		const agentDir = await this.#toolPolicyAgentDir();
+		const cwd = workspacePath ?? process.cwd();
+		return readToolPolicy({
+			cwd,
+			agentDir,
+			...(process.env.GIZMO_PI_WEB === '1'
+				? { projectTrusted: await projectSettingsTrusted(cwd, agentDir) }
+				: {}),
+		});
+	}
+
+	async setGlobalToolPolicy(tools: string[]): Promise<ToolPolicy> {
+		await writeGlobalToolPolicy(await this.#toolPolicyAgentDir(), tools);
+		return this.getToolPolicy();
+	}
+
+	async setProjectToolPolicy(
+		workspacePath: string,
+		tools: string[] | null,
+	): Promise<ToolPolicy> {
+		const agentDir = await this.#toolPolicyAgentDir();
+		await writeProjectToolPolicy(workspacePath, tools);
+		return readToolPolicy({
+			cwd: workspacePath,
+			agentDir,
+			...(process.env.GIZMO_PI_WEB === '1'
+				? {
+						projectTrusted: await projectSettingsTrusted(
+							workspacePath,
+							agentDir,
+						),
+					}
+				: {}),
+		});
+	}
+
+	async #toolPolicyAgentDir(): Promise<string> {
+		if (process.env.GIZMO_PI_WEB === '1') {
+			const { getAgentDir } = await import('@earendil-works/pi-coding-agent');
+			return getAgentDir();
+		}
+		return defaultDataDir();
 	}
 
 	async renameSession(sessionId: string, title: string): Promise<void> {
@@ -923,19 +1002,12 @@ const createDefaultPiSession: PiSessionFactory = async (
 				description: skill.description,
 				source: 'skill',
 			}));
-		const piExtensionToolNames = services.resourceLoader
-			.getExtensions()
-			.extensions.flatMap((extension) => [...extension.tools.keys()]);
+		// Built-in tool availability follows Pi's `defaultTools` setting, which
+		// Gizmo's settings UI writes (see settings/tool-policy.ts). Custom and
+		// extension tools are always enabled.
 		return createAgentSessionFromServices({
 			services,
 			customTools,
-			tools: [
-				'read',
-				'edit',
-				'write',
-				...customTools.map(({ name }) => name),
-				...piExtensionToolNames,
-			],
 			sessionManager,
 		});
 	})();

@@ -434,6 +434,17 @@ async function dispatch(
 					request.enabled,
 				),
 			};
+		case 'tools.policy.get':
+			return { result: await service.getToolPolicy(request.workspacePath) };
+		case 'tools.policy.global.set':
+			return { result: await service.setGlobalToolPolicy(request.tools) };
+		case 'tools.policy.project.set':
+			return {
+				result: await service.setProjectToolPolicy(
+					request.workspacePath,
+					request.tools,
+				),
+			};
 		case 'resources.skill.project':
 			return {
 				result: await service.setProjectSkill(

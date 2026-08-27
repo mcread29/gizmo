@@ -154,43 +154,35 @@ arrives at runtime over `extensions.web`, the same path a third-party
 extension would use. The registry is reactive, so extensions that arrive
 after first render still reach the UI; startup never blocks on them.
 
-## Tool policy: no shell, by design
+## Tool policy: Pi's `defaultTools` setting
 
-Gizmo already deliberately excludes Pi's default `bash` tool. The explicit
-allowlist passed to `createAgentSession` in
-`apps/agent-server/src/sessions/pi-agent-service.ts` is derived from the
-same tool objects that are registered:
+Gizmo keeps no tool policy of its own. Which built-in tools a session starts
+with is Pi's `defaultTools` setting: global state in the agent dir's
+`settings.json`, with an optional per-workspace override in the workspace's
+`.pi/settings.json`, subject to Pi's project-trust rules. Gizmo's settings UI
+edits exactly those files — Settings → Agent for the global policy and the
+workspace Configure screen for the override — through the `tools.policy.*`
+protocol messages backed by
+`apps/agent-server/src/settings/tool-policy.ts`.
 
-```ts
-const customTools = [...activeDomains.tools, ...defaultTools, runScriptTool];
-tools: ['read', 'edit', 'write', ...customTools.map(({ name }) => name)],
-```
+On first read Gizmo seeds the global setting to `read`, `edit`, `write`, so a
+fresh install keeps the historical no-shell default instead of Pi's
+every-built-in default. Enabling every built-in in the UI reproduces Pi's
+default, so the seed removes nothing. Extension tools, `run_script`, and any
+other custom tools are always enabled and are not part of this policy: Pi's
+`defaultTools` selects built-ins only. Policy changes apply to new threads and
+to existing ones after Reload runtime.
 
-Pi's default four tools are `read`, `write`, `edit`, `bash`. Gizmo keeps the
-first three, adds `run_script` and whatever `defaultTools` extensions
-contribute (e.g. `git_status`), plus whatever narrow, purpose-built tools each
-active extension contributes (Unity's `unity_*` tools, which wrap its own RPC
-bridge — never raw shell). There is no general-purpose _shell_, and that is
-intentional: it bounds what the model can do to file edits, plus running one
-named script file, plus whatever an extension explicitly and narrowly exposed.
-`defaultTools` and active-extension tools flow through the same derivation, so
-a second extension adding a `defaultTools`-contributed tool is reachable
-without hand-editing the allowlist.
+Pi Web mode needs no special casing: it never passed a tool allowlist and
+already followed this setting.
 
-This remains the normal Gizmo policy. Pi Web mode is the explicit exception:
-it omits the allowlist and therefore follows Pi's `defaultTools` setting (or
-Pi's standard `read`, `bash`, `edit`, and `write` defaults). Pi-discovered
-extension tools are additive there, as are Gizmo extension tools for the active
-workspace. The mode is intended for users who deliberately want the same broad
-local capabilities as Pi rather than the bounded desktop harness policy.
-
-Pi Web binds Pi extensions in headless (`json`) mode. Tools, commands, provider
-registration, lifecycle hooks, resource discovery, and prompt/context hooks run.
+Pi extensions run headless (`json` mode) with Gizmo's browser-backed UI
+context supplying `ctx.hasUI`. Tools, commands, provider registration,
+lifecycle hooks, resource discovery, and prompt/context hooks run.
 Terminal-specific UI contributions—custom TUI components, headers, footers,
 editors, themes, and keybindings—have no web renderer and therefore degrade to
-Pi's non-interactive behavior. A future generic web UI bridge can add select,
-confirm, input, notification, and status primitives without replacing Gizmo's
-shell.
+Pi's non-interactive behavior. The generic bridge adds select, confirm, input,
+notification, and status primitives in Gizmo's native UI.
 
 ### `run_script`: the one execution primitive
 
@@ -286,7 +278,8 @@ decision made yet.
   domain/extension split.
 - Server-side runtime discovery via `gizmo.extensions.json` + dynamic
   `import()`, with graceful fallback.
-- `bash` excluded from the default tool allowlist.
+- Built-in tool availability is Pi's `defaultTools` setting, seeded to
+  `read`, `edit`, `write`, editable globally and per workspace.
 - `run_script` (Bun, `.ts`/`.js` only, no shell) as the sole additional
   execution primitive.
 - Extension-shipped skills and prompts via `packageRoot` + Pi's package
