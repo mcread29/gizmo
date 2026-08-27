@@ -29,7 +29,8 @@
 		"marked": "^18.0.9",
 		"svelte": "latest",
 		"@gizmo/git": "workspace:*",
-		"@gizmo/activity": "workspace:*"
+		"@gizmo/activity": "workspace:*",
+		"@gizmo/ask-user": "workspace:*"
 	},
 	"devDependencies": {
 		"@gizmo/unity": "workspace:*",

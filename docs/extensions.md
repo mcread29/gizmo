@@ -54,12 +54,14 @@ internals is part of the public surface.
 
 ## First-party Pi extensions
 
-Capabilities that belong to every Gizmo install ship as Pi extensions in
-`pi-extensions/` at the repo root (currently `ask-user.ts`, the multiple-choice
-question tool). The agent server embeds their source, seeds it into the data
-dir at startup, and loads it for every session; a same-named extension in the
-user's agent dir takes precedence. Edit the file in `pi-extensions/` and run
-`pnpm extensions:generate` to refresh the embedded copy.
+Capabilities that belong to every Gizmo install ship as paired packages in
+`packages/` — currently `@gizmo/ask-user`, the multiple-choice question tool.
+A paired package contains the Pi extension (`pi-extension.ts`, which the agent
+server embeds, seeds into the data dir at startup, and loads for every
+session) and, when the tool has its own presentation, a web extension
+(`src/web/`) that the app bundles statically. A same-named extension in the
+user's agent dir takes precedence over the shipped one. Edit the Pi extension
+and run `pnpm extensions:generate` to refresh the embedded copy.
 
 ## Discovery
 
