@@ -1087,6 +1087,15 @@ button[data-ui='skill-row-main']:disabled {
 }
 
 /*
+ * Row actions that only apply to overridden rows stay in the layout but
+ * invisible, so the row's height does not change when they appear.
+ */
+[data-ui='button'][data-hidden] {
+	visibility: hidden;
+	pointer-events: none;
+}
+
+/*
  * An extension row now ends in a revert menu, so the row itself is the grid and
  * the label only groups the checkbox with its text.
  */

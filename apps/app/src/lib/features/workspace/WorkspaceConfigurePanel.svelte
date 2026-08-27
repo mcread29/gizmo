@@ -256,15 +256,17 @@
 									</small>
 								</span>
 							</label>
-							{#if override !== undefined}
-								<Button
-									size="sm"
-									variant="ghost"
-									disabled={busyExtension === extension.id}
-									onclick={() => resetGizmoExtension(extension.id)}
-									>Use global</Button
-								>
-							{/if}
+							<!-- Always rendered so the row's height stays constant; hidden
+								when the row has no override to clear. -->
+							<Button
+								size="sm"
+								variant="ghost"
+								disabled={override === undefined ||
+									busyExtension === extension.id}
+								data-hidden={override === undefined || undefined}
+								onclick={() => resetGizmoExtension(extension.id)}
+								>Use global</Button
+							>
 						</div>
 					{/each}
 				</div>
@@ -313,15 +315,17 @@
 									>
 								</span>
 							</label>
-							{#if override !== undefined}
-								<Button
-									size="sm"
-									variant="ghost"
-									disabled={busyExtension === extension.id}
-									onclick={() => resetPiExtension(extension.id)}
-									>Use global</Button
-								>
-							{/if}
+							<!-- Always rendered so the row's height stays constant; hidden
+								when the row has no override to clear. -->
+							<Button
+								size="sm"
+								variant="ghost"
+								disabled={override === undefined ||
+									busyExtension === extension.id}
+								data-hidden={override === undefined || undefined}
+								onclick={() => resetPiExtension(extension.id)}
+								>Use global</Button
+							>
 						</div>
 					{/each}
 				</div>

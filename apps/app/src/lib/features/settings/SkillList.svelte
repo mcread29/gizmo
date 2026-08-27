@@ -138,19 +138,21 @@
 					>
 						<Switch.Thumb data-ui="switch-thumb" />
 					</Switch.Root>
-					{#if items.length}
-						<Menu {items}>
-							{#snippet trigger(props)}
-								<Button
-									{...props}
-									variant="ghost"
-									size="icon"
-									aria-label={`${skill.name} options`}
-									><MoreHorizontal size={16} /></Button
-								>
-							{/snippet}
-						</Menu>
-					{/if}
+					<!-- Always rendered so recording or clearing an override never
+						changes the row's height; hidden when there is nothing to do. -->
+					<Menu {items}>
+						{#snippet trigger(props)}
+							<Button
+								{...props}
+								variant="ghost"
+								size="icon"
+								disabled={!items.length}
+								data-hidden={!items.length || undefined}
+								aria-label={`${skill.name} options`}
+								><MoreHorizontal size={16} /></Button
+							>
+						{/snippet}
+					</Menu>
 				</div>
 			</div>
 		{/each}
