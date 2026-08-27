@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { Trash2 } from '@lucide/svelte';
 	import { Switch } from 'bits-ui';
 	import type { ProjectConfig, ProjectDomains } from '@gizmo/protocol';
@@ -31,21 +30,23 @@
 	let busyExtension = $state<string>();
 	let removeOpen = $state(false);
 
-	// Keyed on the workspace alone: each change re-detects to pick up the
-	// stored config, so the editor always mirrors what is on disk.
+	// Re-runs when the workspace appears or disappears from the catalog (and
+	// when its path prop changes), then loads its configuration once per
+	// registration. The project lookup must stay tracked: an untracked read
+	// with an early return left the screen permanently blank whenever this ran
+	// before the catalog loaded, because the effect never re-fired.
 	$effect(() => {
-		const path = workspacePath;
-		const selected = untrack(() =>
-			store.projects.find((candidate) => candidate.path === path),
+		const registered = store.projects.some(
+			({ path }) => path === workspacePath,
 		);
-		if (!selected) return;
+		if (!registered) return;
 		let current = true;
 		setup = undefined;
 		error = undefined;
-		void store.refreshResources(path);
-		void store.refreshToolPolicy(path);
+		void store.refreshResources(workspacePath);
+		void store.refreshToolPolicy(workspacePath);
 		void store
-			.detectProject(path)
+			.detectProject(workspacePath)
 			.then(({ domains, config }) => {
 				if (current)
 					setup = { available: domains, config: config ?? { version: 1 } };
