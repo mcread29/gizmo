@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
+import { basename } from 'node:path';
 import { join } from 'node:path';
 import type { WebExtensionBundles } from '@gizmo/protocol';
 import type { GizmoServerExtension } from '@gizmo/extensions';
@@ -19,8 +20,55 @@ const maxBundleBytes = 8 * 1024 * 1024;
  * nothing — a first-party extension the app already bundles statically is the
  * normal case for that.
  */
+/**
+ * Web bundles sitting next to Pi extensions: for every `<stem>.ts` (or
+ * `<stem>/`) extension in `dirs`, a sibling `<stem>.web.js` is its paired UI,
+ * built by the extension author and served paired by stem. Extensions whose
+ * UI never shipped contribute nothing.
+ */
+export async function piExtensionWebBundles(
+	dirs: readonly string[],
+): Promise<WebExtensionBundles> {
+	const bundles: WebExtensionBundles['bundles'] = [];
+	const diagnostics: string[] = [];
+	const seen = new Set<string>();
+	for (const dir of dirs) {
+		let entries;
+		try {
+			entries = await readdir(dir, { withFileTypes: true });
+		} catch {
+			continue;
+		}
+		for (const entry of entries) {
+			if (entry.name.startsWith('.')) continue;
+			const stem = entry.isDirectory()
+				? entry.name
+				: basename(entry.name, '.ts');
+			const id = stem.replace(/\.ts$/, '');
+			if (seen.has(id)) continue;
+			const path = join(dir, `${stem}.web.js`);
+			let code: string;
+			try {
+				code = await readFile(path, 'utf8');
+			} catch {
+				continue;
+			}
+			if (code.length > maxBundleBytes) {
+				diagnostics.push(
+					`Pi extension "${id}" web bundle is too large (${code.length} bytes)`,
+				);
+				continue;
+			}
+			seen.add(id);
+			bundles.push({ id, code });
+		}
+	}
+	return { bundles, diagnostics };
+}
+
 export async function webExtensionBundles(
 	extensions: readonly GizmoServerExtension[],
+	piExtensionDirs: readonly string[] = [],
 ): Promise<WebExtensionBundles> {
 	const bundles: WebExtensionBundles['bundles'] = [];
 	const diagnostics: string[] = [];

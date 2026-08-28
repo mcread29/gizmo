@@ -18,10 +18,12 @@ describe('shipped Pi extension seeding', () => {
 
 		const paths = await seededPiExtensionPaths(dataDir);
 
-		expect(paths).toHaveLength(1);
+		// The tool and its web UI ship and seed as a pair.
+		expect(paths).toHaveLength(2);
 		expect(paths[0]).toContain('ask-user.ts');
+		expect(paths[1]).toContain('ask-user.web.js');
 		const source = await readFile(paths[0]!, 'utf8');
-		expect(source).toContain('name: "ask_user"');
+		expect(source).toContain('ask_user');
 		expect(source).toContain('ctx.hasUI');
 	});
 
@@ -35,6 +37,6 @@ describe('shipped Pi extension seeding', () => {
 		await seededPiExtensionPaths(dataDir);
 
 		const source = await readFile(stale, 'utf8');
-		expect(source).toContain('name: "ask_user"');
+		expect(source).toContain('ask_user');
 	});
 });

@@ -7,8 +7,15 @@ import {
 } from '@gizmo/protocol';
 import type { ProjectService, ProjectStatus } from '@gizmo/extensions';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
+import { join } from 'node:path';
 import { registeredExtensions } from '../extensions/registry';
-import { webExtensionBundles } from '../extensions/web-bundles';
+import {
+	piExtensionWebBundles,
+	webExtensionBundles,
+} from '../extensions/web-bundles';
+import { piAgentDir } from '../resources/pi-global-resources';
+import { defaultDataDir } from '../sessions/session-repository';
+import { seededPiExtensionPaths } from '../pi-extensions/seed';
 import { PiAgentService } from '../sessions/pi-agent-service';
 import { GitService } from '@gizmo/git/server';
 import { ExtensionHostService } from '../extensions/extension-host-service';
@@ -481,8 +488,28 @@ async function dispatch(
 					extensions: await extensionHost.list(request.projectPath),
 				},
 			};
-		case 'extensions.web':
-			return { result: await webExtensionBundles(registeredExtensions()) };
+		case 'extensions.web': {
+			// Pi extensions ship their UI as a sibling <stem>.web.js; served
+			// paired by stem alongside the Gizmo extension bundles.
+			const piWebMode = process.env.GIZMO_PI_WEB === '1';
+			const dataDir = piWebMode ? piAgentDir() : defaultDataDir();
+			// Seed before listing so a fresh install serves its UI bundles
+			// from the first startup, before any session exists.
+			await seededPiExtensionPaths(dataDir);
+			const [gizmo, pi] = await Promise.all([
+				webExtensionBundles(registeredExtensions()),
+				piExtensionWebBundles([
+					join(piAgentDir(), 'extensions'),
+					join(dataDir, 'pi-extensions'),
+				]),
+			]);
+			return {
+				result: {
+					bundles: [...gizmo.bundles, ...pi.bundles],
+					diagnostics: [...gizmo.diagnostics, ...pi.diagnostics],
+				},
+			};
+		}
 		case 'project.extension.invoke':
 			return {
 				result: await extensionHost.invoke(

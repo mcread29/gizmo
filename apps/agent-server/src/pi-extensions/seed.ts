@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { AskUserSource } from './ask-user-source';
+import { AskUserWebSource } from './ask-user-web-source';
 
 /**
  * First-party Pi extensions. These ship with Gizmo — the source is embedded
@@ -17,6 +18,7 @@ interface ShippedExtension {
 
 const shipped: ShippedExtension[] = [
 	{ file: 'ask-user.ts', source: AskUserSource },
+	{ file: 'ask-user.web.js', source: AskUserWebSource },
 ];
 
 /**

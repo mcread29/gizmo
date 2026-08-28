@@ -16,6 +16,11 @@ const home = homedir();
 const agentDir = process.env.PI_CODING_AGENT_DIR
 	? process.env.PI_CODING_AGENT_DIR.replace(/^~(?=$|[\\/])/, home)
 	: join(home, '.pi', 'agent');
+/** The Pi agent directory extensions and UI bundles are discovered from. */
+export function piAgentDir(): string {
+	return agentDir;
+}
+
 const enabledRoot = join(agentDir, 'extensions');
 const disabledRoot = join(agentDir, 'extensions-disabled');
 
