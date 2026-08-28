@@ -37,7 +37,7 @@ describe('streamingActivity', () => {
 
 		expect(activity).toMatchObject({
 			streaming: true,
-			label: 'Unity tests',
+			label: 'unity_test',
 			startedAt: 1_000,
 		});
 	});

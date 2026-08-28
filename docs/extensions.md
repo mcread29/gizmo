@@ -236,39 +236,18 @@ stays disabled until enabled through the normal resource catalog, exactly
 like a skill found on disk. It never starts influencing sessions on its
 own.
 
-Pi's own "Extensions" concept (a TypeScript module with a
-`(pi: ExtensionAPI) => ...` default export, registering providers, commands,
-or TUI customization) is a different, adjacent thing from a
-`GizmoServerExtension` — it extends Pi's own agent runtime, not Gizmo's
-workspace/UI layer. Gizmo disables ambient Pi extensions
-(`noExtensions: true`) and does not currently expose this to Gizmo
-extensions. Whether/how to bridge the two is an open question, not a
-decision made yet.
+Pi extensions are the unit of installation. A registry entry always supplies
+a normal `(pi: ExtensionAPI) => ...` extension and may additionally expose
+Gizmo host capabilities and a browser bundle. Gizmo does not maintain a
+separate built-in extension catalog.
 
-## Summary: what's implemented
+## Summary
 
-**Implemented:**
-
-- Unified `GizmoServerExtension` / `GizmoWebExtension` contracts, no
-  domain/extension split.
-- Server-side runtime discovery via `gizmo.extensions.json` + dynamic
-  `import()`, with graceful fallback.
-- Built-in tool availability is Pi's `defaultTools` setting, seeded to
-  `read`, `edit`, `write`, editable globally and per workspace.
-- `run_script` (Bun, `.ts`/`.js` only, no shell) as the sole additional
-  execution primitive.
-- Extension-shipped skills and prompts via `packageRoot` + Pi's package
-  convention, feeding `additionalSkillPaths`.
-- Client-side runtime loading: standalone plugin builds sharing the host's
-  Svelte runtime, delivered over the agent connection, imported from a blob
-  URL.
-
-**Open:**
-
-- Whether a Gizmo-specific manifest (declaring an extension's capabilities
-  before its code is executed, mirroring Pi's `pi` package.json key) is worth
-  adding once there's a real third-party ecosystem to protect against.
-- Whether/how Pi's own "Extensions" concept composes with
-  `GizmoServerExtension`.
-- Whether blob-URL module imports behave the same under WebKitGTK, which
-  Tauri uses on Linux. Verified under Chromium only.
+- User-curated Git registries are cloned and built locally.
+- Selected extension directories are linked into Pi's extension directory.
+- Browser bundles are linked separately so Pi never executes browser imports.
+- Optional named `gizmoExtension` exports provide generic server capabilities.
+- Optional `gizmoWebExtension` bundles are loaded over the agent connection.
+- Built-in tool availability remains Pi's `defaultTools` setting.
+- Extension-specific prompts, tools, skills, services, tests, and UI live with
+  their registry artifacts.

@@ -44,9 +44,10 @@ over, and the old file is removed.
 
 ## Extension activation
 
-- Gizmo extensions are installed globally through `gizmo.extensions.json`.
-  Installed means on globally; the toggle lives in Settings → Agent, and a
-  workspace may turn an extension on or off independently.
+- Gizmo integrations come from Pi extensions linked from user-configured Git
+  registries. Linking installs the Pi extension and its optional Gizmo browser
+  companion as one unit; a workspace may turn an extension on or off
+  independently.
 - An enabled Gizmo extension always contributes its tools and system-prompt
   guidance for sessions in workspaces where it is active. There are no
   separate tool/prompt modes.
@@ -75,9 +76,9 @@ Every change applies immediately — there is no separate Save step.
 
 ## Adding an extension
 
-1. Export one `GizmoServerExtension` from the package's `/server` entry.
-2. Optionally provide prompt guidance, tools, live operations, a project
-   service, and a browser bundle.
-3. Add the package specifier to `gizmo.extensions.json`.
-4. Do not add workspace detection. Activation is a user decision.
-5. Add focused tests for activation and every contributed capability.
+1. Implement a normal Pi extension in a registry catalog entry.
+2. Optionally export a named `gizmoExtension` for generic host capabilities and
+   a `gizmoWebExtension` browser entry.
+3. Add the extension to the registry's `gizmo.registry.json` catalog and build.
+4. Do not add workspace detection to Gizmo. Activation is a user decision.
+5. Keep extension-specific tests with the registry artifact.

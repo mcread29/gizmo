@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { AgentStore } from '../agent-client';
 import TestExtensionPanel from './TestExtensionPanel.svelte';
 import WorkspaceInspector from './WorkspaceInspector.svelte';
+import { registerWebExtensions } from './registry.svelte';
 import type { WorkspaceView } from './types';
 
 const view: WorkspaceView = {
@@ -27,6 +28,7 @@ function store(projectExtensions: ExtensionDescriptor[]): AgentStore {
 	return {
 		messages: [],
 		projectExtensions,
+		activeDomains: projectExtensions.map(({ id }) => id),
 		projectOpening: false,
 		invokeProjectExtension: async () => ({
 			state: 'ready',
@@ -48,6 +50,23 @@ describe('WorkspaceInspector', () => {
 			fallback.container.querySelector('[data-ui="test-domain-panel-tab"]'),
 		).toBeNull();
 
+		registerWebExtensions([
+			{
+				id: 'unity',
+				apiVersion: 1,
+				activate: () => ({
+					inspectorTabs: [
+						{
+							id: 'console',
+							label: 'Console',
+							component: TestExtensionPanel,
+							props: { extensionTabs: [] },
+						},
+					],
+					dispose: () => {},
+				}),
+			},
+		]);
 		const extras = render(WorkspaceInspector, {
 			store: store([
 				{

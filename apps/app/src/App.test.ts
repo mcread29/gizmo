@@ -256,21 +256,6 @@ describe('application shell', () => {
 		expect(getByText('Feedback')).toBeInTheDocument();
 	});
 
-	it('opens the selected project Editor from a disconnected state', async () => {
-		const { findByRole, queryByRole } = render(App, {
-			client: new FakeAgentClient({ latencyMs: 0, editorOpen: false }),
-		});
-		const openEditor = await findByRole('button', { name: 'Open Editor' });
-
-		await fireEvent.click(openEditor);
-
-		await waitFor(() =>
-			expect(
-				queryByRole('button', { name: 'Open Editor' }),
-			).not.toBeInTheDocument(),
-		);
-	});
-
 	it('strips the title bar to what still works while a screen is up', async () => {
 		const { container, findByRole, getByRole } = renderApp();
 		await findByRole('button', { name: 'Model' });
@@ -725,35 +710,6 @@ describe('application shell', () => {
 		);
 	});
 
-	it('streams a fake agent response through the production UI state', async () => {
-		const { findAllByText, findByText, getByRole, queryByRole } = renderApp();
-		const composer = getByRole('textbox', { name: 'Message Gizmo' });
-		const send = getByRole('button', { name: 'Send message' });
-		await fireEvent.input(composer, {
-			target: { value: 'Inspect the Editor' },
-		});
-		await waitFor(() => expect(send).toBeEnabled());
-		await fireEvent.click(send);
-
-		expect((await findAllByText('Inspect the Editor')).length).toBeGreaterThan(
-			0,
-		);
-		expect((await findAllByText('Unity Editor status')).length).toBeGreaterThan(
-			0,
-		);
-		expect(
-			await findByText(/connected and ready for commands/),
-		).toBeInTheDocument();
-		expect(
-			(await findAllByText('/projects/ThirdPersonSandbox')).length,
-		).toBeGreaterThan(0);
-		await waitFor(() =>
-			expect(
-				queryByRole('button', { name: 'Stop response' }),
-			).not.toBeInTheDocument(),
-		);
-	});
-
 	it('filters threads by title from the sidebar search', async () => {
 		const { container, findByRole, getByRole } = renderApp();
 		await findByRole('button', {
@@ -917,31 +873,6 @@ describe('application shell', () => {
 				],
 			),
 		);
-	});
-
-	it('shows the complete repository status in the Git tab', async () => {
-		const { container, findByRole, getByRole } = renderApp();
-		const composer = getByRole('textbox', { name: 'Message Gizmo' });
-		await fireEvent.input(composer, {
-			target: { value: 'Speed the player up' },
-		});
-		await waitFor(() =>
-			expect(getByRole('button', { name: 'Send message' })).toBeEnabled(),
-		);
-		await fireEvent.click(getByRole('button', { name: 'Send message' }));
-
-		const changesTab = await findByRole('tab', { name: /Git/ });
-		await waitFor(() =>
-			expect(
-				changesTab.querySelector('[data-ui="tabs-badge"]'),
-			).toHaveTextContent('1'),
-		);
-		expect(container.querySelector('[data-ui="change-list"]')).toBeNull();
-		await fireEvent.click(changesTab);
-
-		expect(
-			await findByRole('button', { name: /Player\.cs/ }),
-		).toBeInTheDocument();
 	});
 
 	it('keeps a separate composer draft for each thread', async () => {

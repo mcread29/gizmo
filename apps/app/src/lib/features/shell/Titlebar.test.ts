@@ -32,6 +32,7 @@ function store(): AgentStore {
 		messages: [],
 		sessionState: 'idle',
 		selectedProjectPath: '/projects/game',
+		activeDomains: ['fake'],
 	} as unknown as AgentStore;
 }
 
