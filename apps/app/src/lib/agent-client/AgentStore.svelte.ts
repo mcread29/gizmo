@@ -187,6 +187,8 @@ export class AgentStore {
 			await this.#client.connect();
 			this.connection = 'connected';
 			this.reconnectAttempt = 0;
+			const extensionDiagnostics = await installWebExtensions(this.#client);
+			for (const diagnostic of extensionDiagnostics) console.warn(diagnostic);
 			this.sessionId = undefined;
 			this.messages = [];
 			await this.refreshProjects();

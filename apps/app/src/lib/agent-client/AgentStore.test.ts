@@ -215,6 +215,19 @@ class InvalidEventClient implements AgentClient {
 }
 
 describe('AgentStore', () => {
+	it('loads runtime web extensions after connecting', async () => {
+		const client = new FakeAgentClient({
+			latencyMs: 0,
+			webExtensionBundles: { bundles: [], diagnostics: [] },
+		});
+		const listBundles = vi.spyOn(client, 'listWebExtensionBundles');
+		const store = new AgentStore(client);
+
+		await store.connect();
+
+		expect(listBundles).toHaveBeenCalledOnce();
+	});
+
 	it('reloads extension activation without replacing the running session', async () => {
 		const client = new FakeAgentClient({ latencyMs: 0 });
 		const store = new AgentStore(client);

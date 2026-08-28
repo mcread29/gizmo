@@ -30,6 +30,7 @@ import {
 	type RegistryStatus,
 	type ToolPolicy,
 	type WorkspaceDirectoryListing,
+	type WebExtensionBundles,
 	type UnityStatus,
 	type ProjectStatus,
 	type ProviderStatus,
@@ -59,6 +60,7 @@ export interface FakeAgentClientOptions {
 	latencyMs?: number;
 	editorOpen?: boolean;
 	commands?: ComposerCommand[];
+	webExtensionBundles?: WebExtensionBundles;
 }
 
 export class FakeAgentClient implements AgentClient {
@@ -93,6 +95,9 @@ export class FakeAgentClient implements AgentClient {
 		this.#latencyMs = options.latencyMs ?? 90;
 		this.#editorOpen = options.editorOpen ?? true;
 		this.#commands = options.commands ?? [];
+		if (options.webExtensionBundles) {
+			this.listWebExtensionBundles = async () => options.webExtensionBundles!;
+		}
 	}
 
 	async connect(): Promise<void> {
@@ -621,6 +626,7 @@ export class FakeAgentClient implements AgentClient {
 	readonly #disabledGizmoGlobally = new Set<string>();
 	readonly #projectToolPolicies = new Map<string, string[]>();
 	#globalToolPolicy: string[] = [...seededToolPolicy];
+	listWebExtensionBundles?: () => Promise<WebExtensionBundles>;
 
 	async getToolPolicy(workspacePath?: string): Promise<ToolPolicy> {
 		this.#assertConnected();

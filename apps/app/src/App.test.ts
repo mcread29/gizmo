@@ -686,18 +686,21 @@ describe('application shell', () => {
 		await fireEvent.click(
 			await findByRole('switch', { name: 'Unity enabled here' }),
 		);
-		const unity = await findByRole('switch', { name: 'Unity enabled here' });
+		await findByRole('switch', { name: 'Unity enabled here' });
 		await waitFor(() =>
-			expect(unity.closest('[data-ui="integration-row"]')).toHaveAttribute(
-				'data-changed',
-				'true',
-			),
+			expect(
+				getByRole('switch', { name: 'Unity enabled here' }).closest(
+					'[data-ui="integration-row"]',
+				),
+			).toHaveAttribute('data-changed', 'true'),
 		);
 
 		// Clearing the override inherits the global state again. The row's
 		// reset button is targeted directly: every row renders one, hidden
 		// until it has an override to clear.
-		const row = unity.closest('[data-ui="integration-row"]')!;
+		const row = getByRole('switch', {
+			name: 'Unity enabled here',
+		}).closest('[data-ui="integration-row"]')!;
 		await fireEvent.click(
 			within(row as HTMLElement).getByRole('button', { name: 'Use global' }),
 		);
