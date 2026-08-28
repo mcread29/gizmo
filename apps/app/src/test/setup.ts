@@ -1,7 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/svelte';
-import { afterEach, beforeEach } from 'vitest';
-import { unityWebExtension } from '@gizmo/unity/web';
+import { afterEach } from 'vitest';
 import { registerWebExtensions } from '../lib/extensions/registry.svelte';
 
 class ResizeObserverMock implements ResizeObserver {
@@ -96,19 +95,9 @@ if (!globalThis.localStorage) {
  * Waiting out the timer only when a lock is actually outstanding keeps that
  * cost off the tests that never opened a dialog.
  */
-beforeEach(() => {
-	// Unity now ships as a runtime extension, not a builtin. Seed it here so
-	// the existing suite (written when Unity was bundled) still exercises the
-	// Unity presentation/inspector paths — real app arrival happens over
-	// `extensions.web` and `registerWebExtensions` there.
-	registerWebExtensions([unityWebExtension]);
-});
-
 afterEach(async () => {
 	cleanup();
-	// Restore the pre-test extension set so one test's extra registrations
-	// do not leak into the next; the next beforeEach re-seeds Unity.
-	registerWebExtensions([unityWebExtension]);
+	registerWebExtensions([]);
 	if (!document.body.getAttribute('style')?.includes('overflow')) return;
 	await new Promise((resolve) => setTimeout(resolve, 30));
 });

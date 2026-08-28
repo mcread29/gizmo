@@ -1,30 +1,14 @@
 # Extensions
 
-> **Planned direction:** The current contract documented below will eventually
-> be rebuilt on Pi extensions, beginning with the generic browser UI bridge in
-> [Pi Extension UI Bridge Plan](pi-extension-ui-bridge-plan.md). Until that
-> migration is complete, this document describes the active implementation.
-> The first bridge milestone is now active: standard Pi extension dialogs,
-> notifications, statuses, text widgets, working-state overrides, titles, and
-> composer text operations use native Gizmo UI.
+Gizmo ships no extensions. Every extension is installed from a user-selected
+Git registry as a normal Pi extension. An extension may also export optional,
+generic Gizmo integration capabilities and a paired browser bundle for panels,
+project services, commands, status, and tool-result presentation.
 
-Gizmo owns exactly one integration contract: the extension. There is no
-separate "domain" concept — tools, system prompt guidance, a live project
-process, and UI (dialogs, panels, tool-result rendering) are optional
-capabilities an extension may contribute. Extensions are installed globally
-and enabled by default; workspaces may override them, and Gizmo does not
-detect workspace types. Core knows no runtime-specific extension types.
-
-Unity is the largest extension today. Git, Svelte, and Activity are
-extracted the same way: standalone first-party packages (`@gizmo/unity`,
-`@gizmo/git`, `@gizmo/svelte`, `@gizmo/activity`) listed in
-`gizmo.extensions.json` like any third-party one. On the server, none of
-them is special-cased — each is loaded, registered, and dispatched through the
-exact same mechanism a third-party extension would use. On the client,
-Svelte/Git/Activity are statically bundled as builtins (the app bundles them
-anyway); Unity is the first extension that ships only as a runtime web bundle
-and arrives over `extensions.web`, exercising the same path any third-party
-web extension would.
+Unity, Git, Svelte, Activity, Ask User, and Skill Authoring live in the
+standalone `gizmo-registry` repository. Linking one catalog entry installs the
+Pi backend and its Gizmo browser integration together; Gizmo contains no
+static extension registry or first-party extension source.
 
 ## Contracts
 
@@ -47,10 +31,9 @@ Two small interfaces, one per side, mirror each other:
 Every field is optional. An extension contributes whatever it actually has;
 it never has to implement capabilities it doesn't need.
 
-Unity's server package exports exactly one object, `gizmoExtension`, from
-`@gizmo/unity/server`. Its web package exports exactly one object,
-`unityWebExtension`, from `@gizmo/unity/web`. Nothing else about Unity's
-internals is part of the public surface.
+A registry extension always default-exports its Pi factory from
+`pi-extension.ts`. It may additionally export a named `gizmoExtension` object
+for generic host capabilities. Its browser entry exports `gizmoWebExtension`.
 
 ## Git extension registries
 
@@ -68,33 +51,13 @@ repository, so users download only extension source and its build tooling.
 
 ## Discovery
 
-### Server: runtime-loaded, config-driven
+### Server: linked Pi extensions
 
-`gizmo.extensions.json` at the repo root (overridable via
-`GIZMO_EXTENSIONS_CONFIG`) lists extension specifiers:
-
-```json
-{ "extensions": ["@gizmo/unity"] }
-```
-
-At startup, `apps/agent-server/src/extensions/load-extensions.ts` reads this
-file and dynamically `import()`s each entry's `<specifier>/server` subpath,
-expecting a `gizmoExtension` export. A specifier can be a bare package name
-(npm-resolved) or a filesystem path — both work with Node's `import()` with
-no bundler involved. A missing config file or a failed load is skipped with a
-warning rather than crashing startup — this is already the graceful-fallback
-behavior, verified by running the server with no config present.
-
-`server.ts` never names an extension. It calls `loadServerExtensions()`,
-registers the result into
-`apps/agent-server/src/extensions/registry.ts`, and wires
-`ExtensionHostService` and the project-service factory generically from
-whatever was loaded.
-
-This already supports the "someone else installs an npm package and lists it
-in settings" case with no further work: `npm install` (or a git checkout) any
-package exporting `gizmoExtension` from a `/server` subpath, add its
-specifier to `gizmo.extensions.json`, done.
+At startup, Gizmo scans Pi's global extension directory. Each linked
+`pi-extension.ts` is loaded by Pi through its default export. If the same file
+also exports a named `gizmoExtension`, Gizmo registers those generic host
+capabilities without knowing what the extension does. Linked extensions take
+precedence over the now-empty transitional `gizmo.extensions.json` config.
 
 ### Client: runtime-loaded bundles
 
@@ -119,11 +82,11 @@ it tracks the version in use; names that are reserved words (`if`, `await`,
 `try`) are renamed in the export clause. Everything else a plugin imports —
 `@gizmo/design` components, icons — is bundled into it normally.
 
-**Delivering.** The server reads each extension's built `dist/web.js`
-(`apps/agent-server/src/extensions/web-bundles.ts`) and returns the source
-over the existing agent WebSocket in response to `extensions.web`. Sending
-source over the connection Gizmo already has avoids standing up an HTTP
-server just to host plugin assets.
+**Delivering.** Linking places browser companions under
+`~/.pi/agent/extension-web/`, outside Pi's backend auto-discovery directory.
+This prevents Pi from trying to execute Svelte browser code as an extension.
+The server returns those bundles over the existing agent WebSocket in response
+to `extensions.web`.
 
 **Loading.** `runtime/load-web-extension.ts` turns the source into a blob URL
 and imports it. A bundle must export `gizmoWebExtension`, and its `id` must
@@ -154,19 +117,16 @@ in `apps/app/src-tauri/tauri.conf.json`. The previous `default-src 'self'` (with
 `script-src`) blocked it; both the block and the fix were confirmed in a real
 Chromium against the exact CSP strings. This does loosen the policy — it is
 the cost of loading third-party UI code at all, and is why bundles arrive only
-from extensions the user installed and listed in `gizmo.extensions.json`.
+from extensions the user explicitly linked from a registry.
 
 _Not verified:_ the blob-import path was confirmed in Chromium (which is what
 Tauri uses on Windows and what WebView2 is built on), not in WebKitGTK, which
 Tauri uses on Linux.
 
-**Built-ins still win.** `registry.svelte.ts` keeps first-party extensions
-(Svelte, Git, Activity) statically imported, because the app bundles them
-anyway, and a runtime-loaded bundle claiming one of their ids is discarded
-rather than allowed to displace it. Unity is not in that set — it only ever
-arrives at runtime over `extensions.web`, the same path a third-party
-extension would use. The registry is reactive, so extensions that arrive
-after first render still reach the UI; startup never blocks on them.
+**No built-ins.** `registry.svelte.ts` starts empty. Every browser integration
+arrives through `extensions.web`; duplicate ids are de-duplicated at runtime.
+The registry is reactive, so extensions that arrive after first render still
+reach the UI.
 
 ## Tool policy: Pi's `defaultTools` setting
 

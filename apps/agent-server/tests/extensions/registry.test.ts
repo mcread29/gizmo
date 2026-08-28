@@ -2,8 +2,8 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { gizmoExtension as unityExtension } from '@gizmo/unity/server';
-import { gizmoExtension as svelteExtension } from '@gizmo/svelte/server';
+import type { GizmoServerExtension } from '@gizmo/extensions';
+import { Type } from 'typebox';
 import {
 	activateExtensions,
 	installedGizmoExtensions,
@@ -11,6 +11,27 @@ import {
 } from '../../src/extensions/registry';
 
 const directories: string[] = [];
+const unityExtension: GizmoServerExtension = {
+	id: 'unity',
+	name: 'Unity',
+	createTools: () => [
+		{
+			name: 'unity_status',
+			label: 'Unity Status',
+			description: 'Status',
+			parameters: Type.Object({}),
+			execute: async () => ({
+				content: [{ type: 'text', text: 'ok' }],
+				details: {},
+			}),
+		},
+	],
+};
+const svelteExtension: GizmoServerExtension = {
+	id: 'svelte',
+	name: 'Svelte',
+	systemPrompt: 'This workspace uses Svelte',
+};
 
 beforeAll(() => {
 	registerExtensions([unityExtension, svelteExtension]);

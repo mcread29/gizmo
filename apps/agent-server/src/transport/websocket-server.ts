@@ -23,7 +23,6 @@ import {
 } from '../extensions/registry-manager';
 import { defaultDataDir } from '../sessions/session-repository';
 import { PiAgentService } from '../sessions/pi-agent-service';
-import { GitService } from '@gizmo/git/server';
 import { ExtensionHostService } from '../extensions/extension-host-service';
 
 export interface AgentWebSocketServerOptions {
@@ -34,7 +33,6 @@ export interface AgentWebSocketServerOptions {
 	createService?: () => PiAgentService;
 	createProjectService?: () => ProjectService;
 	createExtensionHost?: () => ExtensionHostService;
-	createGitService?: () => GitService;
 }
 
 /** Used when no domain's project service is configured for this connection. */
@@ -79,7 +77,6 @@ export async function createAgentWebSocketServer(
 			agent: PiAgentService;
 			projects: ProjectService;
 			extensions: ExtensionHostService;
-			git: GitService;
 		}
 	>();
 
@@ -89,7 +86,6 @@ export async function createAgentWebSocketServer(
 		const projectService = options.createProjectService?.() ?? noProjectService;
 		const extensionHost =
 			options.createExtensionHost?.() ?? new ExtensionHostService([]);
-		const gitService = options.createGitService?.() ?? new GitService();
 		/**
 		 * The project this connection currently watches, if any. Repeated
 		 * `project.watch` requests for the same path reuse the live watch
@@ -127,7 +123,6 @@ export async function createAgentWebSocketServer(
 			agent: service,
 			projects: projectService,
 			extensions: extensionHost,
-			git: gitService,
 		});
 		const unsubscribe = service.subscribe((event) =>
 			send(socket, { ...event, eventId: ++eventId }),
@@ -159,7 +154,6 @@ export async function createAgentWebSocketServer(
 				service,
 				projectService,
 				extensionHost,
-				gitService,
 				emit,
 				watchCoordinator,
 				isBinary ? undefined : data.toString(),
@@ -239,7 +233,6 @@ async function handleMessage(
 	service: PiAgentService,
 	projectService: ProjectService,
 	extensionHost: ExtensionHostService,
-	gitService: GitService,
 	emit: ProjectEmitters,
 	watchCoordinator: ProjectWatchCoordinator,
 	text: string | undefined,
@@ -266,7 +259,6 @@ async function handleMessage(
 			service,
 			projectService,
 			extensionHost,
-			gitService,
 			emit,
 			watchCoordinator,
 			request,
@@ -286,7 +278,6 @@ async function dispatch(
 	service: PiAgentService,
 	projectService: ProjectService,
 	extensionHost: ExtensionHostService,
-	gitService: GitService,
 	emit: ProjectEmitters,
 	watchCoordinator: ProjectWatchCoordinator,
 	request: AgentRequest,
@@ -531,7 +522,15 @@ async function dispatch(
 				),
 			};
 		case 'git.commit-message': {
-			const context = await gitService.commitContext(request.projectPath);
+			const context = await extensionHost.invoke(
+				request.projectPath,
+				'git',
+				'commit-context',
+				undefined,
+			);
+			if (typeof context !== 'string') {
+				throw new Error('The Git extension returned invalid commit context');
+			}
 			return {
 				result: await service.generateCommitMessage(request.sessionId, context),
 			};

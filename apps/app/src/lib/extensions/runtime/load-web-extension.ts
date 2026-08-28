@@ -128,6 +128,7 @@ function validate(
 	keep('hasProjectStatus', (v) => typeof v === 'boolean', 'a boolean');
 	keep('apiVersion', (v) => typeof v === 'number', 'a number');
 	keep('activate', isFunction, 'a function');
+	keep('inspectorTabs', isFunction, 'a function');
 	keep('commands', isFunction, 'a function');
 	keep('statusBar', isFunction, 'a function');
 	keep(

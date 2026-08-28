@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { ToolCallView } from '@gizmo/protocol';
 	import { DiffView } from '@gizmo/ui';
-	import { patchFileName } from '@gizmo/git/web';
 	import {
 		formatToolResult,
 		recordValue,
@@ -19,6 +18,15 @@
 	}
 
 	let { tool, projectPath, consoleEntries, errors }: Props = $props();
+
+	function patchFileName(patch: string) {
+		for (const line of patch.split('\n')) {
+			if (!line.startsWith('+++ ')) continue;
+			const value = line.slice(4).trim().split('\t')[0];
+			if (!value || value === '/dev/null') continue;
+			return value.replace(/^[ab]\//, '');
+		}
+	}
 
 	let resultText = $derived(formatToolResult(tool.result));
 	let diff = $derived(

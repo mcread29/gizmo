@@ -93,6 +93,21 @@ describe('loadWebExtensions', () => {
 		expect(result.diagnostics[0]).toContain('declares id "other"');
 	});
 
+	it('retains generic inspector contributions from runtime extensions', async () => {
+		const result = await loadWebExtensions([
+			{
+				id: 'activity',
+				code: `export const gizmoWebExtension = {
+					id: 'activity',
+					inspectorTabs: () => [],
+				};`,
+			},
+		]);
+
+		expect(result.extensions[0]?.inspectorTabs?.({} as never)).toEqual([]);
+		expect(result.diagnostics).toEqual([]);
+	});
+
 	it('drops one malformed field instead of failing the whole bundle', async () => {
 		const result = await loadWebExtensions([
 			{
@@ -167,24 +182,23 @@ describe('loadWebExtensions', () => {
 });
 
 describe('registerWebExtensions', () => {
-	it('adds loaded extensions alongside the built-in ones', () => {
+	it('registers runtime extensions with no built-in extension set', () => {
 		registerWebExtensions([
 			{ id: 'third-party' },
 			{ id: 'unity', labels: { ok: 'yes' } },
 		]);
 
-		expect(webExtensions().map(({ id }) => id)).toContain('third-party');
-		expect(webExtensions().map(({ id }) => id)).toContain('unity');
-		expect(webExtensions().map(({ id }) => id)).toContain('svelte');
+		expect(webExtensions().map(({ id }) => id)).toEqual([
+			'third-party',
+			'unity',
+		]);
 	});
 
-	it('never lets a loaded bundle displace a built-in of the same id', () => {
-		const impostor = { id: 'svelte', labels: { spoofed: 'yes' } };
-		registerWebExtensions([impostor]);
+	it('de-duplicates runtime bundles by id', () => {
+		const latest = { id: 'svelte', labels: { current: 'yes' } };
+		registerWebExtensions([{ id: 'svelte' }, latest]);
 
-		const svelte = webExtensions().filter(({ id }) => id === 'svelte');
-		expect(svelte).toHaveLength(1);
-		expect(svelte[0]).not.toBe(impostor);
+		expect(webExtensions()).toEqual([latest]);
 	});
 
 	it('replaces the previous set rather than accumulating', () => {

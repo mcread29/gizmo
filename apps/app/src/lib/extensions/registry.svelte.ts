@@ -1,7 +1,4 @@
 import type { ExtensionDescriptor } from '@gizmo/protocol';
-import { gizmoWebExtension as activityWebExtension } from '@gizmo/activity/web';
-import { gizmoWebExtension as gitWebExtension } from '@gizmo/git/web';
-import { svelteWebExtension } from '@gizmo/svelte/web';
 import type {
 	ExtensionContext,
 	ExtensionHostContext,
@@ -9,19 +6,8 @@ import type {
 	WebExtensionRuntime,
 } from './types';
 
-/**
- * Extensions the app ships with. First-party ones stay here because the app
- * bundles them anyway; anything installed later arrives through
- * `registerWebExtensions` instead. Unity is the first extension that ships
- * only as a runtime bundle: it is listed in `gizmo.extensions.json` and
- * arrives over `extensions.web`, so it exercises the same path any
- * third-party extension would.
- */
-const builtin: readonly GizmoWebExtension[] = [
-	svelteWebExtension,
-	gitWebExtension,
-	activityWebExtension,
-];
+/** Gizmo ships no extensions; every web integration arrives at runtime. */
+const builtin: readonly GizmoWebExtension[] = [];
 
 /**
  * Reactive so that extensions loaded at runtime reach the UI whenever they
@@ -35,17 +21,14 @@ export const webExtensions = (): readonly GizmoWebExtension[] =>
 	installed.extensions;
 
 /**
- * Installs runtime-loaded web extensions. A built-in of the same id wins, so a
- * loaded bundle can never displace one the app ships.
+ * Installs runtime-loaded web extensions, de-duplicated by registry id.
  */
 export function registerWebExtensions(
 	incoming: readonly GizmoWebExtension[],
 ): void {
-	const known = new Set(builtin.map(({ id }) => id));
-	installed.extensions = [
-		...builtin,
-		...incoming.filter(({ id }) => !known.has(id)),
-	];
+	const byId = new Map(builtin.map((extension) => [extension.id, extension]));
+	for (const extension of incoming) byId.set(extension.id, extension);
+	installed.extensions = [...byId.values()];
 }
 
 export function extension(

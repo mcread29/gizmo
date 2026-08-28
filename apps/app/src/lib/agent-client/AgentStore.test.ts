@@ -18,6 +18,7 @@ import {
 } from '@gizmo/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentClient, AgentEventListener } from './AgentClient';
+import { registerWebExtensions } from '../extensions/registry.svelte';
 import { AgentStore } from './AgentStore.svelte';
 import { FakeAgentClient } from './FakeAgentClient';
 
@@ -252,6 +253,7 @@ describe('AgentStore', () => {
 	});
 
 	it('discovers projects and keeps per-session transcripts', async () => {
+		registerWebExtensions([{ id: 'unity', hasProjectStatus: true }]);
 		const store = new AgentStore(new FakeAgentClient({ latencyMs: 0 }));
 		await store.connect();
 		const firstSession = store.sessionId!;

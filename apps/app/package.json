@@ -16,11 +16,8 @@
 		"extension:build": "node --experimental-strip-types scripts/build-web-extension.ts"
 	},
 	"dependencies": {
-		"@gizmo/activity": "workspace:*",
 		"@gizmo/design": "workspace:*",
-		"@gizmo/git": "workspace:*",
 		"@gizmo/protocol": "workspace:*",
-		"@gizmo/svelte": "workspace:*",
 		"@gizmo/ui": "workspace:*",
 		"@lucide/svelte": "^1.31.0",
 		"@tanstack/svelte-virtual": "^3.13.36",
@@ -32,7 +29,6 @@
 		"svelte": "latest"
 	},
 	"devDependencies": {
-		"@gizmo/unity": "workspace:*",
 		"@sveltejs/vite-plugin-svelte": "latest",
 		"@tauri-apps/cli": "^2.11.4",
 		"@testing-library/jest-dom": "latest",

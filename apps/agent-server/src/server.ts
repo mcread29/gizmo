@@ -1,13 +1,17 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { createAgentWebSocketServer } from './transport/websocket-server';
 import { configuredOrigins } from './server-config';
 import { CompositeProjectService } from '@gizmo/extensions';
 import { ExtensionHostService } from './extensions/extension-host-service';
-import { loadServerExtensions } from './extensions/load-extensions';
+import {
+	loadLinkedExtensionIntegrations,
+	loadServerExtensions,
+} from './extensions/load-extensions';
+import { piAgentDir } from './resources/pi-global-resources';
 import { registerExtensions } from './extensions/registry';
 import { ProjectCatalog } from './projects/project-catalog';
 
@@ -20,11 +24,19 @@ const extensionsConfigPath =
 	process.env.GIZMO_EXTENSIONS_CONFIG ??
 	resolve(process.cwd(), 'gizmo.extensions.json');
 const piWebMode = process.env.GIZMO_PI_WEB === '1';
-const extensions = await loadServerExtensions(
+const configuredExtensions = await loadServerExtensions(
 	existsSync(extensionsConfigPath)
 		? extensionsConfigPath
 		: resolve(repoRoot, 'gizmo.extensions.json'),
 );
+const linkedExtensions = await loadLinkedExtensionIntegrations(
+	join(piAgentDir(), 'extensions'),
+);
+const linkedIds = new Set(linkedExtensions.map(({ id }) => id));
+const extensions = [
+	...configuredExtensions.filter(({ id }) => !linkedIds.has(id)),
+	...linkedExtensions,
+];
 registerExtensions(extensions);
 const projects = new ProjectCatalog();
 const projectServiceFactories = extensions

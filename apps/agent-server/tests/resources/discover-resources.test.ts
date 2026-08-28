@@ -2,10 +2,15 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { gizmoExtension as svelteExtension } from '@gizmo/svelte/server';
+import type { GizmoServerExtension } from '@gizmo/extensions';
 import { discoverResources } from '../../src/resources/resource-catalog';
 import { adoptPiResources } from '../../src/resources/resource-paths';
 import { registerExtensions } from '../../src/extensions/registry';
+
+const svelteExtension: GizmoServerExtension = {
+	id: 'svelte',
+	name: 'Svelte',
+};
 
 beforeAll(() => {
 	registerExtensions([svelteExtension]);

@@ -1,9 +1,3 @@
 {
-	"extensions": [
-		"@gizmo/unity",
-		"@gizmo/svelte",
-		"@gizmo/git",
-		"@gizmo/activity",
-		"@gizmo/skill-authoring"
-	]
+	"extensions": []
 }
