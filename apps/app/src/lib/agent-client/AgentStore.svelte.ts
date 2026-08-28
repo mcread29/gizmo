@@ -494,24 +494,21 @@ export class AgentStore {
 		}
 	}
 
-	/**
-	 * Per-workspace extension overrides; null reverts to the global state.
-	 * The server returns the stored config so the caller can update just the
-	 * affected rows. Shared caches (projects, activeDomains) are deliberately
-	 * left alone: the inspector re-keys on activeDomains, so swapping it here
-	 * would remount the whole panel on every toggle, and new sessions resolve
-	 * the effective extensions server-side anyway.
-	 */
+	/** Per-workspace extension overrides; null reverts to the global state. */
 	async setProjectGizmoExtension(
 		projectPath: string,
 		extensionId: string,
 		enabled: boolean | null,
 	): Promise<ProjectConfig> {
-		return this.#client.setProjectGizmoExtension(
+		const config = await this.#client.setProjectGizmoExtension(
 			projectPath,
 			extensionId,
 			enabled,
 		);
+		// A visible workspace must reflect its new effective extensions now, not
+		// only when the user creates/reopens a thread or reloads the page.
+		if (projectPath === this.selectedProjectPath) await this.reloadExtensions();
+		return config;
 	}
 
 	async setProjectPiExtension(
@@ -601,7 +598,7 @@ export class AgentStore {
 				gizmoExtensionId,
 				enabled,
 			);
-			await this.refreshProjects();
+			await this.reloadExtensions();
 		} catch (error) {
 			this.resourceError = errorMessage(error);
 		}

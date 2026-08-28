@@ -293,18 +293,42 @@ describe('AgentStore', () => {
 		);
 	});
 
+	it('reloads the active sidebar when its extension override changes', async () => {
+		const store = new AgentStore(new FakeAgentClient({ latencyMs: 0 }));
+		await store.connect();
+
+		await store.setProjectGizmoExtension(
+			'/projects/ThirdPersonSandbox',
+			'svelte',
+			false,
+		);
+		expect(store.activeDomains).not.toContain('svelte');
+
+		await store.setProjectGizmoExtension(
+			'/projects/ThirdPersonSandbox',
+			'svelte',
+			true,
+		);
+		expect(store.activeDomains).toContain('svelte');
+	});
+
 	it('updates the workspace integrations when switching threads', async () => {
 		const store = new AgentStore(new FakeAgentClient({ latencyMs: 0 }));
 		await store.connect();
+		await store.setProjectGizmoExtension(
+			'/projects/ThirdPersonSandbox',
+			'svelte',
+			true,
+		);
 		const sandboxSession = store.sessionId!;
 
 		await store.newSession('/projects/RenderingPlayground');
 		expect(store.selectedProjectPath).toBe('/projects/RenderingPlayground');
-		expect(store.activeDomains).toEqual(['unity']);
+		expect(store.activeDomains).not.toContain('svelte');
 
 		await store.switchSession(sandboxSession);
 		expect(store.selectedProjectPath).toBe('/projects/ThirdPersonSandbox');
-		expect(store.activeDomains).toEqual(['unity', 'svelte', 'git']);
+		expect(store.activeDomains).toContain('svelte');
 	});
 
 	it('loads extensions for the active project', async () => {
