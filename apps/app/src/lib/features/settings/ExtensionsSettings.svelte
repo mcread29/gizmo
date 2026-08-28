@@ -174,4 +174,18 @@
 		display: flex;
 		gap: var(--space-2);
 	}
+
+	/*
+	 * integration-row's shared grid reserves a middle 1fr spacer plus a
+	 * minmax(100px, 180px) action column for the configure screen's switch
+	 * and revert layout. These rows only have a name span and an action, so
+	 * collapse to two columns and pin the action to the row's right edge.
+	 */
+	[data-ui='integration-row'] {
+		grid-template-columns: minmax(0, 1fr) auto;
+	}
+
+	[data-ui='integration-row'] > :global([data-ui='button']) {
+		justify-self: end;
+	}
 </style>
