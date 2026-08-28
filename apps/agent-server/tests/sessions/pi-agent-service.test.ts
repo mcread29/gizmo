@@ -527,5 +527,27 @@ describe('PiAgentService', () => {
 
 			expect(snapshot.messages).toHaveLength(0);
 		});
+
+		it('re-announces streaming state and sequences the snapshot against events', async () => {
+			const pi = new FakePiSession();
+			const service = await createTestService(pi);
+			const sessionId = await service.createSession();
+
+			pi.isStreaming = true;
+			const events: AgentEvent[] = [];
+			service.subscribe((agentEvent) => events.push(agentEvent));
+			const snapshot = await service.resumeSession(sessionId);
+
+			// A client that missed the original stream start (reload, reconnect,
+			// first view) still learns the session is mid-response.
+			const state = events.at(-1);
+			expect(state).toMatchObject({
+				type: 'session.state',
+				state: 'streaming',
+			});
+			// Everything up to and including the pre-snapshot events is already
+			// reflected in the snapshot; the state event is the first replayable.
+			expect(snapshot.lastEventId).toBe(state!.eventId - 1);
+		});
 	});
 });

@@ -127,6 +127,8 @@ export class AgentStore {
 	#reconnectTimer?: ReturnType<typeof setTimeout>;
 	#autoReconnect = true;
 	#selectionVersion = 0;
+	/** Events for the session being resumed, held until its snapshot lands. */
+	#replayBuffer?: { sessionId: string; events: AgentEvent[] };
 
 	constructor(
 		client: AgentClient,
@@ -727,6 +729,10 @@ export class AgentStore {
 		this.messagesLoading = true;
 		this.sessionState = this.sessionStates[sessionId] ?? 'idle';
 		this.usage = undefined;
+		// Hold every event for this session until the snapshot has been
+		// applied: deltas arriving mid-resume would otherwise hit an empty
+		// message list, no-op, and be lost when the snapshot overwrites it.
+		this.#replayBuffer = { sessionId, events: [] };
 		// The summary already knows where the thread lives, so the workspace can
 		// follow now rather than after the transcript arrives.
 		const summaryPath = session.workspacePath ?? session.projectPath;
@@ -763,6 +769,23 @@ export class AgentStore {
 			else this.activeDomains = domains;
 			this.messages = snapshot.messages;
 			this.messagesLoading = false;
+			// Replay what streamed while the resume was in flight, skipping
+			// anything the snapshot already reflects. Activation and current-state
+			// events emitted by the server during the resume land after its
+			// lastEventId and converge the view (including streaming state).
+			const cutoff = snapshot.lastEventId;
+			if (this.#replayBuffer?.sessionId === sessionId) {
+				const events = this.#replayBuffer.events;
+				this.#replayBuffer = undefined;
+				for (const event of events) {
+					if (cutoff !== undefined && event.eventId <= cutoff) continue;
+					const eventError = applyAgentEvent(this, event);
+					if (eventError) this.error = { kind: 'agent', message: eventError };
+				}
+			}
+			// Anything observed while resuming (e.g. state flipping to streaming)
+			// must win over the pre-resume guess.
+			this.sessionState = this.sessionStates[sessionId] ?? this.sessionState;
 			if (movedToSnapshotWorkspace) void this.refreshGitStatus();
 			await Promise.all([
 				this.refreshModelCatalog(),
@@ -770,6 +793,9 @@ export class AgentStore {
 				this.#watchSelectedProject(),
 			]);
 		} catch (error) {
+			if (this.#replayBuffer?.sessionId === sessionId) {
+				this.#replayBuffer = undefined;
+			}
 			this.#restoreSelection(previous);
 			this.#fail('session', error);
 		} finally {
@@ -1199,6 +1225,12 @@ export class AgentStore {
 			this.pendingConfirmations.push(event);
 			return;
 		} else if (event.type.startsWith('extension.ui.')) {
+			return;
+		}
+		// A session being resumed buffers its events instead of applying them;
+		// switchSession replays them once the snapshot has established the base.
+		if (this.#replayBuffer?.sessionId === event.sessionId) {
+			this.#replayBuffer.events.push(event);
 			return;
 		}
 		if (this.sessionId && event.sessionId !== this.sessionId) return;

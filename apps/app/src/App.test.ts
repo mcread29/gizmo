@@ -9,6 +9,7 @@ import { axe } from 'vitest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App.svelte';
 import { FakeAgentClient } from './lib/agent-client';
+import { toasts } from './lib/toasts.svelte';
 
 const initialInnerWidth = window.innerWidth;
 
@@ -21,6 +22,10 @@ beforeEach(() => {
 
 afterEach(() => {
 	cleanup();
+	// Toasts are a module-level singleton with real dismissal timers; without
+	// this a toast shown by an earlier test lingers into the next one and
+	// races any assertion that looks up a toast by role.
+	toasts.clear();
 	Object.defineProperty(window, 'innerWidth', {
 		configurable: true,
 		value: initialInnerWidth,

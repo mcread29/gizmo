@@ -1,6 +1,8 @@
 import {
 	builtInAgentTools,
+	protocolVersion,
 	seededToolPolicy,
+	type AgentEvent,
 	type AgentModelCatalog,
 	type GitCommitResult,
 	type GitStatus,
@@ -28,6 +30,12 @@ const emptyCatalog: ResourceCatalog = {
 	prompts: [],
 	diagnostics: [],
 };
+
+type InnerAgentEvent = AgentEvent extends infer Event
+	? Event extends AgentEvent
+		? Omit<Event, 'protocolVersion' | 'eventId' | 'sessionId'>
+		: never
+	: never;
 
 class InvalidEventClient implements AgentClient {
 	#listener?: AgentEventListener;
@@ -211,6 +219,94 @@ class InvalidEventClient implements AgentClient {
 	}
 	subscribeDisconnect() {
 		return () => {};
+	}
+}
+
+/**
+ * Minimal client for testing mid-resume event sequencing: resumeSession for a
+ * chosen session is gated until the test releases it, and events can be
+ * emitted by hand with server-style envelope ids while the gate is closed.
+ */
+class GatedResumeClient extends InvalidEventClient {
+	#listener?: AgentEventListener;
+	#eventId = 0;
+	#gate?: { id: string; promise: Promise<void>; release: () => void };
+
+	snapshot: SessionSnapshot = {
+		session: {
+			id: 'session-a',
+			title: 'First',
+			createdAt: 0,
+			lastActiveAt: 0,
+			messageCount: 0,
+		},
+		messages: [],
+	};
+	#snapshots = new Map<string, SessionSnapshot>();
+
+	/** Installs the snapshot resumeSession will return for a session. */
+	setSnapshot(snapshot: SessionSnapshot): void {
+		this.#snapshots.set(snapshot.session.id, snapshot);
+	}
+
+	snapshotFor(sessionId: string): SessionSnapshot {
+		return this.#snapshots.get(sessionId) ?? this.snapshot;
+	}
+
+	/** Signals the store to buffer; returns the cutoff setter + release. */
+	gate(id: string): { release(): void } {
+		let release!: () => void;
+		const promise = new Promise<void>((resolve) => (release = resolve));
+		this.#gate = { id, promise, release };
+		return { release };
+	}
+
+	async resumeSession(sessionId: string): Promise<SessionSnapshot> {
+		const snapshot = this.#snapshots.get(sessionId) ?? this.snapshot;
+		if (this.#gate?.id !== sessionId) return snapshot;
+		const gate = this.#gate;
+		this.#gate = undefined;
+		await gate.promise;
+		return snapshot;
+	}
+
+	emit(sessionId: string, event: InnerAgentEvent): void {
+		this.#listener?.({
+			...event,
+			sessionId,
+			protocolVersion,
+			eventId: ++this.#eventId,
+		} as AgentEvent);
+	}
+
+	/** The event id the next emit will carry, for setting the cutoff. */
+	get nextEventId(): number {
+		return this.#eventId + 1;
+	}
+
+	async connect() {}
+	async disconnect() {}
+	async listProviders(): Promise<ProviderStatus[]> {
+		return [];
+	}
+	async reimportPiAuth(): Promise<ProviderStatus[]> {
+		return [];
+	}
+	async listSessions(): Promise<SessionCatalog> {
+		const sessions = [
+			this.snapshot.session,
+			...[...this.#snapshots.values()]
+				.map(({ session }) => session)
+				.filter(({ id }) => id !== this.snapshot.session.id),
+		];
+		return { sessions };
+	}
+	async createSession() {
+		return 'session-a';
+	}
+	subscribe(listener: AgentEventListener) {
+		this.#listener = listener;
+		return () => (this.#listener = undefined);
 	}
 }
 
@@ -553,5 +649,66 @@ describe('AgentStore', () => {
 			installed: false,
 			enabled: false,
 		});
+	});
+
+	it('replays mid-resume stream events exactly once when switching threads', async () => {
+		const client = new GatedResumeClient();
+		client.setSnapshot({
+			session: {
+				id: 'session-b',
+				title: 'Second',
+				createdAt: 0,
+				lastActiveAt: 0,
+				messageCount: 1,
+			},
+			// The server splices the in-flight partial message into the snapshot;
+			// its content reflects everything streamed up to the snapshot point.
+			messages: [
+				{
+					id: 'm1',
+					role: 'assistant',
+					content: 'Hel',
+					createdAt: 0,
+					complete: false,
+					tools: [],
+				},
+			],
+		});
+		const store = new AgentStore(client);
+		await store.connect();
+		expect(store.sessionId).toBe('session-a');
+
+		// Resume of the other thread is held mid-flight; deltas stream in while
+		// it is outstanding.
+		const { release } = client.gate('session-b');
+		const switching = store.switchSession('session-b');
+		// These two events are already reflected in the snapshot that will
+		// arrive (its lastEventId covers them); replaying them would duplicate.
+		client.emit('session-b', {
+			type: 'message.started',
+			messageId: 'm1',
+			role: 'assistant',
+			createdAt: 0,
+		});
+		client.emit('session-b', {
+			type: 'message.delta',
+			messageId: 'm1',
+			delta: 'Hel',
+		});
+		client.snapshotFor('session-b').lastEventId = client.nextEventId - 1;
+		// This one streams after the snapshot point and must be applied once.
+		client.emit('session-b', {
+			type: 'message.delta',
+			messageId: 'm1',
+			delta: 'lo',
+		});
+		client.emit('session-b', { type: 'session.state', state: 'streaming' });
+		release();
+		await switching;
+
+		// 'Hel' is not duplicated and 'lo' is not lost: the view converges.
+		expect(store.messages).toHaveLength(1);
+		expect(store.messages[0]?.content).toBe('Hello');
+		expect(store.sessionState).toBe('streaming');
 	});
 });

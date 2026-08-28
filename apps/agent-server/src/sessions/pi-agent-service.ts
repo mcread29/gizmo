@@ -298,6 +298,13 @@ export class PiAgentService {
 			? await this.#projects.disabledPiExtensionsFor(workspacePath)
 			: [];
 		snapshot.session.integrations = integrations;
+		// Sequence the snapshot against the event stream before anything is
+		// emitted for this resume: the client replays only events newer than the
+		// snapshot, so events emitted while the resume was in flight are neither
+		// lost (applied to an empty view and then overwritten) nor double-applied
+		// on top of the snapshot. Activation and state events emitted below land
+		// after the cutoff and are replayed on top of the snapshot.
+		snapshot.lastEventId = this.#eventId;
 		if (!this.#sessions.has(sessionId)) {
 			const sessionManager = await this.#repository.open(sessionId);
 			const callbacks = this.#callbacks(sessionId);
@@ -319,6 +326,17 @@ export class PiAgentService {
 		} else {
 			this.#touch(sessionId);
 			this.#spliceInFlightMessage(sessionId, snapshot);
+			// A session that is already resident emits no activation events, so a
+			// client that could not observe the original start of the stream (page
+			// reload, reconnect, first view of this thread) would render it idle
+			// while it is still responding. State is evented like everything else;
+			// it just has to be (re-)sent when someone attaches mid-stream.
+			this.#emit(sessionId, {
+				type: 'session.state',
+				state: this.#sessions.get(sessionId)?.session.isStreaming
+					? 'streaming'
+					: 'idle',
+			});
 		}
 		await this.#repository.setLastSession(sessionId);
 		return snapshot;

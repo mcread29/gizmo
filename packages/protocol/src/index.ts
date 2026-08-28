@@ -283,6 +283,8 @@ export const sessionSnapshotSchema = Type.Object(
 	{
 		session: agentSessionSummarySchema,
 		messages: Type.Array(conversationMessageSchema),
+		/** The event id the snapshot is current as of; later events are live news. */
+		lastEventId: Type.Optional(Type.Integer({ minimum: 0 })),
 	},
 	{ additionalProperties: false },
 );

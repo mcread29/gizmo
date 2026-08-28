@@ -1,5 +1,40 @@
 # Work log
 
+## 2026-08-29 — Switching to a streaming thread converges instead of losing the stream
+
+- Switching threads while the agent was still responding was a lottery. Three
+  defects compounded:
+  - **Lost deltas (client).** `switchSession` set `sessionId` before the resume
+    snapshot returned, so events streaming in for the new thread passed the
+    view guard, hit an empty `messages` array, and silently no-oped in
+    `applyAgentEvent` — then the snapshot overwrote whatever survived.
+    Missing content, or a transcript that looked finished.
+  - **No mid-stream attach (server).** `resumeSession` of an already-resident
+    streaming session emitted nothing — activation events only fire for
+    freshly opened sessions. After a reload or reconnect, opening a thread
+    that was mid-response rendered it idle/done with no stream attached.
+  - **The 8/27 splice had a gap.** It fixed the snapshot itself, but events
+    emitted _between_ the server building the snapshot and the client
+    applying it still fell into the first defect.
+- Fix is event sequencing. `SessionSnapshot` gained `lastEventId` (protocol
+  field only — `protocolVersion` stays 25, the field is additive/optional).
+  The server stamps the snapshot with the current event id _before_
+  activation/state emission, so activation events (which carry the model
+  catalog) and a new `session.state` re-announcement (streaming or idle) land
+  after the cutoff. The client buffers every event for the session being
+  resumed, applies the snapshot, then replays only buffered events with
+  `eventId > snapshot.lastEventId` — pre-snapshot events can't double-apply,
+  post-snapshot events can't be lost, and displayed state converges with
+  `sessionStates` afterwards.
+- Regression tests: a gated client proves mid-resume deltas replay exactly
+  once (`'Hel' + 'lo'` → `'Hello'`, not `'HelHel'`) and streaming state
+  attaches; the service test pins the state re-announcement and the
+  snapshot/event ordering invariant (`lastEventId === stateEventId - 1`).
+- Along the way: `App.test.ts`'s deletion test was flaky at HEAD because
+  toasts are a module-level singleton with real timers — an earlier test's
+  "Extension connected" toast outlived its test and raced
+  `findByRole('status')`. `afterEach` now clears the queue.
+
 ## 2026-08-28 — Project configuration replaces profiles
 
 - Retired the workspace profile system entirely. A workspace now follows the
