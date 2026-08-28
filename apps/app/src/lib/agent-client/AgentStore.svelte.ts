@@ -126,6 +126,7 @@ export class AgentStore {
 	#statusRequest?: { projectPath: string; promise: Promise<void> };
 	#reconnectTimer?: ReturnType<typeof setTimeout>;
 	#autoReconnect = true;
+	#selectionVersion = 0;
 
 	constructor(
 		client: AgentClient,
@@ -715,6 +716,7 @@ export class AgentStore {
 
 	async switchSession(sessionId: string): Promise<void> {
 		if (sessionId === this.sessionId) return;
+		const selectionVersion = ++this.#selectionVersion;
 		const session = this.sessions.find(
 			(candidate) => candidate.id === sessionId,
 		);
@@ -742,7 +744,11 @@ export class AgentStore {
 			const snapshot = await this.#client.resumeSession(sessionId);
 			// The user may select another thread while this request is in flight.
 			// Do not let an older resume overwrite that thread's workspace/sidebar.
-			if (this.sessionId !== sessionId) return;
+			if (
+				this.sessionId !== sessionId ||
+				this.#selectionVersion !== selectionVersion
+			)
+				return;
 
 			Object.assign(session, snapshot.session);
 			const workspacePath = session.workspacePath ?? session.projectPath;
@@ -767,7 +773,11 @@ export class AgentStore {
 			this.#restoreSelection(previous);
 			this.#fail('session', error);
 		} finally {
-			if (this.sessionId === sessionId) this.messagesLoading = false;
+			if (
+				this.sessionId === sessionId &&
+				this.#selectionVersion === selectionVersion
+			)
+				this.messagesLoading = false;
 		}
 	}
 
