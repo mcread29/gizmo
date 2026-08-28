@@ -293,6 +293,20 @@ describe('AgentStore', () => {
 		);
 	});
 
+	it('updates the workspace integrations when switching threads', async () => {
+		const store = new AgentStore(new FakeAgentClient({ latencyMs: 0 }));
+		await store.connect();
+		const sandboxSession = store.sessionId!;
+
+		await store.newSession('/projects/RenderingPlayground');
+		expect(store.selectedProjectPath).toBe('/projects/RenderingPlayground');
+		expect(store.activeDomains).toEqual(['unity']);
+
+		await store.switchSession(sandboxSession);
+		expect(store.selectedProjectPath).toBe('/projects/ThirdPersonSandbox');
+		expect(store.activeDomains).toEqual(['unity', 'svelte', 'git']);
+	});
+
 	it('loads extensions for the active project', async () => {
 		const client = new FakeAgentClient({ latencyMs: 0 });
 		const listExtensions = vi

@@ -741,19 +741,24 @@ export class AgentStore {
 		}
 		try {
 			const snapshot = await this.#client.resumeSession(sessionId);
-			this.messages = snapshot.messages;
-			this.messagesLoading = false;
+			// The user may select another thread while this request is in flight.
+			// Do not let an older resume overwrite that thread's workspace/sidebar.
+			if (this.sessionId !== sessionId) return;
+
 			Object.assign(session, snapshot.session);
-			this.activeDomains =
+			const workspacePath = session.workspacePath ?? session.projectPath;
+			const domains =
 				session.integrations?.map(({ id }) => id) ??
 				(session.domainId && session.domainId !== 'generic'
 					? [session.domainId]
 					: []);
-			const workspacePath = session.workspacePath ?? session.projectPath;
-			if (workspacePath && workspacePath !== this.selectedProjectPath) {
-				this.#enterWorkspace(workspacePath);
-				void this.refreshGitStatus();
-			}
+			const movedToSnapshotWorkspace =
+				Boolean(workspacePath) && workspacePath !== this.selectedProjectPath;
+			if (workspacePath) this.#enterWorkspace(workspacePath, domains);
+			else this.activeDomains = domains;
+			this.messages = snapshot.messages;
+			this.messagesLoading = false;
+			if (movedToSnapshotWorkspace) void this.refreshGitStatus();
 			await Promise.all([
 				this.refreshModelCatalog(),
 				this.refreshCommands(),
