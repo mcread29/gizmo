@@ -420,6 +420,35 @@ describe('application shell', () => {
 		);
 	});
 
+	it('adds the tab-completed directory rather than its highlighted child', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const addProject = vi.spyOn(client, 'addProject');
+		const { findByRole } = render(App, { client });
+		await findByRole('button', { name: 'Model' });
+		await fireEvent.click(
+			await findByRole('button', { name: 'Open workspace' }),
+		);
+
+		const dialog = await findByRole('dialog');
+		const input = within(dialog).getByPlaceholderText(
+			'Type a path, or search folders…',
+		) as HTMLInputElement;
+		await waitFor(() =>
+			expect(
+				dialog.querySelector('[data-ui="palette-result"][data-selected]'),
+			).not.toBeNull(),
+		);
+		await fireEvent.keyDown(input, { key: 'Tab' });
+		await waitFor(() =>
+			expect(input.value).toBe('/projects/ThirdPersonSandbox/'),
+		);
+		await fireEvent.keyDown(input, { key: 'Enter' });
+
+		await waitFor(() =>
+			expect(addProject).toHaveBeenCalledWith('/projects/ThirdPersonSandbox'),
+		);
+	});
+
 	it('opens a workspace without opening or creating a thread', async () => {
 		const { findAllByText, findByRole } = renderApp();
 		const list = await findByRole('navigation', {

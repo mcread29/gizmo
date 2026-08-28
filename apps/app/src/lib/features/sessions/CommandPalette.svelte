@@ -194,6 +194,15 @@
 	}
 
 	function onInputKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' && mode === 'workspace' && location) {
+			// Tab completes `location` from the highlighted result. Enter must add
+			// that completed path, not activate the result currently highlighted by
+			// the command list (which may be one of its children).
+			event.preventDefault();
+			const path = location.replace(/[\\/]+$/, '');
+			if (path) void submit(path);
+			return;
+		}
 		if (event.key === 'Tab' && mode === 'workspace') {
 			const path = selectedValue.startsWith('pin:')
 				? selectedValue.slice(4)
