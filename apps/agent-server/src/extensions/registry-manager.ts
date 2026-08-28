@@ -10,47 +10,55 @@ import {
 } from 'node:fs/promises';
 import { join } from 'node:path';
 import { piAgentDir } from '../resources/pi-global-resources';
-import type { RegistryExtensionStatus, RegistryStatus } from '@gizmo/protocol';
+import type { RegistryStatus } from '@gizmo/protocol';
 
 /**
- * The extension registry: git repos the user clones into a source home,
- * builds locally (each repo declares its own build), and links into the
+ * The extension registry: git repos the user adds, which are cloned into a
+ * source home and built locally; installing is linking an extension into the
  * global Pi extensions directory. Gizmo knows nothing about what an
- * extension does — it moves files per each repo's `gizmo.registry.json`.
+ * extension does — it reads each registry's `gizmo.registry.json` and moves
+ * files.
  *
- * Registry repo convention:
- *   extensions/<name>/pi-extension.ts   ← the tool (copied as <name>.ts)
- *   extensions/<name>.web.js            ← optional built UI bundle (built by
- *                                         the repo itself, e.g. via
- *                                         pi-extensions:build)
- *   gizmo.registry.json                 ← optional overrides:
- *                                         { extensionsDir, build }
+ * Registry repo convention (see gizmo.registry.json at this repo's root):
+ *   <extensionsDir>/<id>/pi-extension.ts   ← the tool (linked as <id>.ts)
+ *   <extensionsDir>/<id>.web.js            ← optional built UI bundle
+ *   gizmo.registry.json                    ← extensionsDir + catalog metadata
  */
 
 const cloneHome = () => join(piAgentDir(), 'extensions-src');
 const extensionsDir = () => join(piAgentDir(), 'extensions');
 const manifestFile = () => join(cloneHome(), 'installed.json');
 
-interface InstalledRecord {
+interface LinkedExtension {
+	entry: string;
+	web?: string;
+}
+
+interface RegistryRecord {
 	name: string;
 	url: string;
 	commit?: string;
-	installedAt: number;
-	extensions: RegistryExtensionStatus['extensions'];
+	addedAt: number;
+	/** Extension ids linked into the Pi extensions directory. */
+	linked: string[];
 }
 
 interface RegistryManifest {
-	/** Where the registry keeps its extension directories. */
 	extensionsDir?: string;
-	/** Optional build command, run in the clone before syncing. */
+	extensions?: { id: string; name?: string; description?: string }[];
 	build?: string;
 }
 
-function runGit(command: string, args: string[], cwd: string): Promise<string> {
+function exec(command: string, args: string[], cwd: string): Promise<string> {
 	return new Promise((resolve, reject) => {
 		execFile(command, args, { cwd, windowsHide: true }, (error, stdout) => {
-			if (error) reject(new Error(String(error.message)));
-			else resolve(String(stdout));
+			if (error) {
+				const detail =
+					error.code === 'ENOENT'
+						? `${error.message} | PATH=${process.env.PATH}`
+						: String(error.message);
+				reject(new Error(detail));
+			} else resolve(String(stdout));
 		});
 	});
 }
@@ -74,15 +82,20 @@ function cloneName(url: string): string {
 	return stem || 'registry';
 }
 
-async function readManifest(): Promise<InstalledRecord[]> {
+interface InstalledRegistry extends RegistryRecord {
+	extensions: RegistryStatus['registries'][number]['extensions'];
+}
+
+async function readManifest(): Promise<InstalledRegistry[]> {
 	try {
 		const parsed = JSON.parse(await readFile(manifestFile(), 'utf8')) as {
-			installed?: InstalledRecord[];
+			registries?: InstalledRegistry[];
 		} | null;
-		return Array.isArray(parsed?.installed)
-			? parsed.installed.map((record) => ({
-					...record,
-					extensions: record.extensions ?? [],
+		return Array.isArray(parsed?.registries)
+			? parsed.registries.map((registry) => ({
+					...registry,
+					linked: registry.linked ?? [],
+					extensions: registry.extensions ?? [],
 				}))
 			: [];
 	} catch {
@@ -90,14 +103,19 @@ async function readManifest(): Promise<InstalledRecord[]> {
 	}
 }
 
-async function writeManifest(records: InstalledRecord[]): Promise<void> {
+async function writeManifest(registries: InstalledRegistry[]): Promise<void> {
 	await mkdir(cloneHome(), { recursive: true });
 	const temporary = `${manifestFile()}.tmp`;
-	await writeFile(
-		temporary,
-		`${JSON.stringify({ installed: records }, null, 2)}\n`,
-	);
+	await writeFile(temporary, `${JSON.stringify({ registries }, null, 2)}\n`);
 	await rename(temporary, manifestFile());
+}
+
+async function gitCommit(clone: string): Promise<string | undefined> {
+	try {
+		return (await exec('git', ['rev-parse', '--short', 'HEAD'], clone)).trim();
+	} catch {
+		return undefined;
+	}
 }
 
 async function readRegistryManifest(clone: string): Promise<RegistryManifest> {
@@ -108,82 +126,114 @@ async function readRegistryManifest(clone: string): Promise<RegistryManifest> {
 		return {
 			...(parsed.extensionsDir ? { extensionsDir: parsed.extensionsDir } : {}),
 			...(parsed.build ? { build: parsed.build } : {}),
+			...(Array.isArray(parsed.extensions)
+				? { extensions: parsed.extensions }
+				: {}),
 		};
 	} catch {
 		return {};
 	}
 }
 
-async function gitCommit(clone: string): Promise<string | undefined> {
-	try {
-		return (
-			await runGit('git', ['rev-parse', '--short', 'HEAD'], clone)
-		).trim();
-	} catch {
-		return undefined;
-	}
+function registryDir(clone: string, manifest: RegistryManifest): string {
+	return join(clone, manifest.extensionsDir ?? 'extensions');
 }
 
-/** Copies an extension pair from the clone into the loaded extensions dir. */
 async function syncExtension(
 	clone: string,
 	manifest: RegistryManifest,
-	name: string,
-): Promise<RegistryExtensionStatus['extensions'][number]> {
-	const dir = join(clone, manifest.extensionsDir ?? 'extensions', name);
+	id: string,
+): Promise<LinkedExtension> {
+	const dir = join(registryDir(clone, manifest), id);
 	const entrySource = join(dir, 'pi-extension.ts');
 	await readFile(entrySource); // throws with a clear ENOENT when absent
-	const entry = join(extensionsDir(), `${name}.ts`);
+	const entry = join(extensionsDir(), `${id}.ts`);
 	await copyFile(entrySource, entry);
 
 	let web: string | undefined;
-	const webSource = join(dir, `${name}.web.js`);
+	const webSource = join(registryDir(clone, manifest), `${id}.web.js`);
 	try {
 		await readFile(webSource);
-		web = join(extensionsDir(), `${name}.web.js`);
+		web = join(extensionsDir(), `${id}.web.js`);
 		await copyFile(webSource, web);
 	} catch {
 		// No UI bundle built for this extension — tool only.
 	}
-	return { id: name, entry, ...(web ? { web } : {}) };
+	return { entry, ...(web ? { web } : {}) };
 }
 
-/** Re-syncs every extension of every installed registry clone. */
-async function syncAll(records: InstalledRecord[]): Promise<void> {
-	await mkdir(extensionsDir(), { recursive: true });
-	for (const record of records) {
-		const clone = join(cloneHome(), record.name);
-		const manifest = await readRegistryManifest(clone);
-		const dir = join(clone, manifest.extensionsDir ?? 'extensions');
-		const extensions: RegistryExtensionStatus['extensions'] = [];
-		let entries;
-		try {
-			entries = await readdir(dir, { withFileTypes: true });
-		} catch {
-			record.extensions = [];
-			continue;
-		}
-		for (const entry of entries) {
-			if (!entry.isDirectory()) continue;
-			try {
-				extensions.push(await syncExtension(clone, manifest, entry.name));
-			} catch (error) {
-				console.error(
-					`Could not sync extension "${entry.name}" from ${record.name}:`,
-					error,
-				);
-			}
-		}
-		record.extensions = extensions;
+function unlinkExtension(id: string): Promise<void> {
+	return Promise.all([
+		rm(join(extensionsDir(), `${id}.ts`), { force: true }),
+		rm(join(extensionsDir(), `${id}.web.js`), { force: true }),
+	]).then(() => undefined);
+}
+
+/** Builds the catalog for one registry: available extensions + link state. */
+async function catalogFor(
+	registry: InstalledRegistry,
+): Promise<RegistryStatus['registries'][number]['extensions']> {
+	const clone = join(cloneHome(), registry.name);
+	const manifest = await readRegistryManifest(clone);
+	const dir = registryDir(clone, manifest);
+	let entries;
+	try {
+		entries = await readdir(dir, { withFileTypes: true });
+	} catch {
+		return [];
 	}
-	await writeManifest(records);
+	const meta = new Map(
+		(manifest.extensions ?? []).map((extension) => [extension.id, extension]),
+	);
+	const catalog: RegistryStatus['registries'][number]['extensions'] = [];
+	for (const entry of entries) {
+		if (!entry.isDirectory()) continue;
+		const id = entry.name;
+		const linked = registry.linked.includes(id);
+		let extensionEntry: string | undefined;
+		let web: string | undefined;
+		if (linked) {
+			extensionEntry = join(extensionsDir(), `${id}.ts`);
+			web = join(extensionsDir(), `${id}.web.js`);
+		}
+		catalog.push({
+			id,
+			name: meta.get(id)?.name ?? id,
+			description: meta.get(id)?.description,
+			linked,
+			...(extensionEntry ? { entry: extensionEntry } : {}),
+			...(web ? { web } : {}),
+		});
+	}
+	return catalog;
+}
+
+async function refreshLinked(registry: InstalledRegistry): Promise<void> {
+	const clone = join(cloneHome(), registry.name);
+	const manifest = await readRegistryManifest(clone);
+	for (const id of registry.linked) {
+		try {
+			await syncExtension(clone, manifest, id);
+		} catch (error) {
+			console.error(`Could not sync extension "${id}":`, error);
+		}
+	}
 }
 
 export async function registryStatus(): Promise<RegistryStatus> {
-	return { home: cloneHome(), installed: await readManifest() };
+	const registries = await readManifest();
+	return {
+		home: cloneHome(),
+		registries: await Promise.all(
+			registries.map(async (registry) => ({
+				...registry,
+				extensions: await catalogFor(registry),
+			})),
+		),
+	};
 }
 
-export async function registryInstall(url: string): Promise<RegistryStatus> {
+export async function registryAdd(url: string): Promise<RegistryStatus> {
 	const name = cloneName(url);
 	const clone = join(cloneHome(), name);
 	if (
@@ -191,50 +241,77 @@ export async function registryInstall(url: string): Promise<RegistryStatus> {
 			.then(() => true)
 			.catch(() => false)
 	) {
-		throw new Error(`"${name}" is already installed`);
+		throw new Error(`A registry named "${name}" already exists`);
 	}
 
 	await mkdir(cloneHome(), { recursive: true });
 	const cloneArgs = ['clone', '--depth', '1', url, clone];
-	await runGit('git', cloneArgs, clone);
+	// cwd must exist at spawn time — git creates the target itself.
+	await exec('git', cloneArgs, cloneHome());
 
-	const manifest = await readRegistryManifest(clone);
-	if (manifest.build) await runBuild(manifest.build, clone);
-
-	const records = await readManifest();
-	records.push({
+	const registries = await readManifest();
+	registries.push({
 		name,
 		url,
 		commit: await gitCommit(clone),
-		installedAt: Date.now(),
+		addedAt: Date.now(),
+		linked: [],
 		extensions: [],
 	});
-	await syncAll(records);
+	await writeManifest(registries);
 	return registryStatus();
 }
 
 export async function registryUpdate(name: string): Promise<RegistryStatus> {
-	const records = await readManifest();
-	const record = records.find((candidate) => candidate.name === name);
-	if (!record) throw new Error(`"${name}" is not installed`);
+	const registries = await readManifest();
+	const registry = registries.find((candidate) => candidate.name === name);
+	if (!registry) throw new Error(`Registry "${name}" does not exist`);
 	const clone = join(cloneHome(), name);
-	await runGit('git', ['pull', '--ff-only'], clone);
+	await exec('git', ['pull', '--ff-only'], clone);
 	const manifest = await readRegistryManifest(clone);
 	if (manifest.build) await runBuild(manifest.build, clone);
-	record.commit = await gitCommit(clone);
-	record.installedAt = Date.now();
-	await syncAll(records);
+	registry.commit = await gitCommit(clone);
+	await refreshLinked(registry);
+	await writeManifest(registries);
 	return registryStatus();
 }
 
 export async function registryRemove(name: string): Promise<RegistryStatus> {
-	const records = await readManifest();
-	if (!records.some((candidate) => candidate.name === name)) {
-		throw new Error(`"${name}" is not installed`);
-	}
-	// Remove the loaded artifacts; the clone stays for reinstalls.
-	await rm(join(extensionsDir(), `${name}.ts`), { force: true });
-	await rm(join(extensionsDir(), `${name}.web.js`), { force: true });
-	await writeManifest(records.filter((candidate) => candidate.name !== name));
+	const registries = await readManifest();
+	const registry = registries.find((candidate) => candidate.name === name);
+	if (!registry) throw new Error(`Registry "${name}" does not exist`);
+	for (const id of registry.linked) await unlinkExtension(id);
+	await rm(join(cloneHome(), name), { recursive: true, force: true });
+	await writeManifest(
+		registries.filter((candidate) => candidate.name !== name),
+	);
+	return registryStatus();
+}
+
+export async function registryLink(
+	name: string,
+	id: string,
+): Promise<RegistryStatus> {
+	const registries = await readManifest();
+	const registry = registries.find((candidate) => candidate.name === name);
+	if (!registry) throw new Error(`Registry "${name}" does not exist`);
+	if (!registry.linked.includes(id)) registry.linked.push(id);
+	const clone = join(cloneHome(), name);
+	const manifest = await readRegistryManifest(clone);
+	await syncExtension(clone, manifest, id);
+	await writeManifest(registries);
+	return registryStatus();
+}
+
+export async function registryUnlink(
+	name: string,
+	id: string,
+): Promise<RegistryStatus> {
+	const registries = await readManifest();
+	const registry = registries.find((candidate) => candidate.name === name);
+	if (!registry) throw new Error(`Registry "${name}" does not exist`);
+	registry.linked = registry.linked.filter((linked) => linked !== id);
+	await unlinkExtension(id);
+	await writeManifest(registries);
 	return registryStatus();
 }
