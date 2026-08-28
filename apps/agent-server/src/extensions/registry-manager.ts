@@ -78,6 +78,7 @@ function runBuild(command: string, cwd: string): Promise<void> {
 
 function cloneName(url: string): string {
 	const stem = url
+		.replaceAll('\\', '/')
 		.replace(/\.git$/, '')
 		.split('/')
 		.pop()!
@@ -229,7 +230,10 @@ export async function registryStatus(): Promise<RegistryStatus> {
 		home: cloneHome(),
 		registries: await Promise.all(
 			registries.map(async (registry) => ({
-				...registry,
+				name: registry.name,
+				url: registry.url,
+				...(registry.commit ? { commit: registry.commit } : {}),
+				addedAt: registry.addedAt,
 				extensions: await catalogFor(registry),
 			})),
 		),
