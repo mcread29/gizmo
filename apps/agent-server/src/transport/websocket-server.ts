@@ -14,8 +14,13 @@ import {
 	webExtensionBundles,
 } from '../extensions/web-bundles';
 import { piAgentDir } from '../resources/pi-global-resources';
+import {
+	registryInstall,
+	registryRemove,
+	registryStatus,
+	registryUpdate,
+} from '../extensions/registry-manager';
 import { defaultDataDir } from '../sessions/session-repository';
-import { seededPiExtensionPaths } from '../pi-extensions/seed';
 import { PiAgentService } from '../sessions/pi-agent-service';
 import { GitService } from '@gizmo/git/server';
 import { ExtensionHostService } from '../extensions/extension-host-service';
@@ -452,6 +457,14 @@ async function dispatch(
 					request.enabled,
 				),
 			};
+		case 'registry.status':
+			return { result: await registryStatus() };
+		case 'registry.install':
+			return { result: await registryInstall(request.url) };
+		case 'registry.update':
+			return { result: await registryUpdate(request.name) };
+		case 'registry.remove':
+			return { result: await registryRemove(request.name) };
 		case 'tools.policy.get':
 			return { result: await service.getToolPolicy(request.workspacePath) };
 		case 'tools.policy.global.set':
@@ -491,18 +504,12 @@ async function dispatch(
 		case 'extensions.web': {
 			// Pi extensions ship their UI as a sibling <stem>.web.js; served
 			// paired by stem alongside the Gizmo extension bundles.
-			const piWebMode = process.env.GIZMO_PI_WEB === '1';
-			const dataDir = piWebMode ? piAgentDir() : defaultDataDir();
-			// Seed before listing so a fresh install serves its UI bundles
-			// from the first startup, before any session exists.
-			await seededPiExtensionPaths(dataDir);
-			const [gizmo, pi] = await Promise.all([
-				webExtensionBundles(registeredExtensions()),
-				piExtensionWebBundles([
-					join(piAgentDir(), 'extensions'),
-					join(dataDir, 'pi-extensions'),
-				]),
+			// Pi extensions may ship a sibling <stem>.web.js UI bundle; served
+			// paired by stem from the agent dir's extensions.
+			const pi = await piExtensionWebBundles([
+				join(piAgentDir(), 'extensions'),
 			]);
+			const gizmo = await webExtensionBundles(registeredExtensions());
 			return {
 				result: {
 					bundles: [...gizmo.bundles, ...pi.bundles],

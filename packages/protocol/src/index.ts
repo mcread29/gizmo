@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const protocolVersion = 24 as const;
+export const protocolVersion = 25 as const;
 
 const sessionTitleLimit = 48;
 
@@ -868,6 +868,47 @@ export const extensionUiResponseSchema = Type.Union([
 
 export type ExtensionUiResponse = Static<typeof extensionUiResponseSchema>;
 
+export const registryExtensionStatusSchema = Type.Object(
+	{
+		name: Type.String({ minLength: 1 }),
+		url: Type.String({ minLength: 1 }),
+		commit: Type.Optional(Type.String()),
+		installedAt: Type.Integer({ minimum: 0 }),
+		extensions: Type.Array(
+			Type.Object(
+				{
+					id: Type.String({ minLength: 1 }),
+					entry: Type.String({ minLength: 1 }),
+					web: Type.Optional(Type.String()),
+				},
+				{ additionalProperties: false },
+			),
+		),
+	},
+	{ additionalProperties: false },
+);
+
+export type RegistryExtensionStatus = Static<
+	typeof registryExtensionStatusSchema
+>;
+
+export const registryStatusSchema = Type.Object(
+	{
+		home: Type.String({ minLength: 1 }),
+		installed: Type.Array(registryExtensionStatusSchema),
+	},
+	{ additionalProperties: false },
+);
+
+export type RegistryStatus = Static<typeof registryStatusSchema>;
+
+export function parseRegistryStatus(input: unknown): RegistryStatus {
+	if (!Value.Check(registryStatusSchema, input)) {
+		throw new ProtocolValidationError('response', input);
+	}
+	return input;
+}
+
 export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{ ...envelope, type: Type.Literal('providers.list') },
@@ -1254,6 +1295,37 @@ export const agentRequestSchema = Type.Union([
 			skillId: Type.String({ minLength: 1, maxLength: 200 }),
 			/** Null clears the override so the global setting applies again. */
 			enabled: Type.Union([Type.Boolean(), Type.Null()]),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('registry.status'),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('registry.install'),
+			url: Type.String({ minLength: 1, maxLength: 2_000 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('registry.update'),
+			name: Type.String({ minLength: 1, maxLength: 200 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('registry.remove'),
+			name: Type.String({ minLength: 1, maxLength: 200 }),
 		},
 		{ additionalProperties: false },
 	),

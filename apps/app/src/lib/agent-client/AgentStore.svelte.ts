@@ -20,6 +20,7 @@ import {
 	type StoredProject,
 	type ProjectDomains,
 	type ProjectConfig,
+	type RegistryStatus,
 	type ToolPolicy,
 	type WorkspaceDirectoryListing,
 	type ProjectStatus,
@@ -403,6 +404,62 @@ export class AgentStore {
 			...this.projects.filter(({ path }) => path !== project.path),
 		];
 		return project;
+	}
+
+	// --- Extension registry: clone/build/link pi extension packages ---------
+	registryStatus = $state<RegistryStatus>();
+	registryBusy = $state(false);
+	registryError = $state<string>();
+
+	async refreshRegistry(): Promise<void> {
+		if (this.connection !== 'connected') return;
+		this.registryBusy = true;
+		this.registryError = undefined;
+		try {
+			this.registryStatus = await this.#client.registryStatus();
+		} catch (error) {
+			this.registryError = errorMessage(error);
+		} finally {
+			this.registryBusy = false;
+		}
+	}
+
+	async registryInstall(url: string): Promise<boolean> {
+		this.registryBusy = true;
+		this.registryError = undefined;
+		try {
+			this.registryStatus = await this.#client.registryInstall(url);
+			return true;
+		} catch (error) {
+			this.registryError = errorMessage(error);
+			return false;
+		} finally {
+			this.registryBusy = false;
+		}
+	}
+
+	async registryUpdate(name: string): Promise<boolean> {
+		return this.#registryAction(() => this.#client.registryUpdate(name));
+	}
+
+	async registryRemove(name: string): Promise<boolean> {
+		return this.#registryAction(() => this.#client.registryRemove(name));
+	}
+
+	async #registryAction(
+		action: () => Promise<RegistryStatus>,
+	): Promise<boolean> {
+		this.registryBusy = true;
+		this.registryError = undefined;
+		try {
+			this.registryStatus = await action();
+			return true;
+		} catch (error) {
+			this.registryError = errorMessage(error);
+			return false;
+		} finally {
+			this.registryBusy = false;
+		}
 	}
 
 	/**

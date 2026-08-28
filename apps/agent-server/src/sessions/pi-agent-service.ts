@@ -42,7 +42,6 @@ import {
 import { extensionResourceRoots } from '../resources/extension-resources';
 import { attachmentPrompt } from '../attachments/attachment-message';
 import { createRunScriptTool } from '../scripts/run-script-tool';
-import { seededPiExtensionPaths } from '../pi-extensions/seed';
 import { ProjectCatalog } from '../projects/project-catalog';
 import { ResourceCatalogService } from '../resources/resource-catalog';
 import {
@@ -983,20 +982,16 @@ const createDefaultPiSession: PiSessionFactory = async (
 		agentsFiles,
 		fromExtensions,
 		piExtensionPaths,
-		shippedPiExtensionPaths,
 	] = await Promise.all([
 		catalog.enabledSkillPaths(cwd),
 		existingDirectories(resourceRoots(cwd).prompts),
 		readAgentsFiles(cwd),
 		extensionResourceRoots(registeredExtensions()),
 		enabledPiExtensionPaths(new Set(options.disabledPiExtensions ?? [])),
-		seededPiExtensionPaths(agentDir),
 	]);
 	const managedResourceOptions = {
 		noExtensions: true,
-		// Shipped first-party extensions load after the user's own, so a
-		// same-named extension in the agent dir takes precedence.
-		additionalExtensionPaths: [...piExtensionPaths, ...shippedPiExtensionPaths],
+		additionalExtensionPaths: piExtensionPaths,
 		noSkills: true,
 		additionalSkillPaths: skillPaths,
 		noPromptTemplates: true,

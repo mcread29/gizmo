@@ -27,6 +27,7 @@ import {
 	type StoredProject,
 	type ProjectDomains,
 	type ProjectConfig,
+	type RegistryStatus,
 	type ToolPolicy,
 	type WorkspaceDirectoryListing,
 	type UnityStatus,
@@ -827,6 +828,32 @@ export class FakeAgentClient implements AgentClient {
 		return this.#catalog();
 	}
 
+	async registryStatus(): Promise<RegistryStatus> {
+		return { home: '/home/dev/.pi/agent/extensions-src', installed: [] };
+	}
+
+	async registryInstall(url: string): Promise<RegistryStatus> {
+		return {
+			home: '/home/dev/.pi/agent/extensions-src',
+			installed: [
+				{
+					name: url
+						.split('/')
+						.pop()!
+						.replace(/\.git$/, ''),
+					url,
+					installedAt: Date.now(),
+					extensions: [],
+				},
+			],
+		};
+	}
+	async registryUpdate(): Promise<RegistryStatus> {
+		return { home: '/home/dev/.pi/agent/extensions-src', installed: [] };
+	}
+	async registryRemove(): Promise<RegistryStatus> {
+		return { home: '/home/dev/.pi/agent/extensions-src', installed: [] };
+	}
 	async setGlobalGizmoExtension(
 		gizmoExtensionId: string,
 		enabled: boolean,

@@ -2,6 +2,7 @@
 	import {
 		FolderCog,
 		Info,
+		Puzzle,
 		MessageSquare,
 		Palette,
 		Plug,
@@ -22,6 +23,7 @@
 	import SettingsNav, { type SettingsNavItem } from './SettingsNav.svelte';
 	import AgentSettings from './AgentSettings.svelte';
 	import ProvidersSettings from './ProvidersSettings.svelte';
+import ExtensionsSettings from './ExtensionsSettings.svelte';
 	import SkillsSettings from './SkillsSettings.svelte';
 
 	interface Props {
@@ -98,6 +100,7 @@
 					icon: BookOpenText,
 					...(skillCount ? { badge: skillCount } : {}),
 				},
+				{ page: 'extensions', label: 'Extensions', icon: Puzzle },
 			] satisfies SettingsNavItem[],
 		},
 		{
@@ -141,6 +144,8 @@
 						<ProvidersSettings {store} />
 					{:else if page === 'skills'}
 						<SkillsSettings {store} bind:dirty />
+					{:else if page === 'extensions'}
+						<ExtensionsSettings {store} />
 					{:else}
 						<AboutSettings {layout} {version} />
 					{/if}

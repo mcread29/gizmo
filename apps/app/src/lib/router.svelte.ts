@@ -11,6 +11,7 @@ export const settingsPages = [
 	'providers',
 	'agent',
 	'skills',
+	'extensions',
 	'about',
 ] as const;
 

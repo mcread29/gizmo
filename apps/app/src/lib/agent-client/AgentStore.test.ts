@@ -5,6 +5,7 @@ import {
 	type GitCommitResult,
 	type GitStatus,
 	type ProjectConfig,
+	type RegistryStatus,
 	type ResourceCatalog,
 	type SessionCatalog,
 	type SessionOptions,
@@ -67,6 +68,18 @@ class InvalidEventClient implements AgentClient {
 	async steer() {}
 	async abort() {}
 	async resolveExtensionUi() {}
+	async registryStatus(): Promise<RegistryStatus> {
+		return { home: '/registry', installed: [] };
+	}
+	async registryInstall(): Promise<RegistryStatus> {
+		return { home: '/registry', installed: [] };
+	}
+	async registryUpdate(): Promise<RegistryStatus> {
+		return { home: '/registry', installed: [] };
+	}
+	async registryRemove(): Promise<RegistryStatus> {
+		return { home: '/registry', installed: [] };
+	}
 	async resolveConfirmation() {}
 	async deleteSession() {}
 	async readAttachment(): Promise<{

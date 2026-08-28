@@ -15,6 +15,7 @@ import type {
 	StoredProject,
 	ProjectConfig,
 	ProjectDomains,
+	RegistryStatus,
 	ToolPolicy,
 	WorkspaceDirectoryListing,
 	ProviderStatus,
@@ -129,6 +130,10 @@ export interface AgentClient {
 		gizmoExtensionId: string,
 		enabled: boolean,
 	): Promise<ResourceCatalog>;
+	registryStatus(): Promise<RegistryStatus>;
+	registryInstall(url: string): Promise<RegistryStatus>;
+	registryUpdate(name: string): Promise<RegistryStatus>;
+	registryRemove(name: string): Promise<RegistryStatus>;
 	readSkill(path: string): Promise<SkillFile>;
 	writeSkill(path: string, content: string): Promise<SkillFile>;
 	setGlobalExtension(

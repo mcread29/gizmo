@@ -12,6 +12,7 @@ import {
 	parseProjectStatus,
 	parseStoredProjects,
 	parseProjectConfig,
+	parseRegistryStatus,
 	parseProjectDomains,
 	parseResourceCatalog,
 	parseWorkspaceDirectoryListing,
@@ -36,6 +37,7 @@ import {
 	type StoredProject,
 	type ProjectDomains,
 	type ProjectConfig,
+	type RegistryStatus,
 	type ResourceCatalog,
 	type SkillFile,
 	parseToolPolicy,
@@ -480,6 +482,26 @@ export class WebSocketAgentClient implements AgentClient {
 			enabled,
 		});
 		return parseResourceCatalog(response.result);
+	}
+
+	async registryStatus(): Promise<RegistryStatus> {
+		const response = await this.#request({ type: 'registry.status' });
+		return parseRegistryStatus(response.result);
+	}
+
+	async registryInstall(url: string): Promise<RegistryStatus> {
+		const response = await this.#request({ type: 'registry.install', url });
+		return parseRegistryStatus(response.result);
+	}
+
+	async registryUpdate(name: string): Promise<RegistryStatus> {
+		const response = await this.#request({ type: 'registry.update', name });
+		return parseRegistryStatus(response.result);
+	}
+
+	async registryRemove(name: string): Promise<RegistryStatus> {
+		const response = await this.#request({ type: 'registry.remove', name });
+		return parseRegistryStatus(response.result);
 	}
 
 	async setGlobalGizmoExtension(

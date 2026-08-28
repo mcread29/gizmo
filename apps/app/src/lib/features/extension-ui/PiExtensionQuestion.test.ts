@@ -14,7 +14,7 @@ function stubUi(respond: ReturnType<typeof vi.fn>) {
 function selectDialog(): PiExtensionDialog {
 	return {
 		type: 'extension.ui.requested',
-		protocolVersion: 24,
+		protocolVersion: 25,
 		eventId: 1,
 		sessionId: 'session-1',
 		runtimeId: 'runtime-1',
@@ -30,7 +30,7 @@ function selectDialog(): PiExtensionDialog {
 function inputDialog(): PiExtensionDialog {
 	return {
 		type: 'extension.ui.requested',
-		protocolVersion: 24,
+		protocolVersion: 25,
 		eventId: 2,
 		sessionId: 'session-1',
 		runtimeId: 'runtime-1',
