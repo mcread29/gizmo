@@ -868,34 +868,38 @@ export const extensionUiResponseSchema = Type.Union([
 
 export type ExtensionUiResponse = Static<typeof extensionUiResponseSchema>;
 
-export const registryExtensionStatusSchema = Type.Object(
+export const registryCatalogEntrySchema = Type.Object(
 	{
+		id: Type.String({ minLength: 1 }),
 		name: Type.String({ minLength: 1 }),
-		url: Type.String({ minLength: 1 }),
-		commit: Type.Optional(Type.String()),
-		installedAt: Type.Integer({ minimum: 0 }),
-		extensions: Type.Array(
-			Type.Object(
-				{
-					id: Type.String({ minLength: 1 }),
-					entry: Type.String({ minLength: 1 }),
-					web: Type.Optional(Type.String()),
-				},
-				{ additionalProperties: false },
-			),
-		),
+		description: Type.Optional(Type.String()),
+		linked: Type.Boolean(),
+		/** Present when the extension is linked into the Pi extensions dir. */
+		entry: Type.Optional(Type.String({ minLength: 1 })),
+		web: Type.Optional(Type.String({ minLength: 1 })),
 	},
 	{ additionalProperties: false },
 );
 
-export type RegistryExtensionStatus = Static<
-	typeof registryExtensionStatusSchema
->;
+export type RegistryCatalogEntry = Static<typeof registryCatalogEntrySchema>;
+
+export const registryInfoSchema = Type.Object(
+	{
+		name: Type.String({ minLength: 1 }),
+		url: Type.String({ minLength: 1 }),
+		commit: Type.Optional(Type.String()),
+		addedAt: Type.Integer({ minimum: 0 }),
+		extensions: Type.Array(registryCatalogEntrySchema),
+	},
+	{ additionalProperties: false },
+);
+
+export type RegistryInfo = Static<typeof registryInfoSchema>;
 
 export const registryStatusSchema = Type.Object(
 	{
 		home: Type.String({ minLength: 1 }),
-		installed: Type.Array(registryExtensionStatusSchema),
+		registries: Type.Array(registryInfoSchema),
 	},
 	{ additionalProperties: false },
 );
@@ -1308,7 +1312,7 @@ export const agentRequestSchema = Type.Union([
 	Type.Object(
 		{
 			...envelope,
-			type: Type.Literal('registry.install'),
+			type: Type.Literal('registry.add'),
 			url: Type.String({ minLength: 1, maxLength: 2_000 }),
 		},
 		{ additionalProperties: false },
@@ -1317,7 +1321,7 @@ export const agentRequestSchema = Type.Union([
 		{
 			...envelope,
 			type: Type.Literal('registry.update'),
-			name: Type.String({ minLength: 1, maxLength: 200 }),
+			registry: Type.String({ minLength: 1, maxLength: 200 }),
 		},
 		{ additionalProperties: false },
 	),
@@ -1325,7 +1329,25 @@ export const agentRequestSchema = Type.Union([
 		{
 			...envelope,
 			type: Type.Literal('registry.remove'),
-			name: Type.String({ minLength: 1, maxLength: 200 }),
+			registry: Type.String({ minLength: 1, maxLength: 200 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('registry.link'),
+			registry: Type.String({ minLength: 1, maxLength: 200 }),
+			id: Type.String({ minLength: 1, maxLength: 200 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('registry.unlink'),
+			registry: Type.String({ minLength: 1, maxLength: 200 }),
+			id: Type.String({ minLength: 1, maxLength: 200 }),
 		},
 		{ additionalProperties: false },
 	),

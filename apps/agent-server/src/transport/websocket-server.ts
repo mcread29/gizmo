@@ -15,9 +15,11 @@ import {
 } from '../extensions/web-bundles';
 import { piAgentDir } from '../resources/pi-global-resources';
 import {
-	registryInstall,
+	registryAdd,
+	registryLink,
 	registryRemove,
 	registryStatus,
+	registryUnlink,
 	registryUpdate,
 } from '../extensions/registry-manager';
 import { defaultDataDir } from '../sessions/session-repository';
@@ -459,12 +461,20 @@ async function dispatch(
 			};
 		case 'registry.status':
 			return { result: await registryStatus() };
-		case 'registry.install':
-			return { result: await registryInstall(request.url) };
+		case 'registry.add':
+			return { result: await registryAdd(request.url) };
 		case 'registry.update':
-			return { result: await registryUpdate(request.name) };
+			return { result: await registryUpdate(request.registry) };
 		case 'registry.remove':
-			return { result: await registryRemove(request.name) };
+			return { result: await registryRemove(request.registry) };
+		case 'registry.link':
+			return {
+				result: await registryLink(request.registry, request.id),
+			};
+		case 'registry.unlink':
+			return {
+				result: await registryUnlink(request.registry, request.id),
+			};
 		case 'tools.policy.get':
 			return { result: await service.getToolPolicy(request.workspacePath) };
 		case 'tools.policy.global.set':

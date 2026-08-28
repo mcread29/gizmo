@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { RefreshCw, Download, Trash2, GitBranch } from '@lucide/svelte';
-	import type { RegistryExtensionStatus } from '@gizmo/protocol';
+	import {
+		RefreshCw,
+		Download,
+		Trash2,
+		GitBranch,
+		Link2,
+		Unlink2,
+	} from '@lucide/svelte';
+	import type { RegistryInfo } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
 	import SettingsPage from './SettingsPage.svelte';
@@ -14,33 +21,43 @@
 		void store.refreshRegistry();
 	});
 
-	let installed = $derived(store.registryStatus?.installed ?? []);
+	let registries = $derived(store.registryStatus?.registries ?? []);
 
-	async function install(event: SubmitEvent) {
+	async function add(event: SubmitEvent) {
 		event.preventDefault();
 		if (!url.trim()) return;
-		const done = await store.registryInstall(url.trim());
+		const done = await store.registryAdd(url.trim());
 		if (done) url = '';
 	}
 
-	async function update(extension: RegistryExtensionStatus) {
-		await store.registryUpdate(extension.name);
+	async function update(registry: RegistryInfo) {
+		await store.registryUpdate(registry.name);
 	}
 
-	async function remove(extension: RegistryExtensionStatus) {
-		await store.registryRemove(extension.name);
+	async function remove(registry: RegistryInfo) {
+		await store.registryRemove(registry.name);
+	}
+
+	async function toggle(
+		registry: RegistryInfo,
+		extension: { id: string; linked: boolean },
+	) {
+		if (extension.linked) {
+			await store.registryUnlink(registry.name, extension.id);
+		} else {
+			await store.registryLink(registry.name, extension.id);
+		}
 	}
 </script>
 
 <SettingsPage
 	title="Extensions"
-	scope="Git-hosted Pi extensions, cloned locally and linked into Pi"
+	scope="Git registries cloned locally; linking installs an extension into Pi"
 >
 	<p data-ui="resource-detail">
-		Extensions are git repositories cloned to
-		<code>{store.registryStatus?.home ?? '…'}</code> and built locally. A repo's
-		<code>gizmo.registry.json</code> may declare a build command and the directory
-		its extensions live in.
+		Extensions live in git registries. Adding a registry clones it to
+		<code>{store.registryStatus?.home ?? '…'}</code>; linking an extension
+		copies it and its UI into Pi's extensions directory.
 	</p>
 
 	{#if store.registryError}
@@ -48,106 +65,107 @@
 	{/if}
 
 	<div data-ui="settings-subhead">
-		<strong>Install from git URL</strong>
+		<strong>Add a registry</strong>
 		<span
-			>Clones the repository, builds it, and links its extensions into Pi.</span
+			>A git URL whose <code>gizmo.registry.json</code> lists its extensions.</span
 		>
 	</div>
 	<div data-ui="settings-card">
-		<form class="registry-install" onsubmit={install}>
+		<form class="registry-add" onsubmit={add}>
 			<input
 				data-ui="text-input"
 				placeholder="https://github.com/you/pi-extensions.git"
 				bind:value={url}
 				disabled={store.registryBusy}
-				aria-label="Extension repository URL"
+				aria-label="Registry repository URL"
 			/>
 			<Button type="submit" disabled={store.registryBusy || !url.trim()}>
-				<Download size={14} /> Install
+				<Download size={14} /> Add
 			</Button>
 		</form>
 	</div>
 
-	<div data-ui="settings-subhead">
-		<strong>Installed registries</strong>
-		<span>Each entry is one cloned repository and the extensions it links.</span
-		>
-	</div>
-
-	{#if store.registryBusy && installed.length === 0}
+	{#if store.registryBusy && registries.length === 0}
 		<div data-ui="settings-card">
 			<p data-ui="resource-empty">Loading…</p>
 		</div>
-	{:else if installed.length === 0}
+	{:else if registries.length === 0}
 		<div data-ui="settings-card">
 			<p data-ui="resource-empty">
-				Nothing installed yet. Paste a repository URL above to install your
-				first extensions.
+				No registries added yet. Gizmo ships without extensions — add one above
+				to install tools and their UI.
 			</p>
 		</div>
-	{:else}
-		{#each installed as registry (registry.name)}
-			<div data-ui="settings-card">
-				<div data-ui="setting-field">
-					<div>
-						<strong>
-							<GitBranch size={13} />
-							{registry.name}
-						</strong>
-						<span data-ui="resource-detail" title={registry.url}
-							>{registry.url}{registry.commit
-								? ` · ${registry.commit}`
-								: ''}</span
-						>
-					</div>
-					<div class="registry-actions">
-						<Button
-							variant="secondary"
-							size="sm"
-							disabled={store.registryBusy}
-							onclick={() => void update(registry)}
-						>
-							<RefreshCw size={13} /> Update
-						</Button>
-						<Button
-							variant="danger"
-							size="sm"
-							disabled={store.registryBusy}
-							onclick={() => void remove(registry)}
-						>
-							<Trash2 size={13} /> Remove
-						</Button>
-					</div>
+	{/if}
+
+	{#each registries as registry (registry.name)}
+		<div data-ui="settings-card">
+			<div data-ui="setting-field">
+				<div>
+					<strong><GitBranch size={13} /> {registry.name}</strong>
+					<span data-ui="resource-detail" title={registry.url}
+						>{registry.url}{registry.commit
+							? ` · ${registry.commit}`
+							: ''}</span
+					>
 				</div>
-				<div data-ui="integration-list">
-					{#each registry.extensions as extension (extension.id)}
-						<div data-ui="integration-row">
-							<span>
-								<strong>{extension.id}</strong>
-								<small
-									data-ui="resource-detail"
-									title={extension.web ?? extension.entry}
-								>
-									{extension.web ? 'tool + UI' : 'tool'}
-								</small>
-							</span>
-						</div>
-					{:else}
-						<p data-ui="resource-empty">No extensions synced from this repo.</p>
-					{/each}
+				<div class="registry-actions">
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={store.registryBusy}
+						onclick={() => void update(registry)}
+					>
+						<RefreshCw size={13} /> Update
+					</Button>
+					<Button
+						variant="danger"
+						size="sm"
+						disabled={store.registryBusy}
+						onclick={() => void remove(registry)}
+					>
+						<Trash2 size={13} /> Remove
+					</Button>
 				</div>
 			</div>
-		{/each}
-	{/if}
+
+			<div data-ui="integration-list">
+				{#each registry.extensions as extension (extension.id)}
+					<div
+						data-ui="integration-row"
+						data-changed={extension.linked || undefined}
+					>
+						<span>
+							<strong>{extension.name}</strong>
+							{#if extension.description}
+								<small data-ui="resource-detail">{extension.description}</small>
+							{/if}
+						</span>
+						<Button
+							variant={extension.linked ? 'ghost' : 'secondary'}
+							size="sm"
+							disabled={store.registryBusy}
+							onclick={() => void toggle(registry, extension)}
+						>
+							{#if extension.linked}<Unlink2 size={13} /> Unlink{:else}
+								<Link2 size={13} /> Install{/if}
+						</Button>
+					</div>
+				{:else}
+					<p data-ui="resource-empty">No extensions in this registry.</p>
+				{/each}
+			</div>
+		</div>
+	{/each}
 </SettingsPage>
 
 <style>
-	.registry-install {
+	.registry-add {
 		display: flex;
 		gap: var(--space-2);
 	}
 
-	.registry-install [data-ui='text-input'] {
+	.registry-add [data-ui='text-input'] {
 		flex: 1;
 		width: auto;
 	}

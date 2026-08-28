@@ -829,30 +829,43 @@ export class FakeAgentClient implements AgentClient {
 	}
 
 	async registryStatus(): Promise<RegistryStatus> {
-		return { home: '/home/dev/.pi/agent/extensions-src', installed: [] };
+		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
 	}
 
-	async registryInstall(url: string): Promise<RegistryStatus> {
+	async registryAdd(url: string): Promise<RegistryStatus> {
 		return {
 			home: '/home/dev/.pi/agent/extensions-src',
-			installed: [
+			registries: [
 				{
 					name: url
 						.split('/')
 						.pop()!
 						.replace(/\.git$/, ''),
 					url,
-					installedAt: Date.now(),
-					extensions: [],
+					addedAt: Date.now(),
+					extensions: [
+						{
+							id: 'ask-user',
+							name: 'Ask the user',
+							description: 'Multiple-choice questions with a native chat card',
+							linked: false,
+						},
+					],
 				},
 			],
 		};
 	}
 	async registryUpdate(): Promise<RegistryStatus> {
-		return { home: '/home/dev/.pi/agent/extensions-src', installed: [] };
+		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
 	}
 	async registryRemove(): Promise<RegistryStatus> {
-		return { home: '/home/dev/.pi/agent/extensions-src', installed: [] };
+		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
+	}
+	async registryLink(): Promise<RegistryStatus> {
+		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
+	}
+	async registryUnlink(): Promise<RegistryStatus> {
+		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
 	}
 	async setGlobalGizmoExtension(
 		gizmoExtensionId: string,

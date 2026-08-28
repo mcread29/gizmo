@@ -69,16 +69,22 @@ class InvalidEventClient implements AgentClient {
 	async abort() {}
 	async resolveExtensionUi() {}
 	async registryStatus(): Promise<RegistryStatus> {
-		return { home: '/registry', installed: [] };
+		return { home: '/registry', registries: [] };
 	}
-	async registryInstall(): Promise<RegistryStatus> {
-		return { home: '/registry', installed: [] };
+	async registryAdd(): Promise<RegistryStatus> {
+		return { home: '/registry', registries: [] };
 	}
 	async registryUpdate(): Promise<RegistryStatus> {
-		return { home: '/registry', installed: [] };
+		return { home: '/registry', registries: [] };
 	}
 	async registryRemove(): Promise<RegistryStatus> {
-		return { home: '/registry', installed: [] };
+		return { home: '/registry', registries: [] };
+	}
+	async registryLink(): Promise<RegistryStatus> {
+		return { home: '/registry', registries: [] };
+	}
+	async registryUnlink(): Promise<RegistryStatus> {
+		return { home: '/registry', registries: [] };
 	}
 	async resolveConfirmation() {}
 	async deleteSession() {}

@@ -489,18 +489,42 @@ export class WebSocketAgentClient implements AgentClient {
 		return parseRegistryStatus(response.result);
 	}
 
-	async registryInstall(url: string): Promise<RegistryStatus> {
-		const response = await this.#request({ type: 'registry.install', url });
+	async registryAdd(url: string): Promise<RegistryStatus> {
+		const response = await this.#request({ type: 'registry.add', url });
 		return parseRegistryStatus(response.result);
 	}
 
-	async registryUpdate(name: string): Promise<RegistryStatus> {
-		const response = await this.#request({ type: 'registry.update', name });
+	async registryUpdate(registry: string): Promise<RegistryStatus> {
+		const response = await this.#request({
+			type: 'registry.update',
+			registry,
+		});
 		return parseRegistryStatus(response.result);
 	}
 
-	async registryRemove(name: string): Promise<RegistryStatus> {
-		const response = await this.#request({ type: 'registry.remove', name });
+	async registryRemove(registry: string): Promise<RegistryStatus> {
+		const response = await this.#request({
+			type: 'registry.remove',
+			registry,
+		});
+		return parseRegistryStatus(response.result);
+	}
+
+	async registryLink(registry: string, id: string): Promise<RegistryStatus> {
+		const response = await this.#request({
+			type: 'registry.link',
+			registry,
+			id,
+		});
+		return parseRegistryStatus(response.result);
+	}
+
+	async registryUnlink(registry: string, id: string): Promise<RegistryStatus> {
+		const response = await this.#request({
+			type: 'registry.unlink',
+			registry,
+			id,
+		});
 		return parseRegistryStatus(response.result);
 	}
 

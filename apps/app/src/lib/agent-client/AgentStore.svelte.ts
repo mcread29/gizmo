@@ -424,11 +424,11 @@ export class AgentStore {
 		}
 	}
 
-	async registryInstall(url: string): Promise<boolean> {
+	async registryAdd(url: string): Promise<boolean> {
 		this.registryBusy = true;
 		this.registryError = undefined;
 		try {
-			this.registryStatus = await this.#client.registryInstall(url);
+			this.registryStatus = await this.#client.registryAdd(url);
 			return true;
 		} catch (error) {
 			this.registryError = errorMessage(error);
@@ -438,12 +438,22 @@ export class AgentStore {
 		}
 	}
 
-	async registryUpdate(name: string): Promise<boolean> {
-		return this.#registryAction(() => this.#client.registryUpdate(name));
+	async registryUpdate(registry: string): Promise<boolean> {
+		return this.#registryAction(() => this.#client.registryUpdate(registry));
 	}
 
-	async registryRemove(name: string): Promise<boolean> {
-		return this.#registryAction(() => this.#client.registryRemove(name));
+	async registryRemove(registry: string): Promise<boolean> {
+		return this.#registryAction(() => this.#client.registryRemove(registry));
+	}
+
+	async registryLink(registry: string, id: string): Promise<boolean> {
+		return this.#registryAction(() => this.#client.registryLink(registry, id));
+	}
+
+	async registryUnlink(registry: string, id: string): Promise<boolean> {
+		return this.#registryAction(() =>
+			this.#client.registryUnlink(registry, id),
+		);
 	}
 
 	async #registryAction(
