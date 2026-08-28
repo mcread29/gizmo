@@ -16,21 +16,20 @@
 		"extension:build": "node --experimental-strip-types scripts/build-web-extension.ts"
 	},
 	"dependencies": {
+		"@gizmo/activity": "workspace:*",
+		"@gizmo/design": "workspace:*",
+		"@gizmo/git": "workspace:*",
+		"@gizmo/protocol": "workspace:*",
+		"@gizmo/svelte": "workspace:*",
+		"@gizmo/ui": "workspace:*",
 		"@lucide/svelte": "^1.31.0",
 		"@tanstack/svelte-virtual": "^3.13.36",
 		"@tauri-apps/api": "^2.11.1",
 		"@tauri-apps/plugin-dialog": "^2.7.2",
-		"@gizmo/design": "workspace:*",
-		"@gizmo/protocol": "workspace:*",
-		"@gizmo/svelte": "workspace:*",
-		"@gizmo/ui": "workspace:*",
 		"bits-ui": "latest",
 		"dompurify": "^3.4.13",
 		"marked": "^18.0.9",
-		"svelte": "latest",
-		"@gizmo/git": "workspace:*",
-		"@gizmo/activity": "workspace:*",
-		"@gizmo/ask-user": "workspace:*"
+		"svelte": "latest"
 	},
 	"devDependencies": {
 		"@gizmo/unity": "workspace:*",

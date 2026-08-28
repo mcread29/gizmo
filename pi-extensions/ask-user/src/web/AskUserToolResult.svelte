@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ToolCallView } from '@gizmo/protocol';
+	import type { ToolCallView } from '../../../../packages/protocol/src/index';
 
 	interface Props {
 		tool: ToolCallView;

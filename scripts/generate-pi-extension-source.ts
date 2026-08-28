@@ -8,10 +8,11 @@ import { join } from 'node:path';
  * extension.
  *
  * Run after editing a Pi extension: `pnpm extensions:generate`.
+ * Web bundles build separately: `pnpm pi-extensions:build`.
  */
 
 const extensions: readonly { file: string; source: string }[] = [
-	{ file: 'ask-user.ts', source: 'packages/ask-user/pi-extension.ts' },
+	{ file: 'ask-user.ts', source: 'pi-extensions/ask-user/pi-extension.ts' },
 ];
 
 async function main() {

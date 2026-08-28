@@ -1,6 +1,5 @@
 import type { ExtensionDescriptor } from '@gizmo/protocol';
 import { gizmoWebExtension as activityWebExtension } from '@gizmo/activity/web';
-import { gizmoWebExtension as askUserWebExtension } from '@gizmo/ask-user/web';
 import { gizmoWebExtension as gitWebExtension } from '@gizmo/git/web';
 import { svelteWebExtension } from '@gizmo/svelte/web';
 import type {
@@ -22,7 +21,6 @@ const builtin: readonly GizmoWebExtension[] = [
 	svelteWebExtension,
 	gitWebExtension,
 	activityWebExtension,
-	askUserWebExtension,
 ];
 
 /**
