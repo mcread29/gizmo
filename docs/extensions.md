@@ -52,17 +52,19 @@ Unity's server package exports exactly one object, `gizmoExtension`, from
 `unityWebExtension`, from `@gizmo/unity/web`. Nothing else about Unity's
 internals is part of the public surface.
 
-## First-party Pi extensions
+## Git extension registries
 
-Pi extensions can carry their own UI. A Pi extension directory may contain a
-`src/web/index.ts` entry; `pnpm pi-extensions:build` bundles it into a sibling
-`<name>.web.js` that travels with the extension, and Gizmo serves it as a
-runtime web extension paired by file stem. The repo's first-party Pi
-extensions live in `pi-extensions/` (currently `ask-user/`); the agent server
-embeds the tool source and seeds it into the data dir at startup, and a
-same-named extension in the user's agent dir takes precedence. An extension's
-UI never ships without its extension: the `.web.js` is built from the same
-directory and installed alongside it.
+Gizmo ships no Pi extensions. Users add Git registry repositories in
+**Settings → Extensions**. Gizmo clones each repository once under
+`~/.pi/agent/extensions-src/`, runs its declared build command, and links
+selected extension artifacts into `~/.pi/agent/extensions/`.
+
+A registry's `gizmo.registry.json` declares its extension directory, optional
+build command, and catalog. Each extension directory contains
+`pi-extension.ts` and may contain `src/web/index.ts`; its local build emits a
+sibling `<id>.web.js`. Gizmo installs and removes the Pi source and web bundle
+as one unit. Registry repositories are independent of the Gizmo application
+repository, so users download only extension source and its build tooling.
 
 ## Discovery
 

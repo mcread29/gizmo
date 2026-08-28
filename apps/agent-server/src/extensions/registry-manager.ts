@@ -1,11 +1,11 @@
 import { execFile } from 'node:child_process';
 import {
-	copyFile,
 	mkdir,
 	readFile,
 	readdir,
 	rename,
 	rm,
+	symlink,
 	writeFile,
 } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -52,23 +52,27 @@ interface RegistryManifest {
 function exec(command: string, args: string[], cwd: string): Promise<string> {
 	return new Promise((resolve, reject) => {
 		execFile(command, args, { cwd, windowsHide: true }, (error, stdout) => {
-			if (error) {
-				const detail =
-					error.code === 'ENOENT'
-						? `${error.message} | PATH=${process.env.PATH}`
-						: String(error.message);
-				reject(new Error(detail));
-			} else resolve(String(stdout));
+			if (error) reject(new Error(String(error.message)));
+			else resolve(String(stdout));
 		});
 	});
 }
 
 function runBuild(command: string, cwd: string): Promise<void> {
 	return new Promise((resolve, reject) => {
-		execFile(command, { cwd, shell: true, windowsHide: true }, (error) => {
-			if (error) reject(new Error(String(error.message)));
-			else resolve();
-		});
+		execFile(
+			command,
+			{ cwd, shell: true, windowsHide: true },
+			(error, stdout, stderr) => {
+				if (error) {
+					reject(
+						new Error(
+							[error.message, stdout, stderr].filter(Boolean).join('\n'),
+						),
+					);
+				} else resolve();
+			},
+		);
 	});
 }
 
@@ -148,18 +152,17 @@ async function syncExtension(
 	const entrySource = join(dir, 'pi-extension.ts');
 	await readFile(entrySource); // throws with a clear ENOENT when absent
 	const entry = join(extensionsDir(), `${id}.ts`);
-	await copyFile(entrySource, entry);
+	const web = join(extensionsDir(), `${id}.web.js`);
+	await Promise.all([rm(entry, { force: true }), rm(web, { force: true })]);
+	await symlink(entrySource, entry, 'file');
 
-	let web: string | undefined;
 	const webSource = join(registryDir(clone, manifest), `${id}.web.js`);
-	try {
-		await readFile(webSource);
-		web = join(extensionsDir(), `${id}.web.js`);
-		await copyFile(webSource, web);
-	} catch {
-		// No UI bundle built for this extension — tool only.
-	}
-	return { entry, ...(web ? { web } : {}) };
+	const hasWeb = await readFile(webSource)
+		.then(() => true)
+		.catch(() => false);
+	if (!hasWeb) return { entry };
+	await symlink(webSource, web, 'file');
+	return { entry, web };
 }
 
 function unlinkExtension(id: string): Promise<void> {
@@ -246,8 +249,15 @@ export async function registryAdd(url: string): Promise<RegistryStatus> {
 
 	await mkdir(cloneHome(), { recursive: true });
 	const cloneArgs = ['clone', '--depth', '1', url, clone];
-	// cwd must exist at spawn time — git creates the target itself.
-	await exec('git', cloneArgs, cloneHome());
+	try {
+		// cwd must exist at spawn time — git creates the target itself.
+		await exec('git', cloneArgs, cloneHome());
+		const manifest = await readRegistryManifest(clone);
+		if (manifest.build) await runBuild(manifest.build, clone);
+	} catch (error) {
+		await rm(clone, { recursive: true, force: true });
+		throw error;
+	}
 
 	const registries = await readManifest();
 	registries.push({
