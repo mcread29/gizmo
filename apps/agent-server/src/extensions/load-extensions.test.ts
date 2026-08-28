@@ -16,13 +16,13 @@ describe('loadLinkedExtensionIntegrations', () => {
 		const root = await mkdtemp(join(tmpdir(), 'gizmo-linked-extension-'));
 		const sourceRoot = await mkdtemp(join(tmpdir(), 'gizmo-source-extension-'));
 		paths.push(root, sourceRoot);
-		const source = join(sourceRoot, 'source.ts');
-		const linked = join(root, 'unity.ts');
+		const source = join(sourceRoot, 'index.ts');
+		const linked = join(root, 'unity');
 		await writeFile(
 			source,
 			`export default function () {}\nexport const gizmoExtension = { id: 'unity', name: 'Unity' };\n`,
 		);
-		await symlink(source, linked, 'file');
+		await symlink(sourceRoot, linked, 'junction');
 
 		await expect(loadLinkedExtensionIntegrations(root)).resolves.toEqual([
 			expect.objectContaining({ id: 'unity', name: 'Unity' }),

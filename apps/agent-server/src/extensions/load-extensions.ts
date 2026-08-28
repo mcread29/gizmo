@@ -38,12 +38,12 @@ export async function loadLinkedExtensionIntegrations(
 		return [];
 	}
 	const paths = entries.flatMap((entry) => {
-		if (entry.isFile() || entry.isSymbolicLink()) {
+		if (entry.isFile()) {
 			return entry.name.endsWith('.ts')
 				? [join(extensionsDir, entry.name)]
 				: [];
 		}
-		return entry.isDirectory()
+		return entry.isDirectory() || entry.isSymbolicLink()
 			? [join(extensionsDir, entry.name, 'index.ts')]
 			: [];
 	});

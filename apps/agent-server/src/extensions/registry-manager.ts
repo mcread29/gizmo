@@ -21,7 +21,8 @@ import type { RegistryStatus } from '@gizmo/protocol';
  * mistakes them for backend extensions and executes browser-only imports.
  *
  * Registry repo convention:
- *   <extensionsDir>/<id>/pi-extension.ts   ← linked into Pi as <id>.ts
+ *   <extensionsDir>/<id>/index.ts          ← directory-linked into Pi
+ *   <extensionsDir>/<id>/pi-extension.ts   ← Pi factory implementation
  *   <extensionsDir>/<id>.web.js            ← linked into Gizmo's web-bundle dir
  *   gizmo.registry.json                    ← extensionsDir + catalog metadata
  */
@@ -152,19 +153,20 @@ async function syncExtension(
 	id: string,
 ): Promise<LinkedExtension> {
 	const dir = join(registryDir(clone, manifest), id);
-	const entrySource = join(dir, 'pi-extension.ts');
+	const entrySource = join(dir, 'index.ts');
 	await readFile(entrySource); // throws with a clear ENOENT when absent
-	const entry = join(extensionsDir(), `${id}.ts`);
+	const entry = join(extensionsDir(), id);
 	const web = join(extensionWebDir(), `${id}.web.js`);
 	await Promise.all([
 		mkdir(extensionsDir(), { recursive: true }),
 		mkdir(extensionWebDir(), { recursive: true }),
-		rm(entry, { force: true }),
+		rm(entry, { recursive: true, force: true }),
 		rm(web, { force: true }),
-		// Remove bundles installed by the old layout before Pi can load them.
+		// Remove artifacts installed by the old flat-file layout.
+		rm(join(extensionsDir(), `${id}.ts`), { force: true }),
 		rm(join(extensionsDir(), `${id}.web.js`), { force: true }),
 	]);
-	await symlink(entrySource, entry, 'file');
+	await symlink(dir, entry, 'junction');
 
 	const webSource = join(registryDir(clone, manifest), `${id}.web.js`);
 	const hasWeb = await readFile(webSource)
@@ -177,6 +179,7 @@ async function syncExtension(
 
 function unlinkExtension(id: string): Promise<void> {
 	return Promise.all([
+		rm(join(extensionsDir(), id), { recursive: true, force: true }),
 		rm(join(extensionsDir(), `${id}.ts`), { force: true }),
 		rm(join(extensionWebDir(), `${id}.web.js`), { force: true }),
 		// Clean up bundles installed before the dedicated web directory existed.
@@ -208,7 +211,7 @@ async function catalogFor(
 		let extensionEntry: string | undefined;
 		let web: string | undefined;
 		if (linked) {
-			extensionEntry = join(extensionsDir(), `${id}.ts`);
+			extensionEntry = join(extensionsDir(), id);
 			web = join(extensionWebDir(), `${id}.web.js`);
 		}
 		catalog.push({
