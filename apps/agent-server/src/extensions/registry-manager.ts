@@ -67,7 +67,14 @@ function runBuild(command: string, cwd: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		execFile(
 			command,
-			{ cwd, shell: true, windowsHide: true },
+			{
+				cwd,
+				shell: true,
+				windowsHide: true,
+				// Registry builds are spawned without a terminal. Package managers
+				// use CI to choose their non-interactive, deterministic behavior.
+				env: { ...process.env, CI: process.env.CI || 'true' },
+			},
 			(error, stdout, stderr) => {
 				if (error) {
 					reject(
