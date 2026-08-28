@@ -10,6 +10,7 @@ import {
 } from 'node:fs/promises';
 import { join } from 'node:path';
 import { piAgentDir } from '../resources/pi-global-resources';
+import { defaultDataDir } from '../sessions/session-repository';
 import type { RegistryStatus } from '@gizmo/protocol';
 
 /**
@@ -27,7 +28,8 @@ import type { RegistryStatus } from '@gizmo/protocol';
  *   gizmo.registry.json                    ← extensionsDir + catalog metadata
  */
 
-const cloneHome = () => join(piAgentDir(), 'extensions-src');
+/** Registry source is Gizmo-managed state, never part of Pi discovery. */
+const cloneHome = () => join(defaultDataDir(), 'registries');
 const extensionsDir = () => join(piAgentDir(), 'extensions');
 export const extensionWebDir = () => join(piAgentDir(), 'extension-web');
 const manifestFile = () => join(cloneHome(), 'installed.json');

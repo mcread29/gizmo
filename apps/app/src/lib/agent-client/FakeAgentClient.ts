@@ -835,12 +835,12 @@ export class FakeAgentClient implements AgentClient {
 	}
 
 	async registryStatus(): Promise<RegistryStatus> {
-		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
+		return { home: '/home/dev/.gizmo/registries', registries: [] };
 	}
 
 	async registryAdd(url: string): Promise<RegistryStatus> {
 		return {
-			home: '/home/dev/.pi/agent/extensions-src',
+			home: '/home/dev/.gizmo/registries',
 			registries: [
 				{
 					name: url
@@ -862,16 +862,16 @@ export class FakeAgentClient implements AgentClient {
 		};
 	}
 	async registryUpdate(): Promise<RegistryStatus> {
-		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
+		return { home: '/home/dev/.gizmo/registries', registries: [] };
 	}
 	async registryRemove(): Promise<RegistryStatus> {
-		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
+		return { home: '/home/dev/.gizmo/registries', registries: [] };
 	}
 	async registryLink(): Promise<RegistryStatus> {
-		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
+		return { home: '/home/dev/.gizmo/registries', registries: [] };
 	}
 	async registryUnlink(): Promise<RegistryStatus> {
-		return { home: '/home/dev/.pi/agent/extensions-src', registries: [] };
+		return { home: '/home/dev/.gizmo/registries', registries: [] };
 	}
 	async setGlobalGizmoExtension(
 		gizmoExtensionId: string,

@@ -39,8 +39,8 @@ for generic host capabilities. Its browser entry exports `gizmoWebExtension`.
 
 Gizmo ships no Pi extensions. Users add Git registry repositories in
 **Settings → Extensions**. Gizmo clones each repository once under
-`~/.pi/agent/extensions-src/`, runs its declared build command, and links
-selected extension directories into `~/.pi/agent/extensions/`.
+`~/.gizmo/registries/`, runs its declared build command, and links selected
+extension directories into `~/.pi/agent/extensions/`.
 
 A registry's `gizmo.registry.json` declares its extension directory, optional
 build command, and catalog. Each extension directory contains `index.ts`,
