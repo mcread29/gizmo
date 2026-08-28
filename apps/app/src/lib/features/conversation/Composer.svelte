@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AgentAttachment } from '@gizmo/protocol';
+	import type { AgentAttachment, ComposerCommand } from '@gizmo/protocol';
 	import {
 		CornerDownLeft,
 		Minimize2,
@@ -39,11 +39,18 @@
 	let draft = $derived(drafts.get(store.sessionId));
 	let attachmentKey = $derived(store.sessionId ?? 'unassigned');
 	let attachments = $derived(attachmentsBySession[attachmentKey] ?? []);
+	const localCommands: ComposerCommand[] = [
+		{
+			name: 'reload',
+			description: 'Reload extension UI and activation state',
+			source: 'extension',
+		},
+	];
 	let commandQuery = $derived(draft.match(/^\/([^\s]*)$/)?.[1]);
 	let matchingCommands = $derived.by(() => {
 		if (commandQuery === undefined || commandMenuDismissed) return [];
 		const query = commandQuery.toLocaleLowerCase();
-		return store.commands
+		return [...localCommands, ...store.commands]
 			.filter(({ name, description }) =>
 				`${name} ${description ?? ''}`.toLocaleLowerCase().includes(query),
 			)
@@ -98,14 +105,26 @@
 	 * rather than queueing a new turn, so redirecting the agent does not mean
 	 * throwing away the work it has already done.
 	 */
-	function send() {
+	async function send() {
 		if (!canSend) return;
 		const text = draft;
 		const sentAttachments = [...attachments];
 		drafts.clear(store.sessionId);
 		delete attachmentsBySession[attachmentKey];
 		void tick().then(() => resizeComposer(element));
-		void (streaming
+
+		if (text.trim() === '/reload' && sentAttachments.length === 0) {
+			const diagnostics = await store.reloadExtensions();
+			if (diagnostics.length > 0) {
+				console.warn(...diagnostics);
+				toasts.show('Extensions reloaded with warnings', 'warning');
+				return;
+			}
+			toasts.show('Extensions reloaded');
+			return;
+		}
+
+		await (streaming
 			? store.steer(text, sentAttachments)
 			: store.prompt(text, sentAttachments));
 	}
@@ -152,7 +171,7 @@
 	}}
 	onsubmit={(event) => {
 		event.preventDefault();
-		send();
+		void send();
 	}}
 >
 	<input

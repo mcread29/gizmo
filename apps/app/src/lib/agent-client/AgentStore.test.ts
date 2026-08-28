@@ -215,6 +215,18 @@ class InvalidEventClient implements AgentClient {
 }
 
 describe('AgentStore', () => {
+	it('reloads extension activation without replacing the running session', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const store = new AgentStore(client);
+		await store.connect();
+		const sessionId = store.sessionId;
+
+		await expect(store.reloadExtensions()).resolves.toEqual([]);
+
+		expect(store.sessionId).toBe(sessionId);
+		expect(store.connection).toBe('connected');
+	});
+
 	it('surfaces an Editor launch failure', async () => {
 		const client = new FakeAgentClient({ latencyMs: 0, editorOpen: false });
 		vi.spyOn(client, 'openProject').mockResolvedValue({

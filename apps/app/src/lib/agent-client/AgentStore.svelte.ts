@@ -30,6 +30,7 @@ import { parseGitCommitResult, parseGitStatus } from '@gizmo/protocol';
 import type { AgentClient } from './AgentClient';
 import { applyAgentEvent } from './agent-event-reducer';
 import { extension } from '../extensions/registry.svelte';
+import { installWebExtensions } from '../extensions/runtime/install';
 
 export interface AgentModel {
 	provider: string;
@@ -237,6 +238,27 @@ export class AgentStore {
 			this.#reconnectTimer = undefined;
 			void this.connect();
 		}, delay);
+	}
+
+	/**
+	 * Re-fetches browser integrations and workspace activation state without
+	 * reconnecting or changing the Pi runtime behind any existing session.
+	 */
+	async reloadExtensions(): Promise<string[]> {
+		const diagnostics = await installWebExtensions(this.#client);
+		if (this.connection !== 'connected') return diagnostics;
+
+		await Promise.all([this.refreshResources(), this.refreshProjects()]);
+		this.activeDomains =
+			this.projects
+				.find(({ path }) => path === this.selectedProjectPath)
+				?.integrations.map(({ id }) => id) ?? [];
+		await Promise.all([
+			this.loadProjectExtensions(),
+			this.refreshProjectStatus(),
+			this.refreshGitStatus(),
+		]);
+		return diagnostics;
 	}
 
 	async refreshProjects(): Promise<void> {

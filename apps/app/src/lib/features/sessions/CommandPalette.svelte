@@ -7,6 +7,7 @@
 		PinOff,
 		Plus,
 		Puzzle,
+		RefreshCw,
 		Search,
 		Settings,
 	} from '@lucide/svelte';
@@ -16,6 +17,7 @@
 	import { Button } from '../../components';
 	import { isDesktop, pickWorkspaceDirectory } from '../../desktop';
 	import { webExtensions } from '../../extensions/registry.svelte';
+	import { toasts } from '../../toasts.svelte';
 	import { PinnedDirectoryStore } from './pinned-directories.svelte';
 
 	type Mode = 'root' | 'workspace';
@@ -180,6 +182,17 @@
 		};
 	}
 
+	async function reloadExtensions() {
+		open = false;
+		const diagnostics = await store.reloadExtensions();
+		if (diagnostics.length > 0) {
+			console.warn(...diagnostics);
+			toasts.show('Extensions reloaded with warnings', 'warning');
+			return;
+		}
+		toasts.show('Extensions reloaded');
+	}
+
 	function onInputKeydown(event: KeyboardEvent) {
 		if (event.key === 'Tab' && mode === 'workspace') {
 			const path = selectedValue.startsWith('pin:')
@@ -266,6 +279,15 @@
 									>
 										<Settings size={15} />
 										<span data-ui="palette-result-name">Open settings</span>
+									</Command.Item>
+									<Command.Item
+										data-ui="palette-result"
+										value="reload-extensions"
+										keywords={['refresh', 'plugins', 'integrations']}
+										onSelect={() => void reloadExtensions()}
+									>
+										<RefreshCw size={15} />
+										<span data-ui="palette-result-name">Reload extensions</span>
 									</Command.Item>
 									<Command.Item
 										data-ui="palette-result"
