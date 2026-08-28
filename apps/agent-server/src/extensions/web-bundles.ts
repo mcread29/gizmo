@@ -1,5 +1,4 @@
 import { readFile, readdir } from 'node:fs/promises';
-import { basename } from 'node:path';
 import { join } from 'node:path';
 import type { WebExtensionBundles } from '@gizmo/protocol';
 import type { GizmoServerExtension } from '@gizmo/extensions';
@@ -21,10 +20,9 @@ const maxBundleBytes = 8 * 1024 * 1024;
  * normal case for that.
  */
 /**
- * Web bundles sitting next to Pi extensions: for every `<stem>.ts` (or
- * `<stem>/`) extension in `dirs`, a sibling `<stem>.web.js` is its paired UI,
- * built by the extension author and served paired by stem. Extensions whose
- * UI never shipped contribute nothing.
+ * Browser bundles paired with installed Pi extensions live outside Pi's
+ * auto-discovery directory. Every `<id>.web.js` in `dirs` is host-only code;
+ * keeping it separate prevents Pi from executing Svelte browser imports.
  */
 export async function piExtensionWebBundles(
 	dirs: readonly string[],
@@ -40,13 +38,14 @@ export async function piExtensionWebBundles(
 			continue;
 		}
 		for (const entry of entries) {
-			if (entry.name.startsWith('.')) continue;
-			const stem = entry.isDirectory()
-				? entry.name
-				: basename(entry.name, '.ts');
-			const id = stem.replace(/\.ts$/, '');
-			if (seen.has(id)) continue;
-			const path = join(dir, `${stem}.web.js`);
+			if (
+				(!entry.isFile() && !entry.isSymbolicLink()) ||
+				!entry.name.endsWith('.web.js')
+			)
+				continue;
+			const id = entry.name.slice(0, -'.web.js'.length);
+			if (!id || seen.has(id)) continue;
+			const path = join(dir, entry.name);
 			let code: string;
 			try {
 				code = await readFile(path, 'utf8');

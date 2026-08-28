@@ -17,16 +17,18 @@ import type { RegistryStatus } from '@gizmo/protocol';
  * source home and built locally; installing is linking an extension into the
  * global Pi extensions directory. Gizmo knows nothing about what an
  * extension does — it reads each registry's `gizmo.registry.json` and moves
- * files.
+ * files. Browser bundles use a separate host-only directory so Pi never
+ * mistakes them for backend extensions and executes browser-only imports.
  *
- * Registry repo convention (see gizmo.registry.json at this repo's root):
- *   <extensionsDir>/<id>/pi-extension.ts   ← the tool (linked as <id>.ts)
- *   <extensionsDir>/<id>.web.js            ← optional built UI bundle
+ * Registry repo convention:
+ *   <extensionsDir>/<id>/pi-extension.ts   ← linked into Pi as <id>.ts
+ *   <extensionsDir>/<id>.web.js            ← linked into Gizmo's web-bundle dir
  *   gizmo.registry.json                    ← extensionsDir + catalog metadata
  */
 
 const cloneHome = () => join(piAgentDir(), 'extensions-src');
 const extensionsDir = () => join(piAgentDir(), 'extensions');
+export const extensionWebDir = () => join(piAgentDir(), 'extension-web');
 const manifestFile = () => join(cloneHome(), 'installed.json');
 
 interface LinkedExtension {
@@ -153,8 +155,15 @@ async function syncExtension(
 	const entrySource = join(dir, 'pi-extension.ts');
 	await readFile(entrySource); // throws with a clear ENOENT when absent
 	const entry = join(extensionsDir(), `${id}.ts`);
-	const web = join(extensionsDir(), `${id}.web.js`);
-	await Promise.all([rm(entry, { force: true }), rm(web, { force: true })]);
+	const web = join(extensionWebDir(), `${id}.web.js`);
+	await Promise.all([
+		mkdir(extensionsDir(), { recursive: true }),
+		mkdir(extensionWebDir(), { recursive: true }),
+		rm(entry, { force: true }),
+		rm(web, { force: true }),
+		// Remove bundles installed by the old layout before Pi can load them.
+		rm(join(extensionsDir(), `${id}.web.js`), { force: true }),
+	]);
 	await symlink(entrySource, entry, 'file');
 
 	const webSource = join(registryDir(clone, manifest), `${id}.web.js`);
@@ -169,6 +178,8 @@ async function syncExtension(
 function unlinkExtension(id: string): Promise<void> {
 	return Promise.all([
 		rm(join(extensionsDir(), `${id}.ts`), { force: true }),
+		rm(join(extensionWebDir(), `${id}.web.js`), { force: true }),
+		// Clean up bundles installed before the dedicated web directory existed.
 		rm(join(extensionsDir(), `${id}.web.js`), { force: true }),
 	]).then(() => undefined);
 }
@@ -198,7 +209,7 @@ async function catalogFor(
 		let web: string | undefined;
 		if (linked) {
 			extensionEntry = join(extensionsDir(), `${id}.ts`);
-			web = join(extensionsDir(), `${id}.web.js`);
+			web = join(extensionWebDir(), `${id}.web.js`);
 		}
 		catalog.push({
 			id,

@@ -7,14 +7,13 @@ import {
 } from '@gizmo/protocol';
 import type { ProjectService, ProjectStatus } from '@gizmo/extensions';
 import { WebSocket, WebSocketServer, type VerifyClientCallbackSync } from 'ws';
-import { join } from 'node:path';
 import { registeredExtensions } from '../extensions/registry';
 import {
 	piExtensionWebBundles,
 	webExtensionBundles,
 } from '../extensions/web-bundles';
-import { piAgentDir } from '../resources/pi-global-resources';
 import {
+	extensionWebDir,
 	registryAdd,
 	registryLink,
 	registryRemove,
@@ -512,13 +511,8 @@ async function dispatch(
 				},
 			};
 		case 'extensions.web': {
-			// Pi extensions ship their UI as a sibling <stem>.web.js; served
-			// paired by stem alongside the Gizmo extension bundles.
-			// Pi extensions may ship a sibling <stem>.web.js UI bundle; served
-			// paired by stem from the agent dir's extensions.
-			const pi = await piExtensionWebBundles([
-				join(piAgentDir(), 'extensions'),
-			]);
+			// Browser companions are kept outside Pi's backend extension directory.
+			const pi = await piExtensionWebBundles([extensionWebDir()]);
 			const gizmo = await webExtensionBundles(registeredExtensions());
 			return {
 				result: {

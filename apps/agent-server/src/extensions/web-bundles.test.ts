@@ -1,9 +1,13 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { GizmoServerExtension } from '@gizmo/extensions';
-import { webBundlePath, webExtensionBundles } from './web-bundles';
+import {
+	piExtensionWebBundles,
+	webBundlePath,
+	webExtensionBundles,
+} from './web-bundles';
 
 let root: string;
 
@@ -23,6 +27,23 @@ async function writeBundle(code: string): Promise<void> {
 	await mkdir(join(root, 'dist'), { recursive: true });
 	await writeFile(webBundlePath(root), code, 'utf8');
 }
+
+describe('piExtensionWebBundles', () => {
+	it('serves a host-only symlinked web bundle without a backend sibling', async () => {
+		const source = join(root, 'source.js');
+		const webDir = join(root, 'web');
+		await mkdir(webDir);
+		await writeFile(source, 'export const gizmoWebExtension = {};', 'utf8');
+		await symlink(source, join(webDir, 'ask-user.web.js'), 'file');
+
+		await expect(piExtensionWebBundles([webDir])).resolves.toEqual({
+			bundles: [
+				{ id: 'ask-user', code: 'export const gizmoWebExtension = {};' },
+			],
+			diagnostics: [],
+		});
+	});
+});
 
 describe('webExtensionBundles', () => {
 	it('returns the built bundle of an extension that ships one', async () => {
