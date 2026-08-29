@@ -79,6 +79,7 @@ export class AgentStore {
 		retainPercent: 10,
 	};
 	compacting = $state(false);
+	lastAutomaticCompactionReason = $state<'threshold' | 'overflow'>();
 	connection = $state<ConnectionState>('disconnected');
 	reconnectAttempt = $state(0);
 	sessionId = $state<string>();
@@ -378,6 +379,7 @@ export class AgentStore {
 		this.commands = [];
 		this.sessionState = 'idle';
 		this.usage = undefined;
+		this.lastAutomaticCompactionReason = undefined;
 		try {
 			const sessionId = await this.#client.createSession({
 				...(this.selectedProjectPath ? { cwd: this.selectedProjectPath } : {}),
@@ -729,6 +731,7 @@ export class AgentStore {
 		this.messagesLoading = true;
 		this.sessionState = this.sessionStates[sessionId] ?? 'idle';
 		this.usage = undefined;
+		this.lastAutomaticCompactionReason = undefined;
 		// Hold every event for this session until the snapshot has been
 		// applied: deltas arriving mid-resume would otherwise hit an empty
 		// message list, no-op, and be lost when the snapshot overwrites it.

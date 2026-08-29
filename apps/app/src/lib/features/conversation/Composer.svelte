@@ -96,6 +96,7 @@
 	let streaming = $derived(store.sessionState === 'streaming');
 	let canSend = $derived(
 		Boolean(draft.trim() || attachments.length) &&
+			!store.compacting &&
 			store.connection === 'connected' &&
 			Boolean(store.sessionId),
 	);
@@ -243,9 +244,12 @@
 			? `composer-command-${selectedCommand}`
 			: undefined}
 		rows="1"
-		placeholder={streaming
-			? 'Steer the response while it runs…'
-			: 'Ask about your workspace…'}></textarea>
+		disabled={store.compacting}
+		placeholder={store.compacting
+			? 'Compacting context…'
+			: streaming
+				? 'Steer the response while it runs…'
+				: 'Ask about your workspace…'}></textarea>
 	<div data-ui="composer-toolbar">
 		<Tooltip text="Attach files or images">
 			{#snippet children(props)}

@@ -49,6 +49,43 @@ describe('applyAgentEvent', () => {
 		expect(target.projectExtensions[0]?.id).toBe('com.gizmo.extras.console');
 	});
 
+	it('records completed automatic compaction and invalidates stale usage', () => {
+		const target = state();
+		target.usage = {
+			input: 100,
+			output: 20,
+			cacheRead: 0,
+			cacheWrite: 0,
+			contextUsed: 120,
+			cost: 0,
+		};
+
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 1,
+			type: 'session.compaction',
+			active: false,
+			reason: 'threshold',
+		});
+
+		expect(target.usage).toBeUndefined();
+		expect(target.lastAutomaticCompactionReason).toBe('threshold');
+	});
+
+	it('does not label manual compaction as automatic', () => {
+		const target = state();
+
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 1,
+			type: 'session.compaction',
+			active: false,
+			reason: 'manual',
+		});
+
+		expect(target.lastAutomaticCompactionReason).toBeUndefined();
+	});
+
 	it('owns transcript and tool-call progression', () => {
 		const target = state();
 		applyAgentEvent(target, {

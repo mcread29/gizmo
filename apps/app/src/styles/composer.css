@@ -7,6 +7,24 @@
 	padding-inline: var(--space-3);
 }
 
+[data-ui='compaction-notice'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	width: min(var(--content-max), 100%);
+	margin: 0 auto var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	color: var(--color-text-muted);
+	background: var(--color-surface-raised);
+	font-size: var(--text-xs);
+}
+
+[data-ui='compaction-notice'] svg {
+	flex: 0 0 auto;
+}
+
 [data-ui='composer'] {
 	position: relative;
 	width: min(var(--content-max), 100%);

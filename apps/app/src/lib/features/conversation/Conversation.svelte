@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentSessionSummary } from '@gizmo/protocol';
-	import { GitBranch, MoreHorizontal } from '@lucide/svelte';
+	import { GitBranch, Minimize2, MoreHorizontal } from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Menu } from '../../components';
@@ -189,6 +189,17 @@
 	{/if}
 
 	<div data-ui="composer-wrap">
+		{#if store.lastAutomaticCompactionReason}
+			<div data-ui="compaction-notice" role="status">
+				<Minimize2 size={14} />
+				<span>
+					Context was automatically compacted
+					{store.lastAutomaticCompactionReason === 'overflow'
+						? ' after reaching the model limit.'
+						: ' to keep this thread within the model limit.'}
+				</span>
+			</div>
+		{/if}
 		<PiExtensionWidgets
 			ui={extensionUi}
 			sessionId={store.sessionId}

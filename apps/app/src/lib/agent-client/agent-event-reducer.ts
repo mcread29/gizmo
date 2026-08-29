@@ -14,6 +14,7 @@ export interface AgentEventState {
 	activeDomains?: string[];
 	sessionState: SessionState;
 	compacting: boolean;
+	lastAutomaticCompactionReason?: 'threshold' | 'overflow';
 	usage?: SessionUsage;
 	messages: ConversationMessage[];
 	sessions: AgentSessionSummary[];
@@ -40,7 +41,12 @@ export function applyAgentEvent(
 			break;
 		case 'session.compaction':
 			state.compacting = event.active;
-			if (!event.active) state.usage = undefined;
+			if (!event.active) {
+				state.usage = undefined;
+				if (event.reason !== 'manual') {
+					state.lastAutomaticCompactionReason = event.reason;
+				}
+			}
 			break;
 		case 'session.usage':
 			state.usage = event.usage;
