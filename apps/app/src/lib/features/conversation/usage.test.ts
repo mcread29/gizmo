@@ -14,6 +14,7 @@ describe('usageView', () => {
 	it('reports the share of the window the next request needs', () => {
 		const view = usageView({ ...base, contextWindow: 200_000 });
 		expect(view.fraction).toBeCloseTo(0.084);
+		expect(view.percent).toBeCloseTo(8.4);
 		expect(view.level).toBe('ok');
 		expect(view.tokens).toBe('17k / 200k');
 	});
@@ -32,8 +33,18 @@ describe('usageView', () => {
 	it('still reports a total when the model has no stated window', () => {
 		const view = usageView(base);
 		expect(view.fraction).toBeUndefined();
+		expect(view.percent).toBeUndefined();
 		expect(view.level).toBe('ok');
 		expect(view.tokens).toBe('17k');
+	});
+
+	it('treats a zero context as no usage reported yet', () => {
+		const view = usageView({ ...base, contextUsed: 0, contextWindow: 200_000 });
+		expect(view.fraction).toBeUndefined();
+		expect(view.percent).toBeUndefined();
+		expect(view.level).toBe('ok');
+		expect(view.tokens).toBe('– / 200k');
+		expect(view.detail).toContain('Waiting');
 	});
 });
 

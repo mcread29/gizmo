@@ -158,7 +158,42 @@
 }
 
 [data-ui='change-file'] {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
 	min-width: 0;
+}
+
+[data-ui='change-file'] > [data-ui='change-header'] {
+	grid-row: 1;
+	grid-column: 1;
+}
+
+[data-ui='change-file'] > [data-ui='change-actions'] {
+	grid-row: 1;
+	grid-column: 2;
+	margin-right: 3px;
+	visibility: hidden;
+}
+
+[data-ui='change-file']
+	> [data-ui='change-actions']
+	[data-ui='button'][data-size='icon'] {
+	width: 21px;
+	height: 21px;
+}
+
+[data-ui='change-file']:hover > [data-ui='change-actions'],
+[data-ui='change-file']:focus-within > [data-ui='change-actions'] {
+	visibility: visible;
+}
+
+[data-ui='change-file']:hover > [data-ui='change-header'] {
+	background: var(--color-surface-soft);
+}
+
+[data-ui='change-file'] > [data-ui='change-body'] {
+	grid-column: 1 / -1;
 }
 
 [data-ui='change-file'][data-group='unstaged'] {

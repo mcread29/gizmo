@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@earendil-works/pi-coding-agent@0.84.2': 8313737439ed796a7f96383a9a672d2a8c7ac0a43c910016b668d9c1af1af10d
+  '@earendil-works/pi-coding-agent@0.84.2': 333fb42331a43a3bc68d7adce5874ced8d9df48cf5aa6f826f8e284b3c2eea65
 
 importers:
 
@@ -31,7 +31,7 @@ importers:
     dependencies:
       '@earendil-works/pi-coding-agent':
         specifier: ^0.84.2
-        version: 0.84.2(patch_hash=8313737439ed796a7f96383a9a672d2a8c7ac0a43c910016b668d9c1af1af10d)(ws@8.21.3)
+        version: 0.84.2(patch_hash=333fb42331a43a3bc68d7adce5874ced8d9df48cf5aa6f826f8e284b3c2eea65)(ws@8.21.3)
       '@gizmo/extensions':
         specifier: workspace:*
         version: link:../../packages/extensions
@@ -141,7 +141,7 @@ importers:
     dependencies:
       '@earendil-works/pi-coding-agent':
         specifier: ^0.84.2
-        version: 0.84.2(patch_hash=8313737439ed796a7f96383a9a672d2a8c7ac0a43c910016b668d9c1af1af10d)(ws@8.21.3)
+        version: 0.84.2(patch_hash=333fb42331a43a3bc68d7adce5874ced8d9df48cf5aa6f826f8e284b3c2eea65)(ws@8.21.3)
       '@gizmo/protocol':
         specifier: workspace:*
         version: link:../protocol
@@ -2278,7 +2278,7 @@ snapshots:
     dependencies:
       '@earendil-works/pi-protocol': 0.84.2
 
-  '@earendil-works/pi-coding-agent@0.84.2(patch_hash=8313737439ed796a7f96383a9a672d2a8c7ac0a43c910016b668d9c1af1af10d)(ws@8.21.3)':
+  '@earendil-works/pi-coding-agent@0.84.2(patch_hash=333fb42331a43a3bc68d7adce5874ced8d9df48cf5aa6f826f8e284b3c2eea65)(ws@8.21.3)':
     dependencies:
       '@earendil-works/pi-agent-core': 0.84.2(ws@8.21.3)
       '@earendil-works/pi-ai': 0.84.2(ws@8.21.3)

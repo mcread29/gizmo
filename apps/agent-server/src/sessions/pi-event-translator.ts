@@ -229,7 +229,7 @@ export class PiEventTranslator {
  * read this turn plus what it wrote. Cached tokens still occupy the window, so
  * they count even though they are cheap.
  */
-function readUsage(value: unknown): TranslatedUsage | undefined {
+export function readUsage(value: unknown): TranslatedUsage | undefined {
 	if (!value || typeof value !== 'object') return undefined;
 	const usage = value as Record<string, unknown>;
 	const input = count(usage.input);

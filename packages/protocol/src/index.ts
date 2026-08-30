@@ -297,6 +297,8 @@ export const agentModelOptionSchema = Type.Object(
 		id: Type.String({ minLength: 1 }),
 		name: Type.String({ minLength: 1 }),
 		reasoning: Type.Boolean(),
+		/** The model's context limit, when it reports one. */
+		contextWindow: Type.Optional(Type.Integer({ minimum: 1 })),
 	},
 	{ additionalProperties: false },
 );
@@ -311,6 +313,8 @@ export const agentModelCatalogSchema = Type.Object(
 					provider: Type.String({ minLength: 1 }),
 					id: Type.String({ minLength: 1 }),
 					thinkingLevel: Type.String({ minLength: 1 }),
+					/** The model's context limit, when it reports one. */
+					contextWindow: Type.Optional(Type.Integer({ minimum: 1 })),
 				},
 				{ additionalProperties: false },
 			),

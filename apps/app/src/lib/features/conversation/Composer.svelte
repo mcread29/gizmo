@@ -19,6 +19,7 @@
 	import UsageMeter from './UsageMeter.svelte';
 	import { autoGrow, isSendKey, resizeComposer } from './composer-actions';
 	import type { DraftStore } from './drafts.svelte';
+	import { emptyUsage } from './usage';
 
 	interface Props {
 		store: AgentStore;
@@ -267,7 +268,11 @@
 			{/snippet}
 		</Tooltip>
 		<ComposerModelControls {store} />
-		{#if store.usage}<UsageMeter usage={store.usage} />{/if}
+		{#if store.sessionId}
+			<UsageMeter
+				usage={store.usage ?? emptyUsage(store.model?.contextWindow)}
+			/>
+		{/if}
 		{#if store.compacting}<span data-ui="compaction-status"
 				>Compacting context…</span
 			>{/if}

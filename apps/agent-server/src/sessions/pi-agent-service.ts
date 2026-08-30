@@ -21,6 +21,7 @@ import {
 } from '@gizmo/protocol';
 import {
 	PiEventTranslator,
+	readUsage,
 	type TranslatedPiEvent,
 } from './pi-event-translator';
 import { inFlightAssistantView } from './session-transcript';
@@ -331,12 +332,14 @@ export class PiAgentService {
 			// reload, reconnect, first view of this thread) would render it idle
 			// while it is still responding. State is evented like everything else;
 			// it just has to be (re-)sent when someone attaches mid-stream.
+			const resident = this.#sessions.get(sessionId);
 			this.#emit(sessionId, {
 				type: 'session.state',
-				state: this.#sessions.get(sessionId)?.session.isStreaming
-					? 'streaming'
-					: 'idle',
+				state: resident?.session.isStreaming ? 'streaming' : 'idle',
 			});
+			if (resident) {
+				this.#emitUsageSnapshot(sessionId, resident.session, resident.manager);
+			}
 		}
 		await this.#repository.setLastSession(sessionId);
 		return snapshot;
@@ -605,6 +608,10 @@ export class PiAgentService {
 				: {}),
 		});
 		this.#emit(sessionId, { type: 'session.state', state: 'idle' });
+		// A client that attaches after the conversation started (page reload,
+		// reconnect, first view of a resumed thread) would otherwise show an
+		// empty meter until the next assistant message completes.
+		this.#emitUsageSnapshot(sessionId, session, manager);
 		// Enforce the cap right away, so a burst of activations doesn't wait for
 		// the next sweep — the session just activated always sorts last, so it's
 		// never the one evicted here.
@@ -946,6 +953,32 @@ export class PiAgentService {
 		};
 	}
 
+	/**
+	 * Re-emit the latest known usage so a client attaching mid-stream shows a
+	 * live meter instead of waiting for the next assistant message to finish.
+	 */
+	#emitUsageSnapshot(
+		sessionId: string,
+		session: PiSessionLike,
+		manager: SessionManager,
+	): void {
+		if (typeof manager.getBranch !== 'function') return;
+		const branch = manager.getBranch();
+		for (let i = branch.length - 1; i >= 0; i--) {
+			const entry = branch[i];
+			if (entry.type !== 'message' || entry.message.role !== 'assistant') {
+				continue;
+			}
+			const usage = readUsage(entry.message.usage);
+			if (!usage) continue;
+			this.#emit(
+				sessionId,
+				this.#withContextWindow(session, { type: 'session.usage', usage }),
+			);
+			return;
+		}
+	}
+
 	#emit(sessionId: string, event: ServiceEvent | TranslatedPiEvent): void {
 		const envelope = {
 			...event,
@@ -1156,6 +1189,9 @@ const createDefaultPiSession: PiSessionFactory = async (
 								provider: session.model.provider,
 								id: session.model.id,
 								thinkingLevel: session.thinkingLevel,
+								...(session.model.contextWindow
+									? { contextWindow: session.model.contextWindow }
+									: {}),
 							},
 						}
 					: {}),
@@ -1165,6 +1201,9 @@ const createDefaultPiSession: PiSessionFactory = async (
 						id: model.id,
 						name: model.name,
 						reasoning: model.reasoning,
+						...(model.contextWindow > 0
+							? { contextWindow: model.contextWindow }
+							: {}),
 					}))
 					.sort((left, right) =>
 						`${left.provider}/${left.name}`.localeCompare(

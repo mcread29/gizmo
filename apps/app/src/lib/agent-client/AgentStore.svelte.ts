@@ -36,6 +36,8 @@ export interface AgentModel {
 	provider: string;
 	id: string;
 	thinkingLevel: string;
+	/** The model's context limit, when it reports one. */
+	contextWindow?: number;
 }
 
 export type AgentErrorKind =

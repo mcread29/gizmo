@@ -1,5 +1,5 @@
 diff --git a/dist/core/compaction/compaction.d.ts b/dist/core/compaction/compaction.d.ts
-index bf40e20fd7d26f38a17d9df790a7acbad42c3d4f..c15d3e17f6f4bce3006b8414bd21ea31d53f32d1 100644
+index bf40e20fd7d26f38a17d9df790a7acbad42c3d4f..ec3a2655496e4bfd5b6f59db8c67decd2f563f64 100644
 --- a/dist/core/compaction/compaction.d.ts
 +++ b/dist/core/compaction/compaction.d.ts
 @@ -29,6 +29,7 @@ export interface CompactionSettings {
@@ -20,7 +20,7 @@ index bf40e20fd7d26f38a17d9df790a7acbad42c3d4f..c15d3e17f6f4bce3006b8414bd21ea31
   * Shared choke point for every compaction/branch-summary summarization call. Wraps the
   * single LLM call in {@link retryAssistantCall} so transient stream drops (e.g.
 diff --git a/dist/core/compaction/compaction.js b/dist/core/compaction/compaction.js
-index e7ffee7a8566a7556f75e3f3edd228af3d93b141..3c419e1a5bd2b4e7c1b675bc2a62533fc91930f2 100644
+index e7ffee7a8566a7556f75e3f3edd228af3d93b141..eedabbe8c65f20c3d075ecb6dc13f752e6ea7356 100644
 --- a/dist/core/compaction/compaction.js
 +++ b/dist/core/compaction/compaction.js
 @@ -75,6 +75,7 @@ export const DEFAULT_COMPACTION_SETTINGS = {
@@ -77,17 +77,33 @@ index e7ffee7a8566a7556f75e3f3edd228af3d93b141..3c419e1a5bd2b4e7c1b675bc2a62533f
              // Find the closest valid cut point at or after this entry
              for (let c = 0; c < cutPoints.length; c++) {
                  if (cutPoints[c] >= i) {
-@@ -510,7 +522,7 @@ export function prepareCompaction(pathEntries, settings) {
+@@ -509,8 +521,22 @@ export function prepareCompaction(pathEntries, settings) {
+         boundaryStart = firstKeptEntryIndex >= 0 ? firstKeptEntryIndex : prevCompactionIndex + 1;
      }
      const boundaryEnd = pathEntries.length;
-     const tokensBefore = estimateContextTokens(buildSessionContext(pathEntries).messages).tokens;
+-    const tokensBefore = estimateContextTokens(buildSessionContext(pathEntries).messages).tokens;
 -    const cutPoint = findCutPoint(pathEntries, boundaryStart, boundaryEnd, settings.keepRecentTokens);
-+    const cutPoint = findCutPoint(pathEntries, boundaryStart, boundaryEnd, settings.keepRecentTokens, settings.fullTurnBoundaries);
++    const contextMessages = buildSessionContext(pathEntries).messages;
++    const tokensBefore = estimateContextTokens(contextMessages).tokens;
++    // findCutPoint budgets the retained recent context with a chars/4 estimate
++    // of message content only: the system prompt, tool schemas, and tokenizer
++    // drift are invisible to it. When usage-based tokensBefore shows the real
++    // context is larger than the message estimate, scale the retain budget
++    // into estimate-space so the cutter targets the same real share of the
++    // conversation. Without this, the backward walk never reaches the budget,
++    // keeps the entire branch, and compaction fails with "session too small"
++    // on contexts that are in fact far past it.
++    let keepBudget = settings.keepRecentTokens;
++    const estimatedTotal = contextMessages.reduce((sum, message) => sum + estimateTokens(message), 0);
++    if (estimatedTotal > 0 && tokensBefore > estimatedTotal) {
++        keepBudget = Math.min(keepBudget, Math.round((estimatedTotal * settings.keepRecentTokens) / tokensBefore));
++    }
++    const cutPoint = findCutPoint(pathEntries, boundaryStart, boundaryEnd, keepBudget, settings.fullTurnBoundaries);
      // Get UUID of first kept entry
      const firstKeptEntry = pathEntries[cutPoint.firstKeptEntryIndex];
      if (!firstKeptEntry?.id) {
 diff --git a/dist/core/settings-manager.d.ts b/dist/core/settings-manager.d.ts
-index 494157a038b5fd6b4d9ccf30d331983d84755d2a..8066473689249aeba3808dad21d8a5881ecd8c0a 100644
+index 494157a038b5fd6b4d9ccf30d331983d84755d2a..a9d99d5d1ae4a583da9cff10ea7b53df35cbfa65 100644
 --- a/dist/core/settings-manager.d.ts
 +++ b/dist/core/settings-manager.d.ts
 @@ -5,6 +5,7 @@ export interface CompactionSettings {
@@ -107,7 +123,7 @@ index 494157a038b5fd6b4d9ccf30d331983d84755d2a..8066473689249aeba3808dad21d8a588
      getBranchSummarySettings(): {
          reserveTokens: number;
 diff --git a/dist/core/settings-manager.js b/dist/core/settings-manager.js
-index d7fc89cb0560694e74c4f37eaf6733f36a9079f5..60d7d9b1f232bfa63c6b198a65e172c0fe01f2a8 100644
+index d7fc89cb0560694e74c4f37eaf6733f36a9079f5..854b03d2a4c9a141e54e6790a7c0f60983e1c61d 100644
 --- a/dist/core/settings-manager.js
 +++ b/dist/core/settings-manager.js
 @@ -525,6 +525,7 @@ export class SettingsManager {
