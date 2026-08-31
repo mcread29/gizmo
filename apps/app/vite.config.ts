@@ -23,6 +23,33 @@ export default defineConfig({
 	build: {
 		minify: process.env.TAURI_ENV_DEBUG ? false : 'esbuild',
 		sourcemap: Boolean(process.env.TAURI_ENV_DEBUG),
+		rolldownOptions: {
+			output: {
+				codeSplitting: {
+					groups: [
+						{
+							name: 'markdown',
+							test: /node_modules[\\/](?:dompurify|highlight\.js|marked)[\\/]/,
+							priority: 30,
+						},
+						{
+							name: 'ui-vendor',
+							test: /node_modules[\\/](?:@floating-ui[\\/]|@lucide[\\/]svelte|@tanstack[\\/]|bits-ui[\\/]|tabbable[\\/])/,
+							priority: 20,
+						},
+						{
+							name: 'schema',
+							test: /node_modules[\\/]typebox[\\/]/,
+							priority: 10,
+						},
+						{
+							name: 'vendor',
+							test: /node_modules[\\/]/,
+						},
+					],
+				},
+			},
+		},
 	},
 	test: {
 		environment: 'jsdom',
