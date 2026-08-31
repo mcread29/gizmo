@@ -12,7 +12,7 @@ import {
 	protocolVersion,
 	ProtocolValidationError,
 	sessionTitle,
-} from './index';
+} from '../src/index';
 
 describe('agent protocol validation', () => {
 	it('normalizes generated session titles consistently', () => {

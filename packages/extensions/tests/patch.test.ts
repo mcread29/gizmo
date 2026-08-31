@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PatchMismatchError, parseHunks, revertPatch } from './patch';
+import { PatchMismatchError, parseHunks, revertPatch } from '../src/patch';
 
 const original = [
 	'using UnityEngine;',
