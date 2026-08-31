@@ -8,4 +8,4 @@ allowBuilds:
   protobufjs: true
 
 patchedDependencies:
-  '@earendil-works/pi-coding-agent@0.84.2': patches/@earendil-works__pi-coding-agent@0.84.2.patch
+  '@earendil-works/pi-coding-agent@0.84.4': patches/@earendil-works__pi-coding-agent@0.84.4.patch

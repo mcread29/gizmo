@@ -1,5 +1,5 @@
 diff --git a/dist/core/compaction/compaction.d.ts b/dist/core/compaction/compaction.d.ts
-index bf40e20fd7d26f38a17d9df790a7acbad42c3d4f..ec3a2655496e4bfd5b6f59db8c67decd2f563f64 100644
+index 6f867f98bac5a371ca2bfbe0a9db6344e1a42b3f..e6d0c1dcd1abf7fdaf1815983361a0a5d9a60b24 100644
 --- a/dist/core/compaction/compaction.d.ts
 +++ b/dist/core/compaction/compaction.d.ts
 @@ -29,6 +29,7 @@ export interface CompactionSettings {
@@ -17,10 +17,10 @@ index bf40e20fd7d26f38a17d9df790a7acbad42c3d4f..ec3a2655496e4bfd5b6f59db8c67decd
 -export declare function findCutPoint(entries: SessionEntry[], startIndex: number, endIndex: number, keepRecentTokens: number): CutPointResult;
 +export declare function findCutPoint(entries: SessionEntry[], startIndex: number, endIndex: number, keepRecentTokens: number, fullTurnBoundaries?: boolean): CutPointResult;
  /**
-  * Shared choke point for every compaction/branch-summary summarization call. Wraps the
-  * single LLM call in {@link retryAssistantCall} so transient stream drops (e.g.
+  * Returns an error message when a summarization response cannot safely be persisted.
+  * A length stop contains partial text and must not become a session checkpoint.
 diff --git a/dist/core/compaction/compaction.js b/dist/core/compaction/compaction.js
-index e7ffee7a8566a7556f75e3f3edd228af3d93b141..eedabbe8c65f20c3d075ecb6dc13f752e6ea7356 100644
+index e936db7dc2617b5c0ff43ea11942c5a79b672dc6..44211be2cf935617cf44dde2969190c8922d436c 100644
 --- a/dist/core/compaction/compaction.js
 +++ b/dist/core/compaction/compaction.js
 @@ -75,6 +75,7 @@ export const DEFAULT_COMPACTION_SETTINGS = {
@@ -77,7 +77,7 @@ index e7ffee7a8566a7556f75e3f3edd228af3d93b141..eedabbe8c65f20c3d075ecb6dc13f752
              // Find the closest valid cut point at or after this entry
              for (let c = 0; c < cutPoints.length; c++) {
                  if (cutPoints[c] >= i) {
-@@ -509,8 +521,22 @@ export function prepareCompaction(pathEntries, settings) {
+@@ -534,8 +546,22 @@ export function prepareCompaction(pathEntries, settings) {
          boundaryStart = firstKeptEntryIndex >= 0 ? firstKeptEntryIndex : prevCompactionIndex + 1;
      }
      const boundaryEnd = pathEntries.length;
@@ -103,7 +103,7 @@ index e7ffee7a8566a7556f75e3f3edd228af3d93b141..eedabbe8c65f20c3d075ecb6dc13f752
      const firstKeptEntry = pathEntries[cutPoint.firstKeptEntryIndex];
      if (!firstKeptEntry?.id) {
 diff --git a/dist/core/settings-manager.d.ts b/dist/core/settings-manager.d.ts
-index 494157a038b5fd6b4d9ccf30d331983d84755d2a..a9d99d5d1ae4a583da9cff10ea7b53df35cbfa65 100644
+index f93ac1aa9f8f45977863021c4ea3a486ecb489ab..9ef26c8745070dc7c84213f173cd7d61954b0b56 100644
 --- a/dist/core/settings-manager.d.ts
 +++ b/dist/core/settings-manager.d.ts
 @@ -5,6 +5,7 @@ export interface CompactionSettings {
@@ -114,7 +114,7 @@ index 494157a038b5fd6b4d9ccf30d331983d84755d2a..a9d99d5d1ae4a583da9cff10ea7b53df
  }
  export interface BranchSummarySettings {
      reserveTokens?: number;
-@@ -211,6 +212,7 @@ export declare class SettingsManager {
+@@ -224,6 +225,7 @@ export declare class SettingsManager {
          enabled: boolean;
          reserveTokens: number;
          keepRecentTokens: number;
@@ -123,10 +123,10 @@ index 494157a038b5fd6b4d9ccf30d331983d84755d2a..a9d99d5d1ae4a583da9cff10ea7b53df
      getBranchSummarySettings(): {
          reserveTokens: number;
 diff --git a/dist/core/settings-manager.js b/dist/core/settings-manager.js
-index d7fc89cb0560694e74c4f37eaf6733f36a9079f5..854b03d2a4c9a141e54e6790a7c0f60983e1c61d 100644
+index f0f936eb01afe5d158f1834c5e40421e36af0d24..92fec91668b6d8935a2be7ec5263c5f176dfa526 100644
 --- a/dist/core/settings-manager.js
 +++ b/dist/core/settings-manager.js
-@@ -525,6 +525,7 @@ export class SettingsManager {
+@@ -567,6 +567,7 @@ export class SettingsManager {
              enabled: this.getCompactionEnabled(),
              reserveTokens: this.getCompactionReserveTokens(),
              keepRecentTokens: this.getCompactionKeepRecentTokens(),
