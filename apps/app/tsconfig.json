@@ -4,5 +4,12 @@
 		"allowImportingTsExtensions": true,
 		"types": ["svelte", "vite/client", "vitest/globals"]
 	},
-	"include": ["src/**/*.ts", "src/**/*.svelte", "vite.config.ts"]
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.svelte",
+		"scripts/**/*.ts",
+		"tests/**/*.ts",
+		"tests/**/*.svelte",
+		"vite.config.ts"
+	]
 }
