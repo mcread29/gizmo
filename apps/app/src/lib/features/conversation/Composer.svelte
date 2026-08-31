@@ -1,25 +1,14 @@
 <script lang="ts">
 	import type { AgentAttachment, ComposerCommand } from '@gizmo/protocol';
-	import {
-		CornerDownLeft,
-		Minimize2,
-		Paperclip,
-		Send,
-		Square,
-	} from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, Tooltip } from '../../components';
-	import { shortcutHint } from '../shell/shortcuts';
 	import { toasts } from '../../toasts.svelte';
 	import { maxAttachmentCount, readAttachments } from './attachments';
+	import { autoGrow, isSendKey, resizeComposer } from './composer-actions';
 	import ComposerAttachments from './ComposerAttachments.svelte';
 	import ComposerCommandMenu from './ComposerCommandMenu.svelte';
-	import ComposerModelControls from './ComposerModelControls.svelte';
-	import UsageMeter from './UsageMeter.svelte';
-	import { autoGrow, isSendKey, resizeComposer } from './composer-actions';
+	import ComposerToolbar from './ComposerToolbar.svelte';
 	import type { DraftStore } from './drafts.svelte';
-	import { emptyUsage } from './usage';
 
 	interface Props {
 		store: AgentStore;
@@ -30,16 +19,13 @@
 
 	let { store, drafts, sendOnEnter, focus = $bindable() }: Props = $props();
 
-	let element = $state<HTMLTextAreaElement>();
-	let picker = $state<HTMLInputElement>();
+	let element: HTMLTextAreaElement | undefined;
+	let picker: HTMLInputElement | undefined;
 	let dragging = $state(false);
 	let selectedCommand = $state(0);
 	let commandMenuDismissed = $state(false);
 	let attachmentsBySession = $state<Record<string, AgentAttachment[]>>({});
 
-	let draft = $derived(drafts.get(store.sessionId));
-	let attachmentKey = $derived(store.sessionId ?? 'unassigned');
-	let attachments = $derived(attachmentsBySession[attachmentKey] ?? []);
 	const localCommands: ComposerCommand[] = [
 		{
 			name: 'reload',
@@ -47,6 +33,16 @@
 			source: 'extension',
 		},
 	];
+	let draft = $derived(
+		drafts.get(store.sessionId) ||
+			(store.sessionId ? drafts.get(undefined) : ''),
+	);
+	let attachmentKey = $derived(store.sessionId ?? 'unassigned');
+	let attachments = $derived(
+		attachmentsBySession[attachmentKey] ??
+			(store.sessionId ? attachmentsBySession.unassigned : undefined) ??
+			[],
+	);
 	let commandQuery = $derived(draft.match(/^\/([^\s]*)$/)?.[1]);
 	let matchingCommands = $derived.by(() => {
 		if (commandQuery === undefined || commandMenuDismissed) return [];
@@ -64,16 +60,39 @@
 			.slice(0, 10);
 	});
 	let commandMenuOpen = $derived(matchingCommands.length > 0);
+	let streaming = $derived(store.sessionState === 'streaming');
+	let canSend = $derived(
+		Boolean(draft.trim() || attachments.length) &&
+			!store.compacting &&
+			store.connection === 'connected' &&
+			Boolean(store.sessionId),
+	);
 
 	$effect(() => {
 		if (!store.sessionId) return;
 		drafts.adopt(store.sessionId);
 		const pending = attachmentsBySession.unassigned;
-		if (pending?.length && !attachmentsBySession[store.sessionId]) {
+		if (pending?.length) {
+			attachmentsBySession[store.sessionId] ??= pending;
 			delete attachmentsBySession.unassigned;
-			attachmentsBySession[store.sessionId] = pending;
 		}
 	});
+
+	focus = () => element?.focus();
+
+	function captureComposer(node: HTMLTextAreaElement) {
+		element = node;
+		return () => {
+			if (element === node) element = undefined;
+		};
+	}
+
+	function capturePicker(node: HTMLInputElement) {
+		picker = node;
+		return () => {
+			if (picker === node) picker = undefined;
+		};
+	}
 
 	function edit(value: string) {
 		drafts.set(store.sessionId, value);
@@ -92,21 +111,7 @@
 		});
 	}
 
-	focus = () => element?.focus();
-
-	let streaming = $derived(store.sessionState === 'streaming');
-	let canSend = $derived(
-		Boolean(draft.trim() || attachments.length) &&
-			!store.compacting &&
-			store.connection === 'connected' &&
-			Boolean(store.sessionId),
-	);
-
-	/*
-	 * While a response is streaming the same control steers the run in flight
-	 * rather than queueing a new turn, so redirecting the agent does not mean
-	 * throwing away the work it has already done.
-	 */
+	/* Streaming sends steer the run in flight rather than queueing a new turn. */
 	async function send() {
 		if (!canSend) return;
 		const text = draft;
@@ -151,6 +156,45 @@
 			(_, candidate) => candidate !== index,
 		);
 	}
+
+	function handlePaste(event: ClipboardEvent) {
+		const files = Array.from(event.clipboardData?.files ?? []);
+		if (!files.length) return;
+		event.preventDefault();
+		void addFiles(files);
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (commandMenuOpen) {
+			if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+				event.preventDefault();
+				const direction = event.key === 'ArrowDown' ? 1 : -1;
+				selectedCommand =
+					(selectedCommand + direction + matchingCommands.length) %
+					matchingCommands.length;
+				return;
+			}
+			if (event.key === 'Tab' || event.key === 'Enter') {
+				event.preventDefault();
+				selectCommand();
+				return;
+			}
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				commandMenuDismissed = true;
+				return;
+			}
+		}
+		// An empty composer recalls the last prompt for quick correction.
+		if (event.key === 'ArrowUp' && !draft && store.lastPrompt) {
+			event.preventDefault();
+			edit(store.lastPrompt);
+			return;
+		}
+		if (!isSendKey(event, sendOnEnter)) return;
+		event.preventDefault();
+		void send();
+	}
 </script>
 
 <form
@@ -177,7 +221,7 @@
 	}}
 >
 	<input
-		bind:this={picker}
+		{@attach capturePicker}
 		data-ui="attachment-picker"
 		type="file"
 		multiple
@@ -198,47 +242,12 @@
 	<label for="prompt" data-ui="sr-only">Message Gizmo</label>
 	<textarea
 		id="prompt"
-		bind:this={element}
+		{@attach captureComposer}
 		value={draft}
 		oninput={(event) => edit(event.currentTarget.value)}
-		onpaste={(event) => {
-			const files = Array.from(event.clipboardData?.files ?? []);
-			if (!files.length) return;
-			event.preventDefault();
-			void addFiles(files);
-		}}
-		use:autoGrow
-		onkeydown={(event) => {
-			if (commandMenuOpen) {
-				if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-					event.preventDefault();
-					const direction = event.key === 'ArrowDown' ? 1 : -1;
-					selectedCommand =
-						(selectedCommand + direction + matchingCommands.length) %
-						matchingCommands.length;
-					return;
-				}
-				if (event.key === 'Tab' || event.key === 'Enter') {
-					event.preventDefault();
-					selectCommand();
-					return;
-				}
-				if (event.key === 'Escape') {
-					event.preventDefault();
-					commandMenuDismissed = true;
-					return;
-				}
-			}
-			// An empty composer recalls the last prompt, for fixing a typo in it.
-			if (event.key === 'ArrowUp' && !draft && store.lastPrompt) {
-				event.preventDefault();
-				edit(store.lastPrompt);
-				return;
-			}
-			if (!isSendKey(event, sendOnEnter)) return;
-			event.preventDefault();
-			send();
-		}}
+		onpaste={handlePaste}
+		onkeydown={handleKeydown}
+		{@attach autoGrow}
 		aria-autocomplete="list"
 		aria-controls={commandMenuOpen ? 'composer-command-menu' : undefined}
 		aria-activedescendant={commandMenuOpen
@@ -251,102 +260,12 @@
 			: streaming
 				? 'Steer the response while it runs…'
 				: 'Ask about your workspace…'}></textarea>
-	<div data-ui="composer-toolbar">
-		<Tooltip text="Attach files or images">
-			{#snippet children(props)}
-				<Button
-					{...props}
-					type="button"
-					variant="ghost"
-					size="icon"
-					aria-label="Attach files"
-					disabled={attachments.length >= maxAttachmentCount}
-					onclick={() => picker?.click()}
-				>
-					<Paperclip size={14} />
-				</Button>
-			{/snippet}
-		</Tooltip>
-		<ComposerModelControls {store} />
-		{#if store.sessionId}
-			<UsageMeter
-				usage={store.usage ?? emptyUsage(store.model?.contextWindow)}
-			/>
-		{/if}
-		{#if store.compacting}<span data-ui="compaction-status"
-				>Compacting context…</span
-			>{/if}
-		<Tooltip text="Compact context now">
-			{#snippet children(props)}
-				<Button
-					{...props}
-					type="button"
-					variant="ghost"
-					size="icon"
-					aria-label="Compact context"
-					disabled={streaming ||
-						store.compacting ||
-						store.connection !== 'connected' ||
-						!store.sessionId}
-					onclick={() => void store.compact()}
-				>
-					<Minimize2 size={14} />
-				</Button>
-			{/snippet}
-		</Tooltip>
-		<span data-ui="composer-hint">
-			{#if streaming}
-				Steering
-			{:else if sendOnEnter}
-				<kbd>Enter</kbd> send · <kbd>Shift Enter</kbd> newline
-			{:else}
-				<kbd>⌘/Ctrl Enter</kbd> send · <kbd>Enter</kbd> newline
-			{/if}
-		</span>
-		{#if streaming}
-			<Tooltip text="Stop the response and keep what has been written">
-				{#snippet children(props)}
-					<Button
-						{...props}
-						type="button"
-						variant="danger"
-						size="icon"
-						aria-label="Stop response"
-						onclick={() => store.abort()}
-					>
-						<Square size={14} />
-					</Button>
-				{/snippet}
-			</Tooltip>
-			<Tooltip text="Add direction without interrupting the run">
-				{#snippet children(props)}
-					<Button
-						{...props}
-						type="submit"
-						variant="primary"
-						size="icon"
-						aria-label="Steer response"
-						disabled={!canSend}
-					>
-						<CornerDownLeft size={16} />
-					</Button>
-				{/snippet}
-			</Tooltip>
-		{:else}
-			<Tooltip text={`Send message · ${shortcutHint('↵')}`}>
-				{#snippet children(props)}
-					<Button
-						{...props}
-						type="submit"
-						variant="primary"
-						size="icon"
-						aria-label="Send message"
-						disabled={!canSend}
-					>
-						<Send size={16} />
-					</Button>
-				{/snippet}
-			</Tooltip>
-		{/if}
-	</div>
+	<ComposerToolbar
+		{store}
+		attachmentCount={attachments.length}
+		{streaming}
+		{canSend}
+		{sendOnEnter}
+		onAttach={() => picker?.click()}
+	/>
 </form>

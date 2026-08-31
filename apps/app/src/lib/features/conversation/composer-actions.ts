@@ -8,11 +8,9 @@ export function autoGrow(node: HTMLTextAreaElement) {
 			? undefined
 			: new ResizeObserver(resize);
 	observer?.observe(node);
-	return {
-		destroy() {
-			node.removeEventListener('input', resize);
-			observer?.disconnect();
-		},
+	return () => {
+		node.removeEventListener('input', resize);
+		observer?.disconnect();
 	};
 }
 
