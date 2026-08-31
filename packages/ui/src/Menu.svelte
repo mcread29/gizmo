@@ -27,7 +27,7 @@
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Portal>
 		<DropdownMenu.Content data-ui="menu-content" sideOffset={6} {align}>
-			{#each items as item}
+			{#each items as item (item.label)}
 				<DropdownMenu.Item
 					data-ui="menu-item"
 					data-tone={item.tone ?? 'default'}

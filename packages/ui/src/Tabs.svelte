@@ -37,7 +37,7 @@
 
 <Tabs.Root bind:value data-ui="tabs" data-variant={variant}>
 	<Tabs.List data-ui="tabs-list">
-		{#each items as item}
+		{#each items as item (item.value)}
 			<Tabs.Trigger data-ui="tabs-trigger" value={item.value}>
 				<span data-ui="tabs-label">{item.label}</span>
 				{#if item.shortLabel}<span data-ui="tabs-label-short"
@@ -49,7 +49,7 @@
 			</Tabs.Trigger>
 		{/each}
 	</Tabs.List>
-	{#each items as item}
+	{#each items as item (item.value)}
 		<Tabs.Content data-ui="tabs-content" value={item.value}>
 			{#if !lazy || mounted.has(item.value)}{@render children(item.value)}{/if}
 		</Tabs.Content>

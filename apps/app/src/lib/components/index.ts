@@ -1,12 +1,5 @@
 export { default as BrandMark } from './BrandMark.svelte';
-export { default as Menu } from './Menu.svelte';
-export type { MenuItem } from './Menu.svelte';
-export { default as ScrollPanel } from './ScrollPanel.svelte';
-export { default as SelectField } from './SelectField.svelte';
-export type { SelectOption } from './SelectField.svelte';
 export { default as SwitchField } from './SwitchField.svelte';
-export { default as Tabs } from './Tabs.svelte';
-export type { TabItem } from './Tabs.svelte';
 
 // Workbench primitives shared with first-party extension packages now live in
 // @gizmo/ui; re-exported here so existing app imports keep working.
@@ -15,9 +8,19 @@ export {
 	ConfirmDialog,
 	Dialog,
 	DiffView,
+	Menu,
+	ScrollPanel,
+	SelectField,
+	Tabs,
 	Toast,
 	Tooltip,
 	toasts,
 	ToastQueue,
 } from '@gizmo/ui';
-export type { ToastMessage, ToastTone } from '@gizmo/ui';
+export type {
+	MenuItem,
+	SelectOption,
+	TabItem,
+	ToastMessage,
+	ToastTone,
+} from '@gizmo/ui';
