@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import { extname, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import { isPathWithin } from '../path-utils';
 
 const execFileAsync = promisify(execFile);
 
@@ -56,7 +57,7 @@ export async function runScript(
 ): Promise<RunScriptResult> {
 	const workspacePath = resolve(options.workspacePath);
 	const absolute = resolve(workspacePath, scriptPath);
-	if (absolute !== workspacePath && !absolute.startsWith(`${workspacePath}/`)) {
+	if (!isPathWithin(workspacePath, absolute)) {
 		throw new Error(`Script must be inside the workspace: ${scriptPath}`);
 	}
 	const extension = extname(absolute).toLowerCase();

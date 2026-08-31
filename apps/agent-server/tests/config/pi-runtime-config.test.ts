@@ -63,7 +63,9 @@ describe('Pi runtime configuration', () => {
 		expect(await readFile(join(dataDir, 'auth.json'), 'utf8')).toBe(
 			'{"openai":"pi"}\n',
 		);
-		expect((await stat(join(dataDir, 'auth.json'))).mode & 0o777).toBe(0o600);
+		if (process.platform !== 'win32') {
+			expect((await stat(join(dataDir, 'auth.json'))).mode & 0o777).toBe(0o600);
+		}
 		expect(await importPiRuntimeConfig(dataDir, piDir)).toEqual([]);
 	});
 
@@ -89,7 +91,9 @@ describe('Pi runtime configuration', () => {
 		expect(await readFile(join(dataDir, 'settings.json'), 'utf8')).toBe(
 			'{"gizmo":true}\n',
 		);
-		expect((await stat(join(dataDir, 'auth.json'))).mode & 0o777).toBe(0o600);
+		if (process.platform !== 'win32') {
+			expect((await stat(join(dataDir, 'auth.json'))).mode & 0o777).toBe(0o600);
+		}
 	});
 });
 

@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
 import type { GizmoServerExtension } from '@gizmo/extensions';
+import { isPathWithin } from '../path-utils';
 
 export interface ExtensionResourceRoots {
 	skills: string[];
@@ -94,7 +95,7 @@ async function existing(root: string, dirs: string[]): Promise<string[]> {
 	for (const dir of dirs) {
 		if (isAbsolute(dir)) continue;
 		const path = resolve(root, dir);
-		if (path !== root && !path.startsWith(`${root}/`)) continue;
+		if (!isPathWithin(root, path)) continue;
 		try {
 			await readdir(path);
 			found.push(path);

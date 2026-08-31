@@ -1,6 +1,6 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { PiSessionRepository } from '../../src/sessions/session-repository';
 
@@ -19,13 +19,15 @@ describe('PiSessionRepository', () => {
 		const dataDir = await mkdtemp(join(tmpdir(), 'gizmo-test-'));
 		temporaryDirectories.push(dataDir);
 		const repository = new PiSessionRepository(dataDir);
-		const game = await repository.create('/projects/game');
+		const gamePath = resolve('/projects/game');
+		const toolsPath = resolve('/projects/tools');
+		const game = await repository.create(gamePath);
 		game.appendMessage({
 			role: 'user',
 			content: 'Inspect the active scene',
 			timestamp: 10,
 		});
-		const tools = await repository.create('/projects/tools');
+		const tools = await repository.create(toolsPath);
 		tools.appendMessage({
 			role: 'user',
 			content: 'List build commands',
@@ -43,12 +45,12 @@ describe('PiSessionRepository', () => {
 			expect.arrayContaining([
 				expect.objectContaining({
 					id: game.getSessionId(),
-					workspacePath: '/projects/game',
+					workspacePath: gamePath,
 					title: 'Scene inspection',
 				}),
 				expect.objectContaining({
 					id: tools.getSessionId(),
-					workspacePath: '/projects/tools',
+					workspacePath: toolsPath,
 				}),
 			]),
 		);
