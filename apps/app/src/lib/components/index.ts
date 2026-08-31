@@ -1,5 +1,4 @@
 export { default as BrandMark } from './BrandMark.svelte';
-export { default as ConfirmDialog } from './ConfirmDialog.svelte';
 export { default as Menu } from './Menu.svelte';
 export type { MenuItem } from './Menu.svelte';
 export { default as ScrollPanel } from './ScrollPanel.svelte';
@@ -13,6 +12,7 @@ export type { TabItem } from './Tabs.svelte';
 // @gizmo/ui; re-exported here so existing app imports keep working.
 export {
 	Button,
+	ConfirmDialog,
 	Dialog,
 	DiffView,
 	Toast,

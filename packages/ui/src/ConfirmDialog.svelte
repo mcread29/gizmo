@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { Button } from '@gizmo/ui';
-	import { Dialog } from '@gizmo/ui';
+	import Button from './Button.svelte';
+	import Dialog from './Dialog.svelte';
 
 	let {
 		open = $bindable(false),
