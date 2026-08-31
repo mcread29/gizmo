@@ -1,3 +1,4 @@
+import type { InstructionTarget } from '@gizmo/protocol';
 import type { AgentClient } from '../AgentClient';
 import type { AgentStore } from '../AgentStore.svelte';
 import { errorMessage } from './shared';
@@ -48,6 +49,26 @@ export class ResourceCapability {
 		try {
 			await this.client.writeSkill(path, content);
 			await this.refreshResources();
+			return true;
+		} catch (error) {
+			this.store.resourceError = errorMessage(error);
+			return false;
+		}
+	}
+
+	readInstructions(target: InstructionTarget, workspacePath?: string) {
+		return this.client.readInstructions(target, workspacePath);
+	}
+
+	async writeInstructions(
+		target: InstructionTarget,
+		content: string,
+		workspacePath?: string,
+	) {
+		this.store.resourceError = undefined;
+		try {
+			await this.client.writeInstructions(target, content, workspacePath);
+			await this.refreshResources(workspacePath);
 			return true;
 		} catch (error) {
 			this.store.resourceError = errorMessage(error);

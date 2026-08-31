@@ -7,6 +7,10 @@ import {
 	registryUnlink,
 	registryUpdate,
 } from '../extensions/registry-manager';
+import {
+	handleInstructionsRead,
+	handleInstructionsWrite,
+} from '../resources/instruction-files';
 import type { PiAgentService } from '../sessions/pi-agent-service';
 import type { RouteResult } from './request-router';
 
@@ -15,6 +19,8 @@ type ResourceRequestType =
 	| 'resources.skill.global'
 	| 'resources.skill.read'
 	| 'resources.skill.write'
+	| 'resources.instructions.read'
+	| 'resources.instructions.write'
 	| 'resources.extension.global'
 	| 'resources.gizmo-extension.global'
 	| 'registry.status'
@@ -57,6 +63,23 @@ export async function handleResourceRequest(
 		case 'resources.skill.write':
 			return {
 				result: await service.writeSkill(request.path, request.content),
+			};
+		case 'resources.instructions.read':
+			return {
+				result: await handleInstructionsRead(
+					() => service.listProjects(),
+					request.target,
+					request.workspacePath,
+				),
+			};
+		case 'resources.instructions.write':
+			return {
+				result: await handleInstructionsWrite(
+					() => service.listProjects(),
+					request.target,
+					request.content,
+					request.workspacePath,
+				),
 			};
 		case 'resources.extension.global':
 			return {

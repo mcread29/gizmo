@@ -4,6 +4,7 @@
 	import { Switch } from 'bits-ui';
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
+	import InstructionsEditor from './InstructionsEditor.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 	import { toasts } from '../../toasts.svelte';
 
@@ -16,7 +17,6 @@
 	});
 
 	let catalog = $derived(store.resources);
-	let agentsFiles = $derived(catalog?.agentsFiles ?? []);
 	let prompts = $derived(catalog?.prompts ?? []);
 	let extensions = $derived(catalog?.extensions ?? []);
 	let gizmoExtensions = $derived(catalog?.gizmoExtensions ?? []);
@@ -42,6 +42,13 @@
 			? [...selectedTools, tool]
 			: selectedTools.filter((name) => name !== tool);
 		void store.setGlobalToolPolicy(next);
+	}
+
+	function instructionsSaved() {
+		toasts.show(
+			'Saved. Takes effect for new threads or after Reload runtime.',
+			'success',
+		);
 	}
 
 	async function reloadRuntime() {
@@ -78,28 +85,21 @@
 		<p data-ui="resource-error">{store.resourceError}</p>
 	{/if}
 
-	<div data-ui="settings-card">
-		<div data-ui="settings-section-header">
-			<strong>AGENTS.md</strong>
-			<span>Instructions applied to every session. Edit these on disk.</span>
-		</div>
-		{#if agentsFiles.length === 0}
-			<p data-ui="resource-empty">Nothing found.</p>
-		{:else}
-			<div data-ui="resource-list">
-				{#each agentsFiles as resource (resource.id)}
-					<div data-ui="resource-row">
-						<strong>
-							{resource.name}
-							<em data-ui="resource-scope">{resource.scope}</em>
-						</strong>
-						{#if resource.description}<span>{resource.description}</span>{/if}
-						<small title={resource.path}>{resource.path}</small>
-					</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
+	<InstructionsEditor
+		{store}
+		target="system-prompt"
+		title="System prompt"
+		description="Replaces Pi's default system prompt for every session. Leave empty to use Pi's default. An active extension's own prompt still takes precedence."
+		onSaved={instructionsSaved}
+	/>
+
+	<InstructionsEditor
+		{store}
+		target="global-agents"
+		title="Global AGENTS.md"
+		description="Instructions applied to every session on this machine."
+		onSaved={instructionsSaved}
+	/>
 
 	<div data-ui="settings-subhead">
 		<strong>Built-in tools</strong>

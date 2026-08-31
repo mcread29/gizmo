@@ -1,4 +1,4 @@
-import type { AgentAttachment } from '@gizmo/protocol';
+import type { AgentAttachment, InstructionTarget } from '@gizmo/protocol';
 import type { AgentClient } from './AgentClient';
 import { AgentStoreState } from './agent-store/AgentStoreState.svelte';
 import { ConnectionCapability } from './agent-store/ConnectionCapability';
@@ -244,6 +244,16 @@ export class AgentStore extends AgentStoreState {
 	}
 	writeSkill(path: string, content: string) {
 		return this.#resources.writeSkill(path, content);
+	}
+	readInstructions(target: InstructionTarget, workspacePath?: string) {
+		return this.#resources.readInstructions(target, workspacePath);
+	}
+	writeInstructions(
+		target: InstructionTarget,
+		content: string,
+		workspacePath?: string,
+	) {
+		return this.#resources.writeInstructions(target, content, workspacePath);
 	}
 	setGlobalExtension(extensionId: string, enabled: boolean) {
 		return this.#resources.setGlobalExtension(extensionId, enabled);

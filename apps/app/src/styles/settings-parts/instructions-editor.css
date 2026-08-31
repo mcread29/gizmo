@@ -1,0 +1,85 @@
+[data-ui='instructions-editor'] {
+	display: grid;
+	gap: var(--space-3);
+	padding: var(--space-4);
+}
+
+[data-ui='instructions-editor-header'] {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-3);
+}
+
+[data-ui='instructions-editor-header'] [data-ui='settings-section-header'] {
+	min-width: 0;
+}
+
+[data-ui='instructions-editor-actions'] {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+[data-ui='instructions-editor'] textarea {
+	width: 100%;
+	height: 280px;
+	resize: none;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	padding: var(--space-3);
+	background: var(--color-canvas);
+	color: var(--color-text);
+	caret-color: var(--color-accent);
+	font: var(--text-xs) / 1.6 var(--font-mono);
+	tab-size: 2;
+	scrollbar-color: var(--color-border-strong) transparent;
+	scrollbar-width: thin;
+}
+
+[data-ui='instructions-editor'] textarea:focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+}
+
+[data-ui='instructions-editor'] textarea::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+[data-ui='instructions-editor'] textarea::-webkit-scrollbar-track,
+[data-ui='instructions-editor'] textarea::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
+[data-ui='instructions-editor'] textarea::-webkit-scrollbar-thumb {
+	border-radius: var(--radius-full);
+	background: var(--color-border-strong);
+}
+
+[data-ui='instructions-editor'] textarea::-webkit-scrollbar-thumb:hover {
+	background: var(--color-text-faint);
+}
+
+[data-ui='instructions-editor-footer'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.4 var(--font-mono);
+}
+
+[data-ui='instructions-editor-footer'] strong {
+	margin-left: auto;
+	color: var(--color-danger);
+	font-family: var(--font-sans);
+	font-weight: 500;
+}
+
+[data-ui='instructions-editor-dirty'] {
+	margin-left: var(--space-2);
+	color: var(--color-accent);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+}

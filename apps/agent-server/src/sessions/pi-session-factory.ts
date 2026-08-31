@@ -8,6 +8,10 @@ import { createRunScriptTool } from '../scripts/run-script-tool';
 import { extensionResourceRoots } from '../resources/extension-resources';
 import { enabledPiExtensionPaths } from '../resources/pi-global-resources';
 import {
+	recordDefaultSystemPrompt,
+	userSystemPrompt,
+} from '../resources/instruction-files';
+import {
 	existingDirectories,
 	existingFiles,
 	resourceRoots,
@@ -55,14 +59,23 @@ export const createDefaultPiSession: PiSessionFactory = async (
 		createRunScriptTool({ workspacePath: cwd }),
 	];
 	const catalog = new ResourceCatalogService();
-	const [skillPaths, promptPaths, agentsFiles, fromExtensions, piExtensions] =
-		await Promise.all([
-			catalog.enabledSkillPaths(cwd),
-			existingDirectories(resourceRoots(cwd).prompts),
-			readAgentsFiles(cwd),
-			extensionResourceRoots(registeredExtensions()),
-			enabledPiExtensionPaths(new Set(options.disabledPiExtensions ?? [])),
-		]);
+	const [
+		skillPaths,
+		promptPaths,
+		agentsFiles,
+		fromExtensions,
+		piExtensions,
+		customSystemPrompt,
+	] = await Promise.all([
+		catalog.enabledSkillPaths(cwd),
+		existingDirectories(resourceRoots(cwd).prompts),
+		readAgentsFiles(cwd),
+		extensionResourceRoots(registeredExtensions()),
+		enabledPiExtensionPaths(new Set(options.disabledPiExtensions ?? [])),
+		userSystemPrompt(),
+	]);
+	// An active extension's prompt wins over the user's saved override.
+	const systemPrompt = activeDomains.systemPrompt ?? customSystemPrompt;
 	const resourceLoaderOptions = {
 		noExtensions: true,
 		additionalExtensionPaths: piExtensions,
@@ -72,9 +85,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 		additionalPromptTemplatePaths: [...promptPaths, ...fromExtensions.prompts],
 		noContextFiles: true,
 		agentsFilesOverride: () => ({ agentsFiles }),
-		...(activeDomains.systemPrompt
-			? { systemPromptOverride: () => activeDomains.systemPrompt! }
-			: {}),
+		...(systemPrompt ? { systemPromptOverride: () => systemPrompt } : {}),
 	};
 	const { session } = await (async () => {
 		if (piWebMode) {
@@ -114,6 +125,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 			sessionManager,
 		});
 	})();
+	if (!systemPrompt) recordDefaultSystemPrompt(session.systemPrompt);
 	await session.bindExtensions({
 		mode: 'json',
 		uiContext: callbacks.extensionUi.context,

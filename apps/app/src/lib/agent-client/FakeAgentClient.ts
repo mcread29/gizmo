@@ -151,6 +151,13 @@ export class FakeAgentClient implements AgentClient {
 		this.#resources.readSkill(path);
 	writeSkill: AgentClient['writeSkill'] = (path, content) =>
 		this.#resources.writeSkill(path, content);
+	readInstructions: AgentClient['readInstructions'] = (target, workspacePath) =>
+		this.#resources.readInstructions(target, workspacePath);
+	writeInstructions: AgentClient['writeInstructions'] = (
+		target,
+		content,
+		workspacePath,
+	) => this.#resources.writeInstructions(target, content, workspacePath);
 	getToolPolicy: AgentClient['getToolPolicy'] = (workspacePath) =>
 		this.#tools.get(workspacePath);
 	setGlobalToolPolicy: AgentClient['setGlobalToolPolicy'] = (tools) =>

@@ -2,6 +2,7 @@
 	import type { ProjectConfig, ProjectDomains } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import ExtensionSettings from '../../extensions/ExtensionSettings.svelte';
+	import InstructionsEditor from '../settings/InstructionsEditor.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import ConfigureSectionHeading from './configure/ConfigureSectionHeading.svelte';
 	import GizmoExtensionOverridesSection from './configure/GizmoExtensionOverridesSection.svelte';
@@ -127,6 +128,13 @@
 		<ConfigureSectionHeading
 			title="This workspace"
 			description="Applies to everything the agent does here."
+		/>
+		<InstructionsEditor
+			{store}
+			target="project-agents"
+			workspacePath={project.path}
+			title="AGENTS.md"
+			description="Instructions for every session in this workspace, alongside the global AGENTS.md. Takes effect for new threads or after Reload runtime."
 		/>
 		<WorkspaceToolPolicySection {store} {workspacePath} />
 		<ExtensionSettings {layout} activeDomains={store.activeDomains} />

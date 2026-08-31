@@ -177,6 +177,16 @@ export class InvalidEventClient implements AgentClient {
 	async writeSkill(path: string, content: string) {
 		return { path, content };
 	}
+	readInstructions: AgentClient['readInstructions'] = async (target) => ({
+		target,
+		path: '/instructions.md',
+		content: '',
+		exists: false,
+	});
+	writeInstructions: AgentClient['writeInstructions'] = async (
+		target,
+		content,
+	) => ({ target, path: '/instructions.md', content, exists: true });
 	async setGlobalExtension(): Promise<ResourceCatalog> {
 		return emptyCatalog;
 	}

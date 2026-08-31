@@ -57,6 +57,28 @@ export const skillFileSchema = Type.Object(
 
 export type SkillFile = Static<typeof skillFileSchema>;
 
+/** Editable instruction files: the Pi system prompt override and AGENTS.md. */
+export const instructionTargetSchema = Type.Union([
+	Type.Literal('system-prompt'),
+	Type.Literal('global-agents'),
+	Type.Literal('project-agents'),
+]);
+
+export type InstructionTarget = Static<typeof instructionTargetSchema>;
+
+export const instructionFileSchema = Type.Object(
+	{
+		target: instructionTargetSchema,
+		path: Type.String({ minLength: 1 }),
+		content: Type.String({ maxLength: 1_000_000 }),
+		/** False when the file has not been created on disk yet. */
+		exists: Type.Boolean(),
+	},
+	{ additionalProperties: false },
+);
+
+export type InstructionFile = Static<typeof instructionFileSchema>;
+
 /** Read-only companion resources: AGENTS.md files and prompt templates. */
 export const agentResourceSchema = Type.Object(
 	{

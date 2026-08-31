@@ -3,8 +3,9 @@ import {
 	parseResourceCatalog,
 	parseToolPolicy,
 } from '@gizmo/protocol';
+import type { InstructionTarget } from '@gizmo/protocol';
 import { ProjectRequests } from './project-requests';
-import { parseSkillFile } from './response-parsers';
+import { parseInstructionFile, parseSkillFile } from './response-parsers';
 
 export class ResourceRequests extends ProjectRequests {
 	async listResources(workspacePath?: string) {
@@ -47,6 +48,29 @@ export class ResourceRequests extends ProjectRequests {
 			content,
 		});
 		return parseSkillFile(response.result);
+	}
+
+	async readInstructions(target: InstructionTarget, workspacePath?: string) {
+		const response = await this.request({
+			type: 'resources.instructions.read',
+			target,
+			...(workspacePath ? { workspacePath } : {}),
+		});
+		return parseInstructionFile(response.result);
+	}
+
+	async writeInstructions(
+		target: InstructionTarget,
+		content: string,
+		workspacePath?: string,
+	) {
+		const response = await this.request({
+			type: 'resources.instructions.write',
+			target,
+			content,
+			...(workspacePath ? { workspacePath } : {}),
+		});
+		return parseInstructionFile(response.result);
 	}
 
 	async setGlobalExtension(extensionId: string, enabled: boolean) {

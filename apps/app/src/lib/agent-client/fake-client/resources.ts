@@ -1,4 +1,9 @@
-import type { ResourceCatalog, RegistryStatus } from '@gizmo/protocol';
+import type {
+	InstructionFile,
+	InstructionTarget,
+	ResourceCatalog,
+	RegistryStatus,
+} from '@gizmo/protocol';
 import { fakeAgentsFiles, fakeDomains, fakePrompts } from './fixtures';
 import type { FakeProjectCapability } from './projects';
 import type { FakeClientState } from './state';
@@ -49,6 +54,41 @@ export class FakeResourceCapability {
 
 	async setGlobalExtension() {
 		return this.catalog();
+	}
+
+	#instructions = new Map<string, string>();
+
+	async readInstructions(
+		target: InstructionTarget,
+		workspacePath?: string,
+	): Promise<InstructionFile> {
+		const content = this.#instructions.get(`${target}:${workspacePath ?? ''}`);
+		return {
+			target,
+			path: this.#instructionPath(target, workspacePath),
+			content: content ?? '',
+			exists: content !== undefined,
+		};
+	}
+
+	async writeInstructions(
+		target: InstructionTarget,
+		content: string,
+		workspacePath?: string,
+	): Promise<InstructionFile> {
+		this.#instructions.set(`${target}:${workspacePath ?? ''}`, content);
+		return {
+			target,
+			path: this.#instructionPath(target, workspacePath),
+			content,
+			exists: true,
+		};
+	}
+
+	#instructionPath(target: InstructionTarget, workspacePath?: string) {
+		if (target === 'system-prompt') return '/home/dev/.gizmo/system-prompt.md';
+		if (target === 'global-agents') return '/home/dev/.pi/agent/AGENTS.md';
+		return `${workspacePath ?? '/home/dev/project'}/AGENTS.md`;
 	}
 
 	async registryStatus() {

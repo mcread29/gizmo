@@ -56,6 +56,8 @@ export async function routeRequest(
 		case 'resources.skill.global':
 		case 'resources.skill.read':
 		case 'resources.skill.write':
+		case 'resources.instructions.read':
+		case 'resources.instructions.write':
 		case 'resources.extension.global':
 		case 'resources.gizmo-extension.global':
 		case 'registry.status':

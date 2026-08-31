@@ -11,6 +11,8 @@ import type {
 	SessionSnapshot,
 	SessionTree,
 	ResourceCatalog,
+	InstructionFile,
+	InstructionTarget,
 	SkillFile,
 	StoredProject,
 	ProjectConfig,
@@ -138,6 +140,15 @@ export interface AgentClient {
 	registryUnlink(registry: string, id: string): Promise<RegistryStatus>;
 	readSkill(path: string): Promise<SkillFile>;
 	writeSkill(path: string, content: string): Promise<SkillFile>;
+	readInstructions(
+		target: InstructionTarget,
+		workspacePath?: string,
+	): Promise<InstructionFile>;
+	writeInstructions(
+		target: InstructionTarget,
+		content: string,
+		workspacePath?: string,
+	): Promise<InstructionFile>;
 	setGlobalExtension(
 		extensionId: string,
 		enabled: boolean,

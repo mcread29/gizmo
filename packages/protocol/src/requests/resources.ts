@@ -1,5 +1,6 @@
 import { Type } from 'typebox';
 import { envelope } from '../envelopes';
+import { instructionTargetSchema } from '../resources';
 
 export const resourcesRequestSchemas = [
 	Type.Object(
@@ -36,6 +37,27 @@ export const resourcesRequestSchemas = [
 			type: Type.Literal('resources.skill.write'),
 			path: Type.String({ minLength: 1 }),
 			content: Type.String({ maxLength: 1_000_000 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('resources.instructions.read'),
+			target: instructionTargetSchema,
+			/** Required when the target is project-scoped. */
+			workspacePath: Type.Optional(Type.String({ minLength: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('resources.instructions.write'),
+			target: instructionTargetSchema,
+			content: Type.String({ maxLength: 1_000_000 }),
+			/** Required when the target is project-scoped. */
+			workspacePath: Type.Optional(Type.String({ minLength: 1 })),
 		},
 		{ additionalProperties: false },
 	),
