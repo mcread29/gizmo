@@ -23,7 +23,7 @@
 	import SettingsNav, { type SettingsNavItem } from './SettingsNav.svelte';
 	import AgentSettings from './AgentSettings.svelte';
 	import ProvidersSettings from './ProvidersSettings.svelte';
-import ExtensionsSettings from './ExtensionsSettings.svelte';
+	import ExtensionsSettings from './ExtensionsSettings.svelte';
 	import SkillsSettings from './SkillsSettings.svelte';
 
 	interface Props {
