@@ -1,49 +1,97 @@
-import {
-	parseAgentEvent,
-	type AgentEvent,
-	type ExtensionUiResponse,
-} from '@gizmo/protocol';
+import type { ExtensionUiResponse } from '@gizmo/protocol';
 import type { ToastQueue } from '@gizmo/ui';
 import type { AgentClient } from '../../agent-client';
+import { PiExtensionUiEvents } from './PiExtensionUiEvents';
+import { PiExtensionUiState } from './PiExtensionUiState.svelte';
+import type {
+	PiExtensionDialog,
+	PiExtensionEditorCommand,
+	PiExtensionStatus,
+	PiExtensionUiRequestedEvent,
+	PiExtensionWidget,
+} from './PiExtensionUiTypes';
 
-type RequestedEvent = Extract<AgentEvent, { type: 'extension.ui.requested' }>;
-export type PiExtensionDialog = RequestedEvent & {
-	request: Extract<
-		RequestedEvent['request'],
-		{ method: 'select' | 'confirm' | 'input' | 'editor' }
-	>;
-};
-export type PiExtensionWidget = RequestedEvent & {
-	request: Extract<RequestedEvent['request'], { method: 'setWidget' }>;
-};
-export type PiExtensionStatus = RequestedEvent & {
-	request: Extract<RequestedEvent['request'], { method: 'setStatus' }>;
-};
-export type PiExtensionEditorCommand = RequestedEvent & {
-	request: Extract<RequestedEvent['request'], { method: 'setEditorText' }>;
-};
+export type {
+	PiExtensionDialog,
+	PiExtensionEditorCommand,
+	PiExtensionStatus,
+	PiExtensionWidget,
+} from './PiExtensionUiTypes';
 
-const dialogMethods = new Set(['select', 'confirm', 'input', 'editor']);
-
+/**
+ * Stable reactive facade for Pi extension UI state and transport behavior.
+ * Event routing and state transitions live in focused collaborators so this
+ * class remains the single public API consumed by the app.
+ */
 export class PiExtensionUiStore {
-	dialogs = $state.raw<PiExtensionDialog[]>([]);
-	widgets = $state.raw<PiExtensionWidget[]>([]);
-	statuses = $state.raw<PiExtensionStatus[]>([]);
-	editorCommands = $state.raw<PiExtensionEditorCommand[]>([]);
-	titles = $state.raw<RequestedEvent[]>([]);
-	working = $state.raw<RequestedEvent[]>([]);
-	responding = $state.raw<ReadonlySet<string>>(new Set());
+	readonly #state = new PiExtensionUiState();
+	readonly #events: PiExtensionUiEvents;
 	#unsubscribe?: () => void;
 	#unsubscribeDisconnect?: () => void;
 
 	constructor(
 		private readonly client: AgentClient,
 		private readonly toasts: ToastQueue,
-	) {}
+	) {
+		this.#events = new PiExtensionUiEvents(
+			this.#state,
+			this.toasts,
+			(dialog, response) => this.respond(dialog, response),
+		);
+	}
+
+	get dialogs() {
+		return this.#state.dialogs;
+	}
+	set dialogs(value: PiExtensionDialog[]) {
+		this.#state.dialogs = value;
+	}
+
+	get widgets() {
+		return this.#state.widgets;
+	}
+	set widgets(value: PiExtensionWidget[]) {
+		this.#state.widgets = value;
+	}
+
+	get statuses() {
+		return this.#state.statuses;
+	}
+	set statuses(value: PiExtensionStatus[]) {
+		this.#state.statuses = value;
+	}
+
+	get editorCommands() {
+		return this.#state.editorCommands;
+	}
+	set editorCommands(value: PiExtensionEditorCommand[]) {
+		this.#state.editorCommands = value;
+	}
+
+	get titles() {
+		return this.#state.titles;
+	}
+	set titles(value: PiExtensionUiRequestedEvent[]) {
+		this.#state.titles = value;
+	}
+
+	get working() {
+		return this.#state.working;
+	}
+	set working(value: PiExtensionUiRequestedEvent[]) {
+		this.#state.working = value;
+	}
+
+	get responding() {
+		return this.#state.responding;
+	}
+	set responding(value: ReadonlySet<string>) {
+		this.#state.responding = value;
+	}
 
 	start() {
 		this.#unsubscribe ??= this.client.subscribe((event) =>
-			this.#receive(event),
+			this.#events.receive(event),
 		);
 		this.#unsubscribeDisconnect ??= this.client.subscribeDisconnect(() =>
 			this.clear(),
@@ -64,116 +112,48 @@ export class PiExtensionUiStore {
 	 * option and the follow-up input request is answered automatically with
 	 * the stashed text — one seamless step for the user.
 	 */
-	#queuedCustomAnswer?: { sessionId: string; text: string };
-
 	queueCustomAnswer(sessionId: string, text: string) {
-		this.#queuedCustomAnswer = { sessionId, text };
+		this.#events.queueCustomAnswer(sessionId, text);
 	}
 
 	dialogFor(sessionId: string | undefined) {
-		// Select and input render inline in the chat as agent questions; only
-		// confirmations and editors stay modal.
-		const candidates = (
-			sessionId
-				? this.dialogs.filter((dialog) => dialog.sessionId === sessionId)
-				: this.dialogs
-		).filter(
-			(dialog) =>
-				dialog.request.method === 'confirm' ||
-				dialog.request.method === 'editor',
-		);
-		return candidates[0];
+		return this.#state.dialogFor(sessionId);
 	}
 
 	/** Pending select/input requests for a session, rendered in the chat. */
 	questionsFor(sessionId: string | undefined) {
-		if (!sessionId) return [];
-		return this.dialogs.filter(
-			(dialog) =>
-				dialog.sessionId === sessionId &&
-				(dialog.request.method === 'select' ||
-					dialog.request.method === 'input'),
-		);
+		return this.#state.questionsFor(sessionId);
 	}
 
 	widgetsFor(
 		sessionId: string | undefined,
 		placement: 'aboveEditor' | 'belowEditor',
 	) {
-		return this.widgets.filter(
-			(widget) =>
-				widget.sessionId === sessionId &&
-				widget.request.placement === placement &&
-				widget.request.lines !== null,
-		);
+		return this.#state.widgetsFor(sessionId, placement);
 	}
 
 	statusesFor(sessionId: string | undefined) {
-		return this.statuses.filter(
-			(status) =>
-				status.sessionId === sessionId && status.request.text !== null,
-		);
+		return this.#state.statusesFor(sessionId);
 	}
 
 	workingFor(sessionId: string | undefined) {
-		const events = this.working.filter(
-			(event) => event.sessionId === sessionId,
-		);
-		const latest = (method: RequestedEvent['request']['method']) => {
-			for (let index = events.length - 1; index >= 0; index--) {
-				if (events[index]?.request.method === method) return events[index];
-			}
-			return undefined;
-		};
-		const message = latest('setWorkingMessage')?.request;
-		const visibility = latest('setWorkingVisible')?.request;
-		const indicator = latest('setWorkingIndicator')?.request;
-		return {
-			message:
-				message?.method === 'setWorkingMessage' ? message.message : undefined,
-			visible:
-				visibility?.method === 'setWorkingVisible'
-					? visibility.visible
-					: undefined,
-			frames:
-				indicator?.method === 'setWorkingIndicator'
-					? indicator.frames
-					: undefined,
-			intervalMs:
-				indicator?.method === 'setWorkingIndicator'
-					? indicator.intervalMs
-					: undefined,
-		};
+		return this.#state.workingFor(sessionId);
 	}
 
 	titleFor(sessionId: string | undefined) {
-		for (let index = this.titles.length - 1; index >= 0; index--) {
-			const event = this.titles[index];
-			if (
-				event?.sessionId === sessionId &&
-				event.request.method === 'setTitle'
-			) {
-				return event.request.title;
-			}
-		}
-		return undefined;
+		return this.#state.titleFor(sessionId);
 	}
 
 	editorCommandFor(sessionId: string | undefined) {
-		return this.editorCommands.find(
-			(command) => command.sessionId === sessionId,
-		);
+		return this.#state.editorCommandFor(sessionId);
 	}
 
 	consumeEditorCommand(command: PiExtensionEditorCommand) {
-		this.editorCommands = this.editorCommands.filter(
-			(candidate) => candidate.uiRequestId !== command.uiRequestId,
-		);
+		this.#state.consumeEditorCommand(command);
 	}
 
 	async respond(dialog: PiExtensionDialog, response: ExtensionUiResponse) {
-		if (this.responding.has(dialog.uiRequestId)) return;
-		this.responding = new Set([...this.responding, dialog.uiRequestId]);
+		if (!this.#state.startResponding(dialog.uiRequestId)) return;
 		try {
 			await this.client.resolveExtensionUi(
 				dialog.sessionId,
@@ -181,7 +161,7 @@ export class PiExtensionUiStore {
 				dialog.uiRequestId,
 				response,
 			);
-			this.#removeDialog(dialog.uiRequestId);
+			this.#state.removeDialog(dialog.uiRequestId);
 		} catch (error) {
 			this.toasts.show(
 				error instanceof Error
@@ -191,145 +171,12 @@ export class PiExtensionUiStore {
 			);
 			throw error;
 		} finally {
-			const next = new Set(this.responding);
-			next.delete(dialog.uiRequestId);
-			this.responding = next;
+			this.#state.stopResponding(dialog.uiRequestId);
 		}
 	}
 
 	clear() {
-		this.#queuedCustomAnswer = undefined;
-		this.dialogs = [];
-		this.widgets = [];
-		this.statuses = [];
-		this.editorCommands = [];
-		this.titles = [];
-		this.working = [];
-		this.responding = new Set();
+		this.#events.clear();
+		this.#state.clear();
 	}
-
-	#receive(input: unknown) {
-		let event: AgentEvent;
-		try {
-			event = parseAgentEvent(input);
-		} catch {
-			return;
-		}
-		if (event.type === 'extension.ui.cancelled') {
-			this.#removeDialog(event.uiRequestId);
-			return;
-		}
-		if (event.type === 'extension.ui.runtime.cleared') {
-			this.#clearRuntime(event.sessionId, event.runtimeId);
-			return;
-		}
-		if (event.type !== 'extension.ui.requested') return;
-
-		const method = event.request.method;
-		if (dialogMethods.has(method)) {
-			// A queued custom answer is delivered silently through the follow-up
-			// input request instead of showing the user a second dialog.
-			const queued = this.#queuedCustomAnswer;
-			if (
-				queued &&
-				queued.sessionId === event.sessionId &&
-				method === 'input'
-			) {
-				this.#queuedCustomAnswer = undefined;
-				const dialog = event as PiExtensionDialog;
-				this.respond(dialog, { kind: 'value', value: queued.text }).catch(() =>
-					this.dialogs.push(dialog),
-				);
-				return;
-			}
-			this.dialogs = [...this.dialogs, event as PiExtensionDialog];
-			return;
-		}
-		if (method === 'notify') {
-			this.toasts.show(
-				event.request.message,
-				event.request.notificationType === 'error'
-					? 'danger'
-					: event.request.notificationType,
-			);
-			return;
-		}
-		if (method === 'setStatus') {
-			this.statuses = upsert(this.statuses, event as PiExtensionStatus, 'key');
-			return;
-		}
-		if (
-			method === 'setWorkingMessage' ||
-			method === 'setWorkingVisible' ||
-			method === 'setWorkingIndicator'
-		) {
-			this.working = [
-				...this.working.filter(
-					(candidate) =>
-						candidate.sessionId !== event.sessionId ||
-						candidate.runtimeId !== event.runtimeId ||
-						candidate.request.method !== method,
-				),
-				event,
-			];
-			return;
-		}
-		if (method === 'setWidget') {
-			this.widgets = upsert(this.widgets, event as PiExtensionWidget, 'key');
-			return;
-		}
-		if (method === 'setTitle') {
-			this.titles = [
-				...this.titles.filter(
-					(candidate) =>
-						candidate.sessionId !== event.sessionId ||
-						candidate.runtimeId !== event.runtimeId,
-				),
-				event,
-			];
-			return;
-		}
-		if (method === 'setEditorText') {
-			this.editorCommands = [
-				...this.editorCommands,
-				event as PiExtensionEditorCommand,
-			];
-		}
-	}
-
-	#removeDialog(uiRequestId: string) {
-		this.dialogs = this.dialogs.filter(
-			(dialog) => dialog.uiRequestId !== uiRequestId,
-		);
-	}
-
-	#clearRuntime(sessionId: string, runtimeId: string) {
-		const keep = <T extends { sessionId: string; runtimeId: string }>(
-			item: T,
-		) => item.sessionId !== sessionId || item.runtimeId !== runtimeId;
-		this.dialogs = this.dialogs.filter(keep);
-		this.widgets = this.widgets.filter(keep);
-		this.statuses = this.statuses.filter(keep);
-		this.editorCommands = this.editorCommands.filter(keep);
-		this.titles = this.titles.filter(keep);
-		this.working = this.working.filter(keep);
-	}
-}
-
-function upsert<
-	T extends {
-		sessionId: string;
-		runtimeId: string;
-		request: { key: string };
-	},
->(items: T[], incoming: T, _key: 'key') {
-	return [
-		...items.filter(
-			(item) =>
-				item.sessionId !== incoming.sessionId ||
-				item.runtimeId !== incoming.runtimeId ||
-				item.request.key !== incoming.request.key,
-		),
-		incoming,
-	];
 }
