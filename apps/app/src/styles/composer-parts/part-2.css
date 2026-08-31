@@ -1,0 +1,184 @@
+/*
+ * The model name is the part that disambiguates; the provider is a suffix that
+ * may be dropped. Both stay on one line and truncation eats the provider first.
+ */
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact'] {
+	min-width: 0;
+	max-width: 18rem;
+	height: 28px;
+	gap: var(--space-2);
+	padding: 0 8px;
+	border-color: transparent;
+	background: transparent;
+	color: var(--color-text-muted);
+	font: 500 var(--text-2xs)/1 var(--font-sans);
+}
+
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact']:hover,
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact'][data-state='open'] {
+	border-color: var(--color-border);
+	background: var(--color-surface-soft);
+}
+
+[data-ui='composer-model-controls'] [data-ui='select-trigger'] > span {
+	display: flex;
+	min-width: 0;
+	gap: 5px;
+}
+
+[data-ui='composer-hint'] {
+	margin-left: auto;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	white-space: nowrap;
+}
+
+[data-ui='compaction-status'] {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	white-space: nowrap;
+}
+
+[data-left-mode='overlay'] [data-ui='composer-hint'] {
+	display: none;
+}
+
+kbd {
+	padding: 2px 4px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-xs);
+	background: var(--color-surface-soft);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='disclaimer'] {
+	margin-top: var(--space-2);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	text-align: center;
+}
+
+/*
+ * The context meter sits beside the model controls: it is about the cost of
+ * the next message, which is what the composer is for.
+ */
+[data-ui='usage-meter'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--color-text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+[data-ui='usage-meter'] small {
+	font-size: var(--text-2xs);
+}
+
+[data-ui='usage-bar'] {
+	display: block;
+	overflow: hidden;
+	width: 44px;
+	height: 4px;
+	border-radius: var(--radius-full);
+	background: var(--color-border);
+}
+
+[data-ui='usage-fill'] {
+	display: block;
+	height: 100%;
+	background: var(--color-text-faint);
+	transition: width 200ms ease;
+}
+
+[data-ui='usage-meter'][data-level='warn'] [data-ui='usage-fill'] {
+	background: var(--color-warning);
+}
+
+[data-ui='usage-meter'][data-level='full'] {
+	color: var(--color-danger);
+}
+
+[data-ui='usage-meter'][data-level='full'] [data-ui='usage-fill'] {
+	background: var(--color-danger);
+}
+
+/*
+ * Agent questions (extension UI select/input requests) take the composer's
+ * place while the agent waits for an answer: the question, a vertical list
+ * of uniform option buttons, and a custom-answer input where the editor
+ * would normally be.
+ */
+[data-ui='agent-question'] {
+	width: min(var(--content-max), 100%);
+	margin: 0 auto;
+	padding: var(--space-3);
+	display: grid;
+	gap: var(--space-2);
+	border: 1px solid var(--color-border-strong);
+	border-radius: 13px;
+	background: var(--color-surface-raised);
+	box-shadow: var(--shadow-panel);
+}
+
+[data-ui='agent-question-head'] {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+}
+
+[data-ui='agent-question-origin'] {
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--color-accent, var(--color-text-muted));
+}
+
+[data-ui='agent-question-timeout'] {
+	font-size: var(--text-2xs);
+	color: var(--color-text-muted);
+}
+
+[data-ui='agent-question-text'] {
+	margin: 0;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+[data-ui='agent-question-options'] {
+	display: grid;
+	gap: var(--space-2);
+}
+
+[data-ui='agent-question-options'] [data-ui='button'] {
+	width: 100%;
+	min-height: 36px;
+	justify-content: flex-start;
+	padding-inline: var(--space-3);
+	text-align: left;
+	overflow-wrap: anywhere;
+}
+
+[data-ui='agent-question-input'] form {
+	display: flex;
+	gap: var(--space-2);
+}
+
+[data-ui='agent-question-input'] input {
+	flex: 1;
+	min-width: 0;
+	padding: 9px 11px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	font-size: var(--text-xs);
+}
+
+[data-ui='agent-question-input'] input:focus-visible {
+	outline: 2px solid var(--color-accent, var(--color-text));
+	outline-offset: 1px;
+}

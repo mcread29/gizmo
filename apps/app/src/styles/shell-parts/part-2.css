@@ -1,0 +1,235 @@
+[data-ui='panel-resize-handle'] {
+	position: absolute;
+	top: var(--titlebar-height);
+	bottom: 0;
+	z-index: 18;
+	width: 7px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: col-resize;
+	touch-action: none;
+}
+
+[data-ui='panel-resize-handle']::after {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 3px;
+	width: 1px;
+	background: transparent;
+	content: '';
+	transition: background 120ms ease;
+}
+
+[data-ui='panel-resize-handle']:hover::after,
+[data-ui='panel-resize-handle']:focus-visible::after,
+body[data-resizing='sidebar'] [data-ui='panel-resize-handle']::after {
+	background: var(--color-accent);
+}
+
+[data-ui='panel-resize-handle'][data-side='left'] {
+	left: calc(var(--sidebar-width, 248px) - 3px);
+}
+
+[data-ui='panel-resize-handle'][data-side='right'] {
+	right: calc(var(--inspector-width, 288px) - 3px);
+}
+
+body[data-resizing='sidebar'] {
+	cursor: col-resize;
+	user-select: none;
+}
+
+/*
+ * The window is undecorated, so these are the only close and resize controls.
+ * They sit outside the drag region and keep native ordering per platform.
+ */
+[data-ui='window-controls'] {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	margin-left: var(--space-2);
+	padding-left: var(--space-2);
+	border-left: 1px solid var(--color-border);
+}
+
+[data-ui='window-control'] {
+	display: grid;
+	width: 28px;
+	height: 28px;
+	place-items: center;
+	border: 0;
+	border-radius: var(--radius-xs);
+	background: transparent;
+	color: var(--color-text-muted);
+	cursor: pointer;
+}
+
+[data-ui='window-control']:hover {
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+}
+
+[data-ui='window-control'][data-tone='close']:hover {
+	background: var(--color-danger);
+	color: var(--color-on-accent);
+}
+
+/*
+ * Settings is a screen, not a dialog: it covers the workspace entirely and
+ * leaves only the titlebar, so window controls and dragging keep working.
+ */
+[data-ui='settings-screen'] {
+	position: fixed;
+	inset: var(--titlebar-height) 0 0;
+	z-index: 40;
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	background: var(--color-canvas);
+}
+
+[data-ui='settings-screen-header'] {
+	padding: var(--space-5) var(--space-6) var(--space-4);
+	border-bottom: 1px solid var(--color-border);
+}
+
+[data-ui='settings-screen-header'] h1 {
+	margin: 0;
+	font-size: var(--text-xl);
+}
+
+[data-ui='settings-screen-header'] > span {
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}
+
+[data-ui='settings-screen-header'] > span {
+	display: flex;
+}
+
+/* The session tree is a screen for the same reason Settings is. */
+[data-ui='tree-screen'] {
+	position: fixed;
+	inset: var(--titlebar-height) 0 0;
+	z-index: 40;
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	background: var(--color-canvas);
+}
+
+[data-ui='tree-header'] {
+	display: grid;
+	gap: var(--space-1);
+	padding: var(--space-5) var(--space-6) var(--space-4);
+	border-bottom: 1px solid var(--color-border);
+}
+
+[data-ui='tree-header'] h1 {
+	margin: 0;
+	font-size: var(--text-xl);
+}
+
+[data-ui='tree-header'] > span {
+	max-width: 68ch;
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+}
+
+[data-ui='tree-controls'] {
+	display: flex;
+	align-items: end;
+	gap: var(--space-3);
+	margin-top: var(--space-3);
+}
+
+[data-ui='tree-controls'] input {
+	flex: 1;
+	max-width: 420px;
+}
+
+[data-ui='tree-body'] {
+	padding: var(--space-4) var(--space-6);
+}
+
+[data-ui='tree-empty'] {
+	margin: var(--space-6) 0;
+	color: var(--color-text-muted);
+	font-size: var(--text-sm);
+}
+
+[data-ui='tree-list'] {
+	display: grid;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+[data-ui='tree-row'] {
+	display: grid;
+	grid-template-columns: 20px minmax(0, 1fr);
+	align-items: center;
+	margin-left: calc(var(--depth) * var(--space-5));
+	border-left: 1px solid transparent;
+}
+
+/*
+ * The active path is the transcript you are looking at; everything else is a
+ * branch the thread walked away from.
+ */
+[data-ui='tree-row'][data-active] {
+	border-left-color: var(--color-accent);
+}
+
+[data-ui='tree-row']:not([data-active]) [data-ui='tree-summary'] {
+	color: var(--color-text-muted);
+}
+
+[data-ui='tree-fold'] {
+	display: grid;
+	place-items: center;
+	height: 24px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-text-faint);
+	cursor: pointer;
+}
+
+[data-ui='tree-fold']:disabled {
+	cursor: default;
+}
+
+[data-ui='tree-entry'] {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-2);
+	min-width: 0;
+	padding: 5px var(--space-2);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='tree-entry']:hover {
+	background: var(--color-surface);
+}
+
+[data-ui='tree-row'][data-selected] [data-ui='tree-entry'] {
+	background: var(--color-surface-raised);
+	outline: 1px solid var(--color-border);
+}
+
+[data-ui='tree-kind'] {
+	flex: none;
+	width: 68px;
+	color: var(--color-text-faint);
+	font-size: var(--text-2xs);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}

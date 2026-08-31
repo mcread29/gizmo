@@ -1,0 +1,70 @@
+[data-ui='tree-summary'] {
+	overflow: hidden;
+	font-size: var(--text-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='tree-label'],
+[data-ui='tree-branch'],
+[data-ui='tree-here'] {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 3px;
+	padding: 1px 6px;
+	border-radius: var(--radius-full);
+	background: var(--color-surface-soft);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='tree-here'] {
+	background: var(--color-accent);
+	color: var(--color-on-accent);
+}
+
+[data-ui='tree-actions'] {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-6);
+	border-top: 1px solid var(--color-border);
+}
+
+[data-ui='tree-count'] {
+	margin-right: auto;
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}
+
+[data-ui='tree-editor'] {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	display: grid;
+	gap: var(--space-2);
+	padding: var(--space-4) var(--space-6);
+	border-top: 1px solid var(--color-border);
+	background: var(--color-surface);
+	box-shadow: var(--shadow-md);
+}
+
+[data-ui='tree-editor'] label {
+	font-size: var(--text-sm);
+	font-weight: 600;
+}
+
+[data-ui='tree-editor'] p {
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='tree-editor'] > div {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-2);
+}

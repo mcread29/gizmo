@@ -1,0 +1,185 @@
+[data-ui='config-profilebar-label'] {
+	color: var(--color-text-faint);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+[data-ui='config-lock-chip'] {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='config-profilebar-spacer'] {
+	flex: 1;
+}
+
+[data-ui='config-profilebar-note'] {
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+/* A read-only (built-in / extension) profile: duplicate to edit. */
+[data-ui='config-lock-banner'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+	border-radius: var(--radius-md);
+	background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+}
+
+[data-ui='config-lock-banner'] > svg {
+	flex: 0 0 auto;
+	color: var(--color-accent);
+}
+
+[data-ui='config-lock-banner'] > div {
+	flex: 1;
+}
+
+/* Zone dividers — "This profile" / "This workspace". */
+[data-ui='config-zone-heading'] {
+	display: grid;
+	gap: 2px;
+	margin-top: var(--space-3);
+}
+
+[data-ui='config-zone-heading'] h2 {
+	margin: 0;
+	font-size: var(--text-md);
+	font-weight: 650;
+}
+
+[data-ui='config-zone-heading'] span {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='workspace-configure-body'] {
+	display: grid;
+	gap: var(--space-4);
+}
+
+/* A locked profile still shows its config, just not as something you can set. */
+[data-ui='workspace-configure-body'][data-state='locked'] {
+	opacity: 0.75;
+}
+
+/* Skill group label sits above each grouped skill card. */
+[data-ui='config-skill-group'] {
+	margin: 0;
+	color: var(--color-text-faint);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+[data-ui='profile-id'] {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	padding: 3px 7px;
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.4 var(--font-mono);
+}
+
+[data-ui='text-input'] {
+	min-width: 0;
+	width: 220px;
+	padding: 7px 9px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	font-size: var(--text-xs);
+}
+
+[data-ui='text-input']:focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+}
+
+/*
+ * Segmented controls sit beside a field's label, so they have to stay a row:
+ * `[data-ui='setting-field'] > div` otherwise stacks them into a grid.
+ */
+[data-ui='setting-field'] > [data-ui='segmented'] {
+	display: flex;
+	flex: 0 0 auto;
+}
+
+[data-ui='segmented-option'] {
+	white-space: nowrap;
+}
+
+/* A profile is read as its departures from the profile it starts at. */
+[data-ui='setting-field'][data-changed='true'],
+[data-ui='skill-row'][data-changed='true'],
+[data-ui='integration-row'][data-changed='true'] {
+	box-shadow: inset 1px 0 0 var(--color-accent, var(--color-text));
+}
+
+[data-ui='setting-field'][data-changed='true'],
+[data-ui='skill-row'][data-changed='true'] {
+	background: color-mix(
+		in srgb,
+		var(--color-accent, var(--color-text)) 5%,
+		transparent
+	);
+}
+
+[data-ui='integration-row'][data-changed='true'] {
+	margin-inline: calc(-1 * var(--space-3));
+	padding-inline: var(--space-3);
+	background: color-mix(
+		in srgb,
+		var(--color-accent, var(--color-text)) 5%,
+		transparent
+	);
+}
+
+/*
+ * Configure-screen rows keep the bleed margin even when unchanged, so
+ * recording or clearing an override never resizes the row — only the
+ * background and the inset marker switch on.
+ */
+[data-ui='integration-list'][data-layout='workspace-setup']
+	[data-ui='integration-row'] {
+	margin-inline: calc(-1 * var(--space-3));
+	padding-inline: var(--space-3);
+}
+
+/*
+ * Row actions that only apply to overridden rows stay in the layout but
+ * invisible, so the row's height does not change when they appear.
+ */
+[data-ui='button'][data-hidden] {
+	visibility: hidden;
+	pointer-events: none;
+}
+
+/*
+ * An extension row now ends in a revert menu, so the row itself is the grid and
+ * the label only groups the checkbox with its text.
+ */
+[data-ui='integration-row'] > label {
+	display: contents;
+}
+
+[data-ui='integration-row'] input:not([type='checkbox']) {
+	min-width: 0;
+	padding: 7px 9px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+}
