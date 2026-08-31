@@ -1,5 +1,6 @@
 <script lang="ts">
 	import './app.css';
+	import { formatToolResult } from '@gizmo/design/format';
 	import type { AgentIdentity } from '@gizmo/protocol';
 	import { Tooltip } from 'bits-ui';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -9,27 +10,17 @@
 		type AgentClient,
 	} from './lib/agent-client';
 	import { saveAppSettings } from './lib/app-settings';
-	import { AppRouter, type WorkspaceTab } from './lib/router.svelte';
 	import { Toast } from './lib/components';
-	import { toasts } from './lib/toasts.svelte';
-	import Conversation from './lib/features/conversation/Conversation.svelte';
 	import { DraftStore } from './lib/features/conversation/drafts.svelte';
 	import { PiExtensionUiStore } from './lib/features/extension-ui/PiExtensionUiStore.svelte';
-	import { formatToolResult } from '@gizmo/design/format';
-	import SessionSidebar from './lib/features/sessions/SessionSidebar.svelte';
 	import { SessionActions } from './lib/features/sessions/session-actions.svelte';
 	import { threadTitle } from './lib/features/sessions/session-groups';
-	import AppDialogs from './lib/features/shell/AppDialogs.svelte';
-	import AppContextMenu from './lib/features/shell/AppContextMenu.svelte';
-	import SettingsScreen from './lib/features/settings/SettingsScreen.svelte';
-	import SessionTreeScreen from './lib/features/tree/SessionTreeScreen.svelte';
-	import PanelResizeHandle from './lib/features/shell/PanelResizeHandle.svelte';
-	import Titlebar from './lib/features/shell/Titlebar.svelte';
+	import AppScreens from './lib/features/shell/AppScreens.svelte';
+	import AppWorkspaceShell from './lib/features/shell/AppWorkspaceShell.svelte';
 	import { handleShortcut } from './lib/features/shell/shortcuts';
 	import { WorkspaceLayout } from './lib/features/shell/workspace.svelte';
-	import WorkspaceScreen from './lib/features/workspace/WorkspaceScreen.svelte';
-	import WorkspaceInspector from './lib/extensions/WorkspaceInspector.svelte';
-	import { createWorkspaceView } from './lib/extensions/workspace-view';
+	import { AppRouter, type WorkspaceTab } from './lib/router.svelte';
+	import { toasts } from './lib/toasts.svelte';
 
 	interface Props {
 		client?: AgentClient;
@@ -52,8 +43,8 @@
 	const sessions = new SessionActions(store, agent.name, toasts);
 	const drafts = new DraftStore();
 	const extensionUi = new PiExtensionUiStore(agentClient, toasts);
-
 	const router = new AppRouter();
+
 	let focusComposer = $state<() => void>();
 	let findInThread = $state<() => void>();
 	let focusThreadSearch = $state<() => void>();
@@ -64,21 +55,15 @@
 	let currentSession = $derived(
 		store.sessions.find((session) => session.id === store.sessionId),
 	);
-	let workspaceView = $derived(createWorkspaceView(store));
 	let documentTitle = $derived(
 		extensionUi.titleFor(store.sessionId) ??
 			(currentSession
 				? `${threadTitle(currentSession.title)} — Gizmo`
 				: 'Gizmo'),
 	);
-	/** Settings and the tree cover the workspace; the workspace screen is in it. */
-	let overlayOpen = $derived(
-		router.current === 'settings' || router.current === 'tree',
-	);
 
 	// A refresh restores the workspace route from the URL, but the store defaults
-	// its selection to the first project. Re-sync so the inspector follows the
-	// workspace actually being viewed rather than the default one.
+	// its selection to the first project. Keep the inspector on the routed one.
 	$effect(() => {
 		if (
 			router.current === 'workspace' &&
@@ -141,6 +126,11 @@
 		router.close();
 	}
 
+	function searchThreads() {
+		if (!layout.leftVisible) layout.toggleLeft();
+		focusThreadSearch?.();
+	}
+
 	function onKeydown(event: KeyboardEvent) {
 		if (extensionUi.dialogFor(store.sessionId)) return;
 		handleShortcut(event, {
@@ -150,10 +140,7 @@
 			focusComposer: () => focusComposer?.(),
 			findInThread: () => findInThread?.(),
 			openPalette: () => sessions.openCommandPalette('root'),
-			searchThreads: () => {
-				if (!layout.leftVisible) layout.toggleLeft();
-				focusThreadSearch?.();
-			},
+			searchThreads,
 			toggleLeft: () => layout.toggleLeft(),
 			toggleRight: () => layout.toggleRight(),
 			dismiss: () => {
@@ -165,11 +152,7 @@
 		});
 	}
 
-	/**
-	 * Opening a workspace shows its screen; it never opens or creates a thread.
-	 * The view switches first and the data is fetched behind it, so the whole
-	 * shell changes in one frame rather than panel by panel.
-	 */
+	/** A workspace route never opens or creates a thread. */
 	function showWorkspace(projectPath: string, tab?: WorkspaceTab) {
 		router.go('workspace', {
 			workspacePath: projectPath,
@@ -178,7 +161,6 @@
 		void sessions.selectWorkspace(projectPath);
 	}
 
-	/** Opening a thread shows that thread, whatever the centre column was on. */
 	async function openThread(sessionId: string) {
 		router.go('thread');
 		await store.switchSession(sessionId);
@@ -201,162 +183,42 @@
 	}
 </script>
 
-<svelte:head
-	><title>{documentTitle}</title><meta
+<svelte:head>
+	<title>{documentTitle}</title>
+	<meta
 		name="description"
 		content="An extensible agent workspace for software projects"
-	/></svelte:head
->
+	/>
+</svelte:head>
 
 <svelte:window onkeydown={onKeydown} />
 
 <Tooltip.Provider delayDuration={350} skipDelayDuration={300}>
-	<AppContextMenu
+	<AppWorkspaceShell
+		{agent}
+		{store}
+		{sessions}
 		{layout}
-		activeThreadId={store.sessionId}
-		canDeleteThread={(sessionId) => !store.isSessionStreaming(sessionId)}
-		canOpenEditor={workspaceView.canOpen}
+		{drafts}
+		{extensionUi}
+		{router}
+		bind:focusComposer
+		bind:findInThread
+		bind:focusThreadSearch
+		onCloseSettings={closeSettings}
+		onShowWorkspace={showWorkspace}
+		onOpenThread={openThread}
+		onStartThread={startThread}
 		getContextText={contextText}
-		onNewThread={() => void startThread()}
-		onOpenThread={(sessionId) => void openThread(sessionId)}
-		onRenameThread={(sessionId) => sessions.beginRename(sessionId)}
-		onCopyTranscript={(sessionId) => void sessions.copyTranscript(sessionId)}
-		onExportTranscript={(sessionId) =>
-			void sessions.exportTranscript(sessionId)}
-		onDeleteThread={(sessionId) => sessions.beginDelete(sessionId)}
-		onOpenEditor={workspaceView.open}
-		onRefreshEditor={workspaceView.refresh}
-		onOpenSettings={() => router.go('settings')}
-	>
-		<div
-			data-ui="app-shell"
-			data-left-mode={layout.leftMode}
-			data-right-mode={layout.rightMode}
-			data-left-visible={layout.leftVisible}
-			data-right-visible={layout.rightVisible}
-			data-screen-open={overlayOpen || undefined}
-			style={`--sidebar-width:${layout.sidebarWidth}px;--inspector-width:${layout.inspectorWidth}px`}
-		>
-			<Titlebar
-				{agent}
-				{layout}
-				{store}
-				{extensionUi}
-				view={workspaceView}
-				screenOpen={overlayOpen}
-				settingsOpen={router.current === 'settings'}
-				onOpenSettings={() => router.go('settings')}
-				onCloseSettings={closeSettings}
-			/>
+	/>
 
-			{#if layout.drawerOpen}<button
-					data-ui="drawer-scrim"
-					aria-label="Close navigation panels"
-					onclick={() => layout.closeDrawers()}
-				></button>{/if}
-
-			<SessionSidebar
-				{store}
-				{layout}
-				bind:focusSearch={focusThreadSearch}
-				openWorkspacePath={router.current === 'workspace'
-					? router.workspacePath
-					: undefined}
-				onOpenWorkspacePicker={() => sessions.openCommandPalette('workspace')}
-				onOpenWorkspace={(projectPath) => showWorkspace(projectPath)}
-				onOpenWorkspaceSettings={(projectPath) =>
-					showWorkspace(projectPath, 'configure')}
-				onNewThread={(projectPath) => void startThread(projectPath)}
-				onOpenThread={(sessionId) => void openThread(sessionId)}
-			/>
-			{#if layout.leftVisible && layout.leftMode === 'docked'}
-				<PanelResizeHandle
-					side="left"
-					size={layout.sidebarWidth}
-					max={layout.sidebarMax}
-					onResize={(size) => layout.resize('sidebar', size)}
-					onReset={() => layout.reset('sidebar')}
-				/>
-			{/if}
-
-			{#if router.current === 'workspace'}
-				<WorkspaceScreen
-					{store}
-					{layout}
-					workspacePath={router.workspacePath}
-					tab={router.workspaceTab}
-					onSelectTab={(tab) => router.showWorkspaceTab(tab)}
-					onOpenThread={(sessionId) => void openThread(sessionId)}
-					onNewThread={(projectPath) => void startThread(projectPath)}
-					onRemoved={() => router.close()}
-				/>
-			{:else}
-				<Conversation
-					{store}
-					{layout}
-					{drafts}
-					{extensionUi}
-					agentName={agent.name}
-					{currentSession}
-					bind:focusComposer
-					bind:findInThread
-					onRename={() => sessions.beginRename()}
-					onCopy={() => void sessions.copyTranscript()}
-					onExport={() => void sessions.exportTranscript()}
-					onDelete={() => sessions.beginDelete()}
-					onOpenTree={() => router.go('tree')}
-				/>
-			{/if}
-
-			<WorkspaceInspector
-				{store}
-				view={workspaceView}
-				hidden={!layout.rightVisible}
-			/>
-			{#if layout.rightVisible && layout.rightMode === 'docked'}
-				<PanelResizeHandle
-					side="right"
-					size={layout.inspectorWidth}
-					max={layout.inspectorMax}
-					onResize={(size) => layout.resize('inspector', size)}
-					onReset={() => layout.reset('inspector')}
-				/>
-			{/if}
-
-			<AppDialogs
-				{store}
-				{sessions}
-				{layout}
-				{extensionUi}
-				onOpenWorkspace={(projectPath) => showWorkspace(projectPath)}
-				onNewThread={() => void startThread()}
-				onOpenSettings={() => router.go('settings')}
-				onSearchThreads={() => {
-					if (!layout.leftVisible) layout.toggleLeft();
-					focusThreadSearch?.();
-				}}
-			/>
-		</div>
-	</AppContextMenu>
-
-	<SettingsScreen
-		open={router.current === 'settings'}
-		bind:dirty={settingsDirty}
-		page={router.settingsPage}
+	<AppScreens
+		{router}
 		{layout}
 		{store}
 		version={agent.version}
-		onSelectPage={(page) => router.showSettingsPage(page)}
-		onOpenWorkspace={() => {
-			const path = store.selectedProjectPath;
-			if (path) showWorkspace(path, 'configure');
-		}}
-	/>
-
-	<SessionTreeScreen
-		open={router.current === 'tree'}
-		{store}
-		onClose={() => router.close()}
+		bind:settingsDirty
+		onShowWorkspaceSettings={(path) => showWorkspace(path, 'configure')}
 	/>
 
 	<Toast queue={toasts} />
