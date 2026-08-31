@@ -1,16 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		RefreshCw,
-		Download,
-		Trash2,
-		GitBranch,
-		Link2,
-		Unlink2,
-	} from '@lucide/svelte';
-	import type { RegistryInfo } from '@gizmo/protocol';
+	import { Download, Unlink2, Puzzle } from '@lucide/svelte';
+	import { Switch } from 'bits-ui';
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
+	import ExtensionRegistrySection from './ExtensionRegistrySection.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
 	let { store }: { store: AgentStore } = $props();
@@ -18,10 +12,23 @@
 	let url = $state('');
 
 	onMount(() => {
+		void store.refreshResources();
 		void store.refreshRegistry();
 	});
 
+	let extensions = $derived(store.resources?.extensions ?? []);
+	let gizmoExtensions = $derived(store.resources?.gizmoExtensions ?? []);
 	let registries = $derived(store.registryStatus?.registries ?? []);
+	/** Which registry an installed extension was linked from, if any. */
+	let installedFrom = $derived(
+		new Map(
+			registries.flatMap((registry) =>
+				registry.extensions
+					.filter((extension) => extension.linked)
+					.map((extension) => [extension.id, registry.name] as const),
+			),
+		),
+	);
 
 	async function add(event: SubmitEvent) {
 		event.preventDefault();
@@ -30,23 +37,9 @@
 		if (done) url = '';
 	}
 
-	async function update(registry: RegistryInfo) {
-		await store.registryUpdate(registry.name);
-	}
-
-	async function remove(registry: RegistryInfo) {
-		await store.registryRemove(registry.name);
-	}
-
-	async function toggle(
-		registry: RegistryInfo,
-		extension: { id: string; linked: boolean },
-	) {
-		if (extension.linked) {
-			await store.registryUnlink(registry.name, extension.id);
-		} else {
-			await store.registryLink(registry.name, extension.id);
-		}
+	async function unlink(id: string) {
+		const registryName = installedFrom.get(id);
+		if (registryName) await store.registryUnlink(registryName, id);
 	}
 </script>
 
@@ -60,14 +53,16 @@
 		copies it and its UI into Pi's extensions directory.
 	</p>
 
+	{#if store.resourceError}
+		<p data-ui="resource-error">{store.resourceError}</p>
+	{/if}
 	{#if store.registryError}
 		<p data-ui="resource-error">{store.registryError}</p>
 	{/if}
 
 	<div data-ui="settings-subhead">
-		<strong>Add a registry</strong>
-		<span
-			>A git URL whose <code>gizmo.registry.json</code> lists its extensions.</span
+		<strong>Install from a registry</strong>
+		<span>Add a Git registry, then install or unlink its extensions below.</span
 		>
 	</div>
 	<div data-ui="settings-card">
@@ -80,83 +75,105 @@
 				aria-label="Registry repository URL"
 			/>
 			<Button type="submit" disabled={store.registryBusy || !url.trim()}>
-				<Download size={14} /> Add
+				<Download size={14} /> Add registry
 			</Button>
 		</form>
 	</div>
 
-	{#if store.registryBusy && registries.length === 0}
-		<div data-ui="settings-card">
-			<p data-ui="resource-empty">Loading…</p>
-		</div>
-	{:else if registries.length === 0}
-		<div data-ui="settings-card">
-			<p data-ui="resource-empty">
-				No registries added yet. Gizmo ships without extensions — add one above
-				to install tools and their UI.
-			</p>
-		</div>
-	{/if}
+	<ExtensionRegistrySection {store} />
 
-	{#each registries as registry (registry.name)}
-		<div data-ui="settings-card">
-			<div data-ui="setting-field">
-				<div>
-					<strong><GitBranch size={13} /> {registry.name}</strong>
-					<span data-ui="resource-detail" title={registry.url}
-						>{registry.url}{registry.commit
-							? ` · ${registry.commit}`
-							: ''}</span
-					>
-				</div>
-				<div class="registry-actions">
-					<Button
-						variant="secondary"
-						size="sm"
-						disabled={store.registryBusy}
-						onclick={() => void update(registry)}
-					>
-						<RefreshCw size={13} /> Update
-					</Button>
-					<Button
-						variant="danger"
-						size="sm"
-						disabled={store.registryBusy}
-						onclick={() => void remove(registry)}
-					>
-						<Trash2 size={13} /> Remove
-					</Button>
-				</div>
-			</div>
-
-			<div data-ui="integration-list">
-				{#each registry.extensions as extension (extension.id)}
-					<div
-						data-ui="integration-row"
-						data-changed={extension.linked || undefined}
-					>
-						<span>
-							<strong>{extension.name}</strong>
-							{#if extension.description}
-								<small data-ui="resource-detail">{extension.description}</small>
+	<div data-ui="settings-subhead">
+		<strong>Installed extensions</strong>
+		<span
+			>Enable or disable everything already installed, without removing it.</span
+		>
+	</div>
+	<div data-ui="settings-card">
+		{#if store.resourcesLoading && extensions.length === 0 && gizmoExtensions.length === 0}
+			<p data-ui="resource-empty">Loading installed extensions…</p>
+		{:else if extensions.length === 0 && gizmoExtensions.length === 0}
+			<p data-ui="resource-empty">No extensions are installed.</p>
+		{:else}
+			<div data-ui="skill-list">
+				{#each gizmoExtensions as extension (extension.id)}
+					<div data-ui="skill-row">
+						<div data-ui="skill-row-main">
+							<div data-ui="skill-row-title">
+								<strong>{extension.name}</strong>
+								<em data-ui="resource-scope">Gizmo</em>
+								<span data-ui="skill-row-state" data-on={extension.enabled}
+									>{extension.enabled ? 'On' : 'Off'}</span
+								>
+							</div>
+						</div>
+						<div data-ui="skill-row-actions">
+							{#if installedFrom.has(extension.id)}
+								<Button
+									variant="ghost"
+									size="sm"
+									disabled={store.registryBusy}
+									onclick={() => void unlink(extension.id)}
+									aria-label={`Unlink ${extension.name}`}
+								>
+									<Unlink2 size={13} />
+								</Button>
 							{/if}
-						</span>
-						<Button
-							variant={extension.linked ? 'ghost' : 'secondary'}
-							size="sm"
-							disabled={store.registryBusy}
-							onclick={() => void toggle(registry, extension)}
-						>
-							{#if extension.linked}<Unlink2 size={13} /> Unlink{:else}
-								<Link2 size={13} /> Install{/if}
-						</Button>
+							<Switch.Root
+								data-ui="switch"
+								checked={extension.enabled}
+								disabled={store.resourcesLoading}
+								aria-label={`${extension.name} enabled globally`}
+								onCheckedChange={(enabled) =>
+									void store.setGlobalGizmoExtension(extension.id, enabled)}
+							>
+								<Switch.Thumb data-ui="switch-thumb" />
+							</Switch.Root>
+						</div>
 					</div>
-				{:else}
-					<p data-ui="resource-empty">No extensions in this registry.</p>
+				{/each}
+				{#each extensions as extension (extension.id)}
+					<div data-ui="skill-row">
+						<div data-ui="skill-row-main">
+							<div data-ui="skill-row-title">
+								<Puzzle size={15} />
+								<strong>{extension.name}</strong>
+								<em data-ui="resource-scope">Pi</em>
+								<span data-ui="skill-row-state" data-on={extension.enabled}
+									>{extension.enabled ? 'On' : 'Off'}</span
+								>
+							</div>
+							<small data-ui="resource-detail" title={extension.path}
+								>{extension.kind} · {extension.path}</small
+							>
+						</div>
+						<div data-ui="skill-row-actions">
+							{#if installedFrom.has(extension.id)}
+								<Button
+									variant="ghost"
+									size="sm"
+									disabled={store.registryBusy}
+									onclick={() => void unlink(extension.id)}
+									aria-label={`Unlink ${extension.name}`}
+								>
+									<Unlink2 size={13} />
+								</Button>
+							{/if}
+							<Switch.Root
+								data-ui="switch"
+								checked={extension.enabled}
+								disabled={store.resourcesLoading}
+								aria-label={`${extension.name} enabled globally`}
+								onCheckedChange={(enabled) =>
+									void store.setGlobalExtension(extension.id, enabled)}
+							>
+								<Switch.Thumb data-ui="switch-thumb" />
+							</Switch.Root>
+						</div>
+					</div>
 				{/each}
 			</div>
-		</div>
-	{/each}
+		{/if}
+	</div>
 </SettingsPage>
 
 <style>
@@ -168,24 +185,5 @@
 	.registry-add [data-ui='text-input'] {
 		flex: 1;
 		width: auto;
-	}
-
-	.registry-actions {
-		display: flex;
-		gap: var(--space-2);
-	}
-
-	/*
-	 * integration-row's shared grid reserves a middle 1fr spacer plus a
-	 * minmax(100px, 180px) action column for the configure screen's switch
-	 * and revert layout. These rows only have a name span and an action, so
-	 * collapse to two columns and pin the action to the row's right edge.
-	 */
-	[data-ui='integration-row'] {
-		grid-template-columns: minmax(0, 1fr) auto;
-	}
-
-	[data-ui='integration-row'] > :global([data-ui='button']) {
-		justify-self: end;
 	}
 </style>

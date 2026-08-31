@@ -39,6 +39,21 @@ export async function registryCommit(clone: string) {
 	}
 }
 
+/** Checks the source without changing the managed clone or its refs. */
+export async function registryUpdateAvailable(clone: string) {
+	try {
+		const [local, remote] = await Promise.all([
+			exec('git', ['rev-parse', 'HEAD'], clone),
+			exec('git', ['ls-remote', 'origin', 'HEAD'], clone),
+		]);
+		const remoteCommit = remote.trim().split(/\s+/)[0];
+		return Boolean(remoteCommit) && local.trim() !== remoteCommit;
+	} catch {
+		// An unavailable source should not make the registry catalog unusable.
+		return false;
+	}
+}
+
 export function buildRegistry(command: string, cwd: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		execFile(

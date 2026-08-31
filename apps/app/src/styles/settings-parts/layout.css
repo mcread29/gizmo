@@ -83,9 +83,17 @@
 	padding: var(--space-6);
 }
 
-[data-ui='settings-content'][data-page='skills'] {
+[data-ui='settings-content'][data-page='agent'],
+[data-ui='settings-content'][data-page='skills'],
+[data-ui='settings-content'][data-page='extensions'] {
 	width: min(1180px, 100%);
 	min-height: 100%;
+}
+
+/* The Agent/Skills/Extensions sub-nav reuses the segmented control but
+   shouldn't stretch to the grid track's full width like a filter bar does. */
+[data-ui='settings-content'] > [data-ui='segmented'] {
+	justify-self: start;
 }
 
 [data-ui='settings-page'] {

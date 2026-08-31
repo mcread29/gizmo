@@ -1,4 +1,4 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
 import type { GizmoServerExtension } from '@gizmo/extensions';
 import { isPathWithin } from '../path-utils';
@@ -27,10 +27,36 @@ const conventionDirs: ExtensionResourceRoots = {
 export async function extensionResourceRoots(
 	extensions: readonly GizmoServerExtension[],
 ): Promise<ExtensionResourceRoots> {
+	return resourceRootsForPackages(
+		extensions.flatMap((extension) =>
+			extension.packageRoot ? [extension.packageRoot] : [],
+		),
+	);
+}
+
+/**
+ * Resolves resources directly from linked directory extensions. This keeps
+ * newly installed skill packages visible without requiring a server restart
+ * to import their optional Gizmo integration first.
+ */
+export async function linkedExtensionResourceRoots(paths: readonly string[]) {
+	const directories = await Promise.all(
+		paths.map(async (path) => {
+			try {
+				return (await stat(path)).isDirectory() ? path : undefined;
+			} catch {
+				return undefined;
+			}
+		}),
+	);
+	return resourceRootsForPackages(
+		directories.filter((path): path is string => path !== undefined),
+	);
+}
+
+async function resourceRootsForPackages(paths: readonly string[]) {
 	const roots = await Promise.all(
-		extensions
-			.filter((extension) => extension.packageRoot)
-			.map((extension) => packageResourceRoots(extension.packageRoot!)),
+		[...new Set(paths)].map(packageResourceRoots),
 	);
 	return {
 		skills: roots.flatMap(({ skills }) => skills),

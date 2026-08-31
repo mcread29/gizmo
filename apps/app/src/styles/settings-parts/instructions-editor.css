@@ -1,7 +1,81 @@
+[data-ui='instructions-workbench'] {
+	display: grid;
+	grid-template-columns: minmax(200px, 0.45fr) minmax(420px, 1.55fr);
+	/* Sized to the library's own content (a label + 2 targets), not the
+	   viewport — a taller box just leaves the short library column empty. */
+	height: 440px;
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-surface);
+}
+
+[data-ui='instructions-library'] {
+	display: grid;
+	align-content: start;
+	border-right: 1px solid var(--color-border);
+}
+
+[data-ui='instructions-library-label'] {
+	padding: var(--space-3) var(--space-4) var(--space-2);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+[data-ui='instructions-library'] button span {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	line-height: 1.45;
+}
+
+[data-ui='instructions-library'] button {
+	display: grid;
+	gap: 4px;
+	padding: var(--space-3) var(--space-4);
+	border: 0;
+	border-top: 1px solid var(--color-border);
+	background: transparent;
+	color: var(--color-text);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='instructions-library'] button:hover,
+[data-ui='instructions-library'] button[data-state='active'] {
+	background: var(--color-surface-soft);
+}
+
+[data-ui='instructions-library'] button:focus-visible {
+	position: relative;
+	outline: none;
+	box-shadow: inset var(--focus-ring);
+}
+
+[data-ui='instructions-editor-area'],
+[data-ui='instructions-editor-area'] > [data-ui='settings-card'] {
+	min-width: 0;
+	height: 100%;
+}
+
+[data-ui='settings-card'][data-workbench='true'] {
+	border: 0;
+	border-radius: 0;
+}
+
 [data-ui='instructions-editor'] {
 	display: grid;
 	gap: var(--space-3);
 	padding: var(--space-4);
+}
+
+[data-ui='instructions-editor'][data-workbench='true'] {
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	height: 100%;
+	box-sizing: border-box;
 }
 
 [data-ui='instructions-editor-header'] {
@@ -36,6 +110,11 @@
 	tab-size: 2;
 	scrollbar-color: var(--color-border-strong) transparent;
 	scrollbar-width: thin;
+}
+
+[data-ui='instructions-editor'][data-workbench='true'] textarea {
+	height: 100%;
+	min-height: 0;
 }
 
 [data-ui='instructions-editor'] textarea:focus-visible {
@@ -82,4 +161,34 @@
 	color: var(--color-accent);
 	font-size: var(--text-2xs);
 	font-weight: 600;
+}
+
+@media (max-width: 820px) {
+	[data-ui='instructions-workbench'] {
+		grid-template-columns: 1fr;
+		height: auto;
+	}
+
+	[data-ui='instructions-library'] {
+		grid-template-columns: 1fr 1fr;
+		border-right: 0;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	[data-ui='instructions-library-label'] {
+		grid-column: 1 / -1;
+	}
+
+	[data-ui='instructions-library'] button {
+		border-top: 0;
+		border-left: 1px solid var(--color-border);
+	}
+
+	[data-ui='instructions-library'] button:first-of-type {
+		border-left: 0;
+	}
+
+	[data-ui='instructions-editor-area'] {
+		height: 420px;
+	}
 }

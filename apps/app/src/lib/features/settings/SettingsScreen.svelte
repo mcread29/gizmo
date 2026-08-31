@@ -2,13 +2,11 @@
 	import {
 		FolderCog,
 		Info,
-		Puzzle,
 		MessageSquare,
 		Palette,
 		Plug,
 		Layers,
 		Sparkles,
-		BookOpenText,
 		KeyRound,
 	} from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
@@ -85,22 +83,12 @@
 				{ page: 'context', label: 'Context', icon: Layers },
 				{ page: 'connection', label: 'Connection', icon: Plug },
 				{ page: 'providers', label: 'Providers', icon: KeyRound },
-			] satisfies SettingsNavItem[],
-		},
-		{
-			items: [
 				{
 					page: 'agent',
-					label: 'Agent',
+					label: 'Agent resources',
 					icon: Sparkles,
-				},
-				{
-					page: 'skills',
-					label: 'Skills',
-					icon: BookOpenText,
 					...(skillCount ? { badge: skillCount } : {}),
 				},
-				{ page: 'extensions', label: 'Extensions', icon: Puzzle },
 			] satisfies SettingsNavItem[],
 		},
 		{
@@ -130,6 +118,25 @@
 
 			<ScrollPanel>
 				<div data-ui="settings-content" data-page={page}>
+					{#if page === 'agent' || page === 'skills' || page === 'extensions'}
+						<nav data-ui="segmented" aria-label="Agent resources">
+							<button
+								data-ui="segmented-option"
+								data-state={page === 'agent' ? 'active' : 'inactive'}
+								onclick={() => selectPage('agent')}>Instructions & tools</button
+							>
+							<button
+								data-ui="segmented-option"
+								data-state={page === 'skills' ? 'active' : 'inactive'}
+								onclick={() => selectPage('skills')}>Skills</button
+							>
+							<button
+								data-ui="segmented-option"
+								data-state={page === 'extensions' ? 'active' : 'inactive'}
+								onclick={() => selectPage('extensions')}>Extensions</button
+							>
+						</nav>
+					{/if}
 					{#if page === 'appearance'}
 						<AppearanceSettings {layout} />
 					{:else if page === 'chat'}

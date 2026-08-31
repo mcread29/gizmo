@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Puzzle } from '@lucide/svelte';
-	import { Switch } from 'bits-ui';
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
 	import InstructionsEditor from './InstructionsEditor.svelte';
@@ -16,10 +14,12 @@
 		void store.refreshToolPolicy();
 	});
 
+	let selectedInstruction = $state<'system-prompt' | 'global-agents'>(
+		'system-prompt',
+	);
+
 	let catalog = $derived(store.resources);
 	let prompts = $derived(catalog?.prompts ?? []);
-	let extensions = $derived(catalog?.extensions ?? []);
-	let gizmoExtensions = $derived(catalog?.gizmoExtensions ?? []);
 
 	let policy = $derived(store.toolPolicy);
 	/** Null global means Pi's default: every built-in enabled. */
@@ -85,21 +85,46 @@
 		<p data-ui="resource-error">{store.resourceError}</p>
 	{/if}
 
-	<InstructionsEditor
-		{store}
-		target="system-prompt"
-		title="System prompt"
-		description="Replaces Pi's default system prompt for every session. Leave empty to use Pi's default. An active extension's own prompt still takes precedence."
-		onSaved={instructionsSaved}
-	/>
+	<div data-ui="instructions-workbench">
+		<aside data-ui="instructions-library" aria-label="Instruction files">
+			<span data-ui="instructions-library-label">Instructions</span>
+			<button
+				data-state={selectedInstruction === 'system-prompt'
+					? 'active'
+					: 'inactive'}
+				onclick={() => (selectedInstruction = 'system-prompt')}
+			>
+				<strong>System prompt</strong>
+				<span>Replaces Pi's default agent prompt.</span>
+			</button>
+			<button
+				data-state={selectedInstruction === 'global-agents'
+					? 'active'
+					: 'inactive'}
+				onclick={() => (selectedInstruction = 'global-agents')}
+			>
+				<strong>Global AGENTS.md</strong>
+				<span>Guidance shared by every workspace.</span>
+			</button>
+		</aside>
 
-	<InstructionsEditor
-		{store}
-		target="global-agents"
-		title="Global AGENTS.md"
-		description="Instructions applied to every session on this machine."
-		onSaved={instructionsSaved}
-	/>
+		<div data-ui="instructions-editor-area">
+			{#key selectedInstruction}
+				<InstructionsEditor
+					{store}
+					target={selectedInstruction}
+					title={selectedInstruction === 'system-prompt'
+						? 'System prompt'
+						: 'Global AGENTS.md'}
+					description={selectedInstruction === 'system-prompt'
+						? "Replaces Pi's default system prompt. Leave empty to use Pi's default; extension prompts still take precedence."
+						: 'Instructions applied to every session on this machine.'}
+					onSaved={instructionsSaved}
+					workbench
+				/>
+			{/key}
+		</div>
+	</div>
 
 	<div data-ui="settings-subhead">
 		<strong>Built-in tools</strong>
@@ -135,88 +160,6 @@
 								<small>{tool}</small>
 							</span>
 						</label>
-					</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
-
-	<div data-ui="settings-subhead">
-		<strong>Gizmo extensions</strong>
-		<span
-			>Gizmo's own integrations, on wherever they are installed. Workspaces
-			inherit this state and may override it in their Configure screen.</span
-		>
-	</div>
-
-	<div data-ui="settings-card">
-		{#if gizmoExtensions.length === 0}
-			<p data-ui="resource-empty">No Gizmo extensions are installed.</p>
-		{:else}
-			<div data-ui="skill-list">
-				{#each gizmoExtensions as extension (extension.id)}
-					<div data-ui="skill-row">
-						<div data-ui="skill-row-main">
-							<div data-ui="skill-row-title">
-								<strong>{extension.name}</strong>
-								<span data-ui="skill-row-state" data-on={extension.enabled}
-									>{extension.enabled ? 'On' : 'Off'}</span
-								>
-							</div>
-						</div>
-						<Switch.Root
-							data-ui="switch"
-							checked={extension.enabled}
-							disabled={store.resourcesLoading}
-							aria-label={`${extension.name} enabled globally`}
-							onCheckedChange={(enabled) =>
-								void store.setGlobalGizmoExtension(extension.id, enabled)}
-						>
-							<Switch.Thumb data-ui="switch-thumb" />
-						</Switch.Root>
-					</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
-
-	<div data-ui="settings-subhead">
-		<strong>Extensions</strong>
-		<span
-			>Global Pi capabilities loaded by Gizmo and every other Pi session.
-			Disable an extension without deleting it.</span
-		>
-	</div>
-
-	<div data-ui="settings-card">
-		{#if extensions.length === 0}
-			<p data-ui="resource-empty">No global Pi extensions found.</p>
-		{:else}
-			<div data-ui="skill-list">
-				{#each extensions as extension (extension.id)}
-					<div data-ui="skill-row">
-						<div data-ui="skill-row-main">
-							<div data-ui="skill-row-title">
-								<Puzzle size={15} />
-								<strong>{extension.name}</strong>
-								<span data-ui="skill-row-state" data-on={extension.enabled}
-									>{extension.enabled ? 'On' : 'Off'}</span
-								>
-							</div>
-							<small data-ui="resource-detail" title={extension.path}
-								>{extension.kind} · {extension.path}</small
-							>
-						</div>
-						<Switch.Root
-							data-ui="switch"
-							checked={extension.enabled}
-							disabled={store.resourcesLoading}
-							aria-label={`${extension.name} enabled globally`}
-							onCheckedChange={(enabled) =>
-								void store.setGlobalExtension(extension.id, enabled)}
-						>
-							<Switch.Thumb data-ui="switch-thumb" />
-						</Switch.Root>
 					</div>
 				{/each}
 			</div>

@@ -1,4 +1,4 @@
-import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -29,11 +29,16 @@ describe('loadLinkedExtensionIntegrations', () => {
 		]);
 	});
 
-	it('ignores ordinary Pi extensions with no Gizmo integration', async () => {
+	it('ignores ordinary Pi extensions without executing them', async () => {
 		const root = await mkdtemp(join(tmpdir(), 'gizmo-linked-extension-'));
 		paths.push(root);
-		await writeFile(join(root, 'plain.ts'), 'export default function () {}\n');
+		const marker = join(root, 'executed');
+		await writeFile(
+			join(root, 'plain.ts'),
+			`import { writeFileSync } from 'node:fs';\nwriteFileSync(${JSON.stringify(marker)}, 'yes');\nexport default function () {}\n`,
+		);
 
 		await expect(loadLinkedExtensionIntegrations(root)).resolves.toEqual([]);
+		await expect(access(marker)).rejects.toMatchObject({ code: 'ENOENT' });
 	});
 });

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { GizmoServerExtension } from '@gizmo/extensions';
 import {
 	extensionResourceRoots,
+	linkedExtensionResourceRoots,
 	packageResourceRoots,
 } from '../../src/resources/extension-resources';
 
@@ -96,6 +97,17 @@ describe('packageResourceRoots', () => {
 });
 
 describe('extensionResourceRoots', () => {
+	it('discovers resources directly from linked directory extensions', async () => {
+		const skills = await dir('skills');
+		const file = join(root, 'single-file.ts');
+		await writeFile(file, 'export default function () {}');
+
+		await expect(linkedExtensionResourceRoots([root, file])).resolves.toEqual({
+			skills: [skills],
+			prompts: [],
+		});
+	});
+
 	it('collects roots across extensions and ignores those without a package', async () => {
 		const skills = await dir('skills');
 

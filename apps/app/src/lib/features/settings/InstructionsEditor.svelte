@@ -11,6 +11,7 @@
 		title,
 		description,
 		onSaved,
+		workbench = false,
 	}: {
 		store: AgentStore;
 		target: InstructionTarget;
@@ -18,6 +19,7 @@
 		title: string;
 		description: string;
 		onSaved?: () => void;
+		workbench?: boolean;
 	} = $props();
 
 	let path = $state('');
@@ -59,8 +61,12 @@
 	}
 </script>
 
-<div data-ui="settings-card">
-	<section data-ui="instructions-editor" aria-label={`Edit ${title}`}>
+<div data-ui="settings-card" data-workbench={workbench || undefined}>
+	<section
+		data-ui="instructions-editor"
+		aria-label={`Edit ${title}`}
+		data-workbench={workbench || undefined}
+	>
 		<div data-ui="instructions-editor-header">
 			<div data-ui="settings-section-header">
 				<strong>

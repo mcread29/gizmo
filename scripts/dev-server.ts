@@ -70,6 +70,10 @@ async function runManagedServer() {
 		join(root, 'apps', 'app', 'package.json'),
 	);
 	process.env.GIZMO_PI_WEB = '1';
+	// Bring up the WebSocket backend before exposing Vite. Otherwise Vite is
+	// ready several seconds earlier and the browser displays connection errors
+	// while extension integrations are still loading.
+	await import('../apps/agent-server/src/server.ts');
 	const app = spawn(
 		process.execPath,
 		[
@@ -91,7 +95,6 @@ async function runManagedServer() {
 	try {
 		// The runner already uses tsx's loader, so hosting the server here avoids
 		// another Windows console process without changing server behavior.
-		await import('../apps/agent-server/src/server.ts');
 		process.exitCode = await new Promise<number>((resolve) => {
 			app.once('error', (error) => {
 				void appendFile(logFile, `${error.stack ?? error.message}\n`);

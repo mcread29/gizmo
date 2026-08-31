@@ -20,6 +20,8 @@ export const registryInfoSchema = Type.Object(
 		name: Type.String({ minLength: 1 }),
 		url: Type.String({ minLength: 1 }),
 		commit: Type.Optional(Type.String()),
+		/** True when the registry source's HEAD differs from the managed clone. */
+		updateAvailable: Type.Optional(Type.Boolean()),
 		addedAt: Type.Integer({ minimum: 0 }),
 		extensions: Type.Array(registryCatalogEntrySchema),
 	},

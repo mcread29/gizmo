@@ -6,6 +6,7 @@ import {
 	pullRegistry,
 	registryCommit,
 	registryName,
+	registryUpdateAvailable,
 } from './registry-git-build';
 import {
 	refreshLinked,
@@ -36,13 +37,21 @@ export async function registryStatus(): Promise<RegistryStatus> {
 	return {
 		home: registryHome(),
 		registries: await Promise.all(
-			registries.map(async (registry) => ({
-				name: registry.name,
-				url: registry.url,
-				...(registry.commit ? { commit: registry.commit } : {}),
-				addedAt: registry.addedAt,
-				extensions: await catalogFor(registry),
-			})),
+			registries.map(async (registry) => {
+				const clone = registryCloneDir(registry.name);
+				const [extensions, updateAvailable] = await Promise.all([
+					catalogFor(registry),
+					registryUpdateAvailable(clone),
+				]);
+				return {
+					name: registry.name,
+					url: registry.url,
+					...(registry.commit ? { commit: registry.commit } : {}),
+					...(updateAvailable ? { updateAvailable: true } : {}),
+					addedAt: registry.addedAt,
+					extensions,
+				};
+			}),
 		),
 	};
 }

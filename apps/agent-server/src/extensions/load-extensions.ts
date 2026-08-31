@@ -47,10 +47,15 @@ export async function loadLinkedExtensionIntegrations(
 			? [join(extensionsDir, entry.name, 'index.ts')]
 			: [];
 	});
-	const loaded = await Promise.all(paths.map(loadLinkedIntegration));
-	return loaded.filter(
-		(extension): extension is GizmoServerExtension => extension !== undefined,
-	);
+	// jiti/tsx compilation is CPU-bound and contends heavily when several large
+	// extension graphs initialize at once. Sequential imports are faster in
+	// practice and make startup latency predictable.
+	const loaded: GizmoServerExtension[] = [];
+	for (const path of paths) {
+		const extension = await loadLinkedIntegration(path);
+		if (extension) loaded.push(extension);
+	}
+	return loaded;
 }
 
 async function loadLinkedIntegration(
@@ -58,6 +63,11 @@ async function loadLinkedIntegration(
 ): Promise<GizmoServerExtension | undefined> {
 	try {
 		const source = await realpath(entry);
+		// Most Pi extensions have no Gizmo integration. Avoid executing and
+		// transpiling every global extension merely to discover that the named
+		// export is absent; a real named export must appear in the module source.
+		const code = await readFile(source, 'utf8');
+		if (!/\bgizmoExtension\b/.test(code)) return undefined;
 		const module: unknown = await import(pathToFileURL(source).href);
 		return validateExtension(
 			(module as { gizmoExtension?: GizmoServerExtension }).gizmoExtension,

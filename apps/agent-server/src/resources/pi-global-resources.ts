@@ -34,9 +34,41 @@ export async function listPiExtensions(): Promise<PiExtensionResource[]> {
 
 /** Paths of globally enabled Pi extensions, minus any ids the project disables. */
 export async function enabledPiExtensionPaths(disabled?: ReadonlySet<string>) {
-	return (await listPiExtensions())
-		.filter((extension) => extension.enabled && !disabled?.has(extension.id))
+	const extensions = (await listPiExtensions()).filter(
+		(extension) => extension.enabled && !disabled?.has(extension.id),
+	);
+	const compatibility = await Promise.all(
+		extensions.map((extension) =>
+			supportsGizmoRuntime(extension.path, extension.kind),
+		),
+	);
+	return extensions
+		.filter((_, index) => compatibility[index])
 		.map((extension) => extension.path);
+}
+
+/**
+ * Pi extensions may opt out of Gizmo's RPC runtime with explicit sidecar
+ * metadata. Directory extensions use `.gizmo.json`; single-file extensions use
+ * `<filename>.gizmo.json`. Missing or malformed metadata remains compatible.
+ */
+export async function supportsGizmoRuntime(
+	path: string,
+	kind: PiExtensionResource['kind'],
+) {
+	const metadataPath =
+		kind === 'directory' ? join(path, '.gizmo.json') : `${path}.gizmo.json`;
+	try {
+		const metadata: unknown = JSON.parse(await readFile(metadataPath, 'utf8'));
+		return !(
+			metadata !== null &&
+			typeof metadata === 'object' &&
+			'runtime' in metadata &&
+			(metadata as { runtime?: unknown }).runtime === 'tui'
+		);
+	} catch {
+		return true;
+	}
 }
 
 export async function setPiExtensionEnabled(id: string, enabled: boolean) {
