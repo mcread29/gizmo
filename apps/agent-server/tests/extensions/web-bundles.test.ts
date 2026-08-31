@@ -7,7 +7,7 @@ import {
 	piExtensionWebBundles,
 	webBundlePath,
 	webExtensionBundles,
-} from './web-bundles';
+} from '../../src/extensions/web-bundles';
 
 let root: string;
 

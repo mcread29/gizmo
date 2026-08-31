@@ -6,7 +6,7 @@ import type { GizmoServerExtension } from '@gizmo/extensions';
 import {
 	extensionResourceRoots,
 	packageResourceRoots,
-} from './extension-resources';
+} from '../../src/resources/extension-resources';
 
 let root: string;
 

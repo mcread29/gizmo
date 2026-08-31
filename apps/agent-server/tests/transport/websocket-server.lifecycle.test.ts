@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket from 'ws';
 import { protocolVersion as PROTOCOL_VERSION } from '@gizmo/protocol';
-import type { PiAgentService } from '../sessions/pi-agent-service';
+import type { PiAgentService } from '../../src/sessions/pi-agent-service';
 import type { ProjectStatus } from '@gizmo/extensions';
 import {
 	createAgentWebSocketServer,
 	type AgentWebSocketServer,
-} from './websocket-server';
+} from '../../src/transport/websocket-server';
 
 function fakeService(
 	dispose: () => void,

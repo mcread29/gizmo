@@ -9,8 +9,8 @@ import {
 	PiAgentService,
 	type PiSessionFactory,
 	type PiSessionLike,
-} from './pi-agent-service';
-import type { SessionRepository } from './session-repository';
+} from '../../src/sessions/pi-agent-service';
+import type { SessionRepository } from '../../src/sessions/session-repository';
 
 function fakeManager(sessionId: string): SessionManager {
 	return { getSessionId: () => sessionId } as unknown as SessionManager;

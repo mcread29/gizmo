@@ -2,7 +2,7 @@ import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { loadLinkedExtensionIntegrations } from './load-extensions';
+import { loadLinkedExtensionIntegrations } from '../../src/extensions/load-extensions';
 
 const paths: string[] = [];
 afterEach(async () => {
