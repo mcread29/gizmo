@@ -4,7 +4,8 @@
 	"packageManager": "pnpm@11.5.2",
 	"scripts": {
 		"build": "pnpm -r --if-present build",
-		"check": "pnpm -r --if-present check",
+		"check": "pnpm check:loc && pnpm -r --if-present check",
+		"check:loc": "node scripts/check-file-lengths.mjs",
 		"desktop:build": "pnpm --filter @gizmo/app desktop:build",
 		"desktop:dev": "pnpm --filter @gizmo/app desktop:dev",
 		"dev": "pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
