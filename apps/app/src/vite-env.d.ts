@@ -6,3 +6,4 @@ interface ImportMeta {
 }
 
 declare module '@gizmo/design';
+declare module '@gizmo/ui/styles';
