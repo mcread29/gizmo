@@ -3,7 +3,7 @@
 	"private": true,
 	"packageManager": "pnpm@11.5.2",
 	"scripts": {
-		"build": "pnpm extensions:build && pnpm -r --if-present build",
+		"build": "pnpm -r --if-present build",
 		"check": "pnpm -r --if-present check",
 		"desktop:build": "pnpm --filter @gizmo/app desktop:build",
 		"desktop:dev": "pnpm --filter @gizmo/app desktop:dev",

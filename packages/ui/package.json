@@ -7,6 +7,7 @@
 		".": "./src/index.ts"
 	},
 	"scripts": {
+		"check": "svelte-check --tsconfig ./tsconfig.json",
 		"test": "vitest run"
 	},
 	"dependencies": {
@@ -15,6 +16,7 @@
 		"svelte": "latest"
 	},
 	"devDependencies": {
+		"svelte-check": "^4.7.6",
 		"typescript": "^6.0.0",
 		"vitest": "^4.1.10"
 	}
