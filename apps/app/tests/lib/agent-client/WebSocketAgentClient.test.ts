@@ -2,12 +2,25 @@ import { protocolVersion, type AgentEvent } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
 import { WebSocketAgentClient } from '../../../src/lib/agent-client/WebSocketAgentClient';
 
-class TestSocket extends EventTarget {
-	readyState = 0;
+class TestSocket extends EventTarget implements WebSocket {
+	readonly CONNECTING = 0;
+	readonly OPEN = 1;
+	readonly CLOSING = 2;
+	readonly CLOSED = 3;
+	binaryType: BinaryType = 'blob';
+	bufferedAmount = 0;
+	extensions = '';
+	onclose: WebSocket['onclose'] = null;
+	onerror: WebSocket['onerror'] = null;
+	onmessage: WebSocket['onmessage'] = null;
+	onopen: WebSocket['onopen'] = null;
+	protocol = '';
+	readyState: WebSocket['readyState'] = this.CONNECTING;
 	sent: unknown[] = [];
+	url = 'ws://agent.test/agent';
 
 	open() {
-		this.readyState = 1;
+		this.readyState = this.OPEN;
 		this.dispatchEvent(new Event('open'));
 	}
 
@@ -22,24 +35,28 @@ class TestSocket extends EventTarget {
 	}
 
 	close() {
-		this.readyState = 3;
+		this.readyState = this.CLOSED;
 		this.dispatchEvent(new Event('close'));
 	}
 }
 
+async function createConnectedClient() {
+	const socket = new TestSocket();
+	const client = new WebSocketAgentClient({
+		url: socket.url,
+		createSocket: () => socket,
+	});
+	const connecting = client.connect();
+	socket.open();
+	await connecting;
+	return { client, socket };
+}
+
 describe('WebSocketAgentClient', () => {
 	it('correlates request responses while forwarding streamed events', async () => {
-		const socket = new TestSocket();
-		const client = new WebSocketAgentClient({
-			url: 'ws://agent.test/agent',
-			createSocket: () => socket as unknown as WebSocket,
-		});
+		const { client, socket } = await createConnectedClient();
 		const events: unknown[] = [];
 		client.subscribe((event) => events.push(event));
-
-		const connecting = client.connect();
-		socket.open();
-		await connecting;
 
 		const creating = client.createSession();
 		expect(socket.sent[0]).toMatchObject({
@@ -65,14 +82,7 @@ describe('WebSocketAgentClient', () => {
 	});
 
 	it('rejects a request when the server returns a structured error', async () => {
-		const socket = new TestSocket();
-		const client = new WebSocketAgentClient({
-			url: 'ws://agent.test/agent',
-			createSocket: () => socket as unknown as WebSocket,
-		});
-		const connecting = client.connect();
-		socket.open();
-		await connecting;
+		const { client, socket } = await createConnectedClient();
 
 		const prompt = client.prompt('missing-session', 'Hello');
 		socket.receive({
@@ -87,14 +97,7 @@ describe('WebSocketAgentClient', () => {
 	});
 
 	it('sends attachments with prompts', async () => {
-		const socket = new TestSocket();
-		const client = new WebSocketAgentClient({
-			url: 'ws://agent.test/agent',
-			createSocket: () => socket as unknown as WebSocket,
-		});
-		const connecting = client.connect();
-		socket.open();
-		await connecting;
+		const { client, socket } = await createConnectedClient();
 
 		const prompt = client.prompt('session-1', 'Inspect', undefined, [
 			{ name: 'notes.txt', mimeType: 'text/plain', data: 'aGVsbG8=' },
@@ -113,14 +116,7 @@ describe('WebSocketAgentClient', () => {
 	});
 
 	it('reads attachments through their session-scoped id', async () => {
-		const socket = new TestSocket();
-		const client = new WebSocketAgentClient({
-			url: 'ws://agent.test/agent',
-			createSocket: () => socket as unknown as WebSocket,
-		});
-		const connecting = client.connect();
-		socket.open();
-		await connecting;
+		const { client, socket } = await createConnectedClient();
 
 		const reading = client.readAttachment('session-1', 'attachment-1');
 		expect(socket.sent[0]).toMatchObject({
@@ -143,14 +139,7 @@ describe('WebSocketAgentClient', () => {
 	});
 
 	it('validates project data returned by the server', async () => {
-		const socket = new TestSocket();
-		const client = new WebSocketAgentClient({
-			url: 'ws://agent.test/agent',
-			createSocket: () => socket as unknown as WebSocket,
-		});
-		const connecting = client.connect();
-		socket.open();
-		await connecting;
+		const { client, socket } = await createConnectedClient();
 
 		const projects = client.listProjects();
 		expect(socket.sent[0]).toMatchObject({ type: 'project.list' });
@@ -179,14 +168,7 @@ describe('WebSocketAgentClient', () => {
 	});
 
 	it('subscribes the active session to project status changes', async () => {
-		const socket = new TestSocket();
-		const client = new WebSocketAgentClient({
-			url: 'ws://agent.test/agent',
-			createSocket: () => socket as unknown as WebSocket,
-		});
-		const connecting = client.connect();
-		socket.open();
-		await connecting;
+		const { client, socket } = await createConnectedClient();
 
 		const watching = client.watchProjectStatus('session-1', '/projects/game');
 		expect(socket.sent[0]).toMatchObject({
@@ -214,14 +196,7 @@ describe('WebSocketAgentClient', () => {
 	});
 
 	it('validates persisted session catalogs and hydrated resumes', async () => {
-		const socket = new TestSocket();
-		const client = new WebSocketAgentClient({
-			url: 'ws://agent.test/agent',
-			createSocket: () => socket as unknown as WebSocket,
-		});
-		const connecting = client.connect();
-		socket.open();
-		await connecting;
+		const { client, socket } = await createConnectedClient();
 		const session = {
 			id: 'session-1',
 			title: 'Saved session',
@@ -254,14 +229,7 @@ describe('WebSocketAgentClient', () => {
 	});
 
 	it('gets and updates the active Pi model configuration', async () => {
-		const socket = new TestSocket();
-		const client = new WebSocketAgentClient({
-			url: 'ws://agent.test/agent',
-			createSocket: () => socket as unknown as WebSocket,
-		});
-		const connecting = client.connect();
-		socket.open();
-		await connecting;
+		const { client, socket } = await createConnectedClient();
 		const result = {
 			current: {
 				provider: 'openai-codex',
@@ -312,16 +280,9 @@ describe('WebSocketAgentClient', () => {
 	});
 
 	it('reports an unexpected connection close', async () => {
-		const socket = new TestSocket();
-		const client = new WebSocketAgentClient({
-			url: 'ws://agent.test/agent',
-			createSocket: () => socket as unknown as WebSocket,
-		});
+		const { client, socket } = await createConnectedClient();
 		let disconnectError: Error | undefined;
 		client.subscribeDisconnect((error) => (disconnectError = error));
-		const connecting = client.connect();
-		socket.open();
-		await connecting;
 
 		socket.close();
 
