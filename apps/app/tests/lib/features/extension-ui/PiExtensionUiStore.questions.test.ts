@@ -4,7 +4,7 @@ import { PiExtensionUiStore } from '../../../../src/lib/features/extension-ui/Pi
 /** The exact wire shape the server emits for a bridge select request. */
 const selectEvent = {
 	type: 'extension.ui.requested',
-	protocolVersion: 25,
+	protocolVersion: 26,
 	eventId: 1,
 	sessionId: 'session-1',
 	runtimeId: 'runtime-1',

@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket from 'ws';
 import { protocolVersion as PROTOCOL_VERSION } from '@gizmo/protocol';
 import type { PiAgentService } from '../../src/sessions/pi-agent-service';
-import type { ProjectStatus } from '@gizmo/extensions';
+import {
+	ProjectServiceRegistry,
+	type ProjectService,
+	type ProjectStatus,
+} from '@gizmo/extensions';
 import {
 	createAgentWebSocketServer,
 	type AgentWebSocketServer,
@@ -19,16 +23,21 @@ function fakeService(
 	} as unknown as PiAgentService;
 }
 
-const unusedStatus = {
-	state: 'unused',
-	ok: false,
-	command: [],
-	exitCode: null,
-	durationMs: 0,
-	instances: [],
-	errors: [],
-	warnings: [],
-} satisfies ProjectStatus;
+/** A stub status payload; the shape is opaque extension-owned data in core. */
+const unusedStatus = { marker: 'unused' } satisfies ProjectStatus;
+
+function stubProjectService(
+	overrides: Partial<ProjectService> = {},
+): ProjectService {
+	return {
+		getStatus: () => Promise.resolve(unusedStatus),
+		watchStatus: () => Promise.resolve(unusedStatus),
+		openProject: () => Promise.resolve(undefined),
+		revertFile: () => Promise.resolve(),
+		dispose: () => {},
+		...overrides,
+	};
+}
 
 function request(
 	socket: WebSocket,
@@ -74,13 +83,10 @@ describe('createAgentWebSocketServer', () => {
 				fakeService(() => {
 					throw new Error('boom');
 				}),
-			createProjectService: () => ({
-				getStatus: () => Promise.reject(new Error('unused')),
-				watchStatus: () => Promise.reject(new Error('unused')),
-				openProject: () => Promise.reject(new Error('unused')),
-				revertFile: () => Promise.reject(new Error('unused')),
-				dispose: projectDispose,
-			}),
+			createProjectServices: () =>
+				new ProjectServiceRegistry([
+					['unity', stubProjectService({ dispose: projectDispose })],
+				]),
 		});
 		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -136,19 +142,22 @@ describe('createAgentWebSocketServer', () => {
 		agentServer = await createAgentWebSocketServer({
 			port: 0,
 			createService: () => fakeService(() => {}),
-			createProjectService: () => ({
-				getStatus: async (projectPath: string) => {
-					statusCalls.push(projectPath);
-					return { ...unusedStatus, state: 'idle' };
-				},
-				watchStatus: async (projectPath: string) => {
-					watchCalls.push(projectPath);
-					return { ...unusedStatus, state: 'watching' };
-				},
-				openProject: () => Promise.resolve(undefined),
-				revertFile: () => Promise.resolve(),
-				dispose: () => {},
-			}),
+			createProjectServices: () =>
+				new ProjectServiceRegistry([
+					[
+						'unity',
+						stubProjectService({
+							getStatus: async (projectPath: string) => {
+								statusCalls.push(projectPath);
+								return { marker: 'idle' };
+							},
+							watchStatus: async (projectPath: string) => {
+								watchCalls.push(projectPath);
+								return { marker: 'watching' };
+							},
+						}),
+					],
+				]),
 		});
 
 		const { port } = agentServer.server.address() as { port: number };
@@ -162,11 +171,13 @@ describe('createAgentWebSocketServer', () => {
 			type: 'project.watch',
 			sessionId: 's1',
 			projectPath: '/projects/game',
+			extensionId: 'unity',
 		});
 		const second = await request(socket, {
 			type: 'project.watch',
 			sessionId: 's2',
 			projectPath: '/projects/game',
+			extensionId: 'unity',
 		});
 
 		// The second watch must not restart the underlying watch: it reports
@@ -183,16 +194,18 @@ describe('createAgentWebSocketServer', () => {
 		agentServer = await createAgentWebSocketServer({
 			port: 0,
 			createService: () => fakeService(() => {}),
-			createProjectService: () => ({
-				getStatus: async () => ({ ...unusedStatus, state: 'idle' }),
-				watchStatus: async (projectPath: string) => {
-					watchCalls.push(projectPath);
-					return { ...unusedStatus, state: 'watching' };
-				},
-				openProject: () => Promise.resolve(undefined),
-				revertFile: () => Promise.resolve(),
-				dispose: () => {},
-			}),
+			createProjectServices: () =>
+				new ProjectServiceRegistry([
+					[
+						'unity',
+						stubProjectService({
+							watchStatus: async (projectPath: string) => {
+								watchCalls.push(projectPath);
+								return { marker: 'watching' };
+							},
+						}),
+					],
+				]),
 		});
 
 		const { port } = agentServer.server.address() as { port: number };
@@ -206,11 +219,13 @@ describe('createAgentWebSocketServer', () => {
 			type: 'project.watch',
 			sessionId: 's1',
 			projectPath: '/projects/a',
+			extensionId: 'unity',
 		});
 		await request(socket, {
 			type: 'project.watch',
 			sessionId: 's1',
 			projectPath: '/projects/b',
+			extensionId: 'unity',
 		});
 
 		expect(watchCalls).toEqual(['/projects/a', '/projects/b']);

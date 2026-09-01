@@ -4,7 +4,6 @@ import {
 	extensionDescriptorSchema,
 	extensionUiRequestSchema,
 } from './extensions';
-import { projectStatusSchema } from './projects';
 import { conversationAttachmentSchema, sessionUsageSchema } from './sessions';
 
 export const sessionStateSchema = Type.Union([
@@ -105,7 +104,10 @@ export const agentEventSchema = Type.Union([
 			...eventEnvelope,
 			type: Type.Literal('project.status.changed'),
 			projectPath: Type.String({ minLength: 1 }),
-			status: projectStatusSchema,
+			/** Which extension's project service produced this status. */
+			extensionId: Type.String({ minLength: 1, maxLength: 128 }),
+			/** Opaque extension-owned payload; consumers validate their own shape. */
+			status: Type.Unknown(),
 		},
 		{ additionalProperties: false },
 	),

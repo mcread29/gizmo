@@ -181,6 +181,25 @@ describe('ProjectCatalog', () => {
 		]);
 	});
 
+	it('reorders registered projects and keeps unlisted ones after them', async () => {
+		const data = await temporary('gizmo-data-');
+		const [a, b, c] = await Promise.all([
+			temporary('gizmo-a-'),
+			temporary('gizmo-b-'),
+			temporary('gizmo-c-'),
+		]);
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(a!);
+		await catalog.add(b!);
+		await catalog.add(c!);
+		// add() puts the newest first.
+		expect((await catalog.list()).map(({ path }) => path)).toEqual([c, b, a]);
+
+		const reordered = await catalog.reorder([a!, '/not/registered', c!]);
+		expect(reordered.map(({ path }) => path)).toEqual([a, c, b]);
+		expect((await catalog.list()).map(({ path }) => path)).toEqual([a, c, b]);
+	});
+
 	it('lists folders for the web workspace picker', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');

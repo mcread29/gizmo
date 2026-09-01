@@ -10,7 +10,14 @@
 	} from '@lucide/svelte';
 	import type { StoredProject } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, ScrollPanel, Tooltip } from '../../components';
+	import {
+		Button,
+		ScrollPanel,
+		Tooltip,
+		dropEdge,
+		reorderByDrop,
+		type DropEdge,
+	} from '../../components';
 	import ComponentGallery from '../../components/ComponentGallery.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
@@ -89,6 +96,45 @@
 		if (!next.delete(project.path)) next.add(project.path);
 		collapsed = next;
 	}
+
+	// Drag a workspace row to reorder. The order is saved on the agent so
+	// every client sees the same sidebar.
+	let draggingPath = $state<string>();
+	let drop = $state<{ path: string; edge: DropEdge }>();
+
+	function dragStart(event: DragEvent, project: StoredProject) {
+		draggingPath = project.path;
+		event.dataTransfer?.setData('text/plain', project.path);
+		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+	}
+
+	function dragOver(event: DragEvent, project: StoredProject) {
+		if (!draggingPath || draggingPath === project.path) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+		drop = {
+			path: project.path,
+			edge: dropEdge(event, event.currentTarget as Element, 'y'),
+		};
+	}
+
+	function finishDrop(event: DragEvent) {
+		event.preventDefault();
+		if (draggingPath && drop) {
+			const paths = store.projects.map(({ path }) => path);
+			const next = reorderByDrop(
+				paths,
+				paths.indexOf(draggingPath),
+				paths.indexOf(drop.path),
+				drop.edge,
+			);
+			if (next.some((path, index) => path !== paths[index])) {
+				void store.reorderProjects(next);
+			}
+		}
+		draggingPath = undefined;
+		drop = undefined;
+	}
 </script>
 
 <aside
@@ -147,6 +193,17 @@
 					data-active={(workspaceSelected &&
 						project.path === openWorkspacePath) ||
 						undefined}
+					data-dragging={draggingPath === project.path || undefined}
+					data-drop={drop?.path === project.path ? drop.edge : undefined}
+					draggable="true"
+					role="listitem"
+					ondragstart={(event) => dragStart(event, project)}
+					ondragover={(event) => dragOver(event, project)}
+					ondragleave={() => {
+						if (drop?.path === project.path) drop = undefined;
+					}}
+					ondrop={finishDrop}
+					ondragend={finishDrop}
 				>
 					<button
 						data-ui="workspace-disclosure"
@@ -207,9 +264,18 @@
 				{#if open}
 					<div data-ui="workspace-threads">
 						{#if threads.length === 0}
-							<p data-ui="workspace-threads-empty">
-								{query.trim() ? 'No matching threads' : 'No threads yet'}
-							</p>
+							<div data-ui="sidebar-empty" data-scope="workspace">
+								<strong
+									>{query.trim()
+										? 'No matching threads'
+										: 'No threads yet'}</strong
+								>
+								<span
+									>{query.trim()
+										? 'Try a different search.'
+										: 'Start one to begin work here.'}</span
+								>
+							</div>
 						{/if}
 						{#each threads as session (session.id)}
 							<button

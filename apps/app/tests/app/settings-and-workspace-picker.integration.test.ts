@@ -28,7 +28,10 @@ describe('device settings and workspace picker', () => {
 		await fireEvent.click(sendOnEnter);
 		await fireEvent.click(expandReasoning);
 
-		expect(getByText('⌘/Ctrl Enter')).toBeInTheDocument();
+		expect(getByRole('button', { name: 'Send message' })).toHaveAttribute(
+			'aria-keyshortcuts',
+			'Control+Enter Meta+Enter',
+		);
 		await waitFor(() => {
 			const saved = JSON.parse(
 				localStorage.getItem('gizmo.settings.v1') ?? '{}',

@@ -2,6 +2,7 @@
 	import type { AgentStore } from '../../agent-client';
 	import type { AppRouter } from '../../router.svelte';
 	import SettingsScreen from '../settings/SettingsScreen.svelte';
+	import type { UnsavedChangesGuard } from '../settings/unsaved-changes.svelte';
 	import SessionTreeScreen from '../tree/SessionTreeScreen.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
 
@@ -10,7 +11,7 @@
 		layout: WorkspaceLayout;
 		store: AgentStore;
 		version: string;
-		settingsDirty?: boolean;
+		settingsGuard: UnsavedChangesGuard;
 		onShowWorkspaceSettings: (projectPath: string) => void;
 	}
 
@@ -19,14 +20,14 @@
 		layout,
 		store,
 		version,
-		settingsDirty = $bindable(false),
+		settingsGuard,
 		onShowWorkspaceSettings,
 	}: Props = $props();
 </script>
 
 <SettingsScreen
 	open={router.current === 'settings'}
-	bind:dirty={settingsDirty}
+	guard={settingsGuard}
 	page={router.settingsPage}
 	{layout}
 	{store}

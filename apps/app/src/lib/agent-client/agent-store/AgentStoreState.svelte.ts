@@ -6,7 +6,6 @@ import type {
 	ConversationMessage,
 	ExtensionDescriptor,
 	GitStatus,
-	ProjectStatus,
 	ProviderStatus,
 	RegistryStatus,
 	ResourceCatalog,
@@ -49,10 +48,13 @@ export class AgentStoreState {
 	sessions = $state<AgentSessionSummary[]>([]);
 	projects = $state<StoredProject[]>([]);
 	selectedProjectPath = $state<string>();
-	projectStatus = $state<ProjectStatus>();
+	/** Opaque project-service status payloads, keyed by extension id. */
+	projectStatuses = $state<Record<string, unknown>>({});
 	projectsLoading = $state(false);
-	projectOpening = $state(false);
+	projectOpening = $state<Record<string, boolean>>({});
 	projectError = $state<string>();
+	/** Per-extension project-service error messages, keyed by extension id. */
+	projectServiceErrors = $state<Record<string, string>>({});
 	error = $state<AgentError>();
 	projectExtensions = $state<ExtensionDescriptor[]>([]);
 	extensionsLoading = $state(false);
@@ -60,7 +62,7 @@ export class AgentStoreState {
 	pendingConfirmations = $state<PendingConfirmation[]>([]);
 	gitStatus = $state<GitStatus>();
 	gitLoading = $state(false);
-	statusLoading = $state(false);
+	statusLoading = $state<Record<string, boolean>>({});
 	gitCommitting = $state(false);
 	resources = $state<ResourceCatalog>();
 	resourcesLoading = $state(false);

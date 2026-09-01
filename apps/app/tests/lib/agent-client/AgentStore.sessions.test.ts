@@ -11,7 +11,10 @@ describe('AgentStore', () => {
 		const firstSession = store.sessionId!;
 
 		expect(store.selectedProjectPath).toBe('/projects/ThirdPersonSandbox');
-		expect(store.projectStatus?.state).toBe('connected');
+		expect(
+			// Unity's opaque status payload, stored per extension id.
+			store.projectStatuses.unity,
+		).toMatchObject({ state: 'connected' });
 		await store.prompt('Inspect the Editor');
 		expect(store.sessions[0]?.title).toBe('Inspect the Editor');
 		expect(store.messages.length).toBeGreaterThan(0);

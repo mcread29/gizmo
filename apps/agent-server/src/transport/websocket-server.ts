@@ -1,4 +1,4 @@
-import type { ProjectService } from '@gizmo/extensions';
+import type { ProjectServiceRegistry } from '@gizmo/extensions';
 import {
 	WebSocketServer,
 	type VerifyClientCallbackSync,
@@ -14,7 +14,7 @@ export interface AgentWebSocketServerOptions {
 	path?: string;
 	allowedOrigins?: readonly string[];
 	createService?: () => PiAgentService;
-	createProjectService?: () => ProjectService;
+	createProjectServices?: () => ProjectServiceRegistry;
 	createExtensionHost?: () => ExtensionHostService;
 }
 

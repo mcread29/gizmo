@@ -15,8 +15,8 @@ describe('AgentStore', () => {
 		expect(store.connection).toBe('connected');
 	});
 
-	it('surfaces an Editor launch failure', async () => {
-		const client = new FakeAgentClient({ latencyMs: 0, editorOpen: false });
+	it('returns the opaque open result and tracks per-extension loading', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
 		vi.spyOn(client, 'openProject').mockResolvedValue({
 			state: 'error',
 			ok: false,
@@ -35,10 +35,15 @@ describe('AgentStore', () => {
 		const store = new AgentStore(client);
 		await store.connect();
 
-		await store.openSelectedProject();
-
-		expect(store.projectError).toBe('Editor exited with code 1');
-		expect(store.projectOpening).toBe(false);
+		// The shell hands the raw result to the owning extension; Unity's web
+		// extension owns validation and error reporting for its own payload.
+		const openPromise = store.openProjectService('unity');
+		expect(store.projectOpening.unity).toBe(true);
+		await expect(openPromise).resolves.toMatchObject({
+			state: 'error',
+			ok: false,
+		});
+		expect(store.projectOpening.unity).toBe(false);
 	});
 
 	it('reloads the active sidebar when its extension override changes', async () => {

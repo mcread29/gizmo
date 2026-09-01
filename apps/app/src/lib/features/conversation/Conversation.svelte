@@ -226,8 +226,5 @@
 			sessionId={store.sessionId}
 			placement="belowEditor"
 		/>
-		<p data-ui="disclaimer">
-			Gizmo can modify your project. Review changes before committing.
-		</p>
 	</div>
 </main>

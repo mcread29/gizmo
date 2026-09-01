@@ -1,4 +1,4 @@
-import type { ProjectService, ProjectStatus } from '@gizmo/extensions';
+import { ProjectServiceRegistry } from '@gizmo/extensions';
 import { protocolVersion, type ExtensionDescriptor } from '@gizmo/protocol';
 import { WebSocket } from 'ws';
 import { ExtensionHostService } from '../extensions/extension-host-service';
@@ -12,7 +12,7 @@ import { handleRequestMessage } from './request-message-handler';
 
 export interface AgentConnectionFactories {
 	createService?: () => PiAgentService;
-	createProjectService?: () => ProjectService;
+	createProjectServices?: () => ProjectServiceRegistry;
 	createExtensionHost?: () => ExtensionHostService;
 }
 
@@ -22,14 +22,22 @@ export function attachAgentConnection(
 	factories: AgentConnectionFactories,
 ): void {
 	const agent = factories.createService?.() ?? new PiAgentService();
-	const projects = factories.createProjectService?.() ?? noProjectService;
+	const projectServices =
+		factories.createProjectServices?.() ?? noProjectServices;
 	const extensions =
 		factories.createExtensionHost?.() ?? new ExtensionHostService([]);
 	let eventId = 0;
 
 	const emit: ProjectEmitters = {
-		status: (sessionId, projectPath, status) =>
-			sendProjectStatus(socket, ++eventId, sessionId, projectPath, status),
+		status: (sessionId, projectPath, extensionId, status) =>
+			sendProjectStatus(
+				socket,
+				++eventId,
+				sessionId,
+				projectPath,
+				extensionId,
+				status,
+			),
 		extensions: (sessionId, projectPath, descriptors) =>
 			sendProjectExtensions(
 				socket,
@@ -40,11 +48,16 @@ export function attachAgentConnection(
 			),
 	};
 	const watchCoordinator = createProjectWatchCoordinator(
-		projects,
+		projectServices,
 		extensions,
 		emit,
 	);
-	const services = { agent, projects, extensions, watchCoordinator };
+	const services = {
+		agent,
+		projectServices,
+		extensions,
+		watchCoordinator,
+	};
 	const unsubscribe = agent.subscribe((event) =>
 		sendMessage(socket, { ...event, eventId: ++eventId }),
 	);
@@ -62,13 +75,13 @@ export function attachAgentConnection(
 		console.error('Agent socket error:', error);
 	});
 	socket.once('close', () => {
-		void disposeConnection(agent, projects, extensions, unsubscribe);
+		void disposeConnection(agent, projectServices, extensions, unsubscribe);
 	});
 }
 
 async function disposeConnection(
 	agent: PiAgentService,
-	projects: ProjectService,
+	projectServices: ProjectServiceRegistry,
 	extensions: ExtensionHostService,
 	unsubscribe: () => void,
 ): Promise<void> {
@@ -79,7 +92,7 @@ async function disposeConnection(
 	// A failure in one resource must not leak resources disposed after it.
 	for (const disposeOne of [
 		() => agent.dispose(),
-		() => projects.dispose(),
+		() => projectServices.dispose(),
 		() => extensions.dispose(),
 	]) {
 		try {
@@ -95,7 +108,8 @@ function sendProjectStatus(
 	eventId: number,
 	sessionId: string,
 	projectPath: string,
-	status: ProjectStatus,
+	extensionId: string,
+	status: unknown,
 ): void {
 	sendMessage(socket, {
 		protocolVersion,
@@ -103,7 +117,8 @@ function sendProjectStatus(
 		sessionId,
 		type: 'project.status.changed',
 		projectPath,
-		status: { ...status, command: [...status.command] },
+		extensionId,
+		status,
 	});
 }
 
@@ -124,15 +139,5 @@ function sendProjectExtensions(
 	});
 }
 
-/** Used when no domain project service is configured for a connection. */
-const noProjectService: ProjectService = {
-	getStatus: () =>
-		Promise.reject(new Error('No project service is configured')),
-	watchStatus: () =>
-		Promise.reject(new Error('No project service is configured')),
-	openProject: () =>
-		Promise.reject(new Error('No project service is configured')),
-	revertFile: () =>
-		Promise.reject(new Error('No project service is configured')),
-	dispose: () => {},
-};
+/** Used when no domain project services are configured for a connection. */
+const noProjectServices = new ProjectServiceRegistry([]);

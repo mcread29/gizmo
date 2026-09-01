@@ -1,6 +1,13 @@
 import { Type, type Static } from 'typebox';
 
-export const protocolVersion = 25 as const;
+/**
+ * v26: project services are registered per extension id. `project.status`,
+ * `project.open`, and `project.watch` identify both the workspace and the
+ * owning extension, and status payloads are opaque extension-owned data —
+ * core no longer describes any extension's process shape. v25 project
+ * requests (no extensionId) are still accepted for one migration window.
+ */
+export const protocolVersion = 26 as const;
 
 const sessionTitleLimit = 48;
 

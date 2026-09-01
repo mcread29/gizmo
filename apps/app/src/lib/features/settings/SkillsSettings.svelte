@@ -9,11 +9,13 @@
 	import SkillDirectoryTree from './SkillDirectoryTree.svelte';
 	import SkillEditor from './SkillEditor.svelte';
 	import SkillList from './SkillList.svelte';
+	import {
+		discardSkillChanges,
+		type UnsavedChangesGuard,
+	} from './unsaved-changes.svelte';
 
-	let {
-		store,
-		dirty = $bindable(false),
-	}: { store: AgentStore; dirty?: boolean } = $props();
+	let { store, guard }: { store: AgentStore; guard: UnsavedChangesGuard } =
+		$props();
 
 	let query = $state('');
 	let filter = $state<'all' | 'on' | 'off'>('all');
@@ -107,25 +109,20 @@
 	}
 
 	function install(skill: SkillResource, installed: boolean) {
-		if (
-			skill.id === selectedId &&
-			dirty &&
-			!confirm('Discard the unsaved changes and uninstall this skill?')
-		) {
+		const apply = () => {
+			if (skill.id === selectedId && !installed) selectedId = undefined;
+			void store.setGlobalSkill(skill.id, { installed });
+		};
+		if (skill.id !== selectedId) {
+			apply();
 			return;
 		}
-		if (skill.id === selectedId && !installed) {
-			dirty = false;
-			selectedId = undefined;
-		}
-		void store.setGlobalSkill(skill.id, { installed });
+		guard.guard('Discard the unsaved changes and uninstall this skill?', apply);
 	}
 
 	function select(skill: SkillResource) {
 		if (skill.id === selectedId) return;
-		if (dirty && !confirm('Discard the unsaved changes to this skill?')) return;
-		dirty = false;
-		selectedId = skill.id;
+		guard.guard(discardSkillChanges, () => (selectedId = skill.id));
 	}
 
 	function saved() {
@@ -133,22 +130,18 @@
 	}
 
 	function closeEditor() {
-		if (dirty && !confirm('Discard the unsaved changes to this skill?')) return;
-		dirty = false;
-		selectedId = undefined;
+		guard.guard(discardSkillChanges, () => (selectedId = undefined));
 	}
 
 	function refresh() {
-		if (dirty && !confirm('Discard unsaved changes and refresh the library?')) {
-			return;
-		}
-		dirty = false;
-		selectedId = undefined;
-		void store.refreshResources();
+		guard.guard('Discard unsaved changes and refresh the library?', () => {
+			selectedId = undefined;
+			void store.refreshResources();
+		});
 	}
 
 	function warnBeforeUnload(event: BeforeUnloadEvent) {
-		if (!dirty) return;
+		if (!guard.dirty) return;
 		event.preventDefault();
 		event.returnValue = '';
 	}
@@ -272,7 +265,7 @@
 					<SkillEditor
 						skill={selected}
 						{store}
-						bind:dirty
+						bind:dirty={guard.dirty}
 						readOnly={!selected.editable}
 						onBack={closeEditor}
 						onSaved={saved}

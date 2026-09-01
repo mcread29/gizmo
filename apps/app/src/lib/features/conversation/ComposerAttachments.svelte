@@ -15,7 +15,7 @@
 		{#each attachments as attachment, index (`${attachment.name}-${index}`)}
 			<div data-ui="attachment-chip">
 				{#if attachment.mimeType.startsWith('image/')}
-					<img src={attachmentUrl(attachment)} alt="" />
+					<img src={attachmentUrl(attachment)} alt={attachment.name} />
 				{:else}
 					<FileIcon size={18} />
 				{/if}

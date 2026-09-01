@@ -32,6 +32,22 @@
 	font: 600 var(--text-xs)/1 var(--font-sans);
 }
 
+[data-ui='tabs-trigger'][draggable='true'] {
+	cursor: grab;
+}
+
+[data-ui='tabs-trigger'][data-dragging] {
+	opacity: 0.4;
+}
+
+[data-ui='tabs-trigger'][data-drop='before'] {
+	box-shadow: -2px 0 0 0 var(--color-accent);
+}
+
+[data-ui='tabs-trigger'][data-drop='after'] {
+	box-shadow: 2px 0 0 0 var(--color-accent);
+}
+
 [data-ui='tabs-trigger'][data-state='active'] {
 	background: var(--color-surface-raised);
 	color: var(--color-text);

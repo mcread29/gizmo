@@ -121,6 +121,10 @@ export class PiAgentService {
 		return this.#projects.remove(projectPath);
 	}
 
+	reorderProjects(paths: string[]) {
+		return this.#projects.reorder(paths);
+	}
+
 	listResources(workspacePath?: string) {
 		return this.#resources.list(workspacePath);
 	}

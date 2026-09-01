@@ -13,7 +13,8 @@
 		question: PiExtensionDialog;
 	} = $props();
 
-	let submitted = false;
+	let submitted = $state(false);
+	let error = $state<string>();
 	let inputEl: HTMLInputElement | undefined = $state();
 	let request = $derived(question.request);
 	let busy = $derived(ui.responding.has(question.uiRequestId));
@@ -59,10 +60,15 @@
 	) {
 		if (submitted) return;
 		submitted = true;
+		error = undefined;
 		try {
 			await ui.respond(question, response);
-		} catch {
+		} catch (cause) {
 			submitted = false;
+			error =
+				cause instanceof Error && cause.message
+					? cause.message
+					: 'Could not send your answer. Try again.';
 		}
 	}
 
@@ -89,6 +95,9 @@
 		{/if}
 	</div>
 	<p data-ui="agent-question-text">{request.title}</p>
+	{#if error}
+		<p data-ui="agent-question-error" role="alert">{error}</p>
+	{/if}
 
 	{#if request.method === 'select'}
 		<div data-ui="agent-question-options">

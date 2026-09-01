@@ -36,6 +36,7 @@ export class WebSocketTransport {
 	readonly #pending = new Map<string, PendingRequest>();
 	#url: string;
 	#socket?: WebSocket;
+	#opening?: Promise<void>;
 	#requestId = 0;
 
 	constructor(url: string, createSocket: (url: string) => WebSocket) {
@@ -45,14 +46,15 @@ export class WebSocketTransport {
 
 	connect() {
 		if (this.#socket?.readyState === socketOpen) return Promise.resolve();
-		if (this.#socket) throw new Error('Agent connection is already opening');
+		// Callers that connect concurrently share the in-flight attempt.
+		if (this.#opening) return this.#opening;
 
 		const socket = this.#createSocket(this.#url);
 		this.#socket = socket;
 		socket.addEventListener('message', this.#receive);
 		socket.addEventListener('close', this.#closed);
 
-		return new Promise<void>((resolve, reject) => {
+		this.#opening = new Promise<void>((resolve, reject) => {
 			const opened = () => {
 				cleanup();
 				resolve();
@@ -63,6 +65,7 @@ export class WebSocketTransport {
 				reject(new Error(`Could not connect to Gizmo at ${this.#url}`));
 			};
 			const cleanup = () => {
+				this.#opening = undefined;
 				socket.removeEventListener('open', opened);
 				socket.removeEventListener('error', failed);
 				socket.removeEventListener('close', failed);
@@ -71,6 +74,7 @@ export class WebSocketTransport {
 			socket.addEventListener('error', failed, { once: true });
 			socket.addEventListener('close', failed, { once: true });
 		});
+		return this.#opening;
 	}
 
 	setEndpoint(url: string) {

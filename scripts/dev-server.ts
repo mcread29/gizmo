@@ -8,7 +8,8 @@ import {
 	writeFile,
 } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { connect } from 'node:net';
 import { createRequire } from 'node:module';
 
 const root = join(__dirname, '..');
@@ -63,48 +64,112 @@ function delay(milliseconds: number) {
 async function runManagedServer() {
 	await appendFile(
 		logFile,
-		`\n--- Gizmo Pi Web started ${new Date().toISOString()} ---\n`,
+		`
+--- Gizmo Pi Web started ${new Date().toISOString()} ---
+`,
 	);
 	const logDescriptor = openSync(logFile, 'a');
 	const requireFromApp = createRequire(
 		join(root, 'apps', 'app', 'package.json'),
 	);
+	const tsxCli = createRequire(__filename).resolve('tsx/cli');
 	process.env.GIZMO_PI_WEB = '1';
-	// Bring up the WebSocket backend before exposing Vite. Otherwise Vite is
-	// ready several seconds earlier and the browser displays connection errors
-	// while extension integrations are still loading.
-	await import('../apps/agent-server/src/server.ts');
-	const app = spawn(
+	const port = Number(process.env.GIZMO_PORT ?? 8787);
+
+	// The agent runs under `tsx watch`, so edits to the server or to any
+	// workspace package it imports (protocol, extensions) restart it in place.
+	// The browser client reconnects on its own.
+	const agent = spawn(
 		process.execPath,
 		[
-			join(
-				dirname(requireFromApp.resolve('vite/package.json')),
-				'bin',
-				'vite.js',
-			),
+			tsxCli,
+			'watch',
+			'--clear-screen=false',
+			join(root, 'apps', 'agent-server', 'src', 'server.ts'),
 		],
 		{
-			cwd: join(root, 'apps', 'app'),
+			cwd: join(root, 'apps', 'agent-server'),
 			env: process.env,
-			stdio: ['pipe', logDescriptor, logDescriptor],
+			// tsx watch listens on stdin for manual restarts and never boots the
+			// program when handed a pipe that nothing writes to.
+			stdio: ['ignore', logDescriptor, logDescriptor],
 			windowsHide: true,
 		},
 	);
-	closeSync(logDescriptor);
+	const children = [agent];
 
 	try {
-		// The runner already uses tsx's loader, so hosting the server here avoids
-		// another Windows console process without changing server behavior.
+		// Bring up the WebSocket backend before exposing Vite. Otherwise Vite is
+		// ready several seconds earlier and the browser displays connection errors
+		// while extension integrations are still loading.
+		await waitForPort(port, agent, 60_000);
+		const app = spawn(
+			process.execPath,
+			[
+				join(
+					dirname(requireFromApp.resolve('vite/package.json')),
+					'bin',
+					'vite.js',
+				),
+			],
+			{
+				cwd: join(root, 'apps', 'app'),
+				env: process.env,
+				stdio: ['pipe', logDescriptor, logDescriptor],
+				windowsHide: true,
+			},
+		);
+		children.push(app);
+		closeSync(logDescriptor);
+
+		// Either process dying takes the pair down; a half-running dev server
+		// is more confusing than a stopped one.
 		process.exitCode = await new Promise<number>((resolve) => {
-			app.once('error', (error) => {
-				void appendFile(logFile, `${error.stack ?? error.message}\n`);
-				resolve(1);
-			});
-			app.once('exit', (code) => resolve(code ?? 1));
+			for (const child of children) {
+				child.once('error', (error) => {
+					void appendFile(
+						logFile,
+						`${error.stack ?? error.message}
+`,
+					);
+					resolve(1);
+				});
+				child.once('exit', (code) => resolve(code ?? 1));
+			}
 		});
 	} finally {
-		stopProcessTree(app.pid);
+		for (const child of children) stopProcessTree(child.pid);
 	}
+}
+
+/** Resolves once something accepts TCP connections on the port. */
+async function waitForPort(
+	port: number,
+	owner: ChildProcess,
+	timeoutMilliseconds: number,
+) {
+	const deadline = Date.now() + timeoutMilliseconds;
+	while (Date.now() < deadline) {
+		if (owner.exitCode !== null) {
+			throw new Error(`The agent server exited before listening on ${port}.`);
+		}
+		if (await portOpen(port)) return;
+		await delay(250);
+	}
+	throw new Error(`The agent server did not listen on ${port} in time.`);
+}
+
+function portOpen(port: number) {
+	return new Promise<boolean>((resolve) => {
+		const socket = connect({ port, host: '127.0.0.1' });
+		const done = (open: boolean) => {
+			socket.destroy();
+			resolve(open);
+		};
+		socket.once('connect', () => done(true));
+		socket.once('error', () => done(false));
+		socket.setTimeout(1_000, () => done(false));
+	});
 }
 
 function stopProcessTree(pid: number | undefined) {

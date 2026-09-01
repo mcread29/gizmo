@@ -12,7 +12,7 @@ function store(projectExtensions: ExtensionDescriptor[]): AgentStore {
 		projectExtensions,
 		enabledExtensionIds: projectExtensions.map(({ id }) => id),
 		selectedProjectPath: '/projects/game',
-		projectOpening: false,
+		projectOpening: {},
 		invokeProjectExtension: async () => ({}),
 	} as unknown as AgentStore;
 }

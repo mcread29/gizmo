@@ -22,6 +22,8 @@ function state(): AgentEventState {
 		],
 		sessionId: 'session-1',
 		projectExtensions: [],
+		projectStatuses: {},
+		projectServiceErrors: {},
 	};
 }
 

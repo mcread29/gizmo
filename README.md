@@ -48,7 +48,9 @@ pnpm dev:server:stop
 ```
 
 Output is appended to `.gizmo-dev/dev-server.log`; runtime PID state stays in
-that ignored directory.
+that ignored directory. The agent server runs under `tsx watch`, so edits to
+`apps/agent-server` or any package it imports (`protocol`, `extensions`) restart
+it in place and the browser reconnects; Vite hot-reloads the app as usual.
 
 Pi Web keeps Gizmo's thread, workspace, settings, Git, and extension UI. New
 threads use Pi's standard built-in tools and discover the resources configured

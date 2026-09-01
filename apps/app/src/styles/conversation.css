@@ -119,7 +119,12 @@
 [data-ui='jump-to-latest'] [data-ui='button'] {
 	border-radius: var(--radius-full);
 	box-shadow: var(--shadow-panel);
+	backdrop-filter: blur(8px);
 	pointer-events: auto;
+}
+
+[data-ui='jump-to-latest'] [data-ui='button'][data-variant='secondary'] {
+	background: color-mix(in srgb, var(--color-surface-raised) 85%, transparent);
 }
 
 [data-ui='transcript-search'] {

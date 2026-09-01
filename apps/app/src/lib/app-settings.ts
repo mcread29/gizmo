@@ -66,6 +66,8 @@ export interface AppSettings {
 	showInspector: boolean;
 	sidebarWidth: number;
 	inspectorWidth: number;
+	/** Inspector tab ids in the order the user arranged them. */
+	inspectorTabOrder: string[];
 	/** Empty means "use the built-in address for this platform". */
 	agentUrl: string;
 }
@@ -97,6 +99,7 @@ export const defaultAppSettings: AppSettings = {
 	showInspector: true,
 	sidebarWidth: panelWidthLimits.sidebar.default,
 	inspectorWidth: panelWidthLimits.inspector.default,
+	inspectorTabOrder: [],
 	agentUrl: '',
 };
 
@@ -191,6 +194,11 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 			),
 			sidebarWidth: panelWidth(settings.sidebarWidth, 'sidebar'),
 			inspectorWidth: panelWidth(settings.inspectorWidth, 'inspector'),
+			inspectorTabOrder: Array.isArray(settings.inspectorTabOrder)
+				? settings.inspectorTabOrder.filter(
+						(value): value is string => typeof value === 'string',
+					)
+				: [],
 			agentUrl:
 				typeof settings.agentUrl === 'string' ? settings.agentUrl.trim() : '',
 		};

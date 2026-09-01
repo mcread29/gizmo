@@ -170,25 +170,25 @@ describe('WebSocketAgentClient', () => {
 	it('subscribes the active session to project status changes', async () => {
 		const { client, socket } = await createConnectedClient();
 
-		const watching = client.watchProjectStatus('session-1', '/projects/game');
+		const watching = client.watchProjectStatus(
+			'session-1',
+			'/projects/game',
+			'unity',
+		);
 		expect(socket.sent[0]).toMatchObject({
 			type: 'project.watch',
 			sessionId: 'session-1',
 			projectPath: '/projects/game',
+			extensionId: 'unity',
 		});
 		socket.receive({
 			protocolVersion,
 			requestId: 'request-1',
 			type: 'response.success',
 			result: {
+				// Status payloads are opaque extension-owned data in core.
+				engine: 'unity',
 				state: 'connected',
-				ok: true,
-				command: ['unity', 'status'],
-				exitCode: 0,
-				durationMs: 1,
-				instances: [{ projectPath: '/projects/game' }],
-				errors: [],
-				warnings: [],
 			},
 		});
 

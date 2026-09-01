@@ -18,7 +18,13 @@ Two small interfaces, one per side, mirror each other:
   plus optional `systemPrompt`/`createTools` (active wherever the extension is
   enabled), optional `list`/`invoke` (live RPC-style
   operations the web UI can call), and optional `createProjectService`
-  (a running external process with status/watch/open/revert).
+  (a running external process with status/watch/open/revert). Project
+  services are registered by extension id; since protocol v26, status/open
+  requests name both the workspace and the extension, and the server routes
+  each request directly to that extension's service. Status payloads are
+  opaque extension-owned data: core never interprets them, so each
+  extension ships the schema, validation, parsing, and errors for its own
+  payloads (see Unity's `unity-wire.ts` in the gizmo-registry repository).
 - **Client** — `GizmoWebExtension` (`apps/app/src/lib/extensions/types.ts`):
   `id`, plus optional `dialog`/`settings`/`hasProjectStatus`, optional
   `apiVersion`/`activate` (matched against a server-reported descriptor to

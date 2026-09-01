@@ -23,10 +23,14 @@
 	import ProvidersSettings from './ProvidersSettings.svelte';
 	import ExtensionsSettings from './ExtensionsSettings.svelte';
 	import SkillsSettings from './SkillsSettings.svelte';
+	import {
+		discardSkillChanges,
+		type UnsavedChangesGuard,
+	} from './unsaved-changes.svelte';
 
 	interface Props {
 		open?: boolean;
-		dirty?: boolean;
+		guard: UnsavedChangesGuard;
 		page: SettingsPageName;
 		layout: WorkspaceLayout;
 		store: AgentStore;
@@ -37,7 +41,7 @@
 
 	let {
 		open = false,
-		dirty = $bindable(false),
+		guard,
 		page,
 		layout,
 		store,
@@ -50,29 +54,18 @@
 		store.resources?.skills.filter((skill) => skill.enabledGlobally).length,
 	);
 
-	function selectPage(next: SettingsPageName) {
-		if (
-			page === 'skills' &&
-			dirty &&
-			!confirm('Discard the unsaved changes to this skill?')
-		) {
+	/** Leaving the skills page is the only navigation that can lose edits. */
+	function leave(action: () => void) {
+		if (page !== 'skills') {
+			action();
 			return;
 		}
-		dirty = false;
-		onSelectPage(next);
+		guard.guard(discardSkillChanges, action);
 	}
 
-	function openWorkspace() {
-		if (
-			page === 'skills' &&
-			dirty &&
-			!confirm('Discard the unsaved changes to this skill?')
-		) {
-			return;
-		}
-		dirty = false;
-		onOpenWorkspace();
-	}
+	const selectPage = (next: SettingsPageName) =>
+		leave(() => onSelectPage(next));
+	const openWorkspace = () => leave(onOpenWorkspace);
 
 	let groups = $derived([
 		{
@@ -150,7 +143,7 @@
 					{:else if page === 'providers'}
 						<ProvidersSettings {store} />
 					{:else if page === 'skills'}
-						<SkillsSettings {store} bind:dirty />
+						<SkillsSettings {store} {guard} />
 					{:else if page === 'extensions'}
 						<ExtensionsSettings {store} />
 					{:else}

@@ -77,8 +77,8 @@ export class AgentStore extends AgentStoreState {
 	refreshProjectStatus() {
 		return this.#projects.refreshProjectStatus();
 	}
-	openSelectedProject() {
-		return this.#projects.openSelectedProject();
+	openProjectService(extensionId: string) {
+		return this.#projects.openProjectService(extensionId);
 	}
 	newSession(projectPath?: string) {
 		return this.#sessions.newSession(projectPath);
@@ -154,6 +154,9 @@ export class AgentStore extends AgentStoreState {
 	}
 	addProject(projectPath: string) {
 		return this.#projects.addProject(projectPath);
+	}
+	reorderProjects(paths: string[]) {
+		return this.#projects.reorderProjects(paths);
 	}
 	removeProject(projectPath: string) {
 		return this.#projects.removeProject(projectPath);

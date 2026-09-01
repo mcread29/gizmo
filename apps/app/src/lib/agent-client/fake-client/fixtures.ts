@@ -5,7 +5,6 @@ import type {
 	ProviderStatus,
 	SkillResource,
 	StoredProject,
-	ProjectStatus,
 } from '@gizmo/protocol';
 
 export const fakeProviders: ProviderStatus[] = [
@@ -132,7 +131,14 @@ export const fakePrompts: AgentResource[] = [
 	},
 ];
 
-export function fakeStatus(projectPath: string, open: boolean): ProjectStatus {
+/**
+ * A Unity-shaped status payload. Core treats project-service status as
+ * opaque extension-owned data; only the Unity extension interprets this.
+ */
+export function fakeStatus(
+	projectPath: string,
+	open: boolean,
+): Record<string, unknown> {
 	return {
 		state: open ? 'connected' : 'disconnected',
 		ok: true,

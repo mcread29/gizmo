@@ -3,7 +3,6 @@ import {
 	type AgentEvent,
 	type AgentModelOption,
 	type ConversationMessage,
-	type ProjectStatus,
 	type SessionState,
 	type SessionUsage,
 } from '@gizmo/protocol';
@@ -23,7 +22,8 @@ interface SessionSelection {
 	thinkingLevels: string[];
 	enabledExtensionIds: string[];
 	selectedProjectPath?: string;
-	projectStatus?: ProjectStatus;
+	projectStatuses: Record<string, unknown>;
+	projectServiceErrors: Record<string, string>;
 	usage?: SessionUsage;
 }
 
@@ -43,10 +43,11 @@ export class SessionCapability {
 		if (store.connection !== 'connected') return;
 		const workspacePath = projectPath ?? store.selectedProjectPath;
 		if (!workspacePath && !this.allowUnscopedSessions) return;
+		const selectionVersion = ++this.#selectionVersion;
 		const previous = this.#captureSelection();
 		if (workspacePath !== store.selectedProjectPath) {
 			store.selectedProjectPath = workspacePath;
-			store.projectStatus = undefined;
+			store.projectStatuses = {};
 		}
 		store.enabledExtensionIds = (
 			store.projects.find(({ path }) => path === store.selectedProjectPath)
@@ -67,6 +68,8 @@ export class SessionCapability {
 					? { cwd: store.selectedProjectPath }
 					: {}),
 			});
+			// A newer selection already replaced this one; leave its state alone.
+			if (this.#selectionVersion !== selectionVersion) return;
 			store.sessionId = sessionId;
 			store.sessionStates[sessionId] = 'idle';
 			const now = Date.now();
@@ -89,6 +92,7 @@ export class SessionCapability {
 				this.projects.watchSelectedProject(),
 			]);
 		} catch (error) {
+			if (this.#selectionVersion !== selectionVersion) return;
 			this.#restoreSelection(previous);
 			store.error = { kind: 'session', message: errorMessage(error) };
 		}
@@ -269,7 +273,8 @@ export class SessionCapability {
 			thinkingLevels: store.thinkingLevels,
 			enabledExtensionIds: store.enabledExtensionIds,
 			selectedProjectPath: store.selectedProjectPath,
-			projectStatus: store.projectStatus,
+			projectStatuses: store.projectStatuses,
+			projectServiceErrors: store.projectServiceErrors,
 			usage: store.usage,
 		};
 	}

@@ -1,4 +1,9 @@
 <script lang="ts">
+	import DiscardChangesDialog from './lib/features/settings/DiscardChangesDialog.svelte';
+	import {
+		UnsavedChangesGuard,
+		discardSkillChanges,
+	} from './lib/features/settings/unsaved-changes.svelte';
 	import './app.css';
 	import { formatToolResult } from '@gizmo/design/format';
 	import type { AgentIdentity } from '@gizmo/protocol';
@@ -48,7 +53,7 @@
 	let focusComposer = $state<() => void>();
 	let findInThread = $state<() => void>();
 	let focusThreadSearch = $state<() => void>();
-	let settingsDirty = $state(false);
+	const settingsGuard = new UnsavedChangesGuard();
 	let settingsSaveTimer: ReturnType<typeof setTimeout> | undefined;
 	let pendingSettings = layout.settings;
 
@@ -116,14 +121,7 @@
 	onDestroy(flushSettings);
 
 	function closeSettings() {
-		if (
-			settingsDirty &&
-			!confirm('Discard the unsaved changes to this skill?')
-		) {
-			return;
-		}
-		settingsDirty = false;
-		router.close();
+		settingsGuard.guard(discardSkillChanges, () => router.close());
 	}
 
 	function searchThreads() {
@@ -217,9 +215,10 @@
 		{layout}
 		{store}
 		version={agent.version}
-		bind:settingsDirty
+		{settingsGuard}
 		onShowWorkspaceSettings={(path) => showWorkspace(path, 'configure')}
 	/>
 
+	<DiscardChangesDialog guard={settingsGuard} />
 	<Toast queue={toasts} />
 </Tooltip.Provider>

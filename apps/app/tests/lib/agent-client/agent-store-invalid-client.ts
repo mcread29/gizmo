@@ -12,9 +12,8 @@ import {
 	type SessionOptions,
 	type SessionSnapshot,
 	type SessionTree,
+	type StoredProject,
 	type ToolPolicy,
-	type ProjectOpenResult,
-	type ProjectStatus,
 } from '@gizmo/protocol';
 import type {
 	AgentClient,
@@ -162,6 +161,9 @@ export class InvalidEventClient implements AgentClient {
 		return emptyCatalog;
 	}
 	async removeProject() {}
+	async reorderProjects(): Promise<StoredProject[]> {
+		return [];
+	}
 	async listResources(): Promise<ResourceCatalog> {
 		return emptyCatalog;
 	}
@@ -205,13 +207,13 @@ export class InvalidEventClient implements AgentClient {
 	async setProjectToolPolicy(): Promise<ToolPolicy> {
 		return this.getToolPolicy();
 	}
-	async getProjectStatus(): Promise<ProjectStatus> {
+	async getProjectStatus(): Promise<unknown> {
 		throw new Error('No selected project');
 	}
-	async watchProjectStatus(): Promise<ProjectStatus> {
+	async watchProjectStatus(): Promise<unknown> {
 		throw new Error('No selected project');
 	}
-	async openProject(): Promise<ProjectOpenResult> {
+	async openProject(): Promise<unknown> {
 		throw new Error('No selected project');
 	}
 	subscribe(listener: AgentEventListener) {

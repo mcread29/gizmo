@@ -74,6 +74,19 @@
 	let virtualItems = $derived($virtualizer.getVirtualItems());
 	let lastMessageId = $derived(store.messages.at(-1)?.id);
 
+	// The newest message in view while following; anything after it is unread
+	// once the user scrolls up. Streaming appends to the same id, so a growing
+	// reply does not count as new.
+	let seenMessageId = $state<string>();
+	let unreadCount = $derived.by(() => {
+		if (followOutput || !seenMessageId) return 0;
+		const index = store.messages.findIndex(({ id }) => id === seenMessageId);
+		return index < 0 ? 0 : store.messages.length - 1 - index;
+	});
+	$effect(() => {
+		if (followOutput) seenMessageId = lastMessageId;
+	});
+
 	$effect(() => {
 		const count = rows.length;
 		rowKeys = rows.map((row) => row.id);
@@ -125,7 +138,21 @@
 	});
 
 	function jumpToLatest() {
+		// Re-engage following explicitly: a smooth scroll may never "arrive"
+		// at the bottom of a transcript that is still growing.
+		followOutput = true;
 		$virtualizer.scrollToEnd({ behavior: 'smooth' });
+	}
+
+	function jumpToUnread() {
+		const seen = store.messages.findIndex(({ id }) => id === seenMessageId);
+		const first = store.messages[seen + 1];
+		if (!first) return jumpToLatest();
+		const index = rows.findIndex((row) =>
+			row.messages.some(({ id }) => id === first.id),
+		);
+		if (index < 0) return jumpToLatest();
+		$virtualizer.scrollToIndex(index, { align: 'start', behavior: 'smooth' });
 	}
 
 	reveal = async (id: string) => {
@@ -201,8 +228,17 @@
 <!-- Only offered once the user has actually scrolled away from the newest text. -->
 {#if !followOutput && store.messages.length > 0}
 	<div data-ui="jump-to-latest">
-		<Button variant="secondary" size="sm" onclick={jumpToLatest}
-			><ArrowDown size={13} /> Jump to latest</Button
-		>
+		{#if unreadCount > 0}
+			<Button variant="primary" size="sm" onclick={jumpToUnread}
+				><ArrowDown size={13} />
+				{unreadCount === 1
+					? '1 new message'
+					: `${unreadCount} new messages`}</Button
+			>
+		{:else}
+			<Button variant="secondary" size="sm" onclick={jumpToLatest}
+				><ArrowDown size={13} /> Jump to latest</Button
+			>
+		{/if}
 	</div>
 {/if}

@@ -11,6 +11,7 @@
 		Terminal,
 	} from '@lucide/svelte';
 	import { Button } from '../../components';
+	import { toasts } from '../../toasts.svelte';
 	import ToolResult from './ToolResult.svelte';
 	import { formatToolResult, recordValue } from '@gizmo/design/format';
 	import { toolIcon, toolLabel } from './tool-labels';
@@ -80,8 +81,14 @@
 	});
 
 	async function copyResult() {
-		if (!resultText || !navigator.clipboard) return;
-		await navigator.clipboard.writeText(resultText);
+		if (!resultText) return;
+		try {
+			if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+			await navigator.clipboard.writeText(resultText);
+		} catch {
+			toasts.show('Could not copy: clipboard is unavailable here', 'danger');
+			return;
+		}
 		copied = true;
 		window.setTimeout(() => (copied = false), 1_500);
 	}

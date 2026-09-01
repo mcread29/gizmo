@@ -5,7 +5,6 @@ import type {
 	SessionState,
 	SessionUsage,
 	ExtensionDescriptor,
-	ProjectStatus,
 } from '@gizmo/protocol';
 
 export interface AgentEventState {
@@ -21,7 +20,8 @@ export interface AgentEventState {
 	sessionId?: string;
 	selectedProjectPath?: string;
 	projectExtensions: ExtensionDescriptor[];
-	projectStatus?: ProjectStatus;
+	projectStatuses: Record<string, unknown>;
+	projectServiceErrors: Record<string, string>;
 	projectError?: string;
 }
 
@@ -108,8 +108,15 @@ export function applyAgentEvent(
 		}
 		case 'project.status.changed':
 			if (event.projectPath === state.selectedProjectPath) {
-				state.projectStatus = event.status;
-				state.projectError = undefined;
+				state.projectStatuses = {
+					...state.projectStatuses,
+					[event.extensionId]: event.status,
+				};
+				if (event.extensionId in state.projectServiceErrors) {
+					const remainingErrors = { ...state.projectServiceErrors };
+					delete remainingErrors[event.extensionId];
+					state.projectServiceErrors = remainingErrors;
+				}
 			}
 			break;
 		case 'project.extensions.changed':

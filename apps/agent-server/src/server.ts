@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { createAgentWebSocketServer } from './transport/websocket-server';
 import { configuredOrigins } from './server-config';
-import { CompositeProjectService } from '@gizmo/extensions';
+import { ProjectServiceRegistry } from '@gizmo/extensions';
 import { ExtensionHostService } from './extensions/extension-host-service';
 import {
 	loadLinkedExtensionIntegrations,
@@ -39,9 +39,18 @@ const extensions = [
 ];
 registerExtensions(extensions);
 const projects = new ProjectCatalog();
-const projectServiceFactories = extensions
-	.filter((extension) => extension.createProjectService)
-	.map((extension) => extension.createProjectService!);
+
+// One project service per extension id; requests name the extension they
+// belong to and are routed directly to its service.
+const createProjectServices = () =>
+	new ProjectServiceRegistry(
+		extensions
+			.filter((extension) => extension.createProjectService)
+			.map(
+				(extension) =>
+					[extension.id, extension.createProjectService!()] as const,
+			),
+	);
 
 const host = process.env.GIZMO_HOST ?? '127.0.0.1';
 const port = parsePort(process.env.GIZMO_PORT);
@@ -53,14 +62,7 @@ const agentServer = await createAgentWebSocketServer({
 		new ExtensionHostService(extensions, 5_000, async (workspacePath) =>
 			(await projects.integrationsFor(workspacePath)).map(({ id }) => id),
 		),
-	...(projectServiceFactories.length
-		? {
-				createProjectService: () =>
-					new CompositeProjectService(
-						projectServiceFactories.map((create) => create()),
-					),
-			}
-		: {}),
+	createProjectServices,
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),
 });
 

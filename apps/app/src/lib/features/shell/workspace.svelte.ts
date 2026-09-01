@@ -43,6 +43,7 @@ export class WorkspaceLayout {
 	showInspector = $state(true);
 	sidebarWidth = $state(panelWidthLimits.sidebar.default);
 	inspectorWidth = $state(panelWidthLimits.inspector.default);
+	inspectorTabOrder = $state<string[]>([]);
 	agentUrl = $state('');
 
 	viewportWidth = $state(currentViewportWidth());
@@ -93,6 +94,7 @@ export class WorkspaceLayout {
 		this.showInspector = settings.showInspector;
 		this.sidebarWidth = settings.sidebarWidth;
 		this.inspectorWidth = settings.inspectorWidth;
+		this.inspectorTabOrder = [...settings.inspectorTabOrder];
 		this.agentUrl = settings.agentUrl;
 	}
 
@@ -111,6 +113,7 @@ export class WorkspaceLayout {
 			showInspector: this.showInspector,
 			sidebarWidth: this.sidebarWidth,
 			inspectorWidth: this.inspectorWidth,
+			inspectorTabOrder: $state.snapshot(this.inspectorTabOrder),
 			agentUrl: this.agentUrl,
 		};
 	}

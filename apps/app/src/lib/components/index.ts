@@ -1,3 +1,5 @@
+export { applyOrder, dropEdge, reorderByDrop } from '@gizmo/ui';
+export type { DropEdge } from '@gizmo/ui';
 export { default as BrandMark } from './BrandMark.svelte';
 export { default as SwitchField } from './SwitchField.svelte';
 

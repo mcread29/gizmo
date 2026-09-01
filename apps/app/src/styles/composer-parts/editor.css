@@ -1,6 +1,6 @@
 [data-ui='composer-wrap'] {
-	padding: 0 var(--space-6) var(--space-4);
-	background: linear-gradient(transparent, var(--color-surface-raised) 24%);
+	padding: 0 var(--space-6) var(--space-5);
+	background: linear-gradient(transparent, var(--color-surface-raised) 40%);
 }
 
 [data-left-mode='overlay'] [data-ui='composer-wrap'] {
@@ -29,9 +29,9 @@
 	position: relative;
 	width: min(var(--content-max), 100%);
 	margin: 0 auto;
-	padding: 5px;
-	border: 1px solid var(--color-border-strong);
-	border-radius: 13px;
+	padding: 8px 8px 6px;
+	border: 1px solid var(--color-border);
+	border-radius: 14px;
 	background: var(--color-surface-raised);
 	box-shadow: var(--shadow-panel);
 }
@@ -58,7 +58,7 @@
 [data-ui='attachment-list'] {
 	display: flex;
 	gap: var(--space-2);
-	padding: 7px 7px 0;
+	padding: 4px 4px 6px;
 	overflow-x: auto;
 }
 
@@ -125,11 +125,21 @@
 	color: var(--color-text);
 }
 
+[data-ui='composer-notice'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 6px 12px 0;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
 [data-ui='composer'] textarea {
 	width: 100%;
-	min-height: 55px;
-	max-height: min(240px, 40vh);
-	padding: 12px;
+	min-height: 64px;
+	max-height: min(280px, 40vh);
+	padding: 8px 8px 6px;
 	overflow-x: hidden;
 	overflow-y: hidden;
 	resize: none;
@@ -221,11 +231,22 @@
 [data-ui='composer-toolbar'] {
 	display: flex;
 	align-items: center;
-	gap: var(--space-2);
+	gap: var(--space-1);
+	padding: 2px 2px 0;
+}
+
+/* Model, usage and compaction sit left; send actions stay pinned right. */
+[data-ui='composer-send'] {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: var(--space-1);
+	margin-left: auto;
 }
 
 [data-ui='composer-model-controls'] {
 	display: flex;
+	flex: 0 1 auto;
 	min-width: 0;
 	align-items: center;
 	gap: 5px;

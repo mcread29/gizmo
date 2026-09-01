@@ -1,4 +1,4 @@
-import type { ProjectService } from '@gizmo/extensions';
+import type { ProjectServiceRegistry } from '@gizmo/extensions';
 import type { AgentRequest } from '@gizmo/protocol';
 import type { ExtensionHostService } from '../extensions/extension-host-service';
 import type { PiAgentService } from '../sessions/pi-agent-service';
@@ -17,7 +17,7 @@ export interface RouteResult {
 
 export interface RequestServices {
 	agent: PiAgentService;
-	projects: ProjectService;
+	projectServices: ProjectServiceRegistry;
 	extensions: ExtensionHostService;
 	watchCoordinator: ProjectWatchCoordinator;
 }
@@ -80,6 +80,7 @@ export async function routeRequest(
 		case 'project.gizmo-extension.set':
 		case 'project.pi-extension.set':
 		case 'project.remove':
+		case 'project.reorder':
 		case 'project.status':
 		case 'project.watch':
 		case 'project.open':

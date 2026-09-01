@@ -15,3 +15,5 @@ export { ToastQueue, toasts } from './toasts.svelte';
 export type { ToastMessage, ToastTone } from './toasts.svelte';
 export { sourceHref } from './source-href';
 export { diffStat, parseDiff } from './diff';
+export { applyOrder, dropEdge, reorderByDrop } from './reorder';
+export type { DropEdge } from './reorder';

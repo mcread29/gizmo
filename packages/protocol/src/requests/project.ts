@@ -1,5 +1,5 @@
 import { Type } from 'typebox';
-import { envelope } from '../envelopes';
+import { envelope, v25Envelope } from '../envelopes';
 
 export const projectRequestSchemas = [
 	Type.Object(
@@ -75,6 +75,25 @@ export const projectRequestSchemas = [
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('project.reorder'),
+			/** Every registered path, in the order the sidebar should show them. */
+			paths: Type.Array(Type.String({ minLength: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.status'),
+			projectPath: Type.String({ minLength: 1 }),
+			extensionId: Type.String({ minLength: 1, maxLength: 128 }),
+		},
+		{ additionalProperties: false },
+	),
+	/** v25 compatibility: no extensionId, first-available service routing. */
+	Type.Object(
+		{
+			...v25Envelope,
 			type: Type.Literal('project.status'),
 			projectPath: Type.String({ minLength: 1 }),
 		},
@@ -86,12 +105,33 @@ export const projectRequestSchemas = [
 			type: Type.Literal('project.watch'),
 			sessionId: Type.String({ minLength: 1 }),
 			projectPath: Type.String({ minLength: 1 }),
+			extensionId: Type.String({ minLength: 1, maxLength: 128 }),
+		},
+		{ additionalProperties: false },
+	),
+	/** v25 compatibility: no extensionId, first-available service routing. */
+	Type.Object(
+		{
+			...v25Envelope,
+			type: Type.Literal('project.watch'),
+			sessionId: Type.String({ minLength: 1 }),
+			projectPath: Type.String({ minLength: 1 }),
 		},
 		{ additionalProperties: false },
 	),
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('project.open'),
+			projectPath: Type.String({ minLength: 1 }),
+			extensionId: Type.String({ minLength: 1, maxLength: 128 }),
+		},
+		{ additionalProperties: false },
+	),
+	/** v25 compatibility: no extensionId, first-available service routing. */
+	Type.Object(
+		{
+			...v25Envelope,
 			type: Type.Literal('project.open'),
 			projectPath: Type.String({ minLength: 1 }),
 		},

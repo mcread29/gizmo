@@ -34,7 +34,11 @@
 </script>
 
 <div data-ui="composer-toolbar">
-	<Tooltip text="Attach files or images">
+	<Tooltip
+		text={attachmentCount >= maxAttachmentCount
+			? `Attachment limit reached (${maxAttachmentCount})`
+			: 'Attach files or images'}
+	>
 		{#snippet children(props)}
 			<Button
 				{...props}
@@ -74,58 +78,58 @@
 			</Button>
 		{/snippet}
 	</Tooltip>
-	<span data-ui="composer-hint">
+	<div data-ui="composer-send">
 		{#if streaming}
-			Steering
-		{:else if sendOnEnter}
-			<kbd>Enter</kbd> send · <kbd>Shift Enter</kbd> newline
+			<Tooltip text="Stop the response and keep what has been written">
+				{#snippet children(props)}
+					<Button
+						{...props}
+						type="button"
+						variant="danger"
+						size="icon"
+						aria-label="Stop response"
+						onclick={() => store.abort()}
+					>
+						<Square size={14} />
+					</Button>
+				{/snippet}
+			</Tooltip>
+			<Tooltip text="Add direction without interrupting the run">
+				{#snippet children(props)}
+					<Button
+						{...props}
+						type="submit"
+						variant="primary"
+						size="icon"
+						aria-label="Steer response"
+						disabled={!canSend}
+					>
+						<CornerDownLeft size={16} />
+					</Button>
+				{/snippet}
+			</Tooltip>
 		{:else}
-			<kbd>⌘/Ctrl Enter</kbd> send · <kbd>Enter</kbd> newline
+			<Tooltip
+				text={sendOnEnter
+					? 'Send · Enter (Shift+Enter for a new line)'
+					: `Send · ${shortcutHint('↵')}`}
+			>
+				{#snippet children(props)}
+					<Button
+						{...props}
+						type="submit"
+						variant="primary"
+						size="icon"
+						aria-label="Send message"
+						aria-keyshortcuts={sendOnEnter
+							? 'Enter'
+							: 'Control+Enter Meta+Enter'}
+						disabled={!canSend}
+					>
+						<Send size={16} />
+					</Button>
+				{/snippet}
+			</Tooltip>
 		{/if}
-	</span>
-	{#if streaming}
-		<Tooltip text="Stop the response and keep what has been written">
-			{#snippet children(props)}
-				<Button
-					{...props}
-					type="button"
-					variant="danger"
-					size="icon"
-					aria-label="Stop response"
-					onclick={() => store.abort()}
-				>
-					<Square size={14} />
-				</Button>
-			{/snippet}
-		</Tooltip>
-		<Tooltip text="Add direction without interrupting the run">
-			{#snippet children(props)}
-				<Button
-					{...props}
-					type="submit"
-					variant="primary"
-					size="icon"
-					aria-label="Steer response"
-					disabled={!canSend}
-				>
-					<CornerDownLeft size={16} />
-				</Button>
-			{/snippet}
-		</Tooltip>
-	{:else}
-		<Tooltip text={`Send message · ${shortcutHint('↵')}`}>
-			{#snippet children(props)}
-				<Button
-					{...props}
-					type="submit"
-					variant="primary"
-					size="icon"
-					aria-label="Send message"
-					disabled={!canSend}
-				>
-					<Send size={16} />
-				</Button>
-			{/snippet}
-		</Tooltip>
-	{/if}
+	</div>
 </div>

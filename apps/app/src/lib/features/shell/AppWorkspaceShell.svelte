@@ -161,7 +161,12 @@
 			/>
 		{/if}
 
-		<WorkspaceInspector {store} hidden={!layout.rightVisible} />
+		<WorkspaceInspector
+			{store}
+			hidden={!layout.rightVisible}
+			tabOrder={layout.inspectorTabOrder}
+			onReorderTabs={(ids) => (layout.inspectorTabOrder = ids)}
+		/>
 		{#if layout.rightVisible && layout.rightMode === 'docked'}
 			<PanelResizeHandle
 				side="right"

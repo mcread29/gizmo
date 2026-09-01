@@ -1,32 +1,6 @@
 import { Type, type Static } from 'typebox';
 import { workspaceProfileExtensionSchema } from './sessions';
 
-const projectServiceMessageSchema = Type.Object(
-	{
-		code: Type.String(),
-		message: Type.String(),
-		file: Type.Optional(Type.String()),
-		line: Type.Optional(Type.Integer({ minimum: 1 })),
-		column: Type.Optional(Type.Integer({ minimum: 1 })),
-	},
-	{ additionalProperties: false },
-);
-
-export const unityProjectSchema = Type.Object(
-	{
-		title: Type.String({ minLength: 1 }),
-		path: Type.String({ minLength: 1 }),
-		version: Type.Optional(Type.String()),
-		lastModified: Type.Optional(Type.Integer({ minimum: 0 })),
-		isFavorite: Type.Boolean(),
-		buildTarget: Type.Optional(Type.String()),
-		renderPipeline: Type.Optional(Type.String()),
-	},
-	{ additionalProperties: false },
-);
-
-export type UnityProject = Static<typeof unityProjectSchema>;
-
 export const projectSkillSchema = Type.Object(
 	{
 		id: Type.String({ minLength: 1, maxLength: 200 }),
@@ -122,57 +96,3 @@ export const workspaceDirectoryListingSchema = Type.Object(
 export type WorkspaceDirectoryListing = Static<
 	typeof workspaceDirectoryListingSchema
 >;
-
-export const projectStatusSchema = Type.Object(
-	{
-		state: Type.Union([
-			Type.Literal('connected'),
-			Type.Literal('disconnected'),
-			Type.Literal('unavailable'),
-			Type.Literal('error'),
-		]),
-		ok: Type.Boolean(),
-		command: Type.Array(Type.String()),
-		exitCode: Type.Union([Type.Integer(), Type.Null()]),
-		durationMs: Type.Integer({ minimum: 0 }),
-		instances: Type.Array(Type.Record(Type.String(), Type.Unknown())),
-		errors: Type.Array(projectServiceMessageSchema),
-		warnings: Type.Array(projectServiceMessageSchema),
-		stderr: Type.Optional(Type.String()),
-	},
-	{ additionalProperties: false },
-);
-
-export type ProjectStatus = Static<typeof projectStatusSchema>;
-
-/** @deprecated Unity owns interpretation; use projectStatusSchema in host code. */
-export const unityStatusSchema = projectStatusSchema;
-/** @deprecated Unity owns interpretation; use ProjectStatus in host code. */
-export type UnityStatus = ProjectStatus;
-
-export const projectOpenResultSchema = Type.Object(
-	{
-		state: Type.Union([
-			Type.Literal('opened'),
-			Type.Literal('already_open'),
-			Type.Literal('error'),
-		]),
-		ok: Type.Boolean(),
-		command: Type.Array(Type.String()),
-		exitCode: Type.Union([Type.Integer(), Type.Null()]),
-		durationMs: Type.Integer({ minimum: 0 }),
-		data: Type.Unknown(),
-		errors: Type.Array(projectServiceMessageSchema),
-		warnings: Type.Array(projectServiceMessageSchema),
-		stderr: Type.Optional(Type.String()),
-		status: Type.Optional(projectStatusSchema),
-	},
-	{ additionalProperties: false },
-);
-
-export type ProjectOpenResult = Static<typeof projectOpenResultSchema>;
-
-/** @deprecated Use projectOpenResultSchema. */
-export const unityOpenProjectResultSchema = projectOpenResultSchema;
-/** @deprecated Use ProjectOpenResult. */
-export type UnityOpenProjectResult = ProjectOpenResult;

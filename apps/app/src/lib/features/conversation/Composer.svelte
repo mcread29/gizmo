@@ -61,6 +61,14 @@
 	});
 	let commandMenuOpen = $derived(matchingCommands.length > 0);
 	let streaming = $derived(store.sessionState === 'streaming');
+	/** Why sending is unavailable, shown above the input instead of a silent grey-out. */
+	let notice = $derived(
+		store.compacting
+			? 'Compacting context. Sending resumes when it finishes.'
+			: store.connection !== 'connected'
+				? 'Not connected to Gizmo. Reconnect to send messages.'
+				: undefined,
+	);
 	let canSend = $derived(
 		Boolean(draft.trim() || attachments.length) &&
 			!store.compacting &&
@@ -134,6 +142,12 @@
 		await (streaming
 			? store.steer(text, sentAttachments)
 			: store.prompt(text, sentAttachments));
+		// A rejected send hands the text back rather than making the user retype it.
+		if (store.error?.kind === 'prompt' && !drafts.get(store.sessionId)) {
+			drafts.set(store.sessionId, text);
+			attachmentsBySession[attachmentKey] = sentAttachments;
+			void tick().then(() => resizeComposer(element));
+		}
 	}
 
 	async function addFiles(files: Iterable<File>) {
@@ -239,6 +253,9 @@
 		/>
 	{/if}
 	<ComposerAttachments {attachments} onRemove={removeAttachment} />
+	{#if notice}
+		<p data-ui="composer-notice" role="status">{notice}</p>
+	{/if}
 	<label for="prompt" data-ui="sr-only">Message Gizmo</label>
 	<textarea
 		id="prompt"

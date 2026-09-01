@@ -24,8 +24,6 @@ import type {
 	Extensions,
 	ExtensionUiResponse,
 	WebExtensionBundles,
-	ProjectOpenResult,
-	ProjectStatus,
 } from '@gizmo/protocol';
 
 export type AgentEventListener = (event: unknown) => void;
@@ -117,6 +115,8 @@ export interface AgentClient {
 		enabled: boolean | null,
 	): Promise<ProjectConfig>;
 	removeProject(projectPath: string): Promise<void>;
+	/** Persists the sidebar order; resolves with the catalog in that order. */
+	reorderProjects(paths: string[]): Promise<StoredProject[]>;
 	listResources(workspacePath?: string): Promise<ResourceCatalog>;
 	setGlobalSkill(
 		skillId: string,
@@ -159,12 +159,13 @@ export interface AgentClient {
 		workspacePath: string,
 		tools: string[] | null,
 	): Promise<ToolPolicy>;
-	getProjectStatus(projectPath: string): Promise<ProjectStatus>;
+	getProjectStatus(projectPath: string, extensionId: string): Promise<unknown>;
 	watchProjectStatus(
 		sessionId: string,
 		projectPath: string,
-	): Promise<ProjectStatus>;
-	openProject(projectPath: string): Promise<ProjectOpenResult>;
+		extensionId: string,
+	): Promise<unknown>;
+	openProject(projectPath: string, extensionId: string): Promise<unknown>;
 	listProjectExtensions(projectPath: string): Promise<Extensions>;
 	/** Standalone web-extension bundles to load at runtime, if the client supports them. */
 	listWebExtensionBundles?(): Promise<WebExtensionBundles>;

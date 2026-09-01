@@ -2,9 +2,7 @@ import {
 	parseExtensions,
 	parseProjectConfig,
 	parseProjectDomains,
-	parseProjectStatus,
 	parseStoredProjects,
-	parseProjectOpenResult,
 	parseWebExtensionBundles,
 	parseWorkspaceDirectoryListing,
 } from '@gizmo/protocol';
@@ -82,29 +80,42 @@ export class ProjectRequests extends SessionRequests {
 		await this.request({ type: 'project.remove', projectPath });
 	}
 
-	async getProjectStatus(projectPath: string) {
+	async reorderProjects(paths: string[]) {
+		const response = await this.request({ type: 'project.reorder', paths });
+		return parseStoredProjects(response.result);
+	}
+
+	async getProjectStatus(projectPath: string, extensionId: string) {
 		const response = await this.request({
 			type: 'project.status',
 			projectPath,
+			extensionId,
 		});
-		return parseProjectStatus(response.result);
+		// Opaque extension-owned payload; the owning extension validates it.
+		return response.result;
 	}
 
-	async watchProjectStatus(sessionId: string, projectPath: string) {
+	async watchProjectStatus(
+		sessionId: string,
+		projectPath: string,
+		extensionId: string,
+	) {
 		const response = await this.request({
 			type: 'project.watch',
 			sessionId,
 			projectPath,
+			extensionId,
 		});
-		return parseProjectStatus(response.result);
+		return response.result;
 	}
 
-	async openProject(projectPath: string) {
+	async openProject(projectPath: string, extensionId: string) {
 		const response = await this.request({
 			type: 'project.open',
 			projectPath,
+			extensionId,
 		});
-		return parseProjectOpenResult(response.result);
+		return response.result;
 	}
 
 	async listProjectExtensions(projectPath: string) {

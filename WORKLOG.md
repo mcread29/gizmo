@@ -1,5 +1,44 @@
 # Work log
 
+## 2026-09-01 — Protocol v26: one project service per extension, no first-service routing
+
+- Project services were still a singular path: core held exactly one
+  `ProjectService` behind a `CompositeProjectService` whose `#first()` tried
+  every registered extension in order until one answered. That made Unity
+  the de facto owner of `project.status`/`project.open` and made a second
+  process-running extension structurally impossible — its requests would
+  have been routed to whichever service came first and happened to succeed.
+- v26 replaces the composite with a `ProjectServiceRegistry` keyed by
+  extension id. `project.status`, `project.open`, and `project.watch`
+  requests now carry `extensionId` alongside `projectPath`, and the server
+  routes each request directly to that extension's service — no fallback
+  order, no first-service winner. Status payloads are opaque
+  extension-owned data in core (`Type.Unknown()` on the wire, `unknown` in
+  `ProjectService`): the Unity-shaped status/open schemas, their parsers,
+  and error interpretation moved out of `@gizmo/protocol` into the Unity
+  extension (`packages/unity/src/web/unity-wire.ts` in gizmo-registry),
+  which validates its own payloads and reports failures against its own id.
+- The app stores status/loading/open/error state per extension
+  (`projectStatuses`, `statusLoading`, `projectOpening`,
+  `projectServiceErrors` records keyed by extension id) and one extension's
+  failing watch no longer hides another's status. Opening a project is no
+  longer a shell operation: the app exposes `openProjectService(extensionId)`
+  (loading flag + raw result) and the Unity web extension owns validation
+  and error reporting through its own schema.
+- Compatibility: the server still accepts v25-shaped `project.status` /
+  `project.open` / `project.watch` (no `extensionId`) for one migration
+  window. That routing — every service in registration order, first success
+  wins, the removed composite's exact semantics — is isolated in one
+  clearly-marked `v25FirstService` helper, which also serves `file.revert`
+  (reverting an agent-recorded edit has no extension identity on the wire
+  yet). Responses and events are always emitted in v26 shape;
+  `session.created.domains` remains the v25 wire field for enabled extension
+  ids. No request emits parallel legacy + new fields.
+- Tests: the agent-server routing suite proves two project services coexist
+  (each request reaches only the service it names, unknown ids fail loudly,
+  `status.changed` events carry the producing extension id, v25 requests
+  still route first-available).
+
 ## 2026-08-29 — Switching to a streaming thread converges instead of losing the stream
 
 - Switching threads while the agent was still responding was a lottery. Three

@@ -118,8 +118,9 @@ export class ExtensionHostService {
 				for (const listener of state.listeners) listener(extensions);
 			}
 			state.fingerprint = next;
-		} catch {
+		} catch (error) {
 			// Providers are retried on the next observation.
+			console.error(`Extension poll failed for ${workspacePath}:`, error);
 		}
 		const current = this.#watches.get(workspacePath);
 		if (!current) return;

@@ -94,19 +94,33 @@ export class FakeProjectCapability {
 		if (index >= 0) this.state.projects.splice(index, 1);
 	}
 
-	async status(projectPath: string) {
+	async reorder(paths: string[]) {
+		const rank = new Map(paths.map((path, index) => [path, index]));
+		this.state.projects.sort(
+			(left, right) =>
+				(rank.get(left.path) ?? Number.POSITIVE_INFINITY) -
+				(rank.get(right.path) ?? Number.POSITIVE_INFINITY),
+		);
+		return [...this.state.projects];
+	}
+
+	async status(projectPath: string, extensionId: string) {
 		this.state.assertProject(projectPath);
 		return fakeStatus(projectPath, this.state.editorOpen);
 	}
 
-	async watchStatus(sessionId: string, projectPath: string) {
+	async watchStatus(
+		sessionId: string,
+		projectPath: string,
+		extensionId: string,
+	) {
 		this.state.getSession(sessionId);
 		this.state.assertProject(projectPath);
 		this.state.watchedProject = { sessionId, projectPath };
 		return fakeStatus(projectPath, this.state.editorOpen);
 	}
 
-	async open(projectPath: string) {
+	async open(projectPath: string, extensionId: string) {
 		this.state.assertProject(projectPath);
 		const alreadyOpen = this.state.editorOpen;
 		this.state.editorOpen = true;
@@ -115,6 +129,7 @@ export class FakeProjectCapability {
 				type: 'project.status.changed',
 				sessionId: this.state.watchedProject.sessionId,
 				projectPath,
+				extensionId,
 				status: fakeStatus(projectPath, true),
 			});
 		}

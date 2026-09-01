@@ -98,6 +98,31 @@ export class ProjectCatalog {
 		});
 	}
 
+	/**
+	 * Applies a sidebar ordering. Paths the catalog does not know are ignored
+	 * and registered projects missing from `paths` keep their relative order
+	 * after the listed ones, so a stale client never drops a workspace.
+	 */
+	async reorder(paths: string[]): Promise<StoredProject[]> {
+		const wanted = paths.map((path) => resolve(path));
+		return this.#catalogMutex.run(async () => {
+			const projects = await this.#catalog.read();
+			const byPath = new Map(
+				projects.map((project) => [project.path, project]),
+			);
+			const ordered = wanted
+				.map((path) => byPath.get(path))
+				.filter((project): project is CatalogProject => Boolean(project));
+			const listed = new Set(ordered.map(({ path }) => path));
+			const next = [
+				...ordered,
+				...projects.filter(({ path }) => !listed.has(path)),
+			];
+			await this.#catalog.write(next);
+			return Promise.all(next.map((project) => this.#storedProject(project)));
+		});
+	}
+
 	/** Overrides of the global skill enablement for this workspace. */
 	async skillsFor(projectPath: string | undefined): Promise<ProjectSkill[]> {
 		if (!projectPath) return [];

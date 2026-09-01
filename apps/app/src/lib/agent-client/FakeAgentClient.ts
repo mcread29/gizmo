@@ -117,6 +117,8 @@ export class FakeAgentClient implements AgentClient {
 	) => this.#projects.setPiExtension(projectPath, extensionId, enabled);
 	removeProject: AgentClient['removeProject'] = (projectPath) =>
 		this.#projects.remove(projectPath);
+	reorderProjects: AgentClient['reorderProjects'] = (paths) =>
+		this.#projects.reorder(paths);
 	listResources: AgentClient['listResources'] = (workspacePath) =>
 		this.#resources.list(workspacePath);
 	setGlobalSkill: AgentClient['setGlobalSkill'] = (
@@ -166,14 +168,17 @@ export class FakeAgentClient implements AgentClient {
 		workspacePath,
 		tools,
 	) => this.#tools.setProject(workspacePath, tools);
-	getProjectStatus: AgentClient['getProjectStatus'] = (projectPath) =>
-		this.#projects.status(projectPath);
+	getProjectStatus: AgentClient['getProjectStatus'] = (
+		projectPath,
+		extensionId,
+	) => this.#projects.status(projectPath, extensionId);
 	watchProjectStatus: AgentClient['watchProjectStatus'] = (
 		sessionId,
 		projectPath,
-	) => this.#projects.watchStatus(sessionId, projectPath);
-	openProject: AgentClient['openProject'] = (projectPath) =>
-		this.#projects.open(projectPath);
+		extensionId,
+	) => this.#projects.watchStatus(sessionId, projectPath, extensionId);
+	openProject: AgentClient['openProject'] = (projectPath, extensionId) =>
+		this.#projects.open(projectPath, extensionId);
 	listProjectExtensions: AgentClient['listProjectExtensions'] = () =>
 		this.#extensions.listProjectExtensions();
 	invokeProjectExtension: AgentClient['invokeProjectExtension'] = (

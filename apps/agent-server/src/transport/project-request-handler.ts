@@ -1,4 +1,4 @@
-import type { ProjectService } from '@gizmo/extensions';
+import type { ProjectService, ProjectServiceRegistry } from '@gizmo/extensions';
 import type { AgentRequest } from '@gizmo/protocol';
 import type { ExtensionHostService } from '../extensions/extension-host-service';
 import { registeredExtensions } from '../extensions/registry';
@@ -20,6 +20,7 @@ type ProjectRequestType =
 	| 'project.gizmo-extension.set'
 	| 'project.pi-extension.set'
 	| 'project.remove'
+	| 'project.reorder'
 	| 'project.status'
 	| 'project.watch'
 	| 'project.open'
@@ -33,7 +34,7 @@ type ProjectRequest = Extract<AgentRequest, { type: ProjectRequestType }>;
 
 export interface ProjectRequestServices {
 	agent: PiAgentService;
-	projects: ProjectService;
+	projectServices: ProjectServiceRegistry;
 	extensions: ExtensionHostService;
 	watchCoordinator: ProjectWatchCoordinator;
 }
@@ -42,7 +43,7 @@ export async function handleProjectRequest(
 	services: ProjectRequestServices,
 	request: ProjectRequest,
 ): Promise<RouteResult> {
-	const { agent, projects, extensions, watchCoordinator } = services;
+	const { agent, projectServices, extensions, watchCoordinator } = services;
 
 	switch (request.type) {
 		case 'project.list':
@@ -76,17 +77,52 @@ export async function handleProjectRequest(
 		case 'project.remove':
 			await agent.removeProject(request.projectPath);
 			return {};
+		case 'project.reorder':
+			return { result: await agent.reorderProjects(request.paths) };
 		case 'project.status':
-			return { result: await projects.getStatus(request.projectPath) };
-		case 'project.watch':
+			if ('extensionId' in request) {
+				return {
+					result: await projectServices
+						.requireService(request.extensionId)
+						.getStatus(request.projectPath),
+				};
+			}
+			// v25 compatibility: the request names no extension.
 			return {
-				result: await watchCoordinator.watch(
-					request.sessionId,
-					request.projectPath,
+				result: await v25FirstService(projectServices, (service) =>
+					service.getStatus(request.projectPath),
+				),
+			};
+		case 'project.watch':
+			if ('extensionId' in request) {
+				return {
+					result: await watchCoordinator.watch(
+						request.sessionId,
+						request.projectPath,
+						request.extensionId,
+					),
+				};
+			}
+			// v25 compatibility: watch the first service that answers.
+			return {
+				result: await v25FirstService(projectServices, (service, id) =>
+					watchCoordinator.watch(request.sessionId, request.projectPath, id),
 				),
 			};
 		case 'project.open':
-			return { result: await projects.openProject(request.projectPath) };
+			if ('extensionId' in request) {
+				return {
+					result: await projectServices
+						.requireService(request.extensionId)
+						.openProject(request.projectPath),
+				};
+			}
+			// v25 compatibility: the request names no extension.
+			return {
+				result: await v25FirstService(projectServices, (service) =>
+					service.openProject(request.projectPath),
+				),
+			};
 		case 'project.extensions':
 			return {
 				result: {
@@ -128,11 +164,37 @@ export async function handleProjectRequest(
 			};
 		}
 		case 'file.revert':
-			await projects.revertFile(
-				request.projectPath,
-				request.file,
-				request.patch,
+			// v25 compatibility: reverting an agent-recorded edit has no
+			// extension identity on the wire yet, so the edit is undone by the
+			// first registered project service that handles it. A future
+			// protocol version must give edits an owning extension id.
+			await v25FirstService(projectServices, (service) =>
+				service.revertFile(request.projectPath, request.file, request.patch),
 			);
 			return { result: { file: request.file, reverted: true } };
 	}
+}
+
+/**
+ * v25 compatibility routing: v25 project requests could not name an
+ * extension, so each operation is offered to every registered project
+ * service in registration order and the first success wins — the exact
+ * behavior of the removed `CompositeProjectService`. Only v25-shaped
+ * requests (`project.status`/`project.open`/`project.watch` without an
+ * extensionId, and `file.revert`) reach this path; remove it when v25
+ * project requests are no longer accepted.
+ */
+async function v25FirstService<T>(
+	projectServices: ProjectServiceRegistry,
+	call: (service: ProjectService, extensionId: string) => Promise<T>,
+): Promise<T> {
+	let lastError: unknown;
+	for (const [extensionId, service] of projectServices.entries) {
+		try {
+			return await call(service, extensionId);
+		} catch (error) {
+			lastError = error;
+		}
+	}
+	throw lastError ?? new Error('No project service is configured');
 }
