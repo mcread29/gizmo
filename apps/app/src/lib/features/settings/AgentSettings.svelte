@@ -61,7 +61,11 @@
 	}
 </script>
 
-<SettingsPage title="Agent" scope="Applies to every workspace on this machine">
+<SettingsPage
+	title="Agent resources"
+	scope="Applies to every workspace on this machine"
+	hideHeader
+>
 	{#snippet actions()}
 		<Button
 			variant="secondary"

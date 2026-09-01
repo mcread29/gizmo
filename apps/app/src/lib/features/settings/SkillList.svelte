@@ -119,7 +119,6 @@
 					<button
 						data-ui="skill-row-main"
 						data-interactive="true"
-						disabled={!skill.editable}
 						aria-current={selectedId === skill.id ? 'true' : undefined}
 						onclick={() => onSelect(skill)}
 					>

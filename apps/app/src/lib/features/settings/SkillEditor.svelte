@@ -10,12 +10,14 @@
 		store,
 		onSaved,
 		onBack,
+		readOnly = false,
 		dirty = $bindable(false),
 	}: {
 		skill: SkillResource;
 		store: AgentStore;
 		onSaved?: () => void;
 		onBack?: () => void;
+		readOnly?: boolean;
 		dirty?: boolean;
 	} = $props();
 
@@ -24,7 +26,6 @@
 	let loading = $state(false);
 	let saving = $state(false);
 	let error = $state<string>();
-	let lineCount = $derived(content ? content.split(/\r?\n/).length : 0);
 
 	onMount(async () => {
 		loading = true;
@@ -55,7 +56,10 @@
 	}
 </script>
 
-<section data-ui="skill-editor" aria-label={`Edit ${skill.name}`}>
+<section
+	data-ui="skill-editor"
+	aria-label={`${readOnly ? 'View' : 'Edit'} ${skill.name}`}
+>
 	<header data-ui="skill-editor-header">
 		{#if onBack}
 			<Button
@@ -70,30 +74,34 @@
 			<div>
 				<h3>{skill.name}</h3>
 				<em data-ui="resource-scope">{skill.scope}</em>
+				{#if readOnly}<span data-ui="skill-editor-readonly">Read only</span
+					>{/if}
 				{#if dirty}<span data-ui="skill-editor-dirty" aria-live="polite"
 						>Unsaved</span
 					>{/if}
 			</div>
 			<p title={skill.path}>{skill.path}</p>
 		</div>
-		<div data-ui="skill-editor-actions">
-			<Button
-				variant="secondary"
-				size="sm"
-				disabled={loading || saving || !dirty}
-				onclick={() => {
-					content = savedContent;
-					dirty = false;
-				}}>Revert</Button
-			>
-			<Button
-				size="sm"
-				disabled={loading || saving || !dirty || !content.trim()}
-				onclick={() => void save()}
-			>
-				{saving ? 'Saving…' : 'Save skill'}
-			</Button>
-		</div>
+		{#if !readOnly}
+			<div data-ui="skill-editor-actions">
+				<Button
+					variant="secondary"
+					size="sm"
+					disabled={loading || saving || !dirty}
+					onclick={() => {
+						content = savedContent;
+						dirty = false;
+					}}>Revert</Button
+				>
+				<Button
+					size="sm"
+					disabled={loading || saving || !dirty || !content.trim()}
+					onclick={() => void save()}
+				>
+					{saving ? 'Saving…' : 'Save skill'}
+				</Button>
+			</div>
+		{/if}
 	</header>
 
 	{#if loading}
@@ -107,12 +115,11 @@
 			}}
 			aria-label="Skill Markdown"
 			spellcheck="false"
+			readonly={readOnly}
 			disabled={saving}></textarea>
 	{/if}
 
-	<footer data-ui="skill-editor-footer">
-		<span>Markdown</span>
-		<span>{lineCount} lines</span>
-		{#if error}<strong role="alert">{error}</strong>{/if}
-	</footer>
+	{#if error}
+		<strong data-ui="skill-editor-error" role="alert">{error}</strong>
+	{/if}
 </section>

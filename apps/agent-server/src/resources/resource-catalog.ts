@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
 import type {
@@ -215,6 +215,17 @@ export async function discoverResources(
 			.filter((extension) => extension.enabled)
 			.map((extension) => extension.path),
 	);
+	const allSkillDirs = [
+		...skillDirs,
+		...fromExtensions.skills,
+		...fromLinkedExtensions.skills,
+	];
+	const canonicalSkillDirs = await Promise.all(
+		allSkillDirs.map(async (source) => ({
+			source,
+			canonical: await realpath(source).catch(() => resolve(source)),
+		})),
+	);
 
 	// Pi parses these, but only from the paths Gizmo hands it: none of its own
 	// discovery locations contribute, so nothing under ~/.pi reaches a session.
@@ -227,11 +238,7 @@ export async function discoverResources(
 		noPromptTemplates: true,
 		noThemes: true,
 		noContextFiles: true,
-		additionalSkillPaths: [
-			...skillDirs,
-			...fromExtensions.skills,
-			...fromLinkedExtensions.skills,
-		],
+		additionalSkillPaths: allSkillDirs,
 		additionalPromptTemplatePaths: [
 			...promptDirs,
 			...fromExtensions.prompts,
@@ -243,18 +250,24 @@ export async function discoverResources(
 	const skills = loader.getSkills();
 	const prompts = loader.getPrompts();
 	return {
-		skills: skills.skills.map((skill) => {
-			const scope = pathScope(skill.filePath, workspacePath);
-			return {
-				id: `${scope}/${skill.name}`,
-				name: skill.name,
-				description: skill.description,
-				scope,
-				path: skill.filePath,
-				source: skill.baseDir,
-				editable: roots.skills.some((root) => isInside(skill.filePath, root)),
-			};
-		}),
+		skills: await Promise.all(
+			skills.skills.map(async (skill) => {
+				const scope = pathScope(skill.filePath, workspacePath);
+				const canonicalPath = await realpath(skill.filePath).catch(() =>
+					resolve(skill.filePath),
+				);
+				return {
+					id: `${scope}/${skill.name}`,
+					name: skill.name,
+					description: skill.description,
+					scope,
+					path: skill.filePath,
+					source:
+						sourceRoot(canonicalPath, canonicalSkillDirs) ?? skill.baseDir,
+					editable: roots.skills.some((root) => isInside(skill.filePath, root)),
+				};
+			}),
+		),
 		agentsFiles: await Promise.all(
 			agentsFiles.map(async (path) => ({
 				id: `agents:${path}`,
@@ -276,6 +289,17 @@ export async function discoverResources(
 			...prompts.diagnostics.map(({ message }) => message),
 		],
 	};
+}
+
+function sourceRoot(
+	path: string,
+	roots: { source: string; canonical: string }[],
+) {
+	return roots
+		.filter((root) => isInside(path, root.canonical))
+		.sort(
+			(a, b) => resolve(b.canonical).length - resolve(a.canonical).length,
+		)[0]?.source;
 }
 
 /** Anything inside the open workspace is project scope; the rest is global. */

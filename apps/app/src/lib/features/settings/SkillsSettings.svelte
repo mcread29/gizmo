@@ -6,6 +6,7 @@
 	import { Button } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import SettingsPage from './SettingsPage.svelte';
+	import SkillDirectoryTree from './SkillDirectoryTree.svelte';
 	import SkillEditor from './SkillEditor.svelte';
 	import SkillList from './SkillList.svelte';
 
@@ -16,6 +17,7 @@
 
 	let query = $state('');
 	let filter = $state<'all' | 'on' | 'off'>('all');
+	let sort = $state<'directory' | 'name' | 'status'>('directory');
 	let selectedId = $state<string>();
 
 	const filters = [
@@ -28,23 +30,77 @@
 
 	let all = $derived(store.resources?.skills ?? []);
 	let matching = $derived(
-		all.filter((skill) => {
-			if (filter === 'on' && !skill.enabledGlobally) return false;
-			if (filter === 'off' && skill.enabledGlobally) return false;
-			const term = query.trim().toLowerCase();
-			return (
-				!term ||
-				skill.name.toLowerCase().includes(term) ||
-				skill.description.toLowerCase().includes(term)
-			);
-		}),
+		all
+			.filter((skill) => {
+				if (filter === 'on' && !skill.enabledGlobally) return false;
+				if (filter === 'off' && skill.enabledGlobally) return false;
+				const term = query.trim().toLowerCase();
+				return (
+					!term ||
+					skill.name.toLowerCase().includes(term) ||
+					skill.description.toLowerCase().includes(term)
+				);
+			})
+			.sort((a, b) => {
+				if (sort === 'status') {
+					return (
+						Number(b.enabledGlobally) - Number(a.enabledGlobally) ||
+						a.name.localeCompare(b.name)
+					);
+				}
+				if (sort === 'directory') {
+					return (
+						collectionRoot(a).localeCompare(collectionRoot(b)) ||
+						a.name.localeCompare(b.name)
+					);
+				}
+				return a.name.localeCompare(b.name);
+			}),
 	);
-	let selected = $derived(
-		all.find((skill) => skill.id === selectedId && skill.editable),
-	);
+	let directoryGroups = $derived.by(() => {
+		const groups: { source: string; skills: SkillResource[] }[] = [];
+		for (const skill of matching) {
+			const source = collectionRoot(skill);
+			const existing = groups.find((group) => group.source === source);
+			if (existing) existing.skills.push(skill);
+			else groups.push({ source, skills: [skill] });
+		}
+		return groups
+			.map(({ source, skills }) => ({
+				source,
+				label: directoryLabel(source),
+				skills,
+			}))
+			.sort((a, b) => a.label.localeCompare(b.label));
+	});
+	let selected = $derived(all.find((skill) => skill.id === selectedId));
 	let enabledCount = $derived(
 		all.filter((skill) => skill.enabledGlobally).length,
 	);
+
+	function collectionRoot(skill: SkillResource) {
+		if (skill.editable) return 'personal-skills';
+		const normalized = skill.path.replaceAll('\\', '/');
+		const parts = normalized.split('/');
+		const extensionIndex = parts.lastIndexOf('extensions');
+		if (
+			extensionIndex >= 0 &&
+			parts[extensionIndex + 1] &&
+			parts[extensionIndex + 2]?.toLowerCase() === 'skills'
+		) {
+			return parts.slice(0, extensionIndex + 3).join('/');
+		}
+		return skill.source.replaceAll('\\', '/');
+	}
+
+	function directoryLabel(source: string) {
+		if (source === 'personal-skills') return 'Personal skills';
+		const parts = source.split('/').filter(Boolean);
+		const leaf = parts.at(-1);
+		return leaf?.toLowerCase() === 'skills'
+			? (parts.at(-2) ?? leaf)
+			: (leaf ?? source);
+	}
 
 	function toggle(skill: SkillResource, enabled: boolean) {
 		void store.setGlobalSkill(skill.id, { enabled });
@@ -66,7 +122,7 @@
 	}
 
 	function select(skill: SkillResource) {
-		if (!skill.editable || skill.id === selectedId) return;
+		if (skill.id === selectedId) return;
 		if (dirty && !confirm('Discard the unsaved changes to this skill?')) return;
 		dirty = false;
 		selectedId = skill.id;
@@ -103,6 +159,7 @@
 <SettingsPage
 	title="Skills"
 	scope="Global Pi skills shared across your workspaces"
+	hideHeader
 >
 	{#snippet actions()}
 		<span data-ui="settings-page-count"
@@ -136,15 +193,25 @@
 						spellcheck="false"
 					/>
 				</div>
-				<div data-ui="segmented" role="group" aria-label="Filter skills">
-					{#each filters as option (option.value)}
-						<button
-							data-ui="segmented-option"
-							data-state={filter === option.value ? 'active' : 'inactive'}
-							aria-pressed={filter === option.value}
-							onclick={() => (filter = option.value)}>{option.label}</button
-						>
-					{/each}
+				<div data-ui="skills-library-controls">
+					<div data-ui="segmented" role="group" aria-label="Filter skills">
+						{#each filters as option (option.value)}
+							<button
+								data-ui="segmented-option"
+								data-state={filter === option.value ? 'active' : 'inactive'}
+								aria-pressed={filter === option.value}
+								onclick={() => (filter = option.value)}>{option.label}</button
+							>
+						{/each}
+					</div>
+					<label data-ui="skill-sort">
+						<span>Sort</span>
+						<select bind:value={sort} aria-label="Sort skills">
+							<option value="directory">Directory</option>
+							<option value="name">Name</option>
+							<option value="status">Status</option>
+						</select>
+					</label>
 				</div>
 			</div>
 
@@ -155,6 +222,36 @@
 					<p data-ui="resource-empty">No skills found on disk.</p>
 				{:else if matching.length === 0}
 					<p data-ui="resource-empty">No skills match this search.</p>
+				{:else if sort === 'directory'}
+					{#each directoryGroups as group (group.source)}
+						<details data-ui="skill-directory" open>
+							<summary title={group.source}>
+								<span>{group.label}</span>
+								<small>{group.skills.length}</small>
+							</summary>
+							{#if group.source === 'personal-skills'}
+								<SkillList
+									skills={group.skills}
+									mode="global"
+									busy={store.resourcesLoading}
+									{selectedId}
+									onSelect={select}
+									onToggle={toggle}
+									onInstall={install}
+								/>
+							{:else}
+								<SkillDirectoryTree
+									skills={group.skills}
+									source={group.source}
+									busy={store.resourcesLoading}
+									{selectedId}
+									onSelect={select}
+									onToggle={toggle}
+									onInstall={install}
+								/>
+							{/if}
+						</details>
+					{/each}
 				{:else}
 					<SkillList
 						skills={matching}
@@ -176,6 +273,7 @@
 						skill={selected}
 						{store}
 						bind:dirty
+						readOnly={!selected.editable}
 						onBack={closeEditor}
 						onSaved={saved}
 					/>
@@ -184,7 +282,7 @@
 				<div data-ui="skill-editor-empty">
 					<FilePenLine size={22} strokeWidth={1.5} />
 					<strong>Select a skill to edit</strong>
-					<span>Choose an editable Markdown skill from the library.</span>
+					<span>Choose a skill to view its Markdown.</span>
 				</div>
 			{/if}
 		</div>

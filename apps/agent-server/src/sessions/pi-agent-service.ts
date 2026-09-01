@@ -145,9 +145,7 @@ export class PiAgentService {
 		const catalog = await this.#resources.list();
 		return readManagedSkill(
 			path,
-			catalog.skills
-				.filter((skill) => skill.editable)
-				.map((skill) => skill.path),
+			catalog.skills.map((skill) => skill.path),
 		);
 	}
 

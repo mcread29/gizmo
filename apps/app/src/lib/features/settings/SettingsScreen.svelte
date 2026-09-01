@@ -116,7 +116,7 @@
 				</button>
 			</div>
 
-			<ScrollPanel>
+			{#snippet settingsContent()}
 				<div data-ui="settings-content" data-page={page}>
 					{#if page === 'agent' || page === 'skills' || page === 'extensions'}
 						<nav data-ui="segmented" aria-label="Agent resources">
@@ -157,7 +157,17 @@
 						<AboutSettings {layout} {version} />
 					{/if}
 				</div>
-			</ScrollPanel>
+			{/snippet}
+
+			{#if page === 'skills'}
+				<div data-ui="settings-fixed-viewport">
+					{@render settingsContent()}
+				</div>
+			{:else}
+				<ScrollPanel>
+					{@render settingsContent()}
+				</ScrollPanel>
+			{/if}
 		</div>
 	</section>
 {/if}

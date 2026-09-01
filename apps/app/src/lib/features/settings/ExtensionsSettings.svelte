@@ -46,6 +46,7 @@
 <SettingsPage
 	title="Extensions"
 	scope="Git registries cloned locally; linking installs an extension into Pi"
+	hideHeader
 >
 	<p data-ui="resource-detail">
 		Extensions live in git registries. Adding a registry clones it to

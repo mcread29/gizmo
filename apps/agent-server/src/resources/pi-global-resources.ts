@@ -93,7 +93,7 @@ export async function setPiExtensionEnabled(id: string, enabled: boolean) {
 }
 
 export async function readManagedSkill(path: string, allowedPaths: string[]) {
-	const safe = await allowedSkillPath(path, allowedPaths);
+	const safe = await allowedReadableSkillPath(path, allowedPaths);
 	const content = await readFile(safe, 'utf8');
 	if (Buffer.byteLength(content, 'utf8') > 1_000_000) {
 		throw new Error('Skill files larger than 1 MB cannot be edited');
@@ -145,19 +145,24 @@ async function discoverExtensionEntries(root: string, enabled: boolean) {
 	return resources;
 }
 
-async function allowedSkillPath(path: string, allowedPaths: string[]) {
+async function allowedReadableSkillPath(path: string, allowedPaths: string[]) {
 	const resolved = resolve(path);
 	if (!allowedPaths.some((candidate) => resolve(candidate) === resolved)) {
-		throw new Error('Skill path is outside the managed catalog');
+		throw new Error('Skill path is outside the catalog');
 	}
 	if (basename(resolved) !== 'SKILL.md' && !resolved.endsWith('.md')) {
-		throw new Error('Only Markdown skill files can be edited');
+		throw new Error('Only Markdown skill files can be read');
 	}
-	if (
-		(await lstat(resolved)).isSymbolicLink() ||
-		resolve(await realpath(resolved)) !== resolved
-	) {
-		throw new Error('Symlinked skill files cannot be edited');
+	if ((await lstat(resolved)).isSymbolicLink()) {
+		throw new Error('Symlinked skill files cannot be read');
+	}
+	return resolved;
+}
+
+async function allowedSkillPath(path: string, allowedPaths: string[]) {
+	const resolved = await allowedReadableSkillPath(path, allowedPaths);
+	if (resolve(await realpath(resolved)) !== resolved) {
+		throw new Error('Skills reached through links cannot be edited');
 	}
 	return resolved;
 }
