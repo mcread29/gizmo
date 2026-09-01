@@ -32,18 +32,26 @@ export async function listPiExtensions(): Promise<PiExtensionResource[]> {
 	return [...enabled, ...disabled].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Paths of globally enabled Pi extensions, minus any ids the project disables. */
-export async function enabledPiExtensionPaths(disabled?: ReadonlySet<string>) {
-	const extensions = (await listPiExtensions()).filter(
-		(extension) => extension.enabled && !disabled?.has(extension.id),
-	);
+/** Pi extensions that can run in Gizmo, excluding extensions marked as TUI-only. */
+export async function listGizmoCompatiblePiExtensions() {
+	return filterGizmoCompatiblePiExtensions(await listPiExtensions());
+}
+
+export async function filterGizmoCompatiblePiExtensions(
+	extensions: readonly PiExtensionResource[],
+) {
 	const compatibility = await Promise.all(
 		extensions.map((extension) =>
 			supportsGizmoRuntime(extension.path, extension.kind),
 		),
 	);
-	return extensions
-		.filter((_, index) => compatibility[index])
+	return extensions.filter((_, index) => compatibility[index]);
+}
+
+/** Paths of globally enabled Pi extensions, minus any ids the project disables. */
+export async function enabledPiExtensionPaths(disabled?: ReadonlySet<string>) {
+	return (await listGizmoCompatiblePiExtensions())
+		.filter((extension) => extension.enabled && !disabled?.has(extension.id))
 		.map((extension) => extension.path);
 }
 

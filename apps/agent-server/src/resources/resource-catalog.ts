@@ -14,7 +14,7 @@ import {
 	linkedExtensionResourceRoots,
 } from './extension-resources';
 import { GlobalResourceStore } from './global-resource-settings';
-import { listPiExtensions } from './pi-global-resources';
+import { listGizmoCompatiblePiExtensions } from './pi-global-resources';
 import {
 	adoptPiResources,
 	existingDirectories,
@@ -72,7 +72,7 @@ export class ResourceCatalogService {
 		const globallyDisabled = new Set(settings.disabledGizmoExtensions);
 		return {
 			...(path ? { workspacePath: path } : {}),
-			extensions: await listPiExtensions(),
+			extensions: await listGizmoCompatiblePiExtensions(),
 			gizmoExtensions: registeredExtensions().map(({ id, name }) => ({
 				id,
 				name,
@@ -208,7 +208,7 @@ export async function discoverResources(
 			existingDirectories(roots.prompts),
 			existingFiles(roots.agentsFiles),
 			extensionResourceRoots(registeredExtensions()),
-			listPiExtensions(),
+			listGizmoCompatiblePiExtensions(),
 		]);
 	const fromLinkedExtensions = await linkedExtensionResourceRoots(
 		piExtensions

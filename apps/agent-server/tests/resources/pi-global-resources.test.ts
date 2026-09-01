@@ -2,7 +2,10 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { supportsGizmoRuntime } from '../../src/resources/pi-global-resources';
+import {
+	filterGizmoCompatiblePiExtensions,
+	supportsGizmoRuntime,
+} from '../../src/resources/pi-global-resources';
 
 const paths: string[] = [];
 afterEach(async () => {
@@ -35,5 +38,39 @@ describe('Pi extension Gizmo compatibility', () => {
 		await writeFile(`${extension}.gizmo.json`, '{ "runtime": "tui" }');
 
 		await expect(supportsGizmoRuntime(extension, 'file')).resolves.toBe(false);
+	});
+
+	it('hides TUI-only extensions from Gizmo resource lists', async () => {
+		const compatible = await mkdtemp(join(tmpdir(), 'gizmo-pi-extension-'));
+		const tuiOnly = await mkdtemp(join(tmpdir(), 'gizmo-pi-extension-'));
+		paths.push(compatible, tuiOnly);
+		await writeFile(join(tuiOnly, '.gizmo.json'), '{ "runtime": "tui" }');
+
+		await expect(
+			filterGizmoCompatiblePiExtensions([
+				{
+					id: 'compatible',
+					name: 'compatible',
+					path: compatible,
+					enabled: true,
+					kind: 'directory',
+				},
+				{
+					id: 'tui-only',
+					name: 'tui-only',
+					path: tuiOnly,
+					enabled: true,
+					kind: 'directory',
+				},
+			]),
+		).resolves.toEqual([
+			{
+				id: 'compatible',
+				name: 'compatible',
+				path: compatible,
+				enabled: true,
+				kind: 'directory',
+			},
+		]);
 	});
 });
