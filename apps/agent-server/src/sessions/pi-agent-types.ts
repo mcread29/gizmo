@@ -14,7 +14,7 @@ import type { PiExtensionUiRuntime } from './pi-extension-ui-runtime';
 
 export interface PiSessionLike {
 	readonly sessionId: string;
-	readonly domains?: readonly string[];
+	readonly enabledExtensionIds?: readonly string[];
 	readonly sessionName?: string;
 	readonly model?: {
 		readonly provider: string;

@@ -39,7 +39,7 @@ describe('PanelResizeHandle', () => {
 		});
 
 		await fireEvent.keyDown(
-			getByRole('slider', { name: 'Resize editor inspector' }),
+			getByRole('slider', { name: 'Resize workspace inspector' }),
 			{ key: 'ArrowRight' },
 		);
 
@@ -79,7 +79,7 @@ describe('PanelResizeHandle', () => {
 			onReset: () => {},
 		});
 		const handle = getByRole('slider', {
-			name: 'Resize editor inspector',
+			name: 'Resize workspace inspector',
 		});
 		const shell = document.createElement('div');
 		shell.dataset.ui = 'app-shell';

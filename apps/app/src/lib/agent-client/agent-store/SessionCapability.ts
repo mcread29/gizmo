@@ -21,7 +21,7 @@ interface SessionSelection {
 	model?: AgentModel;
 	availableModels: AgentModelOption[];
 	thinkingLevels: string[];
-	activeDomains: string[];
+	enabledExtensionIds: string[];
 	selectedProjectPath?: string;
 	projectStatus?: ProjectStatus;
 	usage?: SessionUsage;
@@ -48,7 +48,7 @@ export class SessionCapability {
 			store.selectedProjectPath = workspacePath;
 			store.projectStatus = undefined;
 		}
-		store.activeDomains = (
+		store.enabledExtensionIds = (
 			store.projects.find(({ path }) => path === store.selectedProjectPath)
 				?.integrations ?? []
 		).map(({ id }) => id);
@@ -125,7 +125,7 @@ export class SessionCapability {
 				return;
 			Object.assign(session, snapshot.session);
 			const workspacePath = session.workspacePath ?? session.projectPath;
-			const domains =
+			const enabledExtensionIds =
 				session.integrations?.map(({ id }) => id) ??
 				(session.domainId && session.domainId !== 'generic'
 					? [session.domainId]
@@ -133,8 +133,9 @@ export class SessionCapability {
 			const movedWorkspace = Boolean(
 				workspacePath && workspacePath !== store.selectedProjectPath,
 			);
-			if (workspacePath) this.projects.enterWorkspace(workspacePath, domains);
-			else store.activeDomains = domains;
+			if (workspacePath)
+				this.projects.enterWorkspace(workspacePath, enabledExtensionIds);
+			else store.enabledExtensionIds = enabledExtensionIds;
 			store.messages = snapshot.messages;
 			store.messagesLoading = false;
 			this.#replay(sessionId, snapshot.lastEventId);
@@ -266,7 +267,7 @@ export class SessionCapability {
 			model: store.model,
 			availableModels: store.availableModels,
 			thinkingLevels: store.thinkingLevels,
-			activeDomains: store.activeDomains,
+			enabledExtensionIds: store.enabledExtensionIds,
 			selectedProjectPath: store.selectedProjectPath,
 			projectStatus: store.projectStatus,
 			usage: store.usage,

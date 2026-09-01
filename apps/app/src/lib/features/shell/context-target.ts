@@ -1,5 +1,4 @@
-export type ContextKind =
-	'shell' | 'thread' | 'message' | 'tool' | 'composer' | 'unity';
+export type ContextKind = 'shell' | 'thread' | 'message' | 'tool' | 'composer';
 
 export interface ContextTarget {
 	kind: ContextKind;
@@ -81,7 +80,6 @@ function contextKind(value: string | undefined): ContextKind {
 		case 'message':
 		case 'tool':
 		case 'composer':
-		case 'unity':
 			return value;
 		default:
 			return 'shell';

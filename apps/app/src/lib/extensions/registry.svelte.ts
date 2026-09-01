@@ -3,7 +3,6 @@ import type {
 	ExtensionContext,
 	ExtensionHostContext,
 	GizmoWebExtension,
-	WebExtensionRuntime,
 } from './types';
 
 /** Gizmo ships no extensions; every web integration arrives at runtime. */
@@ -41,7 +40,7 @@ export function extension(
 export function activateProjectExtensions(
 	descriptors: readonly ExtensionDescriptor[],
 	context: ExtensionHostContext,
-): WebExtensionRuntime[] {
+) {
 	return descriptors.flatMap((descriptor) => {
 		const definition = webExtensions().find(({ id }) => id === descriptor.id);
 		if (

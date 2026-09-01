@@ -124,7 +124,6 @@ function validate(
 
 	keep('dialog', isFunction, 'a component');
 	keep('settings', isFunction, 'a component');
-	keep('createView', isFunction, 'a function');
 	keep('hasProjectStatus', (v) => typeof v === 'boolean', 'a boolean');
 	keep('apiVersion', (v) => typeof v === 'number', 'a number');
 	keep('activate', isFunction, 'a function');

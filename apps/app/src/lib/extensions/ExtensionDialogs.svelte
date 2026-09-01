@@ -6,7 +6,7 @@
 		$props();
 </script>
 
-{#each webExtensions().filter(({ id, dialog }) => dialog && (store.activeDomains.includes(id) || store.pendingConfirmations.length > 0)) as definition (definition.id)}
+{#each webExtensions().filter(({ id, dialog }) => dialog && (store.enabledExtensionIds.includes(id) || store.pendingConfirmations.length > 0)) as definition (definition.id)}
 	{@const Dialog = definition.dialog!}
-	<Dialog {store} {layout} />
+	<Dialog {store} settings={layout.settingsFor(definition.id)} />
 {/each}

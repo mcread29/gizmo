@@ -47,15 +47,12 @@ export const createDefaultPiSession: PiSessionFactory = async (
 		}
 		return callbacks.confirmStopPlayMode(cwd);
 	};
-	const activeDomains = await activateExtensions(
+	const activeExtensions = await activateExtensions(
 		{ workspacePath: cwd, confirm },
-		options.integrations ??
-			(options.domainId && options.domainId !== 'generic'
-				? [{ id: options.domainId, root: '.' }]
-				: []),
+		options.integrations ?? [],
 	);
 	const customTools = [
-		...activeDomains.tools,
+		...activeExtensions.tools,
 		createRunScriptTool({ workspacePath: cwd }),
 	];
 	const catalog = new ResourceCatalogService();
@@ -75,7 +72,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 		userSystemPrompt(),
 	]);
 	// An active extension's prompt wins over the user's saved override.
-	const systemPrompt = activeDomains.systemPrompt ?? customSystemPrompt;
+	const systemPrompt = activeExtensions.systemPrompt ?? customSystemPrompt;
 	const resourceLoaderOptions = {
 		noExtensions: true,
 		additionalExtensionPaths: piExtensions,
@@ -136,7 +133,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 			),
 	});
 	return Object.assign(session, {
-		domains: activeDomains.extensions.map(({ id }) => id),
+		enabledExtensionIds: activeExtensions.extensions.map(({ id }) => id),
 		async generateCommitMessage(context: string) {
 			if (!session.model) throw new Error('No model is selected');
 			const message = await session.modelRuntime.completeSimple(

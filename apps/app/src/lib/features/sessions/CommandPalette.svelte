@@ -28,7 +28,7 @@
 
 	let extensionCommands = $derived(
 		webExtensions()
-			.filter(({ id }) => store.activeDomains.includes(id))
+			.filter(({ id }) => store.enabledExtensionIds.includes(id))
 			.flatMap(
 				(definition) =>
 					definition.commands?.({

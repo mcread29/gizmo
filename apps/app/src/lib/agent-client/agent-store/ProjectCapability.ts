@@ -42,7 +42,7 @@ export class ProjectCapability {
 		if (
 			store.connection !== 'connected' ||
 			!store.selectedProjectPath ||
-			!store.activeDomains.some((id) => extension(id)?.hasProjectStatus)
+			!store.enabledExtensionIds.some((id) => extension(id)?.hasProjectStatus)
 		) {
 			store.projectStatus = undefined;
 			store.statusLoading = false;
@@ -126,7 +126,7 @@ export class ProjectCapability {
 		]);
 	}
 
-	enterWorkspace(projectPath: string, domains?: string[]) {
+	enterWorkspace(projectPath: string, enabledExtensionIds?: string[]) {
 		const store = this.store;
 		store.selectedProjectPath = projectPath;
 		store.projectStatus = undefined;
@@ -136,8 +136,8 @@ export class ProjectCapability {
 		store.gitLoading = true;
 		store.statusLoading = true;
 		store.messages = [];
-		store.activeDomains =
-			domains ??
+		store.enabledExtensionIds =
+			enabledExtensionIds ??
 			store.projects
 				.find(({ path }) => path === projectPath)
 				?.integrations.map(({ id }) => id) ??
@@ -156,7 +156,9 @@ export class ProjectCapability {
 			return;
 		}
 		await store.refreshGitStatus();
-		if (!store.activeDomains.some((id) => extension(id)?.hasProjectStatus)) {
+		if (
+			!store.enabledExtensionIds.some((id) => extension(id)?.hasProjectStatus)
+		) {
 			store.projectStatus = undefined;
 			await store.loadProjectExtensions();
 			return;

@@ -137,7 +137,10 @@
 			description="Instructions for every session in this workspace, alongside the global AGENTS.md. Takes effect for new threads or after Reload runtime."
 		/>
 		<WorkspaceToolPolicySection {store} {workspacePath} />
-		<ExtensionSettings {layout} activeDomains={store.activeDomains} />
+		<ExtensionSettings
+			{layout}
+			enabledExtensionIds={store.enabledExtensionIds}
+		/>
 		<RemoveWorkspaceSection {store} workspacePath={project.path} {onRemoved} />
 	{/if}
 </div>

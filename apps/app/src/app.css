@@ -7,8 +7,6 @@
 @import './styles/tool-call.css';
 @import './styles/composer.css';
 @import './styles/inspector.css';
-@import './styles/diagnostics.css';
-@import './styles/changes.css';
 @import './styles/dialogs.css';
 @import './styles/extension-ui.css';
 @import './styles/settings.css';

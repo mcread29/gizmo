@@ -1,7 +1,11 @@
 import type { ExtensionDescriptor, ToolCallView } from '@gizmo/protocol';
 import type { Component } from 'svelte';
 import type { AgentStore } from '../agent-client';
-import type { WorkspaceLayout } from '../features/shell/workspace.svelte';
+
+export interface ExtensionSettingsContext {
+	get(key: string): unknown;
+	set(key: string, value: unknown): void;
+}
 
 export interface ExtensionContext {
 	projectPath: string;
@@ -67,41 +71,20 @@ export interface WebExtensionRuntime {
 	dispose(): void;
 }
 
-export interface WorkspacePanel {
-	id: string;
-	label: string;
-	component: Component<any>;
-	props: Record<string, unknown>;
-}
-
-export interface WorkspaceView {
-	domainId?: string;
-	workspacePath?: string;
-	workspaceName: string;
-	subtitle: string;
-	state?: string;
-	toolActivity: ToolCallView[];
-	canOpen: boolean;
-	open(): void;
-	refresh(): void;
-	/** Status pill shown in the inspector header, if this extension contributes one. */
-	pill?: { state: string; label: string };
-	/** An extension-owned tab in the workspace inspector, shown ahead of the generic tabs. */
-	panel?: WorkspacePanel;
-}
-
 /**
  * A self-contained UI integration, discovered and loaded by id. Every
  * capability is optional — an extension contributes whichever of these it
- * actually has: a settings/confirmation dialog, a workspace view/panel, live
- * RPC-style operations activated against a project extension descriptor, or
- * tool-result presentation (labels, icons, custom renderers).
+ * actually has: settings/confirmation UI, inspector tabs, live RPC-style
+ * operations activated against a project extension descriptor, or tool-result
+ * presentation (labels, icons, custom renderers).
  */
 export interface GizmoWebExtension {
 	id: string;
-	dialog?: Component<{ store: AgentStore; layout: WorkspaceLayout }>;
-	settings?: Component<{ layout: WorkspaceLayout }>;
-	createView?(store: AgentStore): WorkspaceView;
+	dialog?: Component<{
+		store: AgentStore;
+		settings: ExtensionSettingsContext;
+	}>;
+	settings?: Component<{ settings: ExtensionSettingsContext }>;
 	/** Whether this extension runs a project process worth polling status/watch for. */
 	hasProjectStatus?: boolean;
 
@@ -113,8 +96,8 @@ export interface GizmoWebExtension {
 	): WebExtensionRuntime;
 
 	/**
-	 * Static tabs contributed to the workspace inspector whenever the
-	 * extension is installed — no per-project activation required.
+	 * Static tabs contributed to the workspace inspector while the extension is
+	 * enabled — no project-runtime activation required.
 	 */
 	inspectorTabs?(context: InspectorTabContext): InspectorTabContribution[];
 

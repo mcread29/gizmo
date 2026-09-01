@@ -17,6 +17,7 @@ export async function installWebExtensions(
 		const { bundles, diagnostics } = await client.listWebExtensionBundles();
 		const loaded = await loadWebExtensions(bundles);
 		registerWebExtensions(loaded.extensions);
+		removeStaleExtensionStyles(new Set(loaded.extensions.map(({ id }) => id)));
 		return [...diagnostics, ...loaded.diagnostics];
 	} catch (error) {
 		return [
@@ -24,5 +25,15 @@ export async function installWebExtensions(
 				error instanceof Error ? error.message : String(error)
 			}`,
 		];
+	}
+}
+
+function removeStaleExtensionStyles(loadedIds: ReadonlySet<string>) {
+	if (typeof document === 'undefined') return;
+	for (const style of document.querySelectorAll<HTMLStyleElement>(
+		'style[data-gizmo-extension-style]',
+	)) {
+		const extensionId = style.dataset.gizmoExtensionStyle;
+		if (!extensionId || !loadedIds.has(extensionId)) style.remove();
 	}
 }

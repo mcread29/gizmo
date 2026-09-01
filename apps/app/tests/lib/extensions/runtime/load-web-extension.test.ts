@@ -96,18 +96,20 @@ describe('loadWebExtensions', () => {
 		expect(result.diagnostics[0]).toContain('declares id "other"');
 	});
 
-	it('retains generic inspector contributions from runtime extensions', async () => {
+	it('retains peer inspector contributions and drops the former owner hook', async () => {
 		const result = await loadWebExtensions([
 			{
 				id: 'activity',
 				code: `export const gizmoWebExtension = {
 					id: 'activity',
+					createView: () => ({ workspaceName: 'owned' }),
 					inspectorTabs: () => [],
 				};`,
 			},
 		]);
 
 		expect(result.extensions[0]?.inspectorTabs?.({} as never)).toEqual([]);
+		expect(result.extensions[0]).not.toHaveProperty('createView');
 		expect(result.diagnostics).toEqual([]);
 	});
 

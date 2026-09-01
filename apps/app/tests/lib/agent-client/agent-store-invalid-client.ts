@@ -13,8 +13,8 @@ import {
 	type SessionSnapshot,
 	type SessionTree,
 	type ToolPolicy,
-	type UnityOpenProjectResult,
-	type UnityStatus,
+	type ProjectOpenResult,
+	type ProjectStatus,
 } from '@gizmo/protocol';
 import type {
 	AgentClient,
@@ -205,13 +205,13 @@ export class InvalidEventClient implements AgentClient {
 	async setProjectToolPolicy(): Promise<ToolPolicy> {
 		return this.getToolPolicy();
 	}
-	async getProjectStatus(): Promise<UnityStatus> {
+	async getProjectStatus(): Promise<ProjectStatus> {
 		throw new Error('No selected project');
 	}
-	async watchProjectStatus(): Promise<UnityStatus> {
+	async watchProjectStatus(): Promise<ProjectStatus> {
 		throw new Error('No selected project');
 	}
-	async openProject(): Promise<UnityOpenProjectResult> {
+	async openProject(): Promise<ProjectOpenResult> {
 		throw new Error('No selected project');
 	}
 	subscribe(listener: AgentEventListener) {

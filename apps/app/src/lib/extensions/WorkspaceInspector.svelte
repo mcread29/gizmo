@@ -1,42 +1,31 @@
 <script lang="ts">
 	import type { AgentStore } from '../agent-client';
 	import { Tabs } from '../components';
+	import PanelToggle from '../features/shell/PanelToggle.svelte';
 	import { activateProjectExtensions, webExtensions } from './registry.svelte';
 	import type { WebExtensionRuntime } from './types';
-	import PanelToggle from '../features/shell/PanelToggle.svelte';
-	import type { WorkspaceView } from './types';
+	import { workspaceNameFromPath } from './workspace-label';
 
 	let {
 		store,
-		view,
 		hidden,
 		onCollapse,
 	}: {
 		store: AgentStore;
-		view: WorkspaceView;
 		hidden: boolean;
 		/** Absent while the inspector is collapsed: its rail owns the control. */
 		onCollapse?: () => void;
 	} = $props();
 
-	// The workspace a switch resets the inspector to its default tab, mirroring
-	// the per-domain inspector this replaced (which remounted on that switch).
-	let inspectorKey = $derived(
-		`${view.workspacePath ?? ''}:${view.panel?.id ?? view.domainId ?? 'workspace'}`,
+	let projectPath = $derived(store.selectedProjectPath);
+	let workspaceName = $derived(
+		workspaceNameFromPath(projectPath) ?? 'Select a workspace',
 	);
-	let defaultTab = $derived(view.panel?.id ?? 'git');
-	let activeDomainPanel = $state('status');
 	let extensionRuntimes = $state<WebExtensionRuntime[]>([]);
-	let extensionTabs = $derived(
-		extensionRuntimes.flatMap((runtime) => runtime.inspectorTabs),
-	);
 
-	// The inspector shell and its base tabs are app-owned; a domain or extension
-	// only contributes its own tabs, never the whole panel.
 	$effect(() => {
-		const projectPath = view.workspacePath;
 		const descriptors = store.projectExtensions.filter(({ id }) =>
-			store.activeDomains.includes(id),
+			store.enabledExtensionIds.includes(id),
 		);
 		const runtimes = projectPath
 			? activateProjectExtensions(descriptors, {
@@ -54,88 +43,62 @@
 		return () => runtimes.forEach((runtime) => runtime.dispose());
 	});
 
-	// The inspector shell is app-owned; extensions contribute their own tabs.
-	// Reading the store here keeps badges (like Git's change count) reactive.
-	let tabs = $derived([
-		...(view.panel
-			? [
-					{
-						value: view.panel.id,
-						label: view.panel.label,
-						badge: undefined,
-						component: undefined,
-						props: {},
-					},
-				]
-			: []),
-		...webExtensions()
-			.filter(({ id }) => store.activeDomains.includes(id))
-			.flatMap(
-				(definition) =>
-					definition.inspectorTabs?.({
-						store,
-						projectPath: view.workspacePath,
-						toolActivity: view.toolActivity,
-					}) ?? [],
-			)
-			.map((tab) => ({
-				value: tab.id,
-				label: tab.label,
-				badge: tab.badge,
-				component: tab.component,
-				props: tab.props,
-			})),
-	]);
-
-	let pill = $derived(view.pill ?? { state: 'ready', label: 'Ready' });
-
-	$effect(() => {
-		if (
-			activeDomainPanel !== 'status' &&
-			!extensionTabs.some((tab) => tab.id === activeDomainPanel)
-		)
-			activeDomainPanel = 'status';
-	});
+	// Every enabled extension contributes peer tabs to the app-owned inspector.
+	// Runtime tabs use the same route as static tabs; neither can own the shell.
+	let tabs = $derived(
+		[
+			...webExtensions()
+				.filter(({ id }) => store.enabledExtensionIds.includes(id))
+				.flatMap(
+					(definition) =>
+						definition.inspectorTabs?.({
+							store,
+							projectPath,
+							toolActivity: store.messages.flatMap(({ tools }) => tools),
+						}) ?? [],
+				),
+			...extensionRuntimes.flatMap((runtime) => runtime.inspectorTabs),
+		].map((tab) => ({
+			value: tab.id,
+			label: tab.label,
+			shortLabel: tab.shortLabel,
+			badge: tab.badge,
+			badgeTone: tab.badgeTone,
+			component: tab.component,
+			props: tab.props,
+		})),
+	);
+	let defaultTab = $derived(tabs[0]?.value);
 </script>
 
 <aside
 	data-ui="inspector"
-	data-context-kind={view.panel ? view.domainId : 'workspace'}
-	data-context-value={view.workspacePath}
 	aria-label="Workspace inspector"
 	inert={hidden || undefined}
 >
 	<div data-ui="inspector-header">
-		<div>
-			<h2>{view.workspaceName}</h2>
-		</div>
-		<span data-ui="status-pill" data-state={pill.state}
-			><span></span>{pill.label}</span
-		>
+		<div><h2>{workspaceName}</h2></div>
 		{#if onCollapse}
 			<PanelToggle side="right" expanded onToggle={onCollapse} />
 		{/if}
 	</div>
 
-	{#key inspectorKey}
-		<Tabs variant="subtab" lazy items={tabs} value={defaultTab}>
-			{#snippet children(value)}
-				<div data-ui="inspector-panel" data-panel={value}>
-					{#if view.panel && value === view.panel.id}
-						{@const Panel = view.panel.component}
-						<Panel
-							{...view.panel.props}
-							{extensionTabs}
-							activePanel={activeDomainPanel}
-							onSelectPanel={(panel: string) => (activeDomainPanel = panel)}
-						/>
-					{:else if tabs.some((tab) => tab.value === value)}
-						{@const tab = tabs.find((tab) => tab.value === value)!}
-						{@const Panel = tab.component}
-						<Panel {...tab.props} {store} projectPath={view.workspacePath} />
-					{/if}
-				</div>
-			{/snippet}
-		</Tabs>
+	{#key projectPath}
+		{#if tabs.length}
+			<Tabs variant="subtab" lazy items={tabs} value={defaultTab}>
+				{#snippet children(value)}
+					{@const tab = tabs.find((candidate) => candidate.value === value)!}
+					{@const Panel = tab.component}
+					<div data-ui="inspector-panel" data-panel={value}>
+						<Panel {...tab.props} {store} {projectPath} />
+					</div>
+				{/snippet}
+			</Tabs>
+		{:else}
+			<div data-ui="empty-state">
+				<strong>No inspector extensions enabled</strong>
+				<span>Enable an extension with an inspector tab to show it here.</span>
+			</div>
+		{/if}
 	{/key}
 </aside>

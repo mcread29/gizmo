@@ -9,9 +9,10 @@ import {
 	systemThemeMode,
 	type AppSettings,
 	type AppTheme,
-	type CompilePlayModePolicy,
+	type ExtensionSettings,
 	type PanelName,
 } from '../../app-settings';
+import type { ExtensionSettingsContext } from '../../extensions/types';
 import {
 	currentViewportWidth,
 	inspectorMode,
@@ -37,9 +38,9 @@ export class WorkspaceLayout {
 	autoCompact = $state(true);
 	autoCompactFillPercent = $state(25);
 	compactionRetainPercent = $state(10);
-	compilePlayModePolicy = $state<CompilePlayModePolicy>('ask');
+	extensionSettings = $state<ExtensionSettings>({});
 	showThreadSidebar = $state(true);
-	showUnityInspector = $state(true);
+	showInspector = $state(true);
 	sidebarWidth = $state(panelWidthLimits.sidebar.default);
 	inspectorWidth = $state(panelWidthLimits.inspector.default);
 	agentUrl = $state('');
@@ -47,6 +48,7 @@ export class WorkspaceLayout {
 	viewportWidth = $state(currentViewportWidth());
 	leftDrawerOpen = $state(false);
 	rightDrawerOpen = $state(false);
+	#settingsContexts = new Map<string, ExtensionSettingsContext>();
 
 	readonly leftMode: PanelMode = $derived(sidebarMode(this.viewportWidth));
 	readonly rightMode: PanelMode = $derived(inspectorMode(this.viewportWidth));
@@ -55,9 +57,7 @@ export class WorkspaceLayout {
 		this.leftMode === 'overlay' ? this.leftDrawerOpen : this.showThreadSidebar,
 	);
 	readonly rightVisible = $derived(
-		this.rightMode === 'overlay'
-			? this.rightDrawerOpen
-			: this.showUnityInspector,
+		this.rightMode === 'overlay' ? this.rightDrawerOpen : this.showInspector,
 	);
 	readonly drawerOpen = $derived(
 		(this.leftMode === 'overlay' && this.leftDrawerOpen) ||
@@ -88,9 +88,9 @@ export class WorkspaceLayout {
 		this.autoCompact = settings.autoCompact;
 		this.autoCompactFillPercent = settings.autoCompactFillPercent;
 		this.compactionRetainPercent = settings.compactionRetainPercent;
-		this.compilePlayModePolicy = settings.compilePlayModePolicy;
+		this.extensionSettings = structuredClone(settings.extensionSettings);
 		this.showThreadSidebar = settings.showThreadSidebar;
-		this.showUnityInspector = settings.showUnityInspector;
+		this.showInspector = settings.showInspector;
 		this.sidebarWidth = settings.sidebarWidth;
 		this.inspectorWidth = settings.inspectorWidth;
 		this.agentUrl = settings.agentUrl;
@@ -106,13 +106,29 @@ export class WorkspaceLayout {
 			autoCompact: this.autoCompact,
 			autoCompactFillPercent: this.autoCompactFillPercent,
 			compactionRetainPercent: this.compactionRetainPercent,
-			compilePlayModePolicy: this.compilePlayModePolicy,
+			extensionSettings: $state.snapshot(this.extensionSettings),
 			showThreadSidebar: this.showThreadSidebar,
-			showUnityInspector: this.showUnityInspector,
+			showInspector: this.showInspector,
 			sidebarWidth: this.sidebarWidth,
 			inspectorWidth: this.inspectorWidth,
 			agentUrl: this.agentUrl,
 		};
+	}
+
+	settingsFor(extensionId: string) {
+		const existing = this.#settingsContexts.get(extensionId);
+		if (existing) return existing;
+		const context: ExtensionSettingsContext = {
+			get: (key) => this.extensionSettings[extensionId]?.[key],
+			set: (key, value) => {
+				this.extensionSettings[extensionId] = {
+					...this.extensionSettings[extensionId],
+					[key]: value,
+				};
+			},
+		};
+		this.#settingsContexts.set(extensionId, context);
+		return context;
 	}
 
 	/** Re-reads the window and shrinks docked panels that no longer fit. */
@@ -147,7 +163,7 @@ export class WorkspaceLayout {
 			this.rightDrawerOpen = !this.rightDrawerOpen;
 			if (this.rightDrawerOpen) this.leftDrawerOpen = false;
 		} else {
-			this.showUnityInspector = !this.showUnityInspector;
+			this.showInspector = !this.showInspector;
 		}
 	}
 

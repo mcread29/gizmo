@@ -42,7 +42,7 @@ export class AgentStoreState {
 	modelLoading = $state(false);
 	activeTools = $state<string[]>([]);
 	commands = $state.raw<ComposerCommand[]>([]);
-	activeDomains = $state<string[]>([]);
+	enabledExtensionIds = $state<string[]>([]);
 	messages = $state<ConversationMessage[]>([]);
 	messagesLoading = $state(false);
 	lastPrompt = $state<string>();

@@ -9,14 +9,13 @@
 	import PanelToggle from './PanelToggle.svelte';
 	import WindowControls from './WindowControls.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
-	import type { WorkspaceView } from '../../extensions/types';
 	import { webExtensions } from '../../extensions/registry.svelte';
+	import { workspaceNameFromPath } from '../../extensions/workspace-label';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 
 	interface Props {
 		agent: AgentIdentity;
 		layout: WorkspaceLayout;
-		view: WorkspaceView;
 		store: AgentStore;
 		extensionUi?: PiExtensionUiStore;
 		/**
@@ -33,7 +32,6 @@
 	let {
 		agent,
 		layout,
-		view,
 		store,
 		extensionUi,
 		screenOpen = false,
@@ -52,10 +50,18 @@
 	);
 
 	let piStatuses = $derived(extensionUi?.statusesFor(store.sessionId) ?? []);
+	let workspaceName = $derived(
+		workspaceNameFromPath(store.selectedProjectPath) ?? 'Select a workspace',
+	);
+	let extensionSummary = $derived(
+		store.enabledExtensionIds.length === 1
+			? '1 extension'
+			: `${store.enabledExtensionIds.length} extensions`,
+	);
 
 	let statusBarItems = $derived(
 		webExtensions()
-			.filter(({ id }) => store.activeDomains.includes(id))
+			.filter(({ id }) => store.enabledExtensionIds.includes(id))
 			.flatMap(
 				(definition) =>
 					definition.statusBar?.({
@@ -100,12 +106,12 @@
 		<div data-ui="titlebar-center" data-tauri-drag-region></div>
 	{:else}
 		<div data-ui="titlebar-center" data-tauri-drag-region>
-			<span data-ui="project-dot" data-state={view.state}></span>
-			<span>{view.workspaceName}</span>
+			<span data-ui="project-dot" data-state={store.connection}></span>
+			<span>{workspaceName}</span>
 			{#if activity.streaming}
 				<StreamingIndicator {activity} compact />
 			{:else}
-				<span data-ui="muted">{view.subtitle}</span>
+				<span data-ui="muted">{extensionSummary}</span>
 			{/if}
 		</div>
 	{/if}

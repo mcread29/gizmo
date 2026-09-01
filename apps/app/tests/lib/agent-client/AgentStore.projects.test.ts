@@ -50,14 +50,14 @@ describe('AgentStore', () => {
 			'svelte',
 			false,
 		);
-		expect(store.activeDomains).not.toContain('svelte');
+		expect(store.enabledExtensionIds).not.toContain('svelte');
 
 		await store.setProjectGizmoExtension(
 			'/projects/ThirdPersonSandbox',
 			'svelte',
 			true,
 		);
-		expect(store.activeDomains).toContain('svelte');
+		expect(store.enabledExtensionIds).toContain('svelte');
 	});
 
 	it('updates the workspace integrations when switching threads', async () => {
@@ -72,11 +72,11 @@ describe('AgentStore', () => {
 
 		await store.newSession('/projects/RenderingPlayground');
 		expect(store.selectedProjectPath).toBe('/projects/RenderingPlayground');
-		expect(store.activeDomains).not.toContain('svelte');
+		expect(store.enabledExtensionIds).not.toContain('svelte');
 
 		await store.switchSession(sandboxSession);
 		expect(store.selectedProjectPath).toBe('/projects/ThirdPersonSandbox');
-		expect(store.activeDomains).toContain('svelte');
+		expect(store.enabledExtensionIds).toContain('svelte');
 	});
 
 	it('loads extensions for the active project', async () => {

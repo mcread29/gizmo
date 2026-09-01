@@ -3,11 +3,11 @@
 	import { webExtensions } from './registry.svelte';
 	let {
 		layout,
-		activeDomains,
-	}: { layout: WorkspaceLayout; activeDomains: string[] } = $props();
+		enabledExtensionIds,
+	}: { layout: WorkspaceLayout; enabledExtensionIds: string[] } = $props();
 </script>
 
-{#each webExtensions().filter(({ id, settings }) => settings && activeDomains.includes(id)) as definition (definition.id)}
+{#each webExtensions().filter(({ id, settings }) => settings && enabledExtensionIds.includes(id)) as definition (definition.id)}
 	{@const Settings = definition.settings!}
-	<Settings {layout} />
+	<Settings settings={layout.settingsFor(definition.id)} />
 {/each}

@@ -134,20 +134,29 @@ async function discoverExtensionEntries(root: string, enabled: boolean) {
 	for (const entry of entries) {
 		if (entry.name.startsWith('.')) continue;
 		const path = join(root, entry.name);
+		// Registry linking installs extensions as directory junctions/symlinks,
+		// which readdir reports as symlinks rather than directories.
+		const isDirectory =
+			entry.isDirectory() ||
+			(entry.isSymbolicLink() &&
+				(await stat(path).then(
+					(target) => target.isDirectory(),
+					() => false,
+				)));
 		const loadable =
 			(entry.isFile() && /\.(?:ts|js)$/.test(entry.name)) ||
-			(entry.isDirectory() &&
+			(isDirectory &&
 				((await exists(join(path, 'index.ts'))) ||
 					(await exists(join(path, 'index.js')))));
 		if (!loadable) continue;
 		resources.push({
 			id: entry.name,
-			name: entry.isDirectory()
+			name: isDirectory
 				? entry.name
 				: basename(entry.name, relativeExtension(entry.name)),
 			path,
 			enabled,
-			kind: entry.isDirectory() ? 'directory' : 'file',
+			kind: isDirectory ? 'directory' : 'file',
 		});
 	}
 	return resources;

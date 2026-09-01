@@ -4,7 +4,7 @@ import {
 	extensionDescriptorSchema,
 	extensionUiRequestSchema,
 } from './extensions';
-import { unityStatusSchema } from './projects';
+import { projectStatusSchema } from './projects';
 import { conversationAttachmentSchema, sessionUsageSchema } from './sessions';
 
 export const sessionStateSchema = Type.Union([
@@ -105,7 +105,7 @@ export const agentEventSchema = Type.Union([
 			...eventEnvelope,
 			type: Type.Literal('project.status.changed'),
 			projectPath: Type.String({ minLength: 1 }),
-			status: unityStatusSchema,
+			status: projectStatusSchema,
 		},
 		{ additionalProperties: false },
 	),

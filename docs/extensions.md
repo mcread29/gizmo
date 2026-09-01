@@ -20,11 +20,11 @@ Two small interfaces, one per side, mirror each other:
   operations the web UI can call), and optional `createProjectService`
   (a running external process with status/watch/open/revert).
 - **Client** — `GizmoWebExtension` (`apps/app/src/lib/extensions/types.ts`):
-  `id`, plus optional `dialog`/`settings`/`createView`/`hasProjectStatus`
-  (workspace UI), optional `apiVersion`/`activate` (matched against a
-  server-reported descriptor to activate live operations), optional
-  `inspectorTabs`/`commands`/`statusBar` (a workspace inspector tab, command,
-  and titlebar indicator shown only while the extension is active), and
+  `id`, plus optional `dialog`/`settings`/`hasProjectStatus`, optional
+  `apiVersion`/`activate` (matched against a server-reported descriptor to
+  activate live operations), optional `inspectorTabs`/`commands`/`statusBar`
+  (peer workspace-inspector tabs, commands, and titlebar indicators shown only
+  while the extension is active), and
   optional `labels`/`iconFor`/`consoleEntriesKey`/`parametersFor`/`resultFor`/
   `diagnosticsComponent` (tool-result presentation).
 

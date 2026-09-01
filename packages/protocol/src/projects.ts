@@ -1,7 +1,7 @@
 import { Type, type Static } from 'typebox';
 import { workspaceProfileExtensionSchema } from './sessions';
 
-const unityCliMessageSchema = Type.Object(
+const projectServiceMessageSchema = Type.Object(
 	{
 		code: Type.String(),
 		message: Type.String(),
@@ -123,7 +123,7 @@ export type WorkspaceDirectoryListing = Static<
 	typeof workspaceDirectoryListingSchema
 >;
 
-export const unityStatusSchema = Type.Object(
+export const projectStatusSchema = Type.Object(
 	{
 		state: Type.Union([
 			Type.Literal('connected'),
@@ -136,26 +136,21 @@ export const unityStatusSchema = Type.Object(
 		exitCode: Type.Union([Type.Integer(), Type.Null()]),
 		durationMs: Type.Integer({ minimum: 0 }),
 		instances: Type.Array(Type.Record(Type.String(), Type.Unknown())),
-		errors: Type.Array(unityCliMessageSchema),
-		warnings: Type.Array(unityCliMessageSchema),
+		errors: Type.Array(projectServiceMessageSchema),
+		warnings: Type.Array(projectServiceMessageSchema),
 		stderr: Type.Optional(Type.String()),
 	},
 	{ additionalProperties: false },
 );
 
-export type UnityStatus = Static<typeof unityStatusSchema>;
+export type ProjectStatus = Static<typeof projectStatusSchema>;
 
-/**
- * Generic wire shape for any extension that declares `hasProjectStatus`.
- * Structurally identical to `UnityStatus` — Unity is simply the extension
- * that happens to populate it today — kept as a distinct export so client
- * code names the capability, not the extension that first implemented it.
- */
-export const projectStatusSchema = unityStatusSchema;
+/** @deprecated Unity owns interpretation; use projectStatusSchema in host code. */
+export const unityStatusSchema = projectStatusSchema;
+/** @deprecated Unity owns interpretation; use ProjectStatus in host code. */
+export type UnityStatus = ProjectStatus;
 
-export type ProjectStatus = UnityStatus;
-
-export const unityOpenProjectResultSchema = Type.Object(
+export const projectOpenResultSchema = Type.Object(
 	{
 		state: Type.Union([
 			Type.Literal('opened'),
@@ -167,14 +162,17 @@ export const unityOpenProjectResultSchema = Type.Object(
 		exitCode: Type.Union([Type.Integer(), Type.Null()]),
 		durationMs: Type.Integer({ minimum: 0 }),
 		data: Type.Unknown(),
-		errors: Type.Array(unityCliMessageSchema),
-		warnings: Type.Array(unityCliMessageSchema),
+		errors: Type.Array(projectServiceMessageSchema),
+		warnings: Type.Array(projectServiceMessageSchema),
 		stderr: Type.Optional(Type.String()),
-		status: Type.Optional(unityStatusSchema),
+		status: Type.Optional(projectStatusSchema),
 	},
 	{ additionalProperties: false },
 );
 
-export type UnityOpenProjectResult = Static<
-	typeof unityOpenProjectResultSchema
->;
+export type ProjectOpenResult = Static<typeof projectOpenResultSchema>;
+
+/** @deprecated Use projectOpenResultSchema. */
+export const unityOpenProjectResultSchema = projectOpenResultSchema;
+/** @deprecated Use ProjectOpenResult. */
+export type UnityOpenProjectResult = ProjectOpenResult;

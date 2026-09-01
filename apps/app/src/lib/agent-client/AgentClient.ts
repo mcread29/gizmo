@@ -24,7 +24,7 @@ import type {
 	Extensions,
 	ExtensionUiResponse,
 	WebExtensionBundles,
-	UnityOpenProjectResult,
+	ProjectOpenResult,
 	ProjectStatus,
 } from '@gizmo/protocol';
 
@@ -164,7 +164,7 @@ export interface AgentClient {
 		sessionId: string,
 		projectPath: string,
 	): Promise<ProjectStatus>;
-	openProject(projectPath: string): Promise<UnityOpenProjectResult>;
+	openProject(projectPath: string): Promise<ProjectOpenResult>;
 	listProjectExtensions(projectPath: string): Promise<Extensions>;
 	/** Standalone web-extension bundles to load at runtime, if the client supports them. */
 	listWebExtensionBundles?(): Promise<WebExtensionBundles>;

@@ -22,15 +22,15 @@ import {
 	type ProjectConfig,
 	projectDomainsSchema,
 	type ProjectDomains,
+	projectOpenResultSchema,
+	type ProjectOpenResult,
 	projectStatusSchema,
 	type ProjectStatus,
 	storedProjectSchema,
 	type StoredProject,
-	unityOpenProjectResultSchema,
 	type UnityOpenProjectResult,
 	unityProjectSchema,
 	type UnityProject,
-	unityStatusSchema,
 	type UnityStatus,
 	workspaceDirectoryListingSchema,
 	type WorkspaceDirectoryListing,
@@ -167,14 +167,11 @@ export function parseAgentModelCatalog(input: unknown): AgentModelCatalog {
 	return input;
 }
 
+/** @deprecated Use parseProjectStatus. */
 export function parseUnityStatus(input: unknown): UnityStatus {
-	if (!Value.Check(unityStatusSchema, input)) {
-		throw new ProtocolValidationError('response', input);
-	}
-	return input;
+	return parseProjectStatus(input);
 }
 
-/** Generic counterpart to {@link parseUnityStatus} for the `ProjectStatus` wire shape. */
 export function parseProjectStatus(input: unknown): ProjectStatus {
 	if (!Value.Check(projectStatusSchema, input)) {
 		throw new ProtocolValidationError('response', input);
@@ -182,13 +179,18 @@ export function parseProjectStatus(input: unknown): ProjectStatus {
 	return input;
 }
 
-export function parseUnityOpenProjectResult(
-	input: unknown,
-): UnityOpenProjectResult {
-	if (!Value.Check(unityOpenProjectResultSchema, input)) {
+export function parseProjectOpenResult(input: unknown): ProjectOpenResult {
+	if (!Value.Check(projectOpenResultSchema, input)) {
 		throw new ProtocolValidationError('response', input);
 	}
 	return input;
+}
+
+/** @deprecated Use parseProjectOpenResult. */
+export function parseUnityOpenProjectResult(
+	input: unknown,
+): UnityOpenProjectResult {
+	return parseProjectOpenResult(input);
 }
 
 export function parseExtensions(input: unknown): Extensions {

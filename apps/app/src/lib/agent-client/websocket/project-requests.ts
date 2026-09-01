@@ -4,7 +4,7 @@ import {
 	parseProjectDomains,
 	parseProjectStatus,
 	parseStoredProjects,
-	parseUnityOpenProjectResult,
+	parseProjectOpenResult,
 	parseWebExtensionBundles,
 	parseWorkspaceDirectoryListing,
 } from '@gizmo/protocol';
@@ -104,7 +104,7 @@ export class ProjectRequests extends SessionRequests {
 			type: 'project.open',
 			projectPath,
 		});
-		return parseUnityOpenProjectResult(response.result);
+		return parseProjectOpenResult(response.result);
 	}
 
 	async listProjectExtensions(projectPath: string) {

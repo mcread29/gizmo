@@ -117,7 +117,10 @@ export class SessionRuntimePool {
 		this.events.emit(sessionId, {
 			type: 'session.created',
 			title,
-			...(session.domains ? { domains: [...session.domains] } : {}),
+			// `domains` is the protocol-v25 wire name for enabled extension IDs.
+			...(session.enabledExtensionIds
+				? { domains: [...session.enabledExtensionIds] }
+				: {}),
 			...(session.getActiveToolNames
 				? { tools: session.getActiveToolNames() }
 				: {}),

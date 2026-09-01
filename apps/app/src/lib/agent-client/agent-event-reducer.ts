@@ -11,7 +11,7 @@ import type {
 export interface AgentEventState {
 	model?: { provider: string; id: string; thinkingLevel: string };
 	activeTools: string[];
-	activeDomains?: string[];
+	enabledExtensionIds?: string[];
 	sessionState: SessionState;
 	compacting: boolean;
 	lastAutomaticCompactionReason?: 'threshold' | 'overflow';
@@ -33,7 +33,7 @@ export function applyAgentEvent(
 	switch (event.type) {
 		case 'session.created':
 			state.model = event.model;
-			state.activeDomains = event.domains ?? [];
+			state.enabledExtensionIds = event.domains ?? [];
 			state.activeTools = event.tools ?? [];
 			break;
 		case 'session.state':

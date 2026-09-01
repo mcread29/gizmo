@@ -18,12 +18,32 @@ describe('app settings', () => {
 			...defaultAppSettings,
 			theme: 'vesper-dark' as const,
 			sendOnEnter: false,
-			showUnityInspector: false,
+			showInspector: false,
 		};
 
 		saveAppSettings(settings);
 
 		expect(loadAppSettings()).toEqual(settings);
+	});
+
+	it('migrates the former Unity compile policy into extension settings', () => {
+		localStorage.setItem(
+			'gizmo.settings.v1',
+			JSON.stringify({ compilePlayModePolicy: 'keep_playing' }),
+		);
+
+		expect(
+			loadAppSettings().extensionSettings.unity?.compilePlayModePolicy,
+		).toBe('keep_playing');
+	});
+
+	it('migrates the former Unity-specific inspector preference', () => {
+		localStorage.setItem(
+			'gizmo.settings.v1',
+			JSON.stringify({ showUnityInspector: false }),
+		);
+
+		expect(loadAppSettings().showInspector).toBe(false);
 	});
 
 	it('pairs every color scheme with light and dark variants', () => {

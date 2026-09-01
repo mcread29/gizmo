@@ -32,7 +32,7 @@ describe('application shell and global interactions', () => {
 			await findByRole('slider', { name: 'Resize thread sidebar' }),
 		).toBeInTheDocument();
 		expect(
-			getByRole('slider', { name: 'Resize editor inspector' }),
+			getByRole('slider', { name: 'Resize workspace inspector' }),
 		).toBeInTheDocument();
 
 		// Each panel carries its own toggle while it is open.

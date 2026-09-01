@@ -14,7 +14,6 @@
 		layout: WorkspaceLayout;
 		activeThreadId?: string;
 		canDeleteThread: (sessionId: string | undefined) => boolean;
-		canOpenEditor: boolean;
 		getContextText: (
 			kind: 'message' | 'tool',
 			id: string,
@@ -25,8 +24,6 @@
 		onCopyTranscript: (sessionId: string) => void;
 		onExportTranscript: (sessionId: string) => void;
 		onDeleteThread: (sessionId: string) => void;
-		onOpenEditor: () => void;
-		onRefreshEditor: () => void;
 		onOpenSettings: () => void;
 	}
 
@@ -35,7 +32,6 @@
 		layout,
 		activeThreadId,
 		canDeleteThread,
-		canOpenEditor,
 		getContextText,
 		onNewThread,
 		onOpenThread,
@@ -43,8 +39,6 @@
 		onCopyTranscript,
 		onExportTranscript,
 		onDeleteThread,
-		onOpenEditor,
-		onRefreshEditor,
 		onOpenSettings,
 	}: Props = $props();
 
@@ -132,22 +126,6 @@
 					disabled={!contextText}
 					onSelect={() => void copyText(contextText)}
 					>Copy tool output</ContextMenu.Item
-				>
-				<ContextMenu.Separator data-ui="menu-separator" />
-			{:else if target.kind === 'unity'}
-				{#if canOpenEditor}
-					<ContextMenu.Item data-ui="menu-item" onSelect={onOpenEditor}
-						>Open Editor</ContextMenu.Item
-					>
-				{/if}
-				<ContextMenu.Item data-ui="menu-item" onSelect={onRefreshEditor}
-					>Refresh Editor status</ContextMenu.Item
-				>
-				<ContextMenu.Item
-					data-ui="menu-item"
-					disabled={!target.value}
-					onSelect={() => void copyText(target.value)}
-					>Copy project path</ContextMenu.Item
 				>
 				<ContextMenu.Separator data-ui="menu-separator" />
 			{/if}

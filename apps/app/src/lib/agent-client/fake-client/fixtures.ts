@@ -5,7 +5,7 @@ import type {
 	ProviderStatus,
 	SkillResource,
 	StoredProject,
-	UnityStatus,
+	ProjectStatus,
 } from '@gizmo/protocol';
 
 export const fakeProviders: ProviderStatus[] = [
@@ -132,7 +132,7 @@ export const fakePrompts: AgentResource[] = [
 	},
 ];
 
-export function fakeStatus(projectPath: string, open: boolean): UnityStatus {
+export function fakeStatus(projectPath: string, open: boolean): ProjectStatus {
 	return {
 		state: open ? 'connected' : 'disconnected',
 		ok: true,

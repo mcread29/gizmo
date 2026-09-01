@@ -3,7 +3,6 @@
 	import type { AgentStore } from '../../agent-client';
 	import type { AppRouter, WorkspaceTab } from '../../router.svelte';
 	import WorkspaceInspector from '../../extensions/WorkspaceInspector.svelte';
-	import { createWorkspaceView } from '../../extensions/workspace-view';
 	import Conversation from '../conversation/Conversation.svelte';
 	import type { DraftStore } from '../conversation/drafts.svelte';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
@@ -58,7 +57,6 @@
 	let currentSession = $derived(
 		store.sessions.find((session) => session.id === store.sessionId),
 	);
-	let workspaceView = $derived(createWorkspaceView(store));
 	let overlayOpen = $derived(
 		router.current === 'settings' || router.current === 'tree',
 	);
@@ -73,7 +71,6 @@
 	{layout}
 	activeThreadId={store.sessionId}
 	canDeleteThread={(sessionId) => !store.isSessionStreaming(sessionId)}
-	canOpenEditor={workspaceView.canOpen}
 	{getContextText}
 	onNewThread={() => void onStartThread()}
 	onOpenThread={(sessionId) => void onOpenThread(sessionId)}
@@ -81,8 +78,6 @@
 	onCopyTranscript={(sessionId) => void sessions.copyTranscript(sessionId)}
 	onExportTranscript={(sessionId) => void sessions.exportTranscript(sessionId)}
 	onDeleteThread={(sessionId) => sessions.beginDelete(sessionId)}
-	onOpenEditor={workspaceView.open}
-	onRefreshEditor={workspaceView.refresh}
 	onOpenSettings={() => router.go('settings')}
 >
 	<div
@@ -99,7 +94,6 @@
 			{layout}
 			{store}
 			{extensionUi}
-			view={workspaceView}
 			screenOpen={overlayOpen}
 			settingsOpen={router.current === 'settings'}
 			onOpenSettings={() => router.go('settings')}
@@ -167,11 +161,7 @@
 			/>
 		{/if}
 
-		<WorkspaceInspector
-			{store}
-			view={workspaceView}
-			hidden={!layout.rightVisible}
-		/>
+		<WorkspaceInspector {store} hidden={!layout.rightVisible} />
 		{#if layout.rightVisible && layout.rightMode === 'docked'}
 			<PanelResizeHandle
 				side="right"

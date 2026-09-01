@@ -16,7 +16,9 @@
 	let shell: HTMLElement | undefined;
 	let panel: PanelName = $derived(side === 'left' ? 'sidebar' : 'inspector');
 	let min = $derived(panelWidthLimits[panel].min);
-	let label = $derived(side === 'left' ? 'thread sidebar' : 'editor inspector');
+	let label = $derived(
+		side === 'left' ? 'thread sidebar' : 'workspace inspector',
+	);
 
 	function clamp(value: number) {
 		return Math.min(max, Math.max(min, Math.round(value)));

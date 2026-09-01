@@ -10,14 +10,14 @@ export class GitCapability {
 
 	async revertFile(file: string, patch: string) {
 		if (!this.store.selectedProjectPath) {
-			throw new Error('No Unity project is selected');
+			throw new Error('No workspace is selected');
 		}
 		await this.client.revertFile(this.store.selectedProjectPath, file, patch);
 	}
 
 	async refreshGitStatus() {
 		const store = this.store;
-		if (!store.activeDomains.includes('git')) {
+		if (!store.enabledExtensionIds.includes('git')) {
 			store.gitStatus = undefined;
 			store.gitLoading = false;
 			return;

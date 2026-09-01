@@ -15,7 +15,7 @@ export class ExtensionCapability {
 		const store = this.store;
 		if (store.connection !== 'connected') return diagnostics;
 		await Promise.all([store.refreshResources(), store.refreshProjects()]);
-		store.activeDomains =
+		store.enabledExtensionIds =
 			store.projects
 				.find(({ path }) => path === store.selectedProjectPath)
 				?.integrations.map(({ id }) => id) ?? [];
