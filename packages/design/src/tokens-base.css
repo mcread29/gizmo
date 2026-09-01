@@ -12,8 +12,8 @@
 	--color-border-strong: #c9cec0;
 	--color-text: #20231c;
 	--color-text-muted: #6c7264;
-	--color-text-faint: #7d8375;
-	--color-accent: #d54f35;
+	--color-text-faint: #6f7566;
+	--color-accent: #c43f26;
 	--color-accent-hover: #bd402a;
 	--color-accent-soft: #f8e4de;
 	--color-on-accent: #ffffff;
@@ -35,7 +35,7 @@
 	--space-5: 20px;
 	--space-6: 24px;
 	--space-8: 32px;
-	--focus-ring: 0 0 0 3px rgb(213 79 53 / 0.2);
+	--focus-ring: 0 0 0 3px rgb(196 63 38 / 0.2);
 	--color-overlay: rgb(12 14 11 / 0.58);
 	--shadow-panel: 0 10px 32px rgb(25 30 21 / 0.08);
 

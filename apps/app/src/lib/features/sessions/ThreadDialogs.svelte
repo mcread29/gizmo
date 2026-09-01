@@ -52,7 +52,9 @@
 	onConfirm={() => sessions.confirmDelete()}
 >
 	<p>
-		<strong>{sessions.targetTitle}</strong> and its local transcript are removed permanently.
-		This cannot be undone.
+		<strong>{sessions.targetTitle}</strong> and its
+		{sessions.targetMessageCount}
+		{sessions.targetMessageCount === 1 ? 'message' : 'messages'} are removed permanently.
+		This cannot be undone. Your skills, workspaces, and other threads are not affected.
 	</p>
 </ConfirmDialog>

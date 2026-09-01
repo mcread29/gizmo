@@ -18,20 +18,19 @@ export interface ShortcutActions {
 export function handleShortcut(
 	event: KeyboardEvent,
 	actions: ShortcutActions,
-): boolean {
+): void {
 	if (event.key === 'Escape') {
 		actions.dismiss();
-		return false;
+		return;
 	}
 
 	const modifier = event.metaKey || event.ctrlKey;
-	if (!modifier || event.altKey) return false;
+	if (!modifier || event.altKey) return;
 
 	const action = shortcutFor(event.key.toLowerCase(), event.shiftKey);
-	if (!action) return false;
+	if (!action) return;
 	event.preventDefault();
 	actions[action]();
-	return true;
 }
 
 export function shortcutHint(key: string): string {

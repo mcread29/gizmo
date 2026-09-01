@@ -10,7 +10,7 @@ colors:
   border-strong: '#c9cec0'
   text: '#20231c'
   text-muted: '#6c7264'
-  accent: '#d54f35'
+  accent: '#c43f26'
   accent-hover: '#bd402a'
   accent-soft: '#f8e4de'
   on-accent: '#ffffff'
@@ -83,7 +83,7 @@ The default palette uses soft mineral neutrals and a sparing ember accent. All a
 
 ### Primary
 
-- **Workbench Ember** (`#d54f35`): Primary actions, active selections, links, and focus identity.
+- **Workbench Ember** (`#c43f26`): Primary actions, active selections, links, and focus identity. Darkened from `#d54f35` to clear 4.5:1 contrast on raised surfaces for normal-size text.
 - **Soft Ember** (`#f8e4de`): Low-emphasis selected and informational surfaces.
 
 ### Neutral

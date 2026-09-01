@@ -23,7 +23,7 @@
 	height: 30px;
 	place-items: center;
 	border: 1px solid var(--color-border);
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 	background: var(--color-surface-soft);
 	color: var(--color-text-muted);
 }
@@ -50,7 +50,7 @@
 [data-ui='message'][data-role='user'] [data-ui='message-body'] {
 	max-width: min(80%, 620px);
 	padding: 10px 14px 11px;
-	border-radius: 14px 14px 4px;
+	border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs);
 	background: var(--color-surface-soft);
 }
 

@@ -13,7 +13,11 @@
 	import { Button } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import ToolResult from './ToolResult.svelte';
-	import { formatToolResult, recordValue } from '@gizmo/design/format';
+	import {
+		formatToolResult,
+		recordValue,
+		stringValue,
+	} from '@gizmo/design/format';
 	import { toolIcon, toolLabel } from './tool-labels';
 	import { webExtensions as toolPresentationPlugins } from '../../extensions/registry.svelte';
 	import { toolSummary } from './tool-summary';
@@ -49,6 +53,20 @@
 		tool.status === 'running' ? tool.statusText : (summary ?? tool.statusText),
 	);
 	let errors = $derived(readArray(tool.result, 'errors'));
+	/** The failure, carried on the collapsed card so a crashed run does not
+	 * look calmer than it is; the full output stays one click away. */
+	let errorExcerpt = $derived.by(() => {
+		if (tool.status !== 'error') return undefined;
+		const first = errors[0];
+		const message =
+			typeof first === 'string'
+				? first
+				: (stringValue(recordValue(first, 'message')) ??
+					stringValue(recordValue(first, 'error')) ??
+					stringValue(recordValue(tool.result, 'error')));
+		if (!message) return undefined;
+		return message.length > 240 ? `${message.slice(0, 240)}…` : message;
+	});
 	let consoleEntriesKey = $derived(
 		toolPresentationPlugins()
 			.map((plugin) => plugin.consoleEntriesKey?.(tool.name))
@@ -135,6 +153,19 @@
 			<CircleX size={15} />
 		{/if}
 	</summary>
+
+	{#if errorExcerpt && !open}
+		<button
+			type="button"
+			data-ui="tool-error-inline"
+			onclick={() => {
+				pinned = true;
+				open = true;
+			}}
+		>
+			{errorExcerpt}
+		</button>
+	{/if}
 
 	{#if open}
 		<div data-ui="tool-content">

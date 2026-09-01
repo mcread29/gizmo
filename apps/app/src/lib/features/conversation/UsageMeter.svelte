@@ -18,7 +18,7 @@
 	>
 		<span
 			data-ui="usage-fill"
-			style={`width:${view.fraction !== undefined ? Math.min(100, view.fraction * 100) : 0}%`}
+			style={`transform:scaleX(${view.fraction !== undefined ? Math.min(1, view.fraction) : 0})`}
 		></span>
 	</span>
 	<small>

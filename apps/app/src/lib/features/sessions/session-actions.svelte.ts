@@ -33,6 +33,14 @@ export class SessionActions {
 		);
 	}
 
+	/** Message count of the deletion target, for a concrete confirm dialog. */
+	get targetMessageCount(): number {
+		return (
+			this.#store.sessions.find((session) => session.id === this.targetId)
+				?.messageCount ?? 0
+		);
+	}
+
 	constructor(store: AgentStore, agentName: string, toasts: ToastQueue) {
 		this.#store = store;
 		this.#agentName = agentName;

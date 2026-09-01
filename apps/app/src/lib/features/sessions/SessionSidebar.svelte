@@ -297,8 +297,8 @@
 									><MessageSquare size={15} />
 									{#if store.isSessionStreaming(session.id)}<span
 											data-ui="session-running"
-											aria-label="Agent working"
-										></span>{/if}</span
+										></span>
+										<span data-ui="sr-only">· agent working</span>{/if}</span
 								>
 								<span>
 									<strong>{threadTitle(session.title)}</strong>

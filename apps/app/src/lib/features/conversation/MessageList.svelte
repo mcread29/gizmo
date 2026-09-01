@@ -10,7 +10,6 @@
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel } from '../../components';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
-	import ConversationPlaceholder from './ConversationPlaceholder.svelte';
 	import { bottomTolerance, isAtBottom, scrollIntoEnd } from './follow';
 	import { dayKey, formatDay } from './message-groups';
 	import { createMessageRows } from './message-rows';
@@ -181,10 +180,6 @@
 
 <ScrollPanel name="messages" bind:viewport>
 	<div data-ui="message-list">
-		<ConversationPlaceholder
-			loading={store.messagesLoading}
-			empty={store.messages.length === 0}
-		/>
 		<div
 			data-ui="virtual-canvas"
 			style={`height:${$virtualizer.getTotalSize()}px`}

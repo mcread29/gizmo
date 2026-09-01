@@ -14,6 +14,7 @@
 	import PiExtensionWidgets from '../extension-ui/PiExtensionWidgets.svelte';
 	import PiExtensionQuestion from '../extension-ui/PiExtensionQuestion.svelte';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
+	import { workspaceNameFromPath } from '../../extensions/workspace-label';
 	import { findMatches, stepIndex } from './transcript-search';
 
 	interface Props {
@@ -58,6 +59,21 @@
 	let matches = $derived(findMatches(store.messages, query));
 	// The workspace overview is its own screen now; an empty thread is a thread.
 	let empty = $derived(!store.messagesLoading && store.messages.length === 0);
+	let workspaceLabel = $derived(
+		workspaceNameFromPath(store.selectedProjectPath),
+	);
+	// A persisted tool still marked running while no run is active means the
+	// transcript outlived an interrupted stream; say so instead of ending the
+	// thread mid-thought with no explanation.
+	let interrupted = $derived(
+		store.sessionState !== 'streaming' &&
+			!store.messagesLoading &&
+			store.messages.some(
+				(message) =>
+					message.role === 'assistant' &&
+					message.tools.some((tool) => tool.status === 'running'),
+			),
+	);
 	let editorCommand = $derived(extensionUi.editorCommandFor(store.sessionId));
 
 	// A shrinking result set must not leave the cursor past the end.
@@ -158,6 +174,14 @@
 
 	<ConversationError {store} />
 
+	{#if interrupted}
+		<!-- Not role=status: one-shot context, not a change to announce over
+			toasts and other live regions. -->
+		<div data-ui="interrupted-notice" role="note">
+			The previous run was interrupted before it finished.
+		</div>
+	{/if}
+
 	{#if store.messagesLoading}
 		<!-- A blank transcript would read as an empty thread, so say nothing. -->
 		<div data-ui="transcript-skeleton" aria-label="Loading thread">
@@ -172,7 +196,11 @@
 	{:else if empty}
 		<div data-ui="thread-empty">
 			<strong>New thread</strong>
-			<span>Ask about your workspace to start.</span>
+			{#if workspaceLabel}
+				<span>Ask about {workspaceLabel} to start.</span>
+			{:else}
+				<span>Ask about your workspace to start.</span>
+			{/if}
 		</div>
 	{:else}
 		<MessageList

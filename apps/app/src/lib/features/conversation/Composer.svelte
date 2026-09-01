@@ -110,6 +110,13 @@
 
 	function selectCommand(command = matchingCommands[selectedCommand]) {
 		if (!command) return;
+		if (command.source === 'extension' && command.name === 'reload') {
+			// Execute the local command instead of staging its text; the literal
+			// `/reload` send path shares this implementation.
+			drafts.clear(store.sessionId);
+			void reloadExtensions();
+			return;
+		}
 		drafts.set(store.sessionId, `/${command.name} `);
 		selectedCommand = 0;
 		commandMenuDismissed = true;
@@ -117,6 +124,17 @@
 			resizeComposer(element);
 			element?.focus();
 		});
+	}
+
+	/** One reload implementation, shared by the /reload command and the literal. */
+	async function reloadExtensions() {
+		const diagnostics = await store.reloadExtensions();
+		if (diagnostics.length > 0) {
+			console.warn(...diagnostics);
+			toasts.show('Extensions reloaded with warnings', 'warning');
+			return;
+		}
+		toasts.show('Extensions reloaded');
 	}
 
 	/* Streaming sends steer the run in flight rather than queueing a new turn. */
@@ -129,13 +147,7 @@
 		void tick().then(() => resizeComposer(element));
 
 		if (text.trim() === '/reload' && sentAttachments.length === 0) {
-			const diagnostics = await store.reloadExtensions();
-			if (diagnostics.length > 0) {
-				console.warn(...diagnostics);
-				toasts.show('Extensions reloaded with warnings', 'warning');
-				return;
-			}
-			toasts.show('Extensions reloaded');
+			await reloadExtensions();
 			return;
 		}
 

@@ -70,9 +70,10 @@ kbd {
 
 [data-ui='usage-fill'] {
 	display: block;
-	height: 100%;
+	width: 100%;
 	background: var(--color-text-faint);
-	transition: width 200ms ease;
+	transform-origin: left;
+	transition: transform 200ms ease;
 }
 
 [data-ui='usage-meter'][data-level='warn'] [data-ui='usage-fill'] {
@@ -100,7 +101,7 @@ kbd {
 	display: grid;
 	gap: var(--space-2);
 	border: 1px solid var(--color-border-strong);
-	border-radius: 13px;
+	border-radius: var(--radius-lg);
 	background: var(--color-surface-raised);
 	box-shadow: var(--shadow-panel);
 }

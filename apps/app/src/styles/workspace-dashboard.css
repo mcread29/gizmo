@@ -160,7 +160,7 @@
 
 [data-ui='workspace-fact'] > svg {
 	flex: 0 0 auto;
-	color: var(--color-accent);
+	color: var(--color-text-muted);
 }
 
 [data-ui='workspace-fact'] strong {
@@ -186,7 +186,7 @@
 }
 
 [data-ui='workspace-recent'] {
-	margin-top: var(--space-7);
+	margin-top: var(--space-8);
 }
 
 [data-ui='workspace-dashboard-section-heading'] {

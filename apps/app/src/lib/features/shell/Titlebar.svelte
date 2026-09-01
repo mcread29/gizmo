@@ -106,8 +106,13 @@
 		<div data-ui="titlebar-center" data-tauri-drag-region></div>
 	{:else}
 		<div data-ui="titlebar-center" data-tauri-drag-region>
-			<span data-ui="project-dot" data-state={store.connection}></span>
-			<span>{workspaceName}</span>
+			<span
+				data-ui="project-dot"
+				data-state={store.connection}
+				role="img"
+				aria-label={`Agent ${store.connection}`}
+			></span>
+			<span data-ui="titlebar-workspace">{workspaceName}</span>
 			{#if activity.streaming}
 				<StreamingIndicator {activity} compact />
 			{:else}

@@ -60,7 +60,9 @@
 	{#if store.compacting}
 		<span data-ui="compaction-status">Compacting context…</span>
 	{/if}
-	<Tooltip text="Compact context now">
+	<Tooltip
+		text="Compact context now — older history is summarized to free space"
+	>
 		{#snippet children(props)}
 			<Button
 				{...props}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { protocolVersion } from '@gizmo/protocol';
 	import { Button, ConfirmDialog } from '../../components';
+	import { shortcutHint } from '../shell/shortcuts';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
@@ -13,14 +14,15 @@
 	let confirmOpen = $state(false);
 
 	const shortcuts = [
-		['Command palette', 'Ctrl/⌘ K'],
-		['New thread', 'Ctrl/⌘ N'],
-		['Search threads', 'Ctrl/⌘ Shift K'],
-		['Focus composer', 'Ctrl/⌘ Shift L'],
-		['Toggle threads', 'Ctrl/⌘ B'],
-		['Toggle inspector', 'Ctrl/⌘ Shift B'],
-		['Session tree', 'Ctrl/⌘ Shift T'],
-		['Settings', 'Ctrl/⌘ ,'],
+		['Command palette', shortcutHint('K')],
+		['New thread', shortcutHint('N')],
+		['Search threads', shortcutHint('⇧K')],
+		['Find in thread', shortcutHint('F')],
+		['Focus composer', shortcutHint('⇧L')],
+		['Toggle threads', shortcutHint('B')],
+		['Toggle inspector', shortcutHint('⇧B')],
+		['Session tree', shortcutHint('⇧T')],
+		['Settings', shortcutHint(',')],
 	] as const;
 </script>
 

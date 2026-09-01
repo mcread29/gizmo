@@ -45,6 +45,28 @@
 	);
 }
 
+/* A failed call keeps its card and carries the error text on its face; the
+   full output is one click away. Two clamped lines beat a red X alone. */
+[data-ui='tool-error-inline'] {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+	width: 100%;
+	padding: 0 12px 9px;
+	border: 0;
+	background: none;
+	color: var(--color-danger);
+	font-size: var(--text-2xs);
+	line-height: 1.45;
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='tool-error-inline']:hover {
+	text-decoration: underline;
+}
+
 [data-ui='tool-header'] {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr) auto;
