@@ -44,15 +44,6 @@
 	padding: 42px var(--space-8) 0;
 }
 
-/*
- * Breathing room under the transcript is this element rather than padding on
- * the list: the scroll viewport will not scroll into trailing padding, which
- * leaves a gap that makes "am I at the bottom?" permanently false.
- */
-[data-ui='scroll-anchor'] {
-	height: 80px;
-}
-
 [data-ui='conversation-empty'] {
 	display: grid;
 	justify-items: center;

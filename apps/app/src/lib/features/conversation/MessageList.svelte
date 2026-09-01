@@ -5,13 +5,13 @@
 		observeElementRect,
 	} from '@tanstack/svelte-virtual';
 	import { ArrowDown } from '@lucide/svelte';
-	import { onDestroy, tick } from 'svelte';
+	import { tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel } from '../../components';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 	import ConversationPlaceholder from './ConversationPlaceholder.svelte';
-	import { isAtBottom, scrollIntoEnd } from './follow';
+	import { bottomTolerance, isAtBottom, scrollIntoEnd } from './follow';
 	import { dayKey, formatDay } from './message-groups';
 	import { createMessageRows } from './message-rows';
 	import MessageGroupView from './MessageGroup.svelte';
@@ -42,14 +42,12 @@
 		reveal = $bindable(),
 	}: Props = $props();
 
-	let scrollAnchor: HTMLDivElement | undefined;
 	let followOutput = $state(false);
 	let viewport = $state<HTMLElement | null>(null);
 	let knownCount = 0;
 	let knownSession: string | undefined;
 	let rowKeys: Array<string | number> = [];
 	let rowEstimates: number[] = [];
-	let followTimer: ReturnType<typeof setTimeout> | undefined;
 
 	let activity = $derived(
 		streamingActivity(
@@ -66,6 +64,7 @@
 		getItemKey: (index) => rowKeys[index] ?? index,
 		estimateSize: (index) => rowEstimates[index] ?? 220,
 		overscan: 2,
+		scrollEndThreshold: bottomTolerance,
 		initialRect: initialViewport,
 		observeElementRect: (instance, notify) =>
 			observeElementRect(instance, (rect) =>
@@ -74,23 +73,19 @@
 	});
 	let virtualItems = $derived($virtualizer.getVirtualItems());
 	let lastMessageId = $derived(store.messages.at(-1)?.id);
-	let streamRevision = $derived.by(() => {
-		const message = store.messages.at(-1);
-		const tool = message?.tools.at(-1);
-		return `${message?.id}:${message?.content.length}:${message?.reasoning?.length}:${message?.complete}:${tool?.id}:${tool?.status}:${tool?.statusText}`;
-	});
-
-	$effect(() => {
-		if (autoFollowOutput) followOutput = true;
-	});
 
 	$effect(() => {
 		const count = rows.length;
 		rowKeys = rows.map((row) => row.id);
 		rowEstimates = rows.map((row) => (row.kind === 'tool' ? 48 : 220));
+		const shouldFollow = autoFollowOutput && followOutput;
 		get(virtualizer).setOptions({
 			count,
 			getItemKey: (index) => rowKeys[index] ?? index,
+			// End anchoring follows measured growth without issuing a competing
+			// scroll command for every streamed token.
+			anchorTo: shouldFollow ? 'end' : 'start',
+			followOnAppend: shouldFollow,
 		});
 	});
 
@@ -102,7 +97,7 @@
 		knownSession = sessionId;
 		followOutput = true;
 		$virtualizer.measure();
-		$virtualizer.scrollToIndex(count - 1, { align: 'end' });
+		$virtualizer.scrollToEnd();
 	});
 
 	$effect(() => {
@@ -122,35 +117,15 @@
 		const count = store.messages.length;
 		if (count > knownCount && store.messages.at(-1)?.role === 'user') {
 			followOutput = autoFollowOutput;
+			if (autoFollowOutput) {
+				void tick().then(() => $virtualizer.scrollToEnd());
+			}
 		}
 		knownCount = count;
 	});
 
-	// Only the newest row can grow while streaming. Throttle token updates to a frame.
-	$effect(() => {
-		streamRevision;
-		if (!autoFollowOutput || !followOutput || followTimer !== undefined) return;
-		const count = rows.length;
-		followTimer = setTimeout(() => {
-			followTimer = undefined;
-			void tick().then(() => {
-				if (count) $virtualizer.scrollToIndex(count - 1, { align: 'end' });
-			});
-		}, 16);
-	});
-
-	onDestroy(() => clearTimeout(followTimer));
-
-	function captureScrollAnchor(node: HTMLDivElement) {
-		scrollAnchor = node;
-		return () => {
-			if (scrollAnchor === node) scrollAnchor = undefined;
-		};
-	}
-
 	function jumpToLatest() {
-		// The scroll listener re-engages following once the anchor is in view.
-		scrollIntoEnd(scrollAnchor, 'smooth');
+		$virtualizer.scrollToEnd({ behavior: 'smooth' });
 	}
 
 	reveal = async (id: string) => {
@@ -220,7 +195,6 @@
 				</div>
 			{/each}
 		</div>
-		<div data-ui="scroll-anchor" {@attach captureScrollAnchor}></div>
 	</div>
 </ScrollPanel>
 

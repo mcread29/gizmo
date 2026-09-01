@@ -50,6 +50,15 @@
 		group.messages.some((message) => Boolean(message.content)),
 	);
 	let lastMessageId = $derived(group.messages.at(-1)?.id);
+	let copyLabel = $derived(
+		group.role === 'user'
+			? copied
+				? 'Message copied'
+				: 'Copy message'
+			: copied
+				? 'Response copied'
+				: 'Copy response',
+	);
 
 	async function copyGroup() {
 		const content = groupContent(group);
@@ -76,18 +85,17 @@
 			<div data-ui="message-meta">
 				<strong>{group.role === 'user' ? 'You' : agentName}</strong>
 				<span>{formatMessageTime(group.createdAt)}</span>
-				{#if group.role === 'user'}
+				{#if hasContent}
 					<div data-ui="message-actions">
-						{#if hasContent}
-							<Button
-								variant="ghost"
-								size="sm"
-								aria-label="Copy message"
-								onclick={copyGroup}
-							>
-								{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy{/if}
-							</Button>
-						{/if}
+						<Button
+							variant="ghost"
+							size="icon"
+							aria-label={copyLabel}
+							title={copied ? 'Copied' : 'Copy'}
+							onclick={copyGroup}
+						>
+							{#if copied}<Check size={14} />{:else}<Copy size={14} />{/if}
+						</Button>
 					</div>
 				{/if}
 			</div>
@@ -139,19 +147,5 @@
 		{/each}
 
 		{#if activity}<StreamingIndicator {activity} />{/if}
-		{#if group.role === 'assistant' && hasContent}
-			<div data-ui="message-footer">
-				<div data-ui="message-actions">
-					<Button
-						variant="ghost"
-						size="sm"
-						aria-label="Copy response"
-						onclick={copyGroup}
-					>
-						{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy{/if}
-					</Button>
-				</div>
-			</div>
-		{/if}
 	</div>
 </article>

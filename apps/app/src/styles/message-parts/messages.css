@@ -213,13 +213,9 @@
 	transition: opacity 120ms ease;
 }
 
-[data-ui='message-footer'] {
-	display: flex;
-	justify-content: flex-end;
-}
-
-[data-ui='message-footer'] [data-ui='message-actions'] {
-	margin-left: 0;
+[data-ui='message-meta'] [data-ui='button'][data-size='icon'] {
+	width: 26px;
+	height: 26px;
 }
 
 [data-ui='virtual-message'] {

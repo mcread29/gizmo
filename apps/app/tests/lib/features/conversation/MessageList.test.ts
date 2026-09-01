@@ -28,6 +28,14 @@ describe('MessageList', () => {
 			container.querySelectorAll('[data-ui="message"]').length,
 		).toBeLessThan(20);
 		expect(await findByText('Message 99')).toBeInTheDocument();
+
+		const canvas = container.querySelector<HTMLElement>(
+			'[data-ui="virtual-canvas"]',
+		);
+		expect(canvas?.style.height).toBe('22000px');
+		expect(
+			container.querySelector('[data-ui="scroll-anchor"]'),
+		).not.toBeInTheDocument();
 	});
 });
 
