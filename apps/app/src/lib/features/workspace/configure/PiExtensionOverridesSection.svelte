@@ -2,7 +2,7 @@
 	import { Switch } from 'bits-ui';
 	import type { ProjectConfig } from '@gizmo/protocol';
 	import type { AgentStore } from '../../../agent-client';
-	import { Button } from '../../../components';
+	import { Button, ResourceNote } from '../../../components';
 	import ConfigureSectionHeading from './ConfigureSectionHeading.svelte';
 	import type { ReapplyProjectConfig } from './types';
 
@@ -49,7 +49,7 @@
 />
 <div data-ui="settings-card">
 	{#if extensions.length === 0}
-		<p data-ui="resource-empty">No global Pi extensions found.</p>
+		<ResourceNote>No global Pi extensions found.</ResourceNote>
 	{:else}
 		<div data-ui="integration-list" data-layout="workspace-setup">
 			{#each extensions as extension (extension.id)}

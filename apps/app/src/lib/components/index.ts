@@ -1,6 +1,7 @@
 export { applyOrder, dropEdge, reorderByDrop } from '@gizmo/ui';
 export type { DropEdge } from '@gizmo/ui';
 export { default as BrandMark } from './BrandMark.svelte';
+export { default as ResourceNote } from './ResourceNote.svelte';
 export { default as SwitchField } from './SwitchField.svelte';
 
 // Workbench primitives shared with first-party extension packages now live in

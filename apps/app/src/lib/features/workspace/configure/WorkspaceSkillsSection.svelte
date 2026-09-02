@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { AgentStore } from '../../../agent-client';
+	import { ResourceNote } from '../../../components';
 	import SkillList from '../../settings/SkillList.svelte';
 	import ConfigureSectionHeading from './ConfigureSectionHeading.svelte';
 	import type { ReapplyProjectConfig } from './types';
@@ -45,7 +46,7 @@
 	description={`${activeSkills} of ${installedSkills.length} on. Each skill uses your global setting until you change it here.`}
 />
 {#if store.resourceError}
-	<p data-ui="resource-error">{store.resourceError}</p>
+	<ResourceNote tone="error">{store.resourceError}</ResourceNote>
 {/if}
 {#if projectSkills.length > 0}
 	<p data-ui="config-skill-group">
@@ -77,6 +78,6 @@
 {/if}
 {#if installedSkills.length === 0 && !store.resourcesLoading}
 	<div data-ui="settings-card">
-		<p data-ui="resource-empty">No skills are installed.</p>
+		<ResourceNote>No skills are installed.</ResourceNote>
 	</div>
 {/if}

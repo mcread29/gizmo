@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { FolderOpen, Plus } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, ScrollPanel, Tabs } from '../../components';
+	import { Button, ResourceNote, ScrollPanel, Tabs } from '../../components';
 	import type { WorkspaceTab } from '../../router.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import WorkspaceConfigurePanel from './WorkspaceConfigurePanel.svelte';
@@ -38,16 +38,15 @@
 		{ value: 'configure', label: 'Configure' },
 	];
 
-	// Tabs owns its selection, so the route is mirrored in and reported out.
-	let active = $state<string>('overview');
-
-	$effect(() => {
-		active = tab;
-	});
-
-	$effect(() => {
-		if (active !== tab) onSelectTab(active as WorkspaceTab);
-	});
+	/*
+	 * The route is the selection. Tabs is driven from it directly rather than
+	 * kept in a second copy: mirroring the prop into local state meant one effect
+	 * writing in and another writing out, with an equality check as the only
+	 * thing standing between them and a loop.
+	 */
+	function selectTab(value: string) {
+		if (value !== tab) onSelectTab(value as WorkspaceTab);
+	}
 </script>
 
 <main
@@ -77,9 +76,9 @@
 	</div>
 
 	{#if !project}
-		<p data-ui="resource-empty">This workspace is no longer available.</p>
+		<ResourceNote>This workspace is no longer available.</ResourceNote>
 	{:else}
-		<Tabs variant="folder" items={tabs} bind:value={active}>
+		<Tabs variant="folder" items={tabs} value={tab} onValueChange={selectTab}>
 			{#snippet children(value)}
 				<ScrollPanel name={`workspace-${value}`}>
 					<div data-ui="workspace-screen-body">
@@ -96,7 +95,7 @@
 								workspacePath={project.path}
 								{onOpenThread}
 								onNewThread={() => onNewThread(project.path)}
-								onConfigure={() => (active = 'configure')}
+								onConfigure={() => selectTab('configure')}
 							/>
 						{/if}
 					</div>

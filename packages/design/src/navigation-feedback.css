@@ -29,7 +29,7 @@
 	border-radius: 6px;
 	background: transparent;
 	color: var(--color-text-muted);
-	font: 600 var(--text-xs)/1 var(--font-sans);
+	font: var(--weight-semibold) var(--text-xs)/1 var(--font-sans);
 }
 
 [data-ui='tabs-trigger'][draggable='true'] {
@@ -130,7 +130,7 @@
 [data-ui='toast'] {
 	display: grid;
 	pointer-events: auto;
-	animation: toast-in 160ms ease;
+	animation: toast-in var(--duration-base) var(--ease-standard);
 	grid-template-columns: auto 1fr auto;
 	align-items: center;
 	gap: var(--space-3);
@@ -159,7 +159,7 @@
 
 [data-ui='toast'] > span:nth-child(2) {
 	font-size: var(--text-sm);
-	line-height: 1.4;
+	line-height: var(--leading-snug);
 	overflow-wrap: anywhere;
 }
 

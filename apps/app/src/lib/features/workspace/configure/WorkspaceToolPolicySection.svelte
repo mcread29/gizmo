@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentStore } from '../../../agent-client';
-	import { Button } from '../../../components';
+	import { Button, ResourceNote } from '../../../components';
 
 	interface Props {
 		store: AgentStore;
@@ -42,12 +42,12 @@
 </div>
 <div data-ui="settings-card">
 	{#if store.toolPolicyError}
-		<p data-ui="resource-error">{store.toolPolicyError}</p>
+		<ResourceNote tone="error">{store.toolPolicyError}</ResourceNote>
 	{/if}
 	{#if !policy}
-		<p data-ui="resource-empty">
+		<ResourceNote>
 			{store.toolPolicyLoading ? 'Loading…' : 'Tool policy unavailable.'}
-		</p>
+		</ResourceNote>
 	{:else}
 		<div data-ui="setting-field">
 			<div>
@@ -65,9 +65,9 @@
 			{/if}
 		</div>
 		{#if policy.project && !policy.projectApplied}
-			<p data-ui="resource-error">
+			<ResourceNote tone="error">
 				This workspace is not trusted, so Pi ignores this override.
-			</p>
+			</ResourceNote>
 		{/if}
 		{#if policy.project}
 			<div data-ui="integration-list">

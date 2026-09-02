@@ -12,6 +12,7 @@
 	import type { AgentStore } from '../../agent-client';
 	import { ScrollPanel } from '../../components';
 	import type { SettingsPage as SettingsPageName } from '../../router.svelte';
+	import { focusOnOpen } from '../shell/modal-screen';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import AboutSettings from './AboutSettings.svelte';
 	import AppearanceSettings from './AppearanceSettings.svelte';
@@ -67,6 +68,15 @@
 		leave(() => onSelectPage(next));
 	const openWorkspace = () => leave(onOpenWorkspace);
 
+	const resourcePages = [
+		{ page: 'agent', label: 'Instructions & tools' },
+		{ page: 'skills', label: 'Skills' },
+		{ page: 'extensions', label: 'Extensions' },
+	] as const satisfies ReadonlyArray<{
+		page: SettingsPageName;
+		label: string;
+	}>;
+
 	let groups = $derived([
 		{
 			title: 'This device',
@@ -94,10 +104,21 @@
 </script>
 
 {#if open}
-	<section data-ui="settings-screen" aria-label="Settings">
-		<header data-ui="settings-screen-header">
-			<h1>Settings</h1>
-		</header>
+	<div
+		data-ui="settings-screen"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="settings-screen-title"
+		tabindex="-1"
+		{@attach focusOnOpen}
+	>
+		<!--
+			No visible "Settings" band: the titlebar already shows you left the
+			workspace, the nav shows which page you are on, and the page's own
+			heading names it — a third copy only cost vertical space. The heading
+			stays as the screen's accessible name.
+		-->
+		<h1 id="settings-screen-title" data-ui="sr-only">Settings</h1>
 
 		<div data-ui="settings-body">
 			<div data-ui="settings-sidebar">
@@ -112,22 +133,23 @@
 			{#snippet settingsContent()}
 				<div data-ui="settings-content" data-page={page}>
 					{#if page === 'agent' || page === 'skills' || page === 'extensions'}
+						<!--
+							aria-current, not aria-pressed: these switch the page rather than
+							toggle a setting, and data-state alone is invisible to assistive
+							technology.
+						-->
 						<nav data-ui="segmented" aria-label="Agent resources">
-							<button
-								data-ui="segmented-option"
-								data-state={page === 'agent' ? 'active' : 'inactive'}
-								onclick={() => selectPage('agent')}>Instructions & tools</button
-							>
-							<button
-								data-ui="segmented-option"
-								data-state={page === 'skills' ? 'active' : 'inactive'}
-								onclick={() => selectPage('skills')}>Skills</button
-							>
-							<button
-								data-ui="segmented-option"
-								data-state={page === 'extensions' ? 'active' : 'inactive'}
-								onclick={() => selectPage('extensions')}>Extensions</button
-							>
+							{#each resourcePages as resourcePage (resourcePage.page)}
+								<button
+									data-ui="segmented-option"
+									data-state={page === resourcePage.page
+										? 'active'
+										: 'inactive'}
+									aria-current={page === resourcePage.page ? 'page' : undefined}
+									onclick={() => selectPage(resourcePage.page)}
+									>{resourcePage.label}</button
+								>
+							{/each}
 						</nav>
 					{/if}
 					{#if page === 'appearance'}
@@ -162,5 +184,5 @@
 				</ScrollPanel>
 			{/if}
 		</div>
-	</section>
+	</div>
 {/if}

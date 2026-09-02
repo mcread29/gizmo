@@ -8,10 +8,17 @@
 	--right-column: var(--inspector-width, 288px);
 	position: relative;
 	display: grid;
+	/*
+	 * The side columns are wrapped in minmax(0, …) rather than left as bare
+	 * lengths so they can give way under pressure — same as the conversation
+	 * track — instead of overflowing the shell and getting sliced off by its
+	 * overflow: hidden when a docked panel's width briefly exceeds the room
+	 * the viewport actually has for it.
+	 */
 	grid-template:
 		'titlebar titlebar titlebar' var(--titlebar-height)
 		'sidebar conversation inspector' minmax(0, 1fr) /
-		var(--left-column) minmax(0, 1fr) var(--right-column);
+		minmax(0, var(--left-column)) minmax(0, 1fr) minmax(0, var(--right-column));
 	width: 100%;
 	height: 100dvh;
 	max-height: 100dvh;

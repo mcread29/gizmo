@@ -15,6 +15,7 @@
 	} = $props();
 
 	let open = $state(true);
+	let activeOptionIndex = $state(-1);
 	let submitted = false;
 	let request = $derived(dialog.request);
 	let busy = $derived(ui.responding.has(dialog.uiRequestId));
@@ -91,8 +92,9 @@
 				<button
 					type="button"
 					role="option"
-					aria-selected="false"
+					aria-selected={index === activeOptionIndex}
 					disabled={busy}
+					onfocus={() => (activeOptionIndex = index)}
 					onkeydown={moveSelection}
 					onclick={() => void respond({ kind: 'value', value: option })}
 				>

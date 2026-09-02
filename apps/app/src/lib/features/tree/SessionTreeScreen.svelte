@@ -5,13 +5,12 @@
 		Bookmark,
 		ChevronDown,
 		ChevronRight,
-		Copy,
-		CornerUpLeft,
-		Pencil,
 	} from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel, SelectField } from '../../components';
 	import { toasts } from '../../toasts.svelte';
+	import SessionTreeActions from './SessionTreeActions.svelte';
+	import { focusOnOpen } from '../shell/modal-screen';
 	import {
 		treeFilterLabels,
 		treeFilters,
@@ -116,13 +115,20 @@
 </script>
 
 {#if open}
-	<section data-ui="tree-screen" aria-label="Session tree">
+	<div
+		data-ui="tree-screen"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="tree-screen-title"
+		tabindex="-1"
+		{@attach focusOnOpen}
+	>
 		<header data-ui="tree-header">
 			<button data-ui="settings-back" onclick={onClose}>
 				<ArrowLeft size={15} />
 				<span>Back</span>
 			</button>
-			<h1>Session tree</h1>
+			<h1 id="tree-screen-title">Session tree</h1>
 			<span>
 				Every turn this thread has taken, including the branches it walked away
 				from. Nothing here is ever deleted.
@@ -204,52 +210,21 @@
 			</div>
 		</ScrollPanel>
 
-		<footer data-ui="tree-actions">
-			{#if branchCount}
-				<span data-ui="tree-count"
-					>{branchCount} branch point{branchCount === 1 ? '' : 's'}</span
-				>
-			{/if}
-			{#if selected}
-				<Button
-					variant="secondary"
-					size="sm"
-					onclick={() =>
-						(labelling = { id: selected.id, text: selected.label ?? '' })}
-					><Bookmark size={13} /> Label</Button
-				>
-				{#if selected.detail}
-					<Button
-						variant="secondary"
-						size="sm"
-						onclick={() => void copyEntry(selected.detail ?? '')}
-						><Copy size={13} /> Copy</Button
-					>
-				{/if}
-				{#if selected.kind === 'user'}
-					<Button
-						variant="secondary"
-						size="sm"
-						disabled={store.sessionState === 'streaming'}
-						onclick={() =>
-							(editing = {
-								id: selected.id,
-								parentId: selected.parentId,
-								text: selected.detail ?? selected.summary,
-							})}><Pencil size={13} /> Edit and re-run</Button
-					>
-				{/if}
-				<Button
-					variant="primary"
-					size="sm"
-					disabled={store.sessionState === 'streaming'}
-					onclick={() => void goHere(selected.id)}
-					><CornerUpLeft size={13} /> Continue from here</Button
-				>
-			{:else}
-				<span data-ui="tree-count">Select an entry to act on it.</span>
-			{/if}
-		</footer>
+		<SessionTreeActions
+			{selected}
+			{branchCount}
+			streaming={store.sessionState === 'streaming'}
+			onLabel={(entry) =>
+				(labelling = { id: entry.id, text: entry.label ?? '' })}
+			onCopy={(detail) => void copyEntry(detail)}
+			onEdit={(entry) =>
+				(editing = {
+					id: entry.id,
+					parentId: entry.parentId,
+					text: entry.detail ?? entry.summary,
+				})}
+			onContinue={(entryId) => void goHere(entryId)}
+		/>
 
 		{#if editing}
 			<div data-ui="tree-editor">
@@ -293,5 +268,5 @@
 				</div>
 			</div>
 		{/if}
-	</section>
+	</div>
 {/if}

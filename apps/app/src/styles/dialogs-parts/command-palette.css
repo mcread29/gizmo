@@ -109,17 +109,6 @@
 	border-radius: var(--radius-lg);
 }
 
-[data-ui='integration-detection'] {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	padding: var(--space-2) var(--space-3);
-	border-radius: var(--radius-md);
-	background: var(--color-accent-soft);
-	color: var(--color-accent);
-	font-size: var(--text-xs);
-}
-
 [data-ui='native-folder-picker'] {
 	display: grid;
 	place-items: center;
@@ -130,83 +119,10 @@
 	text-align: center;
 }
 
-@media (max-width: 700px) {
-	[data-ui='workspace-grid'] {
-		grid-template-columns: 1fr;
-	}
-
-	[data-ui='workspace-open'] {
-		display: grid;
-	}
-}
-
-[data-ui='project-manager'] {
-	display: grid;
-	gap: var(--space-3);
-}
-
-[data-ui='workspace-setup'] {
-	display: grid;
-	gap: var(--space-4);
-}
-
-[data-ui='workspace-setup-path'] {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	padding: var(--space-3);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
-	background: var(--color-surface-soft);
-	color: var(--color-text-muted);
-}
-
-[data-ui='workspace-setup-path'] span {
-	overflow: hidden;
-	font: var(--text-xs) / 1.4 var(--font-mono);
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-[data-ui='project-manager-actions'] {
-	display: flex;
-	justify-content: flex-end;
-}
-
-[data-ui='managed-project-list'] {
-	display: grid;
-	gap: var(--space-2);
-}
-
-[data-ui='managed-project'] {
-	display: grid;
-	gap: var(--space-2);
-	padding: var(--space-3);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
-	background: var(--color-surface);
-}
-
-[data-ui='managed-project-heading'] {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) auto;
-	align-items: center;
-	gap: var(--space-3);
-}
-
-[data-ui='managed-project-heading'] > span,
 [data-ui='integration-row'] > span {
 	display: grid;
 	min-width: 0;
 	gap: 2px;
-}
-
-[data-ui='managed-project'] small {
-	overflow: hidden;
-	color: var(--color-text-muted);
-	font: var(--text-2xs) / 1.35 var(--font-mono);
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 [data-ui='integration-list'] {

@@ -67,6 +67,12 @@
 		input?.focus();
 	}
 
+	function highlightedPath(): string {
+		return selectedValue.startsWith('pin:')
+			? selectedValue.slice(4)
+			: selectedValue;
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter' && location) {
 			event.preventDefault();
@@ -75,12 +81,20 @@
 			return;
 		}
 		if (event.key === 'Tab') {
-			const path = selectedValue.startsWith('pin:')
-				? selectedValue.slice(4)
-				: selectedValue;
+			const path = highlightedPath();
 			if (path) {
 				event.preventDefault();
 				jumpTo(path);
+			}
+			return;
+		}
+		// Alt, not a bare "p": this handler is bound to the search input, so an
+		// unmodified letter would toggle a pin instead of typing a path.
+		if ((event.key === 'p' || event.key === 'P') && event.altKey) {
+			const path = highlightedPath();
+			if (path) {
+				event.preventDefault();
+				pins.toggle(path);
 			}
 			return;
 		}

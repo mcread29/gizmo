@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { GitBranch, Link2, RefreshCw, Trash2 } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
-	import { Button } from '../../components';
+	import { Button, ResourceNote } from '../../components';
 
 	let { store }: { store: AgentStore } = $props();
 
@@ -24,14 +24,14 @@
 
 {#if store.registryBusy && registries.length === 0}
 	<div data-ui="settings-card">
-		<p data-ui="resource-empty">Loading…</p>
+		<ResourceNote>Loading…</ResourceNote>
 	</div>
 {:else if registries.length === 0}
 	<div data-ui="settings-card">
-		<p data-ui="resource-empty">
+		<ResourceNote>
 			No registries added yet. Gizmo ships without extensions — add one above to
 			install tools and their UI.
-		</p>
+		</ResourceNote>
 	</div>
 {/if}
 
@@ -86,11 +86,11 @@
 					</Button>
 				</div>
 			{:else}
-				<p data-ui="resource-empty">
+				<ResourceNote>
 					{registry.extensions.length === 0
 						? 'No extensions in this registry.'
 						: 'Everything in this registry is already installed — manage it above.'}
-				</p>
+				</ResourceNote>
 			{/each}
 		</div>
 	</div>

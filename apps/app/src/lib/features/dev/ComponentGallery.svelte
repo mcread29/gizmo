@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { MoreHorizontal, Palette, Trash2 } from '@lucide/svelte';
-	import { ToastQueue } from '../toasts.svelte';
+	import { ToastQueue } from '../../toasts.svelte';
 	import {
 		Button,
 		ConfirmDialog,
@@ -12,7 +12,7 @@
 		Tabs,
 		Toast,
 		Tooltip,
-	} from './index';
+	} from '../../components';
 
 	let open = $state(false);
 	let confirmOpen = $state(false);

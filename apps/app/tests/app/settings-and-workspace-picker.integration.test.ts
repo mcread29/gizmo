@@ -12,7 +12,7 @@ describe('device settings and workspace picker', () => {
 		await fireEvent.click(getByRole('button', { name: 'Settings' }));
 
 		expect(
-			await findByRole('region', { name: 'Settings' }),
+			await findByRole('dialog', { name: 'Settings' }),
 		).toBeInTheDocument();
 		// Settings opens on Appearance.
 		const scheme = getByRole('button', { name: 'Color scheme' });
@@ -61,7 +61,7 @@ describe('device settings and workspace picker', () => {
 	it('tracks the system appearance when asked to', async () => {
 		const { findByRole, getByRole } = renderApp();
 		await fireEvent.click(getByRole('button', { name: 'Settings' }));
-		await findByRole('region', { name: 'Settings' });
+		await findByRole('dialog', { name: 'Settings' });
 
 		await fireEvent.click(getByRole('button', { name: 'System' }));
 

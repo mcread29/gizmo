@@ -62,7 +62,14 @@ describe('workspace navigation', () => {
 			const rendering = rows.find((row) =>
 				row.textContent?.includes('RenderingPlayground'),
 			);
-			expect(rendering?.textContent).toContain('1 thread');
+			// A lone thread shows the workspace path instead of a "1 thread"
+			// caption, so the thread itself is what proves where it landed.
+			expect(rendering?.textContent).toContain('/projects/');
+			const threads = rendering?.nextElementSibling;
+			expect(threads?.getAttribute('data-ui')).toBe('workspace-threads');
+			expect(
+				threads?.querySelectorAll('[data-ui="session-item"]'),
+			).toHaveLength(1);
 		});
 	});
 

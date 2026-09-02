@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentStore } from '../../agent-client';
-	import { Button } from '../../components';
+	import { Button, ResourceNote } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
@@ -49,7 +49,7 @@
 
 	<div data-ui="settings-card">
 		{#if !store.providersLoading && store.providers.length === 0}
-			<p data-ui="resource-empty">No providers found.</p>
+			<ResourceNote>No providers found.</ResourceNote>
 		{:else}
 			{#each store.providers as provider (provider.id)}
 				<div data-ui="setting-field">

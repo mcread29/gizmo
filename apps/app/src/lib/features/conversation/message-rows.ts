@@ -29,6 +29,33 @@ export function createMessageRows(
 	});
 }
 
+/** Rough transcript metrics, used only to place rows before they are measured. */
+const charactersPerLine = 88;
+const lineHeight = 23;
+/** Avatar row, heading and the gap that follows a group. */
+const rowChrome = 64;
+/** A collapsed tool card is a single summary line. */
+const toolRowHeight = 52;
+/**
+ * Long messages measure many times taller than short ones, so a single constant
+ * estimate leaves the virtualizer's placement wrong by thousands of pixels on a
+ * long transcript — enough that scrolling to the end lands on blank space.
+ * Estimating from content keeps the first paint close enough that the real
+ * measurements only nudge it.
+ */
+export function estimateRowHeight(row: MessageRow): number {
+	if (row.kind === 'tool') return toolRowHeight;
+	const message = row.messages[0];
+	if (!message) return rowChrome + lineHeight;
+	const characters =
+		(message.content?.length ?? 0) + (message.reasoning?.length ?? 0);
+	const attachments = (message.attachments?.length ?? 0) * 60;
+	const lines = Math.ceil(characters / charactersPerLine) || 1;
+	// Capped: a pathological paste should not hand the virtualizer a scroll
+	// height that dwarfs everything measured around it.
+	return Math.min(6000, rowChrome + lines * lineHeight + attachments);
+}
+
 function splitMessage(message: ConversationMessage) {
 	const rows: Array<{
 		message: ConversationMessage;

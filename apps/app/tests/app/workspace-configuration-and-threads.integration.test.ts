@@ -178,7 +178,7 @@ describe('workspace configuration and thread sidebar', () => {
 		await fireEvent.click(treeButton);
 
 		expect(
-			await findByRole('region', { name: 'Session tree' }),
+			await findByRole('dialog', { name: 'Session tree' }),
 		).toBeInTheDocument();
 		expect(
 			getByText(/including the branches it walked away from/),

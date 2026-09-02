@@ -1,9 +1,3 @@
-[data-ui='skill-toolbar'] {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-}
-
 [data-ui='search-field'] {
 	display: flex;
 	flex: 1;

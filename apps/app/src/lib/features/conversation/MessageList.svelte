@@ -5,14 +5,14 @@
 		observeElementRect,
 	} from '@tanstack/svelte-virtual';
 	import { ArrowDown } from '@lucide/svelte';
-	import { tick } from 'svelte';
+	import { onDestroy, tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel } from '../../components';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 	import { bottomTolerance, isAtBottom, scrollIntoEnd } from './follow';
 	import { dayKey, formatDay } from './message-groups';
-	import { createMessageRows } from './message-rows';
+	import { createMessageRows, estimateRowHeight } from './message-rows';
 	import MessageGroupView from './MessageGroup.svelte';
 	import { streamingActivity } from './streaming';
 
@@ -47,6 +47,10 @@
 	let knownSession: string | undefined;
 	let rowKeys: Array<string | number> = [];
 	let rowEstimates: number[] = [];
+	let settleFrame: number | undefined;
+	/** Consecutive unchanged frames that count as "the transcript has settled". */
+	const settleFrames = 8;
+	const settleTimeout = 4_000;
 
 	let activity = $derived(
 		streamingActivity(
@@ -89,7 +93,7 @@
 	$effect(() => {
 		const count = rows.length;
 		rowKeys = rows.map((row) => row.id);
-		rowEstimates = rows.map((row) => (row.kind === 'tool' ? 48 : 220));
+		rowEstimates = rows.map(estimateRowHeight);
 		const shouldFollow = autoFollowOutput && followOutput;
 		get(virtualizer).setOptions({
 			count,
@@ -101,6 +105,56 @@
 		});
 	});
 
+	/**
+	 * Rows are measured only after they mount, so the total size keeps growing
+	 * for several frames after a thread opens. A single scrollToEnd() is issued
+	 * against estimates and the newest message then drifts out of view, leaving
+	 * the transcript on blank space. Re-pin until the size stops moving.
+	 */
+	function pinToEnd() {
+		cancelSettle();
+		let previousSize = -1;
+		let previousCount = -1;
+		let stable = 0;
+		// Switching threads replays the whole transcript, which arrives over many
+		// frames, so the settle has to outlast the load rather than a fixed
+		// handful of frames. It still gives up rather than spinning forever.
+		const deadline = Date.now() + settleTimeout;
+		const step = () => {
+			settleFrame = undefined;
+			const node = viewport;
+			if (!node) return;
+			const instance = get(virtualizer);
+			const size = instance.getTotalSize();
+			const count = rows.length;
+			instance.scrollToEnd();
+			stable =
+				size === previousSize && count === previousCount ? stable + 1 : 0;
+			previousSize = size;
+			previousCount = count;
+			if (stable >= settleFrames || Date.now() > deadline) {
+				followOutput = isAtBottom(node);
+				return;
+			}
+			settleFrame = requestAnimationFrame(step);
+		};
+		settleFrame = requestAnimationFrame(step);
+	}
+
+	function cancelSettle() {
+		if (settleFrame !== undefined) cancelAnimationFrame(settleFrame);
+		settleFrame = undefined;
+	}
+
+	/** Reaching for the transcript hands control back immediately. */
+	function releaseOnInput() {
+		if (settleFrame === undefined) return;
+		cancelSettle();
+		if (viewport) followOutput = isAtBottom(viewport);
+	}
+
+	onDestroy(cancelSettle);
+
 	// A thread opens at its newest message, not wherever the previous one sat.
 	$effect(() => {
 		const sessionId = store.sessionId;
@@ -110,6 +164,7 @@
 		followOutput = true;
 		$virtualizer.measure();
 		$virtualizer.scrollToEnd();
+		pinToEnd();
 	});
 
 	$effect(() => {
@@ -120,8 +175,14 @@
 			followOutput = isAtBottom(node);
 		};
 		node.addEventListener('scroll', update, { passive: true });
+		node.addEventListener('wheel', releaseOnInput, { passive: true });
+		node.addEventListener('touchstart', releaseOnInput, { passive: true });
 		update();
-		return () => node.removeEventListener('scroll', update);
+		return () => {
+			node.removeEventListener('scroll', update);
+			node.removeEventListener('wheel', releaseOnInput);
+			node.removeEventListener('touchstart', releaseOnInput);
+		};
 	});
 
 	// Sending re-engages following even if the user had scrolled up to read.

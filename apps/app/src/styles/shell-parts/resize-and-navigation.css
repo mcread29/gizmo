@@ -84,30 +84,12 @@ body[data-resizing='sidebar'] {
 	position: fixed;
 	inset: var(--titlebar-height) 0 0;
 	z-index: 40;
+	/* One row: the screen's heading is for screen readers only, so the nav and
+	   the page share the full height rather than sitting under a title band. */
 	display: grid;
-	grid-template-rows: auto minmax(0, 1fr);
+	grid-template-rows: minmax(0, 1fr);
 	background: var(--color-canvas);
 }
-
-[data-ui='settings-screen-header'] {
-	padding: var(--space-5) var(--space-6) var(--space-4);
-	border-bottom: 1px solid var(--color-border);
-}
-
-[data-ui='settings-screen-header'] h1 {
-	margin: 0;
-	font-size: var(--text-xl);
-}
-
-[data-ui='settings-screen-header'] > span {
-	color: var(--color-text-muted);
-	font-size: var(--text-xs);
-}
-
-[data-ui='settings-screen-header'] > span {
-	display: flex;
-}
-
 /* The session tree is a screen for the same reason Settings is. */
 [data-ui='tree-screen'] {
 	position: fixed;

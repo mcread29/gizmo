@@ -3,29 +3,19 @@
 		ChevronRight,
 		FolderPlus,
 		FolderOpen,
-		MessageSquare,
 		Plus,
 		Search,
 		Settings2,
 	} from '@lucide/svelte';
 	import type { StoredProject } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
-	import {
-		Button,
-		ScrollPanel,
-		Tooltip,
-		dropEdge,
-		reorderByDrop,
-		type DropEdge,
-	} from '../../components';
-	import ComponentGallery from '../../components/ComponentGallery.svelte';
+	import { Button, ScrollPanel, Tooltip } from '../../components';
+	import ComponentGallery from '../dev/ComponentGallery.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
-	import {
-		formatSessionTime,
-		matchesQuery,
-		threadTitle,
-	} from './session-groups';
+	import SessionRow from './SessionRow.svelte';
+	import { matchesQuery } from './session-groups';
+	import { WorkspaceReorder } from './sidebar-reorder.svelte';
 
 	interface Props {
 		store: AgentStore;
@@ -73,12 +63,22 @@
 		),
 	);
 
-	function threadsOf(project: StoredProject) {
-		return matches.filter(
-			(session) =>
-				(session.workspacePath ?? session.projectPath) === project.path,
-		);
-	}
+	/*
+	 * Bucketed once per change rather than filtered inside the workspace loop:
+	 * a filter per project walked every session again, so the sidebar did
+	 * projects x sessions work on every keystroke.
+	 */
+	let threadsByPath = $derived.by(() => {
+		const buckets = new Map<string, typeof matches>();
+		for (const session of matches) {
+			const path = session.workspacePath ?? session.projectPath;
+			if (!path) continue;
+			const bucket = buckets.get(path);
+			if (bucket) bucket.push(session);
+			else buckets.set(path, [session]);
+		}
+		return buckets;
+	});
 
 	/**
 	 * Exactly one thing is selected: a workspace screen or a thread. Both
@@ -99,41 +99,19 @@
 
 	// Drag a workspace row to reorder. The order is saved on the agent so
 	// every client sees the same sidebar.
-	let draggingPath = $state<string>();
-	let drop = $state<{ path: string; edge: DropEdge }>();
+	const reorder = new WorkspaceReorder(
+		() => store.projects.map(({ path }) => path),
+		(next) => void store.reorderProjects(next),
+	);
 
-	function dragStart(event: DragEvent, project: StoredProject) {
-		draggingPath = project.path;
-		event.dataTransfer?.setData('text/plain', project.path);
-		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
-	}
-
-	function dragOver(event: DragEvent, project: StoredProject) {
-		if (!draggingPath || draggingPath === project.path) return;
-		event.preventDefault();
-		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-		drop = {
-			path: project.path,
-			edge: dropEdge(event, event.currentTarget as Element, 'y'),
-		};
-	}
-
-	function finishDrop(event: DragEvent) {
-		event.preventDefault();
-		if (draggingPath && drop) {
-			const paths = store.projects.map(({ path }) => path);
-			const next = reorderByDrop(
-				paths,
-				paths.indexOf(draggingPath),
-				paths.indexOf(drop.path),
-				drop.edge,
-			);
-			if (next.some((path, index) => path !== paths[index])) {
-				void store.reorderProjects(next);
-			}
+	/** Alt+Arrow is the keyboard equivalent of dragging a workspace row. */
+	function reorderKeys(event: KeyboardEvent, project: StoredProject) {
+		if (!event.altKey) return;
+		const direction =
+			event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : undefined;
+		if (direction && reorder.move(project.path, direction)) {
+			event.preventDefault();
 		}
-		draggingPath = undefined;
-		drop = undefined;
 	}
 </script>
 
@@ -186,24 +164,25 @@
 			{/if}
 
 			{#each store.projects as project (project.path)}
-				{@const threads = threadsOf(project)}
+				{@const threads = threadsByPath.get(project.path) ?? []}
 				{@const open = isOpen(project)}
 				<div
 					data-ui="workspace-row"
 					data-active={(workspaceSelected &&
 						project.path === openWorkspacePath) ||
 						undefined}
-					data-dragging={draggingPath === project.path || undefined}
-					data-drop={drop?.path === project.path ? drop.edge : undefined}
+					data-dragging={reorder.draggingPath === project.path || undefined}
+					data-drop={reorder.drop?.path === project.path
+						? reorder.drop.edge
+						: undefined}
 					draggable="true"
-					role="listitem"
-					ondragstart={(event) => dragStart(event, project)}
-					ondragover={(event) => dragOver(event, project)}
-					ondragleave={() => {
-						if (drop?.path === project.path) drop = undefined;
-					}}
-					ondrop={finishDrop}
-					ondragend={finishDrop}
+					role="group"
+					aria-label={project.title}
+					ondragstart={(event) => reorder.dragStart(event, project.path)}
+					ondragover={(event) => reorder.dragOver(event, project.path)}
+					ondragleave={() => reorder.dragLeave(project.path)}
+					ondrop={(event) => reorder.finishDrop(event)}
+					ondragend={(event) => reorder.finishDrop(event)}
 				>
 					<button
 						data-ui="workspace-disclosure"
@@ -222,14 +201,23 @@
 						aria-current={project.path === openWorkspacePath
 							? 'page'
 							: undefined}
+						aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
 						onclick={() => onOpenWorkspace(project.path)}
+						onkeydown={(event) => reorderKeys(event, project)}
 					>
 						<FolderOpen size={15} />
 						<span>
 							<strong>{project.title}</strong>
-							<small title={project.path}
-								>{`${threads.length} ${threads.length === 1 ? 'thread' : 'threads'}`}</small
-							>
+							<!--
+								The path, not a thread count: "1 thread" repeated down the rail
+								says nothing, while the path is what tells two workspaces of the
+								same name apart. The count stays once there is one worth reading.
+							-->
+							<small title={project.path}>
+								{threads.length > 1
+									? `${threads.length} threads`
+									: project.path}
+							</small>
 						</span>
 					</button>
 					<div data-ui="workspace-row-actions">
@@ -278,37 +266,12 @@
 							</div>
 						{/if}
 						{#each threads as session (session.id)}
-							<button
-								type="button"
-								data-ui="session-item"
-								data-context-kind="thread"
-								data-context-id={session.id}
-								data-active={(!workspaceSelected &&
-									session.id === store.sessionId) ||
-									undefined}
-								data-running={store.isSessionStreaming(session.id) || undefined}
-								aria-current={!workspaceSelected &&
-								session.id === store.sessionId
-									? 'page'
-									: undefined}
-								onclick={() => onOpenThread(session.id)}
-							>
-								<span data-ui="session-icon"
-									><MessageSquare size={15} />
-									{#if store.isSessionStreaming(session.id)}<span
-											data-ui="session-running"
-										></span>
-										<span data-ui="sr-only">· agent working</span>{/if}</span
-								>
-								<span>
-									<strong>{threadTitle(session.title)}</strong>
-									<small
-										>{`${session.messageCount} ${
-											session.messageCount === 1 ? 'message' : 'messages'
-										} · ${formatSessionTime(session.lastActiveAt)}`}</small
-									>
-								</span>
-							</button>
+							<SessionRow
+								{session}
+								active={!workspaceSelected && session.id === store.sessionId}
+								running={store.isSessionStreaming(session.id)}
+								onOpen={() => onOpenThread(session.id)}
+							/>
 						{/each}
 					</div>
 				{/if}

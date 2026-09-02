@@ -21,8 +21,15 @@
 		lazy = false,
 		reorderable = false,
 		onReorder,
+		onValueChange,
 	}: {
 		value?: string;
+		/**
+		 * Reports the newly selected tab. Pass this with a plain `value` to drive
+		 * the tabs from state that already lives elsewhere — a route, say — rather
+		 * than binding and then syncing the two copies back together.
+		 */
+		onValueChange?: (value: string) => void;
 		items: TabItem[];
 		children: Snippet<[string]>;
 		variant?: 'default' | 'inspector' | 'filter' | 'folder' | 'subtab';
@@ -79,7 +86,7 @@
 	});
 </script>
 
-<Tabs.Root bind:value data-ui="tabs" data-variant={variant}>
+<Tabs.Root bind:value {onValueChange} data-ui="tabs" data-variant={variant}>
 	<Tabs.List data-ui="tabs-list">
 		{#each items as item (item.value)}
 			<Tabs.Trigger

@@ -131,8 +131,3 @@
 [data-ui='connection-row'][data-status='disconnected'] {
 	color: var(--color-danger);
 }
-
-[data-ui='section-label'][data-current] span:first-child {
-	color: var(--color-text);
-	font-weight: 600;
-}

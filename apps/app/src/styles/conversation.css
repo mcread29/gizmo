@@ -122,6 +122,11 @@
 	font-size: var(--text-sm);
 }
 
+[data-ui='transcript-search']:focus-within {
+	border-color: var(--color-accent);
+	box-shadow: var(--focus-ring);
+}
+
 [data-ui='search-count'] {
 	flex: 0 0 auto;
 	font-size: var(--text-2xs);

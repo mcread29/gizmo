@@ -3,7 +3,7 @@
 	import { Download, Unlink2, Puzzle } from '@lucide/svelte';
 	import { Switch } from 'bits-ui';
 	import type { AgentStore } from '../../agent-client';
-	import { Button } from '../../components';
+	import { Button, ResourceNote } from '../../components';
 	import ExtensionRegistrySection from './ExtensionRegistrySection.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
@@ -55,10 +55,10 @@
 	</p>
 
 	{#if store.resourceError}
-		<p data-ui="resource-error">{store.resourceError}</p>
+		<ResourceNote tone="error">{store.resourceError}</ResourceNote>
 	{/if}
 	{#if store.registryError}
-		<p data-ui="resource-error">{store.registryError}</p>
+		<ResourceNote tone="error">{store.registryError}</ResourceNote>
 	{/if}
 
 	<div data-ui="settings-subhead">
@@ -91,9 +91,9 @@
 	</div>
 	<div data-ui="settings-card">
 		{#if store.resourcesLoading && extensions.length === 0 && gizmoExtensions.length === 0}
-			<p data-ui="resource-empty">Loading installed extensions…</p>
+			<ResourceNote>Loading installed extensions…</ResourceNote>
 		{:else if extensions.length === 0 && gizmoExtensions.length === 0}
-			<p data-ui="resource-empty">No extensions are installed.</p>
+			<ResourceNote>No extensions are installed.</ResourceNote>
 		{:else}
 			<div data-ui="skill-list">
 				{#each gizmoExtensions as extension (extension.id)}

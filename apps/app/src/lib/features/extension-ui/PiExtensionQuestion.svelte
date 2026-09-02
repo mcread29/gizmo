@@ -87,7 +87,7 @@
 	}
 </script>
 
-<div data-ui="agent-question" aria-label={request.title}>
+<div data-ui="agent-question" role="status" aria-label={request.title}>
 	<div data-ui="agent-question-head">
 		<span data-ui="agent-question-origin">The agent is asking</span>
 		{#if secondsLeft > 0}

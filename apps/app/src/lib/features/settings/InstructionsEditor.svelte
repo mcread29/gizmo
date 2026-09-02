@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { InstructionTarget } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
-	import { Button } from '../../components';
+	import { Button, ResourceNote } from '../../components';
 
 	let {
 		store,
@@ -96,7 +96,7 @@
 		</div>
 
 		{#if loading}
-			<p data-ui="resource-empty" role="status">Loading…</p>
+			<ResourceNote live>Loading…</ResourceNote>
 		{:else}
 			<textarea
 				value={content}

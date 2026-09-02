@@ -3,12 +3,18 @@
 	import { FilePenLine, Search } from '@lucide/svelte';
 	import type { SkillResource } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
-	import { Button } from '../../components';
+	import { Button, ResourceNote } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 	import SkillDirectoryTree from './SkillDirectoryTree.svelte';
 	import SkillEditor from './SkillEditor.svelte';
 	import SkillList from './SkillList.svelte';
+	import {
+		groupByDirectory,
+		matchingSkills,
+		type SkillFilter,
+		type SkillSort,
+	} from './skill-groups';
 	import {
 		discardSkillChanges,
 		type UnsavedChangesGuard,
@@ -18,8 +24,8 @@
 		$props();
 
 	let query = $state('');
-	let filter = $state<'all' | 'on' | 'off'>('all');
-	let sort = $state<'directory' | 'name' | 'status'>('directory');
+	let filter = $state<SkillFilter>('all');
+	let sort = $state<SkillSort>('directory');
 	let selectedId = $state<string>();
 
 	const filters = [
@@ -31,78 +37,12 @@
 	onMount(() => void store.refreshResources());
 
 	let all = $derived(store.resources?.skills ?? []);
-	let matching = $derived(
-		all
-			.filter((skill) => {
-				if (filter === 'on' && !skill.enabledGlobally) return false;
-				if (filter === 'off' && skill.enabledGlobally) return false;
-				const term = query.trim().toLowerCase();
-				return (
-					!term ||
-					skill.name.toLowerCase().includes(term) ||
-					skill.description.toLowerCase().includes(term)
-				);
-			})
-			.sort((a, b) => {
-				if (sort === 'status') {
-					return (
-						Number(b.enabledGlobally) - Number(a.enabledGlobally) ||
-						a.name.localeCompare(b.name)
-					);
-				}
-				if (sort === 'directory') {
-					return (
-						collectionRoot(a).localeCompare(collectionRoot(b)) ||
-						a.name.localeCompare(b.name)
-					);
-				}
-				return a.name.localeCompare(b.name);
-			}),
-	);
-	let directoryGroups = $derived.by(() => {
-		const groups: { source: string; skills: SkillResource[] }[] = [];
-		for (const skill of matching) {
-			const source = collectionRoot(skill);
-			const existing = groups.find((group) => group.source === source);
-			if (existing) existing.skills.push(skill);
-			else groups.push({ source, skills: [skill] });
-		}
-		return groups
-			.map(({ source, skills }) => ({
-				source,
-				label: directoryLabel(source),
-				skills,
-			}))
-			.sort((a, b) => a.label.localeCompare(b.label));
-	});
+	let matching = $derived(matchingSkills(all, query, filter, sort));
+	let directoryGroups = $derived(groupByDirectory(matching));
 	let selected = $derived(all.find((skill) => skill.id === selectedId));
 	let enabledCount = $derived(
 		all.filter((skill) => skill.enabledGlobally).length,
 	);
-
-	function collectionRoot(skill: SkillResource) {
-		if (skill.editable) return 'personal-skills';
-		const normalized = skill.path.replaceAll('\\', '/');
-		const parts = normalized.split('/');
-		const extensionIndex = parts.lastIndexOf('extensions');
-		if (
-			extensionIndex >= 0 &&
-			parts[extensionIndex + 1] &&
-			parts[extensionIndex + 2]?.toLowerCase() === 'skills'
-		) {
-			return parts.slice(0, extensionIndex + 3).join('/');
-		}
-		return skill.source.replaceAll('\\', '/');
-	}
-
-	function directoryLabel(source: string) {
-		if (source === 'personal-skills') return 'Personal skills';
-		const parts = source.split('/').filter(Boolean);
-		const leaf = parts.at(-1);
-		return leaf?.toLowerCase() === 'skills'
-			? (parts.at(-2) ?? leaf)
-			: (leaf ?? source);
-	}
 
 	function toggle(skill: SkillResource, enabled: boolean) {
 		void store.setGlobalSkill(skill.id, { enabled });
@@ -170,7 +110,7 @@
 	{/snippet}
 
 	{#if store.resourceError}
-		<p data-ui="resource-error">{store.resourceError}</p>
+		<ResourceNote tone="error">{store.resourceError}</ResourceNote>
 	{/if}
 
 	<div data-ui="skills-workbench" data-selected={Boolean(selected)}>
@@ -210,11 +150,11 @@
 
 			<div data-ui="skills-library-list">
 				{#if store.resourcesLoading && all.length === 0}
-					<p data-ui="resource-empty">Loading skills…</p>
+					<ResourceNote live>Loading skills…</ResourceNote>
 				{:else if all.length === 0}
-					<p data-ui="resource-empty">No skills found on disk.</p>
+					<ResourceNote>No skills found on disk.</ResourceNote>
 				{:else if matching.length === 0}
-					<p data-ui="resource-empty">No skills match this search.</p>
+					<ResourceNote>No skills match this search.</ResourceNote>
 				{:else if sort === 'directory'}
 					{#each directoryGroups as group (group.source)}
 						<details data-ui="skill-directory" open>

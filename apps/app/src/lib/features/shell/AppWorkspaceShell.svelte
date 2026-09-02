@@ -100,82 +100,90 @@
 			{onCloseSettings}
 		/>
 
-		{#if layout.drawerOpen}
-			<button
-				data-ui="drawer-scrim"
-				aria-label="Close navigation panels"
-				onclick={() => layout.closeDrawers()}
-			></button>
-		{/if}
+		<!--
+			The settings and tree screens cover everything below the titlebar, so
+			the workspace underneath must stop taking focus and stop being read out.
+			`display: contents` keeps every child a direct grid item of the shell, so
+			the wrapper adds containment without adding a box.
+		-->
+		<div style="display: contents" inert={overlayOpen || undefined}>
+			{#if layout.drawerOpen}
+				<button
+					data-ui="drawer-scrim"
+					aria-label="Close navigation panels"
+					onclick={() => layout.closeDrawers()}
+				></button>
+			{/if}
 
-		<SessionSidebar
-			{store}
-			{layout}
-			bind:focusSearch={focusThreadSearch}
-			openWorkspacePath={router.current === 'workspace'
-				? router.workspacePath
-				: undefined}
-			onOpenWorkspacePicker={() => sessions.openCommandPalette('workspace')}
-			onOpenWorkspace={(projectPath) => onShowWorkspace(projectPath)}
-			onOpenWorkspaceSettings={(projectPath) =>
-				onShowWorkspace(projectPath, 'configure')}
-			onNewThread={(projectPath) => void onStartThread(projectPath)}
-			onOpenThread={(sessionId) => void onOpenThread(sessionId)}
-		/>
-		{#if layout.leftVisible && layout.leftMode === 'docked'}
-			<PanelResizeHandle
-				side="left"
-				size={layout.sidebarWidth}
-				max={layout.sidebarMax}
-				onResize={(size) => layout.resize('sidebar', size)}
-				onReset={() => layout.reset('sidebar')}
-			/>
-		{/if}
-
-		{#if router.current === 'workspace'}
-			<WorkspaceScreen
+			<SessionSidebar
 				{store}
 				{layout}
-				workspacePath={router.workspacePath}
-				tab={router.workspaceTab}
-				onSelectTab={(tab) => router.showWorkspaceTab(tab)}
-				onOpenThread={(sessionId) => void onOpenThread(sessionId)}
+				bind:focusSearch={focusThreadSearch}
+				openWorkspacePath={router.current === 'workspace'
+					? router.workspacePath
+					: undefined}
+				onOpenWorkspacePicker={() => sessions.openCommandPalette('workspace')}
+				onOpenWorkspace={(projectPath) => onShowWorkspace(projectPath)}
+				onOpenWorkspaceSettings={(projectPath) =>
+					onShowWorkspace(projectPath, 'configure')}
 				onNewThread={(projectPath) => void onStartThread(projectPath)}
-				onRemoved={() => router.close()}
+				onOpenThread={(sessionId) => void onOpenThread(sessionId)}
 			/>
-		{:else}
-			<Conversation
-				{store}
-				{layout}
-				{drafts}
-				{extensionUi}
-				agentName={agent.name}
-				{currentSession}
-				bind:focusComposer
-				bind:findInThread
-				onRename={() => sessions.beginRename()}
-				onCopy={() => void sessions.copyTranscript()}
-				onExport={() => void sessions.exportTranscript()}
-				onDelete={() => sessions.beginDelete()}
-				onOpenTree={() => router.go('tree')}
-			/>
-		{/if}
+			{#if layout.leftVisible && layout.leftMode === 'docked'}
+				<PanelResizeHandle
+					side="left"
+					size={layout.sidebarWidth}
+					max={layout.sidebarMax}
+					onResize={(size) => layout.resize('sidebar', size)}
+					onReset={() => layout.reset('sidebar')}
+				/>
+			{/if}
 
-		<WorkspaceInspector
-			{store}
-			hidden={!layout.rightVisible}
-			tabOrder={layout.inspectorTabOrder}
-			onReorderTabs={(ids) => (layout.inspectorTabOrder = ids)}
-		/>
-		{#if layout.rightVisible && layout.rightMode === 'docked'}
-			<PanelResizeHandle
-				side="right"
-				size={layout.inspectorWidth}
-				max={layout.inspectorMax}
-				onResize={(size) => layout.resize('inspector', size)}
-				onReset={() => layout.reset('inspector')}
+			{#if router.current === 'workspace'}
+				<WorkspaceScreen
+					{store}
+					{layout}
+					workspacePath={router.workspacePath}
+					tab={router.workspaceTab}
+					onSelectTab={(tab) => router.showWorkspaceTab(tab)}
+					onOpenThread={(sessionId) => void onOpenThread(sessionId)}
+					onNewThread={(projectPath) => void onStartThread(projectPath)}
+					onRemoved={() => router.close()}
+				/>
+			{:else}
+				<Conversation
+					{store}
+					{layout}
+					{drafts}
+					{extensionUi}
+					agentName={agent.name}
+					{currentSession}
+					bind:focusComposer
+					bind:findInThread
+					onRename={() => sessions.beginRename()}
+					onCopy={() => void sessions.copyTranscript()}
+					onExport={() => void sessions.exportTranscript()}
+					onDelete={() => sessions.beginDelete()}
+					onOpenTree={() => router.go('tree')}
+				/>
+			{/if}
+
+			<WorkspaceInspector
+				{store}
+				hidden={!layout.rightVisible}
+				tabOrder={layout.inspectorTabOrder}
+				onReorderTabs={(ids) => (layout.inspectorTabOrder = ids)}
 			/>
-		{/if}
+			{#if layout.rightVisible && layout.rightMode === 'docked'}
+				<PanelResizeHandle
+					side="right"
+					size={layout.inspectorWidth}
+					max={layout.inspectorMax}
+					onResize={(size) => layout.resize('inspector', size)}
+					onReset={() => layout.reset('inspector')}
+				/>
+			{/if}
+		</div>
 
 		<AppDialogs
 			{store}

@@ -245,7 +245,7 @@ describe('application shell and global interactions', () => {
 		).toBeInTheDocument();
 
 		await fireEvent.click(getByRole('button', { name: 'Settings' }));
-		await findByRole('region', { name: 'Settings' });
+		await findByRole('dialog', { name: 'Settings' });
 
 		// Nothing left in the bar acts on the covered workspace.
 		expect(

@@ -14,7 +14,7 @@
 </script>
 
 {#if widgets.length > 0}
-	<div data-ui="extension-widgets" data-placement={placement}>
+	<div data-ui="extension-widgets" data-placement={placement} role="status">
 		{#each widgets as widget (`${widget.runtimeId}:${widget.request.key}`)}
 			<div data-ui="extension-widget">
 				{widget.request.lines?.join('\n') ?? ''}

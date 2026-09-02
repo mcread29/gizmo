@@ -88,12 +88,6 @@
 	gap: 3px;
 	min-width: 0;
 }
-[data-ui='settings-actions'] {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: flex-end;
-	gap: var(--space-2);
-}
 [data-ui='setting-field'][data-layout='stacked'] {
 	display: grid;
 	align-items: stretch;
@@ -214,16 +208,4 @@
 [data-ui='workspace-configure'] {
 	display: grid;
 	gap: var(--space-4);
-}
-
-/* The profile switcher — replaces the old left-hand profile list. */
-[data-ui='config-profilebar'] {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--space-2);
-	padding: var(--space-2) var(--space-3);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
-	background: var(--color-surface);
 }

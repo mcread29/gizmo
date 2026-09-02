@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
-	import { Button } from '../../components';
+	import { Button, ResourceNote } from '../../components';
 	import InstructionsEditor from './InstructionsEditor.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 	import { toasts } from '../../toasts.svelte';
@@ -86,7 +86,7 @@
 	{/snippet}
 
 	{#if store.resourceError}
-		<p data-ui="resource-error">{store.resourceError}</p>
+		<ResourceNote tone="error">{store.resourceError}</ResourceNote>
 	{/if}
 
 	<div data-ui="instructions-workbench">
@@ -141,12 +141,12 @@
 
 	<div data-ui="settings-card">
 		{#if store.toolPolicyError}
-			<p data-ui="resource-error">{store.toolPolicyError}</p>
+			<ResourceNote tone="error">{store.toolPolicyError}</ResourceNote>
 		{/if}
 		{#if !policy}
-			<p data-ui="resource-empty">
+			<ResourceNote>
 				{store.toolPolicyLoading ? 'Loading…' : 'Tool policy unavailable.'}
-			</p>
+			</ResourceNote>
 		{:else}
 			<div data-ui="integration-list">
 				{#each policy.builtIn as tool (tool)}
@@ -177,7 +177,7 @@
 
 	<div data-ui="settings-card">
 		{#if prompts.length === 0}
-			<p data-ui="resource-empty">Nothing found.</p>
+			<ResourceNote>Nothing found.</ResourceNote>
 		{:else}
 			<div data-ui="resource-list">
 				{#each prompts as resource (resource.id)}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ProjectConfig, ProjectDomains } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
+	import { ResourceNote } from '../../components';
 	import ExtensionSettings from '../../extensions/ExtensionSettings.svelte';
 	import InstructionsEditor from '../settings/InstructionsEditor.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
@@ -86,9 +87,9 @@
 
 <div data-ui="workspace-configure">
 	{#if !project}
-		<p data-ui="resource-empty">No workspace is selected.</p>
+		<ResourceNote>No workspace is selected.</ResourceNote>
 	{:else if !setup}
-		{#if error}<p data-ui="resource-error">{error}</p>{/if}
+		{#if error}<ResourceNote tone="error">{error}</ResourceNote>{/if}
 		<div data-ui="skeleton" data-shape="workspace-card"></div>
 	{:else}
 		<p data-ui="config-intro-note">
@@ -97,7 +98,7 @@
 			global again.
 		</p>
 
-		{#if error}<p data-ui="resource-error">{error}</p>{/if}
+		{#if error}<ResourceNote tone="error">{error}</ResourceNote>{/if}
 
 		<GizmoExtensionOverridesSection
 			{store}

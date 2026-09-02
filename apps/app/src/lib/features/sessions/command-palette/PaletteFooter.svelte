@@ -13,6 +13,7 @@
 	<span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
 	{#if mode === 'workspace'}
 		<span><kbd>Tab</kbd> Complete path</span>
+		<span><kbd>Alt</kbd>+<kbd>P</kbd> Pin</span>
 		{#if !location}<span><kbd>Backspace</kbd> Back</span>{/if}
 	{/if}
 	<span><kbd>Esc</kbd> Close</span>

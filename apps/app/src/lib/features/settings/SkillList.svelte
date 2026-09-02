@@ -2,7 +2,7 @@
 	import { MoreHorizontal } from '@lucide/svelte';
 	import { Switch } from 'bits-ui';
 	import type { SkillResource } from '@gizmo/protocol';
-	import { Button, Menu, type MenuItem } from '../../components';
+	import { Button, Menu, ResourceNote, type MenuItem } from '../../components';
 
 	interface Props {
 		skills: SkillResource[];
@@ -91,7 +91,7 @@
 </script>
 
 {#if skills.length === 0}
-	<p data-ui="resource-empty">No skills match.</p>
+	<ResourceNote>No skills match.</ResourceNote>
 {:else}
 	<div data-ui="skill-list">
 		{#each skills as skill (skill.id)}

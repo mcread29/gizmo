@@ -100,11 +100,6 @@
 	margin-inline: auto;
 }
 
-[data-ui='workspace-settings'] {
-	display: grid;
-	gap: var(--space-6);
-}
-
 [data-ui='workspace-home'] {
 	display: grid;
 	gap: var(--space-5);
@@ -114,28 +109,6 @@
 [data-ui='workspace-home'] > * {
 	width: min(920px, 100%);
 	margin-inline: auto;
-}
-
-[data-ui='workspace-dashboard-heading'] {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: var(--space-5);
-}
-
-[data-ui='workspace-dashboard-heading'] h2 {
-	margin: 5px 0 4px;
-	font-size: var(--text-2xl);
-	font-weight: 650;
-}
-
-[data-ui='workspace-dashboard-heading'] p {
-	overflow: hidden;
-	max-width: 620px;
-	color: var(--color-text-muted);
-	font: var(--text-xs) / 1.5 var(--font-mono);
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 /* A compact, live glance strip — facts, not big tiles. */
@@ -286,9 +259,5 @@
 @media (max-width: 560px) {
 	[data-ui='workspace-home'] {
 		padding: var(--space-5) var(--space-4);
-	}
-
-	[data-ui='workspace-dashboard-heading'] {
-		display: grid;
 	}
 }

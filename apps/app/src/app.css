@@ -79,6 +79,12 @@ p {
 	border: 0;
 }
 
+/*
+ * @gizmo/design's own motion now reads --duration-fast/--duration-base, which
+ * tokens-base.css zeroes out under prefers-reduced-motion for any consumer of
+ * the design system. This global rule stays as a belt-and-braces backstop for
+ * third-party/bits-ui animations that don't read our tokens.
+ */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,

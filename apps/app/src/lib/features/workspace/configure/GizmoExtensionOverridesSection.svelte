@@ -2,7 +2,7 @@
 	import { Switch } from 'bits-ui';
 	import type { ProjectConfig, ProjectDomains } from '@gizmo/protocol';
 	import type { AgentStore } from '../../../agent-client';
-	import { Button } from '../../../components';
+	import { Button, ResourceNote } from '../../../components';
 	import ConfigureSectionHeading from './ConfigureSectionHeading.svelte';
 	import type { ReapplyProjectConfig } from './types';
 
@@ -61,7 +61,7 @@
 />
 <div data-ui="settings-card">
 	{#if available.length === 0}
-		<p data-ui="resource-empty">No Gizmo extensions are installed globally.</p>
+		<ResourceNote>No Gizmo extensions are installed globally.</ResourceNote>
 	{:else}
 		<div data-ui="integration-list" data-layout="workspace-setup">
 			{#each available as extension (extension.id)}
