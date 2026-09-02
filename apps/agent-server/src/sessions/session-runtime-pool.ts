@@ -2,6 +2,7 @@ import type { SessionManager } from '@earendil-works/pi-coding-agent';
 import type { SessionSnapshot } from '@gizmo/protocol';
 import { PiEventTranslator, readUsage } from './pi-event-translator';
 import { PiExtensionUiRuntime } from './pi-extension-ui-runtime';
+import { strandedMessages } from './queue-recovery';
 import { inFlightAssistantView } from './session-transcript';
 import { AgentEventHub } from './agent-event-hub';
 import type {
@@ -105,7 +106,14 @@ export class SessionRuntimePool {
 		const translator = new PiEventTranslator((event) =>
 			this.events.emit(sessionId, withContextWindow(session, event)),
 		);
-		const unsubscribe = session.subscribe((event) => translator.receive(event));
+		const unsubscribe = session.subscribe((event) => {
+			translator.receive(event);
+			if (event.type !== 'agent_settled') return;
+			const messages = strandedMessages(session);
+			if (messages.length) {
+				this.events.emit(sessionId, { type: 'session.unsent', messages });
+			}
+		});
 		this.#sessions.set(sessionId, {
 			session,
 			manager,

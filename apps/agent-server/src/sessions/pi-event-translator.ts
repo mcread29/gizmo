@@ -1,6 +1,7 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
 import { normalizeToolResult, toolResultIsError } from '../tools/tool-result';
 import { displayedUserMessage } from '../attachments/attachment-message';
+import { isStoppedTurn } from './transcript-settling';
 
 export type TranslatedPiEvent =
 	| {
@@ -176,7 +177,14 @@ export class PiEventTranslator {
 					event.message.role === 'assistant'
 				) {
 					const messageId = this.#activeMessageIds.get(event.message.role);
-					if (messageId) this.#emit({ type: 'message.completed', messageId });
+					const interrupted = isStoppedTurn(event.message);
+					if (messageId) {
+						this.#emit({
+							type: 'message.completed',
+							messageId,
+							...(interrupted ? { interrupted: true } : {}),
+						});
+					}
 					this.#activeMessageIds.delete(event.message.role);
 					if (event.message.role === 'assistant') {
 						const usage = readUsage(event.message.usage);

@@ -13,6 +13,8 @@ export interface AgentEventState {
 	enabledExtensionIds?: string[];
 	sessionState: SessionState;
 	compacting: boolean;
+	/** Steered text a dead run never delivered, waiting to go back to the composer. */
+	unsent: string[];
 	lastAutomaticCompactionReason?: 'threshold' | 'overflow';
 	usage?: SessionUsage;
 	messages: ConversationMessage[];
@@ -38,6 +40,9 @@ export function applyAgentEvent(
 			break;
 		case 'session.state':
 			state.sessionState = event.state;
+			break;
+		case 'session.unsent':
+			state.unsent = [...state.unsent, ...event.messages];
 			break;
 		case 'session.compaction':
 			state.compacting = event.active;
@@ -80,7 +85,10 @@ export function applyAgentEvent(
 		}
 		case 'message.completed': {
 			const message = findMessage(state, event.messageId);
-			if (message) message.complete = true;
+			if (message) {
+				message.complete = true;
+				if (event.interrupted) message.interrupted = true;
+			}
 			break;
 		}
 		case 'tool.started':

@@ -23,6 +23,12 @@ export class FakePiSession implements PiSessionLike {
 	readonly configureCompaction = vi.fn((_policy: CompactionPolicy) => {});
 	readonly setSessionName = vi.fn((name: string) => (this.sessionName = name));
 	readonly dispose = vi.fn();
+	/** Text steered into the run in flight and not yet delivered. */
+	queued: string[] = [];
+	readonly clearQueue = vi.fn(() => ({
+		steering: this.queued.splice(0),
+		followUp: [] as string[],
+	}));
 	messages: ReadonlyArray<{
 		role: string;
 		content?: unknown;
@@ -50,6 +56,10 @@ export class FakePiSession implements PiSessionLike {
 
 	constructor(sessionId = 'pi-session-1') {
 		this.sessionId = sessionId;
+	}
+
+	get pendingMessageCount() {
+		return this.queued.length;
 	}
 
 	subscribe(listener: (event: AgentSessionEvent) => void) {

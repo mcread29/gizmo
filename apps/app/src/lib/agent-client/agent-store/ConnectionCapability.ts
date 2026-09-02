@@ -49,6 +49,7 @@ export class ConnectionCapability {
 			for (const diagnostic of diagnostics) console.warn(diagnostic);
 			store.sessionId = undefined;
 			store.messages = [];
+			store.unsent = [];
 			await store.refreshProjects();
 			const catalog = await this.client.listSessions();
 			store.sessions = catalog.sessions;

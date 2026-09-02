@@ -6,8 +6,11 @@ import { Type, type Static } from 'typebox';
  * owning extension, and status payloads are opaque extension-owned data —
  * core no longer describes any extension's process shape. v25 project
  * requests (no extensionId) are still accepted for one migration window.
+ *
+ * v27: `session.unsent` returns messages a run died before delivering, and
+ * `message.completed` carries `interrupted` for a turn that stopped short.
  */
-export const protocolVersion = 26 as const;
+export const protocolVersion = 27 as const;
 
 const sessionTitleLimit = 48;
 

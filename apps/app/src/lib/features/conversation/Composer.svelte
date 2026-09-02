@@ -1,14 +1,21 @@
 <script lang="ts">
-	import type { AgentAttachment, ComposerCommand } from '@gizmo/protocol';
+	import type { AgentAttachment } from '@gizmo/protocol';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { toasts } from '../../toasts.svelte';
 	import { maxAttachmentCount, readAttachments } from './attachments';
-	import { autoGrow, isSendKey, resizeComposer } from './composer-actions';
+	import {
+		autoGrow,
+		capture,
+		isSendKey,
+		matchCommands,
+		resizeComposer,
+	} from './composer-actions';
 	import ComposerAttachments from './ComposerAttachments.svelte';
 	import ComposerCommandMenu from './ComposerCommandMenu.svelte';
 	import ComposerToolbar from './ComposerToolbar.svelte';
 	import type { DraftStore } from './drafts.svelte';
+	import { restoreUnsent } from './unsent';
 
 	interface Props {
 		store: AgentStore;
@@ -26,13 +33,6 @@
 	let commandMenuDismissed = $state(false);
 	let attachmentsBySession = $state<Record<string, AgentAttachment[]>>({});
 
-	const localCommands: ComposerCommand[] = [
-		{
-			name: 'reload',
-			description: 'Reload extension UI and activation state',
-			source: 'extension',
-		},
-	];
 	let draft = $derived(
 		drafts.get(store.sessionId) ||
 			(store.sessionId ? drafts.get(undefined) : ''),
@@ -44,21 +44,11 @@
 			[],
 	);
 	let commandQuery = $derived(draft.match(/^\/([^\s]*)$/)?.[1]);
-	let matchingCommands = $derived.by(() => {
-		if (commandQuery === undefined || commandMenuDismissed) return [];
-		const query = commandQuery.toLocaleLowerCase();
-		return [...localCommands, ...store.commands]
-			.filter(({ name, description }) =>
-				`${name} ${description ?? ''}`.toLocaleLowerCase().includes(query),
-			)
-			.sort((left, right) => {
-				const leftStarts = left.name.toLocaleLowerCase().startsWith(query);
-				const rightStarts = right.name.toLocaleLowerCase().startsWith(query);
-				if (leftStarts !== rightStarts) return leftStarts ? -1 : 1;
-				return left.name.localeCompare(right.name);
-			})
-			.slice(0, 10);
-	});
+	let matchingCommands = $derived(
+		commandQuery === undefined || commandMenuDismissed
+			? []
+			: matchCommands(commandQuery, store.commands),
+	);
 	let commandMenuOpen = $derived(matchingCommands.length > 0);
 	let streaming = $derived(store.sessionState === 'streaming');
 	/** Why sending is unavailable, shown above the input instead of a silent grey-out. */
@@ -86,21 +76,19 @@
 		}
 	});
 
+	$effect(() => {
+		if (!restoreUnsent(store, drafts)) return;
+		toasts.show(
+			'That message was never delivered, so it is back in the composer.',
+			'warning',
+		);
+		void tick().then(() => {
+			resizeComposer(element);
+			element?.focus();
+		});
+	});
+
 	focus = () => element?.focus();
-
-	function captureComposer(node: HTMLTextAreaElement) {
-		element = node;
-		return () => {
-			if (element === node) element = undefined;
-		};
-	}
-
-	function capturePicker(node: HTMLInputElement) {
-		picker = node;
-		return () => {
-			if (picker === node) picker = undefined;
-		};
-	}
 
 	function edit(value: string) {
 		drafts.set(store.sessionId, value);
@@ -247,7 +235,10 @@
 	}}
 >
 	<input
-		{@attach capturePicker}
+		{@attach capture(
+			(node) => (picker = node),
+			() => picker,
+		)}
 		data-ui="attachment-picker"
 		type="file"
 		multiple
@@ -271,7 +262,10 @@
 	<label for="prompt" data-ui="sr-only">Message Gizmo</label>
 	<textarea
 		id="prompt"
-		{@attach captureComposer}
+		{@attach capture(
+			(node) => (element = node),
+			() => element,
+		)}
 		value={draft}
 		oninput={(event) => edit(event.currentTarget.value)}
 		onpaste={handlePaste}

@@ -160,6 +160,7 @@ export class ProjectCapability {
 		store.gitLoading = true;
 		store.statusLoading = {};
 		store.messages = [];
+		store.unsent = [];
 		store.enabledExtensionIds =
 			enabledExtensionIds ??
 			store.projects

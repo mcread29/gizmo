@@ -23,7 +23,15 @@ describe('conversation integration', () => {
 
 		// While streaming the same control steers, and Stop stays available.
 		const steerButton = await findByRole('button', { name: 'Steer response' });
-		expect(getByRole('button', { name: 'Stop response' })).toBeInTheDocument();
+		const stopButton = getByRole('button', { name: 'Stop response' });
+		// Stop discards the turn, so it must not sit in the send position: a slip
+		// there used to kill the run and strand the message being steered into it.
+		expect(
+			document.querySelector('[data-ui="composer-send"]'),
+		).toContainElement(steerButton);
+		expect(
+			document.querySelector('[data-ui="composer-send"]'),
+		).not.toContainElement(stopButton);
 
 		await fireEvent.input(composer, {
 			target: { value: 'Use the LTS branch' },

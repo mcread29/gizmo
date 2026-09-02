@@ -11,6 +11,11 @@ import type {
 } from '@gizmo/protocol';
 import { displayedUserMessage } from '../attachments/attachment-message';
 import { normalizeToolResult, toolResultIsError } from '../tools/tool-result';
+import {
+	isStoppedTurn,
+	lastAssistantEntryId,
+	settleOrphanedTools,
+} from './transcript-settling';
 
 /** Includes every recorded entry, even branches outside the active transcript. */
 export function sessionTree(manager: SessionManager): SessionTree {
@@ -27,8 +32,13 @@ export function sessionTranscript(
 ): ConversationMessage[] {
 	const messages: ConversationMessage[] = [];
 	const tools = new Map<string, ToolCallView>();
+	// Which assistant message each tool call came from, so calls that never
+	// received a result can be judged once the whole branch has been read.
+	const owners = new Map<string, string>();
+	const branch = manager.getBranch();
+	const lastAssistantId = lastAssistantEntryId(branch);
 
-	for (const entry of manager.getBranch()) {
+	for (const entry of branch) {
 		if (entry.type !== 'message') continue;
 		const message = (entry as SessionMessageEntry).message;
 		if (message.role === 'user') {
@@ -59,6 +69,7 @@ export function sessionTranscript(
 						...(input === undefined ? {} : { input }),
 					};
 					tools.set(tool.id, tool);
+					owners.set(tool.id, entry.id);
 					return tool;
 				});
 			const reasoning = reasoningContent(message.content);
@@ -70,6 +81,7 @@ export function sessionTranscript(
 				...(reasoning.redacted ? { reasoningRedacted: true } : {}),
 				createdAt: message.timestamp,
 				complete: true,
+				...(isStoppedTurn(message) ? { interrupted: true } : {}),
 				tools: messageTools,
 			});
 			continue;
@@ -87,6 +99,8 @@ export function sessionTranscript(
 			tool.result = normalizeToolResult(rawResult);
 		}
 	}
+
+	settleOrphanedTools(tools, owners, branch, lastAssistantId);
 
 	return messages;
 }

@@ -44,6 +44,12 @@ export class AgentStoreState {
 	enabledExtensionIds = $state<string[]>([]);
 	messages = $state<ConversationMessage[]>([]);
 	messagesLoading = $state(false);
+	/**
+	 * Steered text a run died before delivering. The composer drains this back
+	 * into the draft, so a message stranded by an abort or a dropped connection
+	 * is handed back rather than lost.
+	 */
+	unsent = $state<string[]>([]);
 	lastPrompt = $state<string>();
 	sessions = $state<AgentSessionSummary[]>([]);
 	projects = $state<StoredProject[]>([]);

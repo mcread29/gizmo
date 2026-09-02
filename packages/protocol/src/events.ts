@@ -43,6 +43,20 @@ export const agentEventSchema = Type.Union([
 		},
 		{ additionalProperties: false },
 	),
+	/**
+	 * Messages queued against a run that ended before delivering them. The run
+	 * dying — aborted, or dropped by the provider — strands anything steered
+	 * into it, so the text comes back to the client to be restored rather than
+	 * silently lost.
+	 */
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('session.unsent'),
+			messages: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+		},
+		{ additionalProperties: false },
+	),
 	Type.Object(
 		{
 			...eventEnvelope,
@@ -163,6 +177,8 @@ export const agentEventSchema = Type.Union([
 			...eventEnvelope,
 			type: Type.Literal('message.completed'),
 			messageId: Type.String({ minLength: 1 }),
+			/** The turn stopped early rather than running to a natural end. */
+			interrupted: Type.Optional(Type.Boolean()),
 		},
 		{ additionalProperties: false },
 	),

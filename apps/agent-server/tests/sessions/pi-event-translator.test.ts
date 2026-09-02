@@ -152,3 +152,30 @@ describe('PiEventTranslator compaction', () => {
 		]);
 	});
 });
+
+describe('PiEventTranslator interrupted turns', () => {
+	function completionFor(stopReason: string): TranslatedPiEvent | undefined {
+		const events: TranslatedPiEvent[] = [];
+		const translator = new PiEventTranslator((translated) =>
+			events.push(translated),
+		);
+		const message = {
+			role: 'assistant',
+			content: [],
+			timestamp: 1,
+			stopReason,
+		};
+		translator.receive(event({ type: 'message_start', message }));
+		translator.receive(event({ type: 'message_end', message }));
+		return events.find((emitted) => emitted.type === 'message.completed');
+	}
+
+	/** The client has no other signal that the run stopped rather than finished. */
+	it('flags a turn the provider aborted', () => {
+		expect(completionFor('aborted')).toMatchObject({ interrupted: true });
+	});
+
+	it('leaves a turn that stopped normally unflagged', () => {
+		expect(completionFor('stop')).not.toHaveProperty('interrupted');
+	});
+});

@@ -53,6 +53,28 @@
 			</Button>
 		{/snippet}
 	</Tooltip>
+	<!--
+		Stopping the run lives at the far left, away from the send button. It used
+		to sit immediately beside "Steer response": one slip discarded the turn,
+		and a message steered into the dying run was never delivered. The send
+		position now always steers.
+	-->
+	{#if streaming}
+		<Tooltip text="Stop the response and keep what has been written">
+			{#snippet children(props)}
+				<Button
+					{...props}
+					type="button"
+					variant="danger"
+					size="icon"
+					aria-label="Stop response"
+					onclick={() => store.abort()}
+				>
+					<Square size={14} />
+				</Button>
+			{/snippet}
+		</Tooltip>
+	{/if}
 	<ComposerModelControls {store} />
 	{#if store.sessionId}
 		<UsageMeter usage={store.usage ?? emptyUsage(store.model?.contextWindow)} />
@@ -82,20 +104,6 @@
 	</Tooltip>
 	<div data-ui="composer-send">
 		{#if streaming}
-			<Tooltip text="Stop the response and keep what has been written">
-				{#snippet children(props)}
-					<Button
-						{...props}
-						type="button"
-						variant="danger"
-						size="icon"
-						aria-label="Stop response"
-						onclick={() => store.abort()}
-					>
-						<Square size={14} />
-					</Button>
-				{/snippet}
-			</Tooltip>
 			<Tooltip text="Add direction without interrupting the run">
 				{#snippet children(props)}
 					<Button

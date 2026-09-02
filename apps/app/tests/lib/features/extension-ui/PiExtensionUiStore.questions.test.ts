@@ -1,10 +1,11 @@
+import { protocolVersion } from '@gizmo/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import { PiExtensionUiStore } from '../../../../src/lib/features/extension-ui/PiExtensionUiStore.svelte.ts';
 
 /** The exact wire shape the server emits for a bridge select request. */
 const selectEvent = {
 	type: 'extension.ui.requested',
-	protocolVersion: 26,
+	protocolVersion,
 	eventId: 1,
 	sessionId: 'session-1',
 	runtimeId: 'runtime-1',

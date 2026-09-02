@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Bot, Check, Copy, User } from '@lucide/svelte';
+	import { Bot, Check, CircleSlash, Copy, User } from '@lucide/svelte';
 	import { Button } from '../../components';
 	import MarkdownContent from './MarkdownContent.svelte';
 	import MessageAttachments from './MessageAttachments.svelte';
@@ -133,6 +133,14 @@
 							streaming={Boolean(activity && message.id === lastMessageId)}
 						/>
 					</div>
+				{/if}
+				{#if message.interrupted}
+					<!-- Otherwise a turn that died mid-stream renders as nothing at
+					     all, which reads as the app being broken. -->
+					<p data-ui="message-interrupted" role="status">
+						<CircleSlash size={13} aria-hidden="true" />
+						Response interrupted
+					</p>
 				{/if}
 				{#each message.tools as tool (tool.id)}
 					<ToolCallCard

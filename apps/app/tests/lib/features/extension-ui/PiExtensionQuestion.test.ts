@@ -1,3 +1,4 @@
+import { protocolVersion } from '@gizmo/protocol';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import PiExtensionQuestion from '../../../../src/lib/features/extension-ui/PiExtensionQuestion.svelte';
@@ -14,7 +15,7 @@ function stubUi(respond: ReturnType<typeof vi.fn>) {
 function selectDialog(): PiExtensionDialog {
 	return {
 		type: 'extension.ui.requested',
-		protocolVersion: 26,
+		protocolVersion,
 		eventId: 1,
 		sessionId: 'session-1',
 		runtimeId: 'runtime-1',
@@ -30,7 +31,7 @@ function selectDialog(): PiExtensionDialog {
 function inputDialog(): PiExtensionDialog {
 	return {
 		type: 'extension.ui.requested',
-		protocolVersion: 26,
+		protocolVersion,
 		eventId: 2,
 		sessionId: 'session-1',
 		runtimeId: 'runtime-1',

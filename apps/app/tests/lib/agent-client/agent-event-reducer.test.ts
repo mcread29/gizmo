@@ -10,6 +10,7 @@ function state(): AgentEventState {
 		activeTools: [],
 		sessionState: 'idle',
 		compacting: false,
+		unsent: [],
 		messages: [],
 		sessions: [
 			{
@@ -137,6 +138,44 @@ describe('applyAgentEvent', () => {
 					result: { ok: true },
 				},
 			],
+		});
+	});
+
+	it('collects messages a dead run never delivered', () => {
+		const target = state();
+
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 1,
+			type: 'session.unsent',
+			messages: ['path'],
+		});
+
+		expect(target.unsent).toEqual(['path']);
+	});
+
+	it('marks a message the provider stopped short as interrupted', () => {
+		const target = state();
+
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 1,
+			type: 'message.started',
+			messageId: 'message-1',
+			role: 'assistant',
+			createdAt: 1,
+		});
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 2,
+			type: 'message.completed',
+			messageId: 'message-1',
+			interrupted: true,
+		});
+
+		expect(target.messages[0]).toMatchObject({
+			complete: true,
+			interrupted: true,
 		});
 	});
 });

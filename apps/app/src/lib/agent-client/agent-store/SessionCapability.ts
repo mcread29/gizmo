@@ -55,6 +55,7 @@ export class SessionCapability {
 		).map(({ id }) => id);
 		store.sessionId = undefined;
 		store.messages = [];
+		store.unsent = [];
 		store.model = undefined;
 		store.availableModels = [];
 		store.thinkingLevels = [];
@@ -107,6 +108,7 @@ export class SessionCapability {
 		const previous = this.#captureSelection();
 		store.sessionId = sessionId;
 		store.messages = [];
+		store.unsent = [];
 		store.messagesLoading = true;
 		store.sessionState = store.sessionStates[sessionId] ?? 'idle';
 		store.usage = undefined;
@@ -217,6 +219,7 @@ export class SessionCapability {
 		else {
 			store.sessionId = undefined;
 			store.messages = [];
+			store.unsent = [];
 			await store.newSession();
 		}
 	}

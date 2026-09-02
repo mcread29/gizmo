@@ -38,6 +38,9 @@ export interface PiSessionLike {
 	prompt(text: string, options?: { images?: PiImage[] }): Promise<void>;
 	steer(text: string, images?: PiImage[]): Promise<void>;
 	abort(): Promise<void>;
+	/** Steering and follow-up text queued against the run in flight. */
+	readonly pendingMessageCount?: number;
+	clearQueue?(): { steering: string[]; followUp: string[] };
 	/** Live state used to reconstruct the assistant message during streaming. */
 	readonly messages?: ReadonlyArray<{
 		role: string;

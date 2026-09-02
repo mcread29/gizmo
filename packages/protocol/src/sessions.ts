@@ -72,6 +72,11 @@ export const conversationMessageSchema = Type.Object(
 		reasoningRedacted: Type.Optional(Type.Boolean()),
 		createdAt: Type.Integer({ minimum: 0 }),
 		complete: Type.Boolean(),
+		/**
+		 * The turn stopped without finishing — aborted, or ended in a provider
+		 * error. Its text and tool calls are whatever arrived before it died.
+		 */
+		interrupted: Type.Optional(Type.Boolean()),
 		tools: Type.Array(toolCallViewSchema),
 		attachments: Type.Optional(Type.Array(conversationAttachmentSchema)),
 	},

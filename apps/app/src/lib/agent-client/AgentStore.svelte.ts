@@ -131,6 +131,13 @@ export class AgentStore extends AgentStoreState {
 	abort() {
 		return this.#runtime.abort();
 	}
+	/** Drains messages a dead run never delivered, for the composer to restore. */
+	takeUnsent(): string[] {
+		if (this.unsent.length === 0) return [];
+		const messages = this.unsent;
+		this.unsent = [];
+		return messages;
+	}
 	resolveConfirmation(confirmation: PendingConfirmation, accepted: boolean) {
 		return this.#runtime.resolveConfirmation(confirmation, accepted);
 	}
