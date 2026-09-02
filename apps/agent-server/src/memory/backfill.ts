@@ -99,10 +99,16 @@ async function collectPiSessions(
 	dirs: string[],
 	workspace: string,
 ): Promise<BackfillSource[]> {
+	const byDir: [string, string[]][] = [];
+	for (const dir of dirs) byDir.push([dir, await jsonlFiles(dir)]);
+	// Importing Pi is seconds of work, so it waits until there is a file that
+	// actually needs it rather than being paid by every caller.
+	if (byDir.every(([, files]) => files.length === 0)) return [];
+
 	const { SessionManager } = await import('@earendil-works/pi-coding-agent');
 	const found: BackfillSource[] = [];
-	for (const dir of dirs) {
-		for (const file of await jsonlFiles(dir)) {
+	for (const [dir, files] of byDir) {
+		for (const file of files) {
 			try {
 				const manager = SessionManager.open(file, dir);
 				if (resolve(manager.getCwd() || '') !== workspace) continue;
