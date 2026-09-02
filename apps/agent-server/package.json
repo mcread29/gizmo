@@ -7,7 +7,8 @@
 		"check": "tsc -p tsconfig.json",
 		"dev": "tsx watch src/server.ts",
 		"start": "tsx src/server.ts",
-		"test": "vitest run"
+		"test": "vitest run",
+		"backfill": "tsx src/memory/backfill-cli.ts"
 	},
 	"dependencies": {
 		"@earendil-works/pi-coding-agent": "^0.84.4",

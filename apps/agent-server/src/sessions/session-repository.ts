@@ -8,16 +8,9 @@ import type {
 	SessionSnapshot,
 } from '@gizmo/protocol';
 import { sessionTitle } from '@gizmo/protocol';
-import {
-	mkdir,
-	readFile,
-	rename,
-	rm,
-	unlink,
-	writeFile,
-} from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { sessionTranscript } from './session-transcript';
 
 export interface SessionRepository {
@@ -30,6 +23,7 @@ export interface SessionRepository {
 		sessionId: string,
 	): Promise<SessionSnapshot>;
 	rename(sessionId: string, title: string): Promise<void>;
+	/** Archives rather than erases: history stays on disk, out of the catalog. */
 	delete(sessionId: string): Promise<void>;
 	setLastSession(sessionId?: string): Promise<void>;
 }
@@ -37,11 +31,13 @@ export interface SessionRepository {
 export class PiSessionRepository implements SessionRepository {
 	readonly #dataDir: string;
 	readonly #sessionDir: string;
+	readonly #archiveDir: string;
 	readonly #workspaceFile: string;
 
 	constructor(dataDir = defaultDataDir()) {
 		this.#dataDir = dataDir;
 		this.#sessionDir = join(dataDir, 'sessions');
+		this.#archiveDir = join(dataDir, 'sessions', 'archived');
 		this.#workspaceFile = join(dataDir, 'workspace.json');
 	}
 
@@ -106,15 +102,32 @@ export class PiSessionRepository implements SessionRepository {
 		manager.appendSessionInfo(title);
 	}
 
+	/**
+	 * Hides a session without destroying it. The transcript is the authoritative
+	 * record behind derived memory, so removal moves the file into
+	 * `sessions/archived/` — outside the non-recursive directory scan
+	 * `SessionManager.listAll` performs — instead of unlinking it.
+	 */
 	async delete(sessionId: string): Promise<void> {
 		const info = await this.#find(sessionId);
-		await unlink(info.path);
-		await rm(join(this.#sessionDir, 'attachments', sessionId), {
-			recursive: true,
-			force: true,
-		});
+		await mkdir(this.#archiveDir, { recursive: true });
+		await rename(info.path, join(this.#archiveDir, basename(info.path)));
+		await this.#archiveAttachments(sessionId);
 		const current = await this.#readLastSessionId();
 		if (current === sessionId) await this.setLastSession();
+	}
+
+	/** Attachments follow the transcript so an archived session stays whole. */
+	async #archiveAttachments(sessionId: string): Promise<void> {
+		const source = join(this.#sessionDir, 'attachments', sessionId);
+		const target = join(this.#archiveDir, 'attachments', sessionId);
+		try {
+			await mkdir(dirname(target), { recursive: true });
+			await rename(source, target);
+		} catch (error) {
+			// A session with no attachments has no directory to move.
+			if (!isMissingFile(error)) throw error;
+		}
 	}
 
 	async setLastSession(sessionId?: string): Promise<void> {

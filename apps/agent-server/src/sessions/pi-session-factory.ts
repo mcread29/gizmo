@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import type { ComposerCommand, CompactionPolicy } from '@gizmo/protocol';
 import {
 	activateExtensions,
@@ -75,7 +76,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 	const systemPrompt = activeExtensions.systemPrompt ?? customSystemPrompt;
 	const resourceLoaderOptions = {
 		noExtensions: true,
-		additionalExtensionPaths: piExtensions,
+		additionalExtensionPaths: [journalExtensionPath(), ...piExtensions],
 		noSkills: true,
 		additionalSkillPaths: skillPaths,
 		noPromptTemplates: true,
@@ -251,6 +252,17 @@ function skillCommands(resourceLoader: {
 }
 
 /** Gizmo's own AGENTS.md files, in the order Pi should apply them. */
+/**
+ * Memory journaling ships with the server rather than being discovered, so
+ * every session records history whether or not the user has configured any Pi
+ * extensions. Set GIZMO_MEMORY_JOURNAL=0 to opt out.
+ */
+export function journalExtensionPath(): string {
+	return fileURLToPath(
+		new URL('../pi-extensions/memory-journal.ts', import.meta.url),
+	);
+}
+
 async function readAgentsFiles(cwd: string) {
 	const paths = await existingFiles(resourceRoots(cwd).agentsFiles);
 	return Promise.all(

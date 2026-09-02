@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -66,5 +66,11 @@ describe('PiSessionRepository', () => {
 			'Unknown session',
 		);
 		expect((await restarted.list()).lastSessionId).toBeUndefined();
+
+		// Removal hides the transcript; the journal treats it as source material.
+		const archived = await readdir(join(dataDir, 'sessions', 'archived'));
+		expect(archived.some((name) => name.includes(game.getSessionId()))).toBe(
+			true,
+		);
 	});
 });
