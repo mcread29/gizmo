@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ProjectServiceRegistry, type ProjectService } from '@gizmo/extensions';
 import type { ExtensionHostService } from '../../src/extensions/extension-host-service';
-import { createProjectWatchCoordinator } from '../../src/transport/project-watch-coordinator';
+import { ProjectWatchCoordinator } from '../../src/transport/project-watch-coordinator';
 
 function service(): ProjectService & { watchedPaths: string[] } {
 	const watchedPaths: string[] = [];
@@ -28,7 +28,7 @@ function coordinator(services: Record<string, ProjectService>) {
 		host,
 		emit,
 		stopExtensionWatch,
-		watch: createProjectWatchCoordinator(
+		watch: new ProjectWatchCoordinator(
 			new ProjectServiceRegistry(Object.entries(services)),
 			host,
 			emit,
@@ -36,7 +36,7 @@ function coordinator(services: Record<string, ProjectService>) {
 	};
 }
 
-describe('createProjectWatchCoordinator', () => {
+describe('ProjectWatchCoordinator', () => {
 	it('refreshes status without re-watching a service already watched', async () => {
 		const git = service();
 		const { watch } = coordinator({ git });
@@ -45,22 +45,38 @@ describe('createProjectWatchCoordinator', () => {
 		expect(git.watchedPaths).toEqual(['/a']);
 	});
 
-	it('re-points every watched service when the project path changes', async () => {
+	it('watches the same project from two connections without re-watching', async () => {
+		const git = service();
+		const { watch } = coordinator({ git });
+		await watch.watch('s1', '/a', 'git');
+		await watch.watch('s2', '/a', 'git');
+		expect(git.watchedPaths).toEqual(['/a']);
+	});
+
+	it('re-points a service when the watched path changes', async () => {
 		const git = service();
 		const tests = service();
 		const { watch, stopExtensionWatch, host } = coordinator({ git, tests });
 		await watch.watch('s', '/a', 'git');
 		await watch.watch('s', '/a', 'tests');
 		await watch.watch('s', '/b', 'git');
-		expect(stopExtensionWatch).toHaveBeenCalledTimes(1);
 		expect(host.watch).toHaveBeenCalledTimes(2);
 		expect(git.watchedPaths).toEqual(['/a', '/b']);
-		// Not requested for /b, but its /a watch must not be left behind.
-		expect(tests.watchedPaths).toEqual(['/a', '/b']);
+		// A service watches one path at a time, so tests stays on /a — its
+		// events keep broadcasting and every tab filters by its own selection.
+		expect(tests.watchedPaths).toEqual(['/a']);
+		// /a is not abandoned: tests still watches it, so the shared
+		// extension-host watch for the path stays alive too.
+		expect(stopExtensionWatch).not.toHaveBeenCalled();
+		await watch.watch('s', '/b', 'tests');
+		// Only now does /a lose its last service and its host watch.
+		expect(stopExtensionWatch).toHaveBeenCalledTimes(1);
 	});
 
-	it('throws for an unknown extension', () => {
+	it('throws for an unknown extension', async () => {
 		const { watch } = coordinator({});
-		expect(() => watch.watch('s', '/a', 'nope')).toThrow(/No project service/);
+		await expect(watch.watch('s', '/a', 'nope')).rejects.toThrow(
+			/No project service/,
+		);
 	});
 });

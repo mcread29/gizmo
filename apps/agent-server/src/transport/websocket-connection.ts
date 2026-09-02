@@ -1,143 +1,32 @@
-import { ProjectServiceRegistry } from '@gizmo/extensions';
-import { protocolVersion, type ExtensionDescriptor } from '@gizmo/protocol';
-import { WebSocket } from 'ws';
-import { ExtensionHostService } from '../extensions/extension-host-service';
-import { PiAgentService } from '../sessions/pi-agent-service';
+import type { WebSocket } from 'ws';
 import { sendMessage } from './protocol-messages';
-import {
-	createProjectWatchCoordinator,
-	type ProjectEmitters,
-} from './project-watch-coordinator';
 import { handleRequestMessage } from './request-message-handler';
+import type { RequestServices } from './request-router';
 
-export interface AgentConnectionFactories {
-	createService?: () => PiAgentService;
-	createProjectServices?: () => ProjectServiceRegistry;
-	createExtensionHost?: () => ExtensionHostService;
-}
-
-/** Attach one isolated set of domain services and one event sequence to a socket. */
+/**
+ * One browser connection is a subscriber of server-owned agent resources, not
+ * their owner. Closing a tab only detaches the socket: sessions keep running,
+ * a reopened tab reattaches to the same resident runtimes, and shared watches
+ * and events keep reaching the tabs that remain.
+ */
 export function attachAgentConnection(
 	socket: WebSocket,
-	factories: AgentConnectionFactories,
+	resources: RequestServices,
 ): void {
-	const agent = factories.createService?.() ?? new PiAgentService();
-	const projectServices =
-		factories.createProjectServices?.() ?? noProjectServices;
-	const extensions =
-		factories.createExtensionHost?.() ?? new ExtensionHostService([]);
 	let eventId = 0;
-
-	const emit: ProjectEmitters = {
-		status: (sessionId, projectPath, extensionId, status) =>
-			sendProjectStatus(
-				socket,
-				++eventId,
-				sessionId,
-				projectPath,
-				extensionId,
-				status,
-			),
-		extensions: (sessionId, projectPath, descriptors) =>
-			sendProjectExtensions(
-				socket,
-				++eventId,
-				sessionId,
-				projectPath,
-				descriptors,
-			),
-	};
-	const watchCoordinator = createProjectWatchCoordinator(
-		projectServices,
-		extensions,
-		emit,
-	);
-	const services = {
-		agent,
-		projectServices,
-		extensions,
-		watchCoordinator,
-	};
-	const unsubscribe = agent.subscribe((event) =>
+	const unsubscribe = resources.agent.subscribe((event) =>
 		sendMessage(socket, { ...event, eventId: ++eventId }),
 	);
-
 	socket.on('message', (data, isBinary) => {
 		void handleRequestMessage(
 			socket,
-			services,
+			resources,
 			isBinary ? undefined : data.toString(),
 		);
 	});
-	// An unhandled EventEmitter error would otherwise crash the process. The
-	// close event still follows and owns resource cleanup.
+	// An unhandled EventEmitter error would otherwise crash the process.
 	socket.on('error', (error) => {
 		console.error('Agent socket error:', error);
 	});
-	socket.once('close', () => {
-		void disposeConnection(agent, projectServices, extensions, unsubscribe);
-	});
+	socket.once('close', () => unsubscribe());
 }
-
-async function disposeConnection(
-	agent: PiAgentService,
-	projectServices: ProjectServiceRegistry,
-	extensions: ExtensionHostService,
-	unsubscribe: () => void,
-): Promise<void> {
-	// Let active streams stop before disposing resources they may still use.
-	await agent.abortStreamingSessions();
-	unsubscribe();
-
-	// A failure in one resource must not leak resources disposed after it.
-	for (const disposeOne of [
-		() => agent.dispose(),
-		() => projectServices.dispose(),
-		() => extensions.dispose(),
-	]) {
-		try {
-			disposeOne();
-		} catch (error) {
-			console.error('Error disposing agent session resource:', error);
-		}
-	}
-}
-
-function sendProjectStatus(
-	socket: WebSocket,
-	eventId: number,
-	sessionId: string,
-	projectPath: string,
-	extensionId: string,
-	status: unknown,
-): void {
-	sendMessage(socket, {
-		protocolVersion,
-		eventId,
-		sessionId,
-		type: 'project.status.changed',
-		projectPath,
-		extensionId,
-		status,
-	});
-}
-
-function sendProjectExtensions(
-	socket: WebSocket,
-	eventId: number,
-	sessionId: string,
-	projectPath: string,
-	extensions: ExtensionDescriptor[],
-): void {
-	sendMessage(socket, {
-		protocolVersion,
-		eventId,
-		sessionId,
-		type: 'project.extensions.changed',
-		projectPath,
-		extensions,
-	});
-}
-
-/** Used when no domain project services are configured for a connection. */
-const noProjectServices = new ProjectServiceRegistry([]);

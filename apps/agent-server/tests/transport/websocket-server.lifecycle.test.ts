@@ -75,44 +75,7 @@ afterEach(async () => {
 });
 
 describe('createAgentWebSocketServer', () => {
-	it('disposes every session resource even when one throws', async () => {
-		const projectDispose = vi.fn();
-		agentServer = await createAgentWebSocketServer({
-			port: 0,
-			createService: () =>
-				fakeService(() => {
-					throw new Error('boom');
-				}),
-			createProjectServices: () =>
-				new ProjectServiceRegistry([
-					['unity', stubProjectService({ dispose: projectDispose })],
-				]),
-		});
-		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-		const { port } = agentServer.server.address() as { port: number };
-		const socket = new WebSocket(`ws://127.0.0.1:${port}/agent`);
-		await new Promise<void>((resolve, reject) => {
-			socket.once('open', () => resolve());
-			socket.once('error', reject);
-		});
-		socket.close();
-		await new Promise<void>((resolve) => socket.once('close', () => resolve()));
-		// The close handler runs synchronously once the socket's 'close' event
-		// fires on the server side; give the event loop a tick to catch up.
-		await new Promise((resolve) => setTimeout(resolve, 20));
-
-		// projectService.dispose() runs after service.dispose() throws — proof
-		// the loop isolates each dispose rather than bailing on the first error.
-		expect(projectDispose).toHaveBeenCalledOnce();
-		expect(errorSpy).toHaveBeenCalledWith(
-			expect.stringContaining('disposing'),
-			expect.any(Error),
-		);
-		errorSpy.mockRestore();
-	});
-
-	it('aborts streaming sessions before disposing them on socket close', async () => {
+	it('keeps sessions alive when a socket closes and ends them at server close', async () => {
 		const order: string[] = [];
 		agentServer = await createAgentWebSocketServer({
 			port: 0,
@@ -133,7 +96,43 @@ describe('createAgentWebSocketServer', () => {
 		await new Promise<void>((resolve) => socket.once('close', () => resolve()));
 		await new Promise((resolve) => setTimeout(resolve, 20));
 
+		// A closed tab detaches the socket and nothing else: the agent it was
+		// talking to is server-owned and keeps running.
+		expect(order).toEqual([]);
+
+		await agentServer.close();
+		agentServer = undefined;
+		// Server shutdown, not tab close, is what ends in-flight work: streams
+		// are aborted first, then every shared resource is disposed.
 		expect(order).toEqual(['abort', 'dispose']);
+	});
+
+	it('disposes every shared resource even when one throws', async () => {
+		const projectDispose = vi.fn();
+		agentServer = await createAgentWebSocketServer({
+			port: 0,
+			createService: () =>
+				fakeService(() => {
+					throw new Error('boom');
+				}),
+			createProjectServices: () =>
+				new ProjectServiceRegistry([
+					['unity', stubProjectService({ dispose: projectDispose })],
+				]),
+		});
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await agentServer.close();
+		agentServer = undefined;
+
+		// projectService.dispose() runs after service.dispose() throws — proof
+		// the loop isolates each dispose rather than bailing on the first error.
+		expect(projectDispose).toHaveBeenCalledOnce();
+		expect(errorSpy).toHaveBeenCalledWith(
+			expect.stringContaining('disposing'),
+			expect.any(Error),
+		);
+		errorSpy.mockRestore();
 	});
 
 	it('reuses the live watch for a repeated project.watch on the same path', async () => {
