@@ -61,7 +61,8 @@
 			<h1>{project?.title ?? 'Workspace'}</h1>
 			{#if project}
 				<p data-ui="workspace-path" title={project.path}>
-					<FolderOpen size={13} />{project.path}
+					<FolderOpen size={13} />
+					<span>{project.path}</span>
 				</p>
 			{/if}
 		</div>

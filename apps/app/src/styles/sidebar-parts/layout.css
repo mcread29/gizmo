@@ -132,12 +132,20 @@
 	white-space: nowrap;
 }
 
-/* The count is a hint, so it yields to the row actions on hover. */
+/*
+ * The hint — a thread count, or the workspace's path — yields to the row
+ * actions on hover and ellipsizes instead of pushing the row wider than the
+ * rail: a path with no break opportunities made this the widest thing in the
+ * list and sliced every row at the sidebar's edge.
+ */
 [data-ui='workspace-entry'] small {
-	flex: none;
+	min-width: 0;
+	overflow: hidden;
 	color: var(--color-text-faint);
 	font-size: var(--text-2xs);
 	font-variant-numeric: tabular-nums;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 [data-ui='workspace-row']:hover [data-ui='workspace-entry'] small,

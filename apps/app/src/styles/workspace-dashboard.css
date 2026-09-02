@@ -10,11 +10,21 @@
 
 [data-ui='workspace-screen-header'] {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: var(--space-4);
 	/* No bottom border: the folder tab strip below carries the shelf line. */
 	padding: var(--space-4) var(--space-5) var(--space-2);
+}
+
+/*
+ * The title/path column must be allowed to shrink below its content — the
+ * path has no break opportunities, so its min-content is the whole string
+ * and would otherwise push the New thread button out under the inspector.
+ */
+[data-ui='workspace-screen-header'] > div {
+	min-width: 0;
 }
 
 /*
@@ -61,6 +71,12 @@
 [data-ui='workspace-screen-header'] h1 {
 	margin: 0;
 	font-size: var(--text-lg);
+}
+
+[data-ui='workspace-path'] > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 /*
@@ -176,8 +192,11 @@
 }
 
 [data-ui='workspace-dashboard-section-heading'] span {
+	overflow: hidden;
 	color: var(--color-text-muted);
 	font-size: var(--text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 [data-ui='workspace-recent-list'] {

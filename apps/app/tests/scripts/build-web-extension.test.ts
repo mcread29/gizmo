@@ -59,4 +59,22 @@ export const gizmoWebExtension = { id: 'fixture', internals };`,
 		// be a syntax error, so they must be renamed in the export clause.
 		expect(code).not.toMatch(/\bconst (if|await|try)\b/);
 	}, 60_000);
+
+	it('installs emitted CSS instead of dropping it', async () => {
+		// Vite extracts a plain CSS import into a separate asset for library
+		// builds; writing only the JS chunk would silently lose every rule.
+		await write('src/web/panel.css', '.fixture-panel { color: red; }');
+		await write(
+			'src/web/index.ts',
+			`import './panel.css';
+export const gizmoWebExtension = { id: 'fixture' };`,
+		);
+
+		const out = join(root, 'dist/web.js');
+		await buildWebExtension(root, out);
+		const code = await readFile(out, 'utf8');
+
+		expect(code).toContain('fixture-panel');
+		expect(code).toContain('data-gizmo-extension-style');
+	}, 60_000);
 });
