@@ -8,11 +8,12 @@ import { configuredOrigins } from './server-config';
 import { ProjectServiceRegistry } from '@gizmo/extensions';
 import { ExtensionHostService } from './extensions/extension-host-service';
 import {
-	loadLinkedExtensionIntegrations,
-	loadServerExtensions,
-} from './extensions/load-extensions';
+	configureExtensionCatalog,
+	rescanExtensionCatalog,
+} from './extensions/extension-catalog';
+import { loadServerExtensions } from './extensions/load-extensions';
 import { piAgentDir } from './resources/pi-global-resources';
-import { registerExtensions } from './extensions/registry';
+import { registeredExtensions } from './extensions/registry';
 import { ProjectCatalog } from './projects/project-catalog';
 
 await restoreDesktopEnvironment();
@@ -29,19 +30,19 @@ const configuredExtensions = await loadServerExtensions(
 		? extensionsConfigPath
 		: resolve(repoRoot, 'gizmo.extensions.json'),
 );
-const linkedExtensions = await loadLinkedExtensionIntegrations(
-	join(piAgentDir(), 'extensions'),
-);
-const linkedIds = new Set(linkedExtensions.map(({ id }) => id));
-const extensions = [
-	...configuredExtensions.filter(({ id }) => !linkedIds.has(id)),
-	...linkedExtensions,
-];
-registerExtensions(extensions);
+configureExtensionCatalog({
+	configured: configuredExtensions,
+	linkedDir: join(piAgentDir(), 'extensions'),
+});
+// Registry link/unlink rescans through the same helper, so the catalog the
+// rest of the server reads is always the boot merge or a later rescan of it.
+const extensions = await rescanExtensionCatalog();
 const projects = new ProjectCatalog();
 
 // One project service per extension id; requests name the extension they
 // belong to and are routed directly to its service.
+// Known limitation: this registry is built once. An extension linked later
+// that exports createProjectService has no service instance until restart.
 const createProjectServices = () =>
 	new ProjectServiceRegistry(
 		extensions
@@ -59,8 +60,11 @@ const agentServer = await createAgentWebSocketServer({
 	host,
 	port,
 	createExtensionHost: () =>
-		new ExtensionHostService(extensions, 5_000, async (workspacePath) =>
-			(await projects.integrationsFor(workspacePath)).map(({ id }) => id),
+		new ExtensionHostService(
+			registeredExtensions,
+			5_000,
+			async (workspacePath) =>
+				(await projects.integrationsFor(workspacePath)).map(({ id }) => id),
 		),
 	createProjectServices,
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),

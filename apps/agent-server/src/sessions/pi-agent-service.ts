@@ -80,6 +80,9 @@ export class PiAgentService {
 	resumeSession(sessionId: string) {
 		return this.#catalog.resumeSession(sessionId);
 	}
+	readSession(sessionId: string) {
+		return this.#catalog.readSession(sessionId);
+	}
 
 	listProjects() {
 		return this.#projects.list();
@@ -274,6 +277,10 @@ export class PiAgentService {
 
 	subscribe(listener: AgentEventListener) {
 		return this.#events.subscribe(listener);
+	}
+
+	get events() {
+		return this.#events;
 	}
 
 	resolveConfirmation(

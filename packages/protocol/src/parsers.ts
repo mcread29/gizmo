@@ -2,6 +2,7 @@ import { Type, type TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 import { toolPolicySchema, type ToolPolicy } from './core';
 import { ProtocolValidationError } from './errors';
+import { heartbeatSchema, type Heartbeat } from './heartbeat';
 import { agentEventSchema, type AgentEvent } from './events';
 import {
 	extensionsSchema,
@@ -83,6 +84,16 @@ export const parseSessionTree = parser<SessionTree>(sessionTreeSchema);
 export const parseSessionSnapshot = parser<SessionSnapshot>(
 	sessionSnapshotSchema,
 );
+export const parseHeartbeat = parser<Heartbeat>(heartbeatSchema);
+/** Cheap shape check before the full parse; heartbeats are not events. */
+export function isHeartbeat(input: unknown): input is Heartbeat {
+	return (
+		input !== null &&
+		typeof input === 'object' &&
+		'type' in input &&
+		input.type === 'heartbeat'
+	);
+}
 export const parseComposerCommands = parser<ComposerCommand[]>(
 	Type.Array(composerCommandSchema),
 );

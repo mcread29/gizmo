@@ -9,11 +9,18 @@ export interface ExtensionSettingsContext {
 
 export interface ExtensionContext {
 	projectPath: string;
+	/**
+	 * The thread currently open in this workspace, read live (it changes
+	 * without re-activating the runtime). Extensions that keep per-thread
+	 * state pass it along in their invoke input.
+	 */
+	readonly sessionId: string | undefined;
 	invoke(operation: string, input?: unknown): Promise<unknown>;
 }
 
 export interface ExtensionHostContext {
 	projectPath: string;
+	readonly sessionId: string | undefined;
 	invoke(
 		extensionId: string,
 		operation: string,

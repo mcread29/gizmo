@@ -50,6 +50,9 @@ export function activateProjectExtensions(
 			return [];
 		const scopedContext: ExtensionContext = {
 			projectPath: context.projectPath,
+			get sessionId() {
+				return context.sessionId;
+			},
 			invoke: (operation, input) =>
 				context.invoke(descriptor.id, operation, input),
 		};

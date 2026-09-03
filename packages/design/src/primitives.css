@@ -212,10 +212,15 @@ summary:focus-visible,
 }
 
 /* Label wins the space; the hint truncates first. */
+/*
+ * The trigger's line-height is 1 for vertical centering, but an overflow:
+ * hidden label at that height clips descenders, so the text gets its own.
+ */
 [data-ui='select-trigger'] [data-ui='select-label'] {
 	overflow: hidden;
 	color: var(--color-text);
 	font-weight: var(--weight-semibold);
+	line-height: var(--leading-snug);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -223,6 +228,7 @@ summary:focus-visible,
 [data-ui='select-trigger'] [data-ui='select-hint'] {
 	overflow: hidden;
 	flex: 0 1 auto;
+	line-height: var(--leading-snug);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }

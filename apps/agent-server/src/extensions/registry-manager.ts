@@ -1,4 +1,5 @@
 import type { RegistryStatus } from '@gizmo/protocol';
+import { rescanExtensionCatalog } from './extension-catalog';
 import { catalogFor } from './registry-catalog';
 import {
 	buildRegistry,
@@ -96,6 +97,12 @@ export async function registryUpdate(name: string): Promise<RegistryStatus> {
 	registry.commit = await registryCommit(clone);
 	await refreshLinked(registry);
 	await writeInstalledRegistries(registries);
+	// The rescan re-imports each linked entry, but Node's ESM cache serves the
+	// module graph it already loaded for an unchanged path, so an extension
+	// that was linked before this update keeps running its old code until the
+	// server restarts. Busting only the entry module would run new entry code
+	// against stale dependencies, which is worse than being honestly stale.
+	await rescanExtensionCatalog();
 	return registryStatus();
 }
 
@@ -107,6 +114,7 @@ export async function registryRemove(name: string): Promise<RegistryStatus> {
 	await writeInstalledRegistries(
 		registries.filter((candidate) => candidate.name !== name),
 	);
+	await rescanExtensionCatalog();
 	return registryStatus();
 }
 
@@ -121,6 +129,7 @@ export async function registryLink(
 	const manifest = await readRegistryManifest(clone);
 	await syncExtension(clone, manifest, id);
 	await writeInstalledRegistries(registries);
+	await rescanExtensionCatalog();
 	return registryStatus();
 }
 
@@ -133,6 +142,7 @@ export async function registryUnlink(
 	registry.linked = registry.linked.filter((linked) => linked !== id);
 	await unlinkExtension(id);
 	await writeInstalledRegistries(registries);
+	await rescanExtensionCatalog();
 	return registryStatus();
 }
 

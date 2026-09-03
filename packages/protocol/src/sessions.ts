@@ -85,6 +85,14 @@ export const conversationMessageSchema = Type.Object(
 
 export type ConversationMessage = Static<typeof conversationMessageSchema>;
 
+export const sessionStateSchema = Type.Union([
+	Type.Literal('idle'),
+	Type.Literal('streaming'),
+	Type.Literal('error'),
+]);
+
+export type SessionState = Static<typeof sessionStateSchema>;
+
 export const sessionUsageSchema = Type.Object(
 	{
 		input: Type.Integer({ minimum: 0 }),
@@ -185,6 +193,8 @@ export const agentSessionSummarySchema = Type.Object(
 		createdAt: Type.Integer({ minimum: 0 }),
 		lastActiveAt: Type.Integer({ minimum: 0 }),
 		messageCount: Type.Integer({ minimum: 0 }),
+		/** Whether the agent is running in this session, when the server knows. */
+		state: Type.Optional(sessionStateSchema),
 	},
 	{ additionalProperties: false },
 );
@@ -207,6 +217,12 @@ export const sessionSnapshotSchema = Type.Object(
 		messages: Type.Array(conversationMessageSchema),
 		/** The event id the snapshot is current as of; later events are live news. */
 		lastEventId: Type.Optional(Type.Integer({ minimum: 0 })),
+		/**
+		 * Whether the agent is running right now, from the runtime itself. A
+		 * client that fell behind the event stream resynchronises from this
+		 * rather than from the last `session.state` it happened to hear.
+		 */
+		state: Type.Optional(sessionStateSchema),
 	},
 	{ additionalProperties: false },
 );

@@ -21,18 +21,19 @@ export function streamingActivity(
 	override?: StreamingActivityOverride,
 ): StreamingActivity {
 	const last = messages.at(-1);
-	if (
-		sessionState !== 'streaming' ||
-		override?.visible === false ||
-		!last ||
-		last.role !== 'assistant'
-	) {
+	if (sessionState !== 'streaming' || !last || last.role !== 'assistant') {
 		return { streaming: false, label: 'Idle' };
 	}
-	const custom = {
-		...(override?.message ? { label: override.message } : {}),
-		...(override?.frames?.[0] ? { indicator: override.frames[0] } : {}),
-	};
+	// setWorkingVisible(false) withdraws the extension's own message and
+	// spinner; it cannot make a running turn look idle, which used to leave the
+	// composer in steer mode under a titlebar that claimed nothing was going on.
+	const custom =
+		override?.visible === false
+			? {}
+			: {
+					...(override?.message ? { label: override.message } : {}),
+					...(override?.frames?.[0] ? { indicator: override.frames[0] } : {}),
+				};
 	const running = last.tools.find(
 		(tool: ToolCallView) => tool.status === 'running',
 	);

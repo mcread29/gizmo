@@ -1,18 +1,11 @@
 <script lang="ts">
-	import {
-		CornerDownLeft,
-		Minimize2,
-		Paperclip,
-		Send,
-		Square,
-	} from '@lucide/svelte';
+	import { CornerDownLeft, Paperclip, Send, Square } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Tooltip } from '../../components';
 	import { shortcutHint } from '../shell/shortcuts';
 	import { maxAttachmentCount } from './attachments';
 	import ComposerModelControls from './ComposerModelControls.svelte';
 	import UsageMeter from './UsageMeter.svelte';
-	import { emptyUsage } from './usage';
 
 	interface Props {
 		store: AgentStore;
@@ -53,57 +46,45 @@
 			</Button>
 		{/snippet}
 	</Tooltip>
-	<!--
-		Stopping the run lives at the far left, away from the send button. It used
-		to sit immediately beside "Steer response": one slip discarded the turn,
-		and a message steered into the dying run was never delivered. The send
-		position now always steers.
-	-->
-	{#if streaming}
-		<Tooltip text="Stop the response and keep what has been written">
-			{#snippet children(props)}
-				<Button
-					{...props}
-					type="button"
-					variant="danger"
-					size="icon"
-					aria-label="Stop response"
-					onclick={() => store.abort()}
-				>
-					<Square size={14} />
-				</Button>
-			{/snippet}
-		</Tooltip>
-	{/if}
 	<ComposerModelControls {store} />
-	{#if store.sessionId}
-		<UsageMeter usage={store.usage ?? emptyUsage(store.model?.contextWindow)} />
+	<!--
+		The meter appears once a response has reported usage, and is itself the
+		compact control: compaction is about context size, so the number is the
+		natural place to act on it. An empty thread has nothing to show or compact.
+	-->
+	{#if store.sessionId && store.usage && store.usage.contextUsed > 0}
+		<UsageMeter
+			usage={store.usage}
+			compactDisabled={streaming ||
+				store.compacting ||
+				store.connection !== 'connected'}
+			onCompact={() => void store.compact()}
+		/>
 	{/if}
 	{#if store.compacting}
 		<span data-ui="compaction-status">Compacting context…</span>
 	{/if}
-	<Tooltip
-		text="Compact context now — older history is summarized to free space"
-	>
-		{#snippet children(props)}
-			<Button
-				{...props}
-				type="button"
-				variant="ghost"
-				size="icon"
-				aria-label="Compact context"
-				disabled={streaming ||
-					store.compacting ||
-					store.connection !== 'connected' ||
-					!store.sessionId}
-				onclick={() => void store.compact()}
-			>
-				<Minimize2 size={14} />
-			</Button>
-		{/snippet}
-	</Tooltip>
+	<!--
+		Stop and Steer sit together at the send position: Stop is the danger
+		variant and Steer the primary, with the toolbar gap between them, so the
+		pair reads as "this run" rather than two unrelated icons.
+	-->
 	<div data-ui="composer-send">
 		{#if streaming}
+			<Tooltip text="Stop the response and keep what has been written">
+				{#snippet children(props)}
+					<Button
+						{...props}
+						type="button"
+						variant="danger"
+						size="icon"
+						aria-label="Stop response"
+						onclick={() => store.abort()}
+					>
+						<Square size={14} />
+					</Button>
+				{/snippet}
+			</Tooltip>
 			<Tooltip text="Add direction without interrupting the run">
 				{#snippet children(props)}
 					<Button

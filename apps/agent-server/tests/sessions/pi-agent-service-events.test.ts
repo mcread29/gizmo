@@ -97,6 +97,30 @@ describe('PiAgentService events', () => {
 	});
 
 	describe('resuming a streaming session', () => {
+		it('reads a session without moving the last-session pointer', async () => {
+			const pi = new FakePiSession();
+			const service = await createTestService(pi);
+			const first = await service.createSession();
+			const second = await service.createSession();
+			expect((await service.listSessions()).lastSessionId).toBe(second);
+
+			const snapshot = await service.readSession(first);
+
+			expect(snapshot.session.id).toBe(first);
+			expect(snapshot.state).toBe('idle');
+			expect((await service.listSessions()).lastSessionId).toBe(second);
+		});
+
+		it('reports the runtime state in the snapshot', async () => {
+			const pi = new FakePiSession();
+			const service = await createTestService(pi);
+			const sessionId = await service.createSession();
+
+			expect((await service.resumeSession(sessionId)).state).toBe('idle');
+			pi.isStreaming = true;
+			expect((await service.resumeSession(sessionId)).state).toBe('streaming');
+		});
+
 		it('splices the in-flight assistant message into the snapshot', async () => {
 			const pi = new FakePiSession();
 			const service = await createTestService(pi);

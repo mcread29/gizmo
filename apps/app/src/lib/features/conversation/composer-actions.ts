@@ -30,14 +30,28 @@ export function autoGrow(node: HTMLTextAreaElement) {
 	const resize = () => resizeComposer(node);
 	resize();
 	node.addEventListener('input', resize);
+	// Only a width change needs a re-fit: the height changes are the ones this
+	// code makes, and re-fitting inside the observer's own delivery raised
+	// "ResizeObserver loop completed with undelivered notifications", which
+	// the dev overlay then painted over the whole app on every layout shift.
+	let width = node.clientWidth;
+	let frame: number | undefined;
 	const observer =
 		typeof ResizeObserver === 'undefined'
 			? undefined
-			: new ResizeObserver(resize);
+			: new ResizeObserver(() => {
+					if (node.clientWidth === width || frame !== undefined) return;
+					frame = requestAnimationFrame(() => {
+						frame = undefined;
+						width = node.clientWidth;
+						resize();
+					});
+				});
 	observer?.observe(node);
 	return () => {
 		node.removeEventListener('input', resize);
 		observer?.disconnect();
+		if (frame !== undefined) cancelAnimationFrame(frame);
 	};
 }
 

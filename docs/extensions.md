@@ -28,7 +28,9 @@ Two small interfaces, one per side, mirror each other:
 - **Client** — `GizmoWebExtension` (`apps/app/src/lib/extensions/types.ts`):
   `id`, plus optional `dialog`/`settings`/`hasProjectStatus`, optional
   `apiVersion`/`activate` (matched against a server-reported descriptor to
-  activate live operations), optional `inspectorTabs`/`commands`/`statusBar`
+  activate live operations; the context it receives exposes `projectPath`,
+  a live `sessionId` for the open thread, and `invoke`, so an extension that
+  keeps per-thread state can pass the thread along in its invoke input), optional `inspectorTabs`/`commands`/`statusBar`
   (peer workspace-inspector tabs, commands, and titlebar indicators shown only
   while the extension is active), and
   optional `labels`/`iconFor`/`consoleEntriesKey`/`parametersFor`/`resultFor`/

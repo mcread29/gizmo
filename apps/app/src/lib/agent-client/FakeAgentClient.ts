@@ -67,6 +67,8 @@ export class FakeAgentClient implements AgentClient {
 		this.#sessions.create(options);
 	resumeSession: AgentClient['resumeSession'] = (sessionId) =>
 		this.#sessions.resume(sessionId);
+	readSession: AgentClient['readSession'] = (sessionId) =>
+		this.#sessions.read(sessionId);
 	renameSession: AgentClient['renameSession'] = (sessionId, title) =>
 		this.#sessions.rename(sessionId, title);
 	prompt: AgentClient['prompt'] = (sessionId, text, compaction, attachments) =>

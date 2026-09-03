@@ -34,6 +34,7 @@ export async function routeRequest(
 		case 'session.list':
 		case 'session.create':
 		case 'session.resume':
+		case 'session.read':
 		case 'session.rename':
 		case 'session.prompt':
 		case 'session.commands':

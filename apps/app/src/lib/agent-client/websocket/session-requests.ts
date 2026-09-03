@@ -47,6 +47,11 @@ export class SessionRequests extends RequestClient {
 		return parseSessionSnapshot(response.result);
 	}
 
+	async readSession(sessionId: string) {
+		const response = await this.request({ type: 'session.read', sessionId });
+		return parseSessionSnapshot(response.result);
+	}
+
 	async renameSession(sessionId: string, title: string) {
 		await this.request({ type: 'session.rename', sessionId, title });
 	}

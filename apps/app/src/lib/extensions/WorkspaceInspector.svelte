@@ -35,6 +35,9 @@
 		const runtimes = projectPath
 			? activateProjectExtensions(descriptors, {
 					projectPath,
+					get sessionId() {
+						return store.sessionId;
+					},
 					invoke: (extensionId, operation, input) =>
 						store.invokeProjectExtension(
 							projectPath,

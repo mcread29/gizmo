@@ -147,6 +147,9 @@ export class PiEventTranslator {
 				if (update.type === 'text_delta') {
 					this.#emit({ type: 'message.delta', messageId, delta: update.delta });
 				} else if (update.type === 'thinking_delta') {
+					// Some models open a thinking block with only a newline and then
+					// say nothing; forwarding it would render a heading over nothing.
+					if (!this.#reasoningOpen && !update.delta.trim()) break;
 					this.#emit({
 						type: 'message.reasoning',
 						messageId,

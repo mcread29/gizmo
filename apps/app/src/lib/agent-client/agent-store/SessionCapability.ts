@@ -9,7 +9,9 @@ import {
 import { applyAgentEvent } from '../agent-event-reducer';
 import type { AgentClient } from '../AgentClient';
 import type { AgentModel, AgentStore } from '../AgentStore.svelte';
+import { EventReplay } from './event-replay';
 import type { ProjectCapability } from './ProjectCapability';
+import type { SessionSyncCapability } from './SessionSyncCapability';
 import { errorMessage } from './shared';
 
 interface SessionSelection {
@@ -29,7 +31,10 @@ interface SessionSelection {
 
 export class SessionCapability {
 	#selectionVersion = 0;
-	#replayBuffer?: { sessionId: string; events: AgentEvent[] };
+	/** Live events held while a snapshot is read; shared with resync. */
+	readonly replay = new EventReplay();
+	/** Tells the sync capability about every event id this connection sees. */
+	sync?: SessionSyncCapability;
 
 	constructor(
 		private readonly store: AgentStore,
@@ -37,6 +42,11 @@ export class SessionCapability {
 		private readonly projects: ProjectCapability,
 		private readonly allowUnscopedSessions: boolean,
 	) {}
+
+	/** Bumps on every new/switch; a stale async step compares against it. */
+	get selectionVersion() {
+		return this.#selectionVersion;
+	}
 
 	async newSession(projectPath?: string) {
 		const store = this.store;
@@ -113,7 +123,7 @@ export class SessionCapability {
 		store.sessionState = store.sessionStates[sessionId] ?? 'idle';
 		store.usage = undefined;
 		store.lastAutomaticCompactionReason = undefined;
-		this.#replayBuffer = { sessionId, events: [] };
+		this.replay.begin(sessionId);
 		const summaryPath = session.workspacePath ?? session.projectPath;
 		if (summaryPath && summaryPath !== store.selectedProjectPath) {
 			this.projects.enterWorkspace(
@@ -144,7 +154,12 @@ export class SessionCapability {
 			else store.enabledExtensionIds = enabledExtensionIds;
 			store.messages = snapshot.messages;
 			store.messagesLoading = false;
-			this.#replay(sessionId, snapshot.lastEventId);
+			if (snapshot.state) store.sessionStates[sessionId] = snapshot.state;
+			this.replay.release(
+				sessionId,
+				(event) => this.applyEvent(event),
+				snapshot.lastEventId,
+			);
 			store.sessionState = store.sessionStates[sessionId] ?? store.sessionState;
 			if (movedWorkspace) void store.refreshGitStatus();
 			await Promise.all([
@@ -153,9 +168,7 @@ export class SessionCapability {
 				this.projects.watchSelectedProject(),
 			]);
 		} catch (error) {
-			if (this.#replayBuffer?.sessionId === sessionId) {
-				this.#replayBuffer = undefined;
-			}
+			this.replay.discard(sessionId);
 			if (
 				store.sessionId === sessionId &&
 				this.#selectionVersion === selectionVersion
@@ -173,15 +186,17 @@ export class SessionCapability {
 		}
 	}
 
-	async readSession(sessionId: string) {
-		const activeSessionId = this.store.sessionId;
-		try {
-			return await this.client.resumeSession(sessionId);
-		} finally {
-			if (activeSessionId && activeSessionId !== sessionId) {
-				await this.client.resumeSession(activeSessionId);
-			}
-		}
+	/** After a reconnect: the new server process knows none of these yet. */
+	async rebindSelection() {
+		await Promise.all([
+			this.store.refreshModelCatalog(),
+			this.store.refreshCommands(),
+			this.projects.watchSelectedProject(),
+		]);
+	}
+
+	readSession(sessionId: string) {
+		return this.client.readSession(sessionId);
 	}
 
 	async renameSession(sessionId: string, title: string) {
@@ -232,6 +247,7 @@ export class SessionCapability {
 			this.store.error = { kind: 'agent', message: errorMessage(error) };
 			return;
 		}
+		this.sync?.noteEvent(event.eventId);
 		const store = this.store;
 		if (event.type === 'session.state') {
 			store.sessionStates[event.sessionId] = event.state;
@@ -241,25 +257,16 @@ export class SessionCapability {
 			store.pendingConfirmations.push(event);
 			return;
 		} else if (event.type.startsWith('extension.ui.')) return;
-		if (this.#replayBuffer?.sessionId === event.sessionId) {
-			this.#replayBuffer.events.push(event);
+		if (this.replay.hold(event)) return;
+		// Project events describe a workspace and carry whichever session
+		// registered the watch; the reducer matches them on project path.
+		const projectEvent = event.type.startsWith('project.');
+		if (!projectEvent && store.sessionId && event.sessionId !== store.sessionId)
 			return;
-		}
-		if (store.sessionId && event.sessionId !== store.sessionId) return;
-		this.#applyEvent(event);
+		this.applyEvent(event);
 	}
 
-	#replay(sessionId: string, cutoff?: number) {
-		if (this.#replayBuffer?.sessionId !== sessionId) return;
-		const events = this.#replayBuffer.events;
-		this.#replayBuffer = undefined;
-		for (const event of events) {
-			if (cutoff !== undefined && event.eventId <= cutoff) continue;
-			this.#applyEvent(event);
-		}
-	}
-
-	#applyEvent(event: AgentEvent) {
+	applyEvent(event: AgentEvent) {
 		const eventError = applyAgentEvent(this.store, event);
 		if (eventError) this.store.error = { kind: 'agent', message: eventError };
 	}

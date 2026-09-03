@@ -57,6 +57,15 @@ export const sessionRequestSchemas = [
 		},
 		{ additionalProperties: false },
 	),
+	/** A snapshot for inspection: activates nothing, moves no pointers. */
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.read'),
+			sessionId: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
 	Type.Object(
 		{
 			...envelope,

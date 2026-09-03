@@ -1,32 +1,79 @@
 /*
- * The model name is the part that disambiguates; the provider is a suffix that
- * may be dropped. Both stay on one line and truncation eats the provider first.
+ * Model and thinking level share one outlined pill, split by a hairline, so
+ * they read as a control rather than a status line. Only the hover fill and
+ * the open state change per segment; the outline belongs to the group.
+ */
+[data-ui='composer-model-controls'] {
+	display: flex;
+	flex: 0 1 auto;
+	min-width: 0;
+	align-items: center;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-full);
+}
+
+[data-ui='composer-model-controls']:focus-within {
+	border-color: var(--color-border-strong);
+}
+
+/*
+ * The model name is the part that disambiguates; the provider lives in the
+ * menu, so the trigger shows the name alone and ellipsizes it if it must.
  */
 [data-ui='composer-model-controls']
 	[data-ui='select-trigger'][data-size='compact'] {
 	min-width: 0;
-	max-width: 18rem;
-	height: 28px;
-	gap: var(--space-2);
-	padding: 0 8px;
+	max-width: 11rem;
+	height: 24px;
+	gap: 2px;
+	padding: 0 4px 0 8px;
 	border-color: transparent;
+	border-radius: var(--radius-full);
 	background: transparent;
 	color: var(--color-text-muted);
-	font: 500 var(--text-2xs)/1 var(--font-sans);
+	font: 500 var(--text-2xs) / var(--leading-snug) var(--font-sans);
+}
+
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact']
+	+ [data-ui='select-trigger'][data-size='compact'] {
+	border-left-color: var(--color-border);
+	border-radius: 0 var(--radius-full) var(--radius-full) 0;
+}
+
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact']:first-child:not(:last-child) {
+	border-radius: var(--radius-full) 0 0 var(--radius-full);
 }
 
 [data-ui='composer-model-controls']
 	[data-ui='select-trigger'][data-size='compact']:hover,
 [data-ui='composer-model-controls']
 	[data-ui='select-trigger'][data-size='compact'][data-state='open'] {
-	border-color: var(--color-border);
 	background: var(--color-surface-soft);
+	color: var(--color-text);
+}
+
+[data-ui='composer-model-controls'] [data-ui='select-hint'] {
+	display: none;
 }
 
 [data-ui='composer-model-controls'] [data-ui='select-trigger'] > span {
 	display: flex;
 	min-width: 0;
-	gap: 5px;
+}
+
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact']
+	> svg {
+	flex: none;
+	color: var(--color-text-faint);
+}
+
+[data-ui='composer-model-controls']
+	[data-ui='select-trigger'][data-size='compact']:hover
+	> svg {
+	color: var(--color-text);
 }
 
 [data-ui='compaction-status'] {
@@ -50,42 +97,54 @@ kbd {
 [data-ui='usage-meter'] {
 	display: flex;
 	align-items: center;
-	gap: var(--space-2);
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-full);
+	background: transparent;
 	color: var(--color-text-muted);
 	font-variant-numeric: tabular-nums;
+	cursor: pointer;
 }
 
-[data-ui='usage-meter'] small {
-	font-size: var(--text-2xs);
+[data-ui='usage-meter']:not(:disabled):hover {
+	background: var(--color-surface-soft);
+	color: var(--color-text);
 }
 
-[data-ui='usage-bar'] {
+[data-ui='usage-meter']:disabled {
+	cursor: default;
+}
+
+[data-ui='usage-ring'] {
 	display: block;
-	overflow: hidden;
-	width: 44px;
-	height: 4px;
-	border-radius: var(--radius-full);
-	background: var(--color-border);
+	transform: rotate(-90deg);
+}
+
+[data-ui='usage-track'],
+[data-ui='usage-fill'] {
+	fill: none;
+	stroke-width: 2.5;
+}
+
+[data-ui='usage-track'] {
+	stroke: var(--color-border);
 }
 
 [data-ui='usage-fill'] {
-	display: block;
-	width: 100%;
-	background: var(--color-text-faint);
-	transform-origin: left;
-	transition: transform 200ms ease;
+	stroke: var(--color-text-faint);
+	stroke-linecap: round;
+	transition: stroke-dashoffset 200ms ease;
 }
 
 [data-ui='usage-meter'][data-level='warn'] [data-ui='usage-fill'] {
-	background: var(--color-warning);
-}
-
-[data-ui='usage-meter'][data-level='full'] {
-	color: var(--color-danger);
+	stroke: var(--color-warning);
 }
 
 [data-ui='usage-meter'][data-level='full'] [data-ui='usage-fill'] {
-	background: var(--color-danger);
+	stroke: var(--color-danger);
 }
 
 /*

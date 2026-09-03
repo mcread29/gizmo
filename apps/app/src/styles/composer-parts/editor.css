@@ -137,7 +137,8 @@
 
 [data-ui='composer'] textarea {
 	width: 100%;
-	min-height: 64px;
+	/* One line when empty; autoGrow adds rows as the draft does. */
+	min-height: 0;
 	max-height: min(280px, 40vh);
 	padding: 8px 8px 6px;
 	overflow-x: hidden;

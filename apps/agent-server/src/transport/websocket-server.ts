@@ -1,4 +1,3 @@
-import { protocolVersion } from '@gizmo/protocol';
 import { ProjectServiceRegistry } from '@gizmo/extensions';
 import {
 	WebSocketServer,
@@ -7,7 +6,6 @@ import {
 } from 'ws';
 import { ExtensionHostService } from '../extensions/extension-host-service';
 import { PiAgentService } from '../sessions/pi-agent-service';
-import { sendMessage } from './protocol-messages';
 import {
 	ProjectWatchCoordinator,
 	type ProjectEmitters,
@@ -27,6 +25,8 @@ export interface AgentWebSocketServerOptions {
 	createService?: () => PiAgentService;
 	createProjectServices?: () => ProjectServiceRegistry;
 	createExtensionHost?: () => ExtensionHostService;
+	/** Heartbeat cadence per connection; tests shorten it. */
+	heartbeatIntervalMs?: number;
 }
 
 export interface AgentWebSocketServer {
@@ -61,26 +61,18 @@ export async function createAgentWebSocketServer(
 	const extensions =
 		options.createExtensionHost?.() ?? new ExtensionHostService([]);
 
-	const broadcast = (message: unknown) => {
-		for (const socket of sockets) sendMessage(socket, message);
-	};
-	let eventId = 0;
+	// Project events share the agent hub's sequence so connections see one
+	// contiguous run of event ids; a private counter here would read as gaps.
 	const emit: ProjectEmitters = {
 		status: (sessionId, projectPath, extensionId, status) =>
-			broadcast({
-				protocolVersion,
-				eventId: ++eventId,
-				sessionId,
+			agent.events.emit(sessionId, {
 				type: 'project.status.changed',
 				projectPath,
 				extensionId,
 				status,
 			}),
 		extensions: (sessionId, projectPath, descriptors) =>
-			broadcast({
-				protocolVersion,
-				eventId: ++eventId,
-				sessionId,
+			agent.events.emit(sessionId, {
 				type: 'project.extensions.changed',
 				projectPath,
 				extensions: descriptors,
@@ -94,12 +86,13 @@ export async function createAgentWebSocketServer(
 
 	server.on('connection', (socket) => {
 		sockets.add(socket);
-		attachAgentConnection(socket, {
-			agent,
-			projectServices,
-			extensions,
-			watchCoordinator,
-		});
+		attachAgentConnection(
+			socket,
+			{ agent, projectServices, extensions, watchCoordinator },
+			options.heartbeatIntervalMs === undefined
+				? {}
+				: { heartbeatIntervalMs: options.heartbeatIntervalMs },
+		);
 		socket.once('close', () => sockets.delete(socket));
 	});
 

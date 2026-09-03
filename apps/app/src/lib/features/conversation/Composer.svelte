@@ -277,7 +277,7 @@
 			? `composer-command-${selectedCommand}`
 			: undefined}
 		rows="1"
-		disabled={store.compacting}
+		readonly={store.compacting}
 		placeholder={store.compacting
 			? 'Compacting context…'
 			: streaming

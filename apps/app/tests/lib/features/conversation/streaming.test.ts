@@ -68,4 +68,23 @@ describe('formatElapsed', () => {
 		expect(formatElapsed(4_400)).toBe('4s');
 		expect(formatElapsed(65_000)).toBe('1m 05s');
 	});
+
+	it('keeps a running turn visible when an extension hides its own message', () => {
+		const messages = [
+			{
+				id: 'a1',
+				role: 'assistant' as const,
+				content: 'partial',
+				createdAt: 0,
+				complete: false,
+				tools: [],
+			},
+		];
+		const shown = streamingActivity(messages, 'streaming', {
+			message: 'Deploying',
+			visible: false,
+		});
+		expect(shown.streaming).toBe(true);
+		expect(shown.label).toBe('Responding');
+	});
 });

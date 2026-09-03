@@ -25,6 +25,12 @@
  */
 [data-ui='workspace-list'] {
 	display: grid;
+	/*
+	 * A bare auto column sizes to the widest row's max-content, so a long
+	 * title or thread could push every row past the rail and slice the row
+	 * actions off the sidebar's edge. minmax(0, 1fr) pins rows to the rail.
+	 */
+	grid-template-columns: minmax(0, 1fr);
 	align-content: start;
 	gap: 1px;
 	padding: var(--space-2) var(--space-2) var(--space-4);
@@ -139,6 +145,8 @@
  * list and sliced every row at the sidebar's edge.
  */
 [data-ui='workspace-entry'] small {
+	/* The hint gives up its width long before the title does. */
+	flex: 0 100 auto;
 	min-width: 0;
 	overflow: hidden;
 	color: var(--color-text-faint);
@@ -179,6 +187,7 @@
 /* Threads are rows in a list, separated by hairlines rather than outlined. */
 [data-ui='workspace-threads'] {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	margin: 0 0 var(--space-2) 27px;
 }
 

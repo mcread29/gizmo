@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket from 'ws';
 import { protocolVersion as PROTOCOL_VERSION } from '@gizmo/protocol';
+import { AgentEventHub } from '../../src/sessions/agent-event-hub';
+import type { AgentEventListener } from '../../src/sessions/pi-agent-types';
 import type { PiAgentService } from '../../src/sessions/pi-agent-service';
 import { ProjectServiceRegistry, type ProjectService } from '@gizmo/extensions';
 import {
@@ -9,8 +11,11 @@ import {
 } from '../../src/transport/websocket-server';
 
 function fakeService(): PiAgentService {
+	// Project events ride the agent hub's sequence, so the stub needs a real one.
+	const events = new AgentEventHub();
 	return {
-		subscribe: () => () => {},
+		events,
+		subscribe: (listener: AgentEventListener) => events.subscribe(listener),
 		dispose: () => {},
 		abortStreamingSessions: async () => {},
 	} as unknown as PiAgentService;

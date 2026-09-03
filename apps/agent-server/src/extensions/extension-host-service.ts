@@ -11,11 +11,19 @@ interface WatchState {
 }
 
 export class ExtensionHostService {
-	readonly #providers: readonly ExtensionProvider[];
-	/** A recent `list` per workspace; concurrent callers share one poll. */
+	readonly #extensions: () => readonly GizmoServerExtension[];
+	/**
+	 * A recent `list` per workspace; concurrent callers share one poll. The
+	 * entry remembers which catalog it was computed from, so a rescan that
+	 * registers a new catalog array is not answered from the old list.
+	 */
 	readonly #cache = new Map<
 		string,
-		{ expiresAt: number; value: Promise<ExtensionDescriptor[]> }
+		{
+			expiresAt: number;
+			catalog: readonly GizmoServerExtension[];
+			value: Promise<ExtensionDescriptor[]>;
+		}
 	>();
 	readonly #controllers = new Set<AbortController>();
 	/** One poll per workspace, shared by every listener watching it. */
@@ -23,12 +31,23 @@ export class ExtensionHostService {
 	/** Entry per workspace: the owners its descriptors last reported. */
 	readonly #owners = new Map<string, Map<string, ExtensionProvider>>();
 
+	/**
+	 * A getter keeps the host current with a catalog that is re-registered
+	 * when registry extensions are linked or unlinked; a fixed array is fine
+	 * for tests and for callers that never change theirs.
+	 */
 	constructor(
-		extensions: readonly GizmoServerExtension[],
+		extensions:
+			readonly GizmoServerExtension[] | (() => readonly GizmoServerExtension[]),
 		private readonly pollMs = 5_000,
 		private readonly enabledFor?: (workspacePath: string) => Promise<string[]>,
 	) {
-		this.#providers = extensions.filter(
+		this.#extensions =
+			typeof extensions === 'function' ? extensions : () => extensions;
+	}
+
+	get #providers(): readonly ExtensionProvider[] {
+		return this.#extensions().filter(
 			(extension): extension is ExtensionProvider =>
 				extension.list !== undefined && extension.invoke !== undefined,
 		);
@@ -129,8 +148,10 @@ export class ExtensionHostService {
 	}
 
 	async #listUnchecked(workspacePath: string, signal: AbortSignal) {
+		const catalog = this.#extensions();
 		const cached = this.#cache.get(workspacePath);
-		if (cached && cached.expiresAt > Date.now()) return cached.value;
+		if (cached && cached.catalog === catalog && cached.expiresAt > Date.now())
+			return cached.value;
 		const providers = this.enabledFor
 			? await this.enabledFor(workspacePath).then((ids) => {
 					const enabled = new Set(ids);
@@ -157,6 +178,7 @@ export class ExtensionHostService {
 				throw error;
 			});
 		this.#cache.set(workspacePath, {
+			catalog,
 			expiresAt: Date.now() + this.pollMs,
 			value,
 		});

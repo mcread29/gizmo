@@ -8,6 +8,7 @@ import { ProjectCapability } from './agent-store/ProjectCapability';
 import { RegistryCapability } from './agent-store/RegistryCapability';
 import { ResourceCapability } from './agent-store/ResourceCapability';
 import { SessionCapability } from './agent-store/SessionCapability';
+import { SessionSyncCapability } from './agent-store/SessionSyncCapability';
 import { SessionRuntimeCapability } from './agent-store/SessionRuntimeCapability';
 import type { PendingConfirmation } from './agent-store/types';
 
@@ -43,7 +44,14 @@ export class AgentStore extends AgentStoreState {
 			this.#projects,
 			options.allowUnscopedSessions ?? false,
 		);
-		this.#connection = new ConnectionCapability(this, client, this.#sessions);
+		const sync = new SessionSyncCapability(this, client, this.#sessions);
+		this.#sessions.sync = sync;
+		this.#connection = new ConnectionCapability(
+			this,
+			client,
+			this.#sessions,
+			sync,
+		);
 		this.#extensions = new ExtensionCapability(this, client);
 		this.#git = new GitCapability(this, client);
 		this.#registry = new RegistryCapability(this, client);

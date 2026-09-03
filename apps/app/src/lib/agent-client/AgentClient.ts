@@ -43,6 +43,8 @@ export interface AgentClient {
 	listSessions(): Promise<SessionCatalog>;
 	createSession(options?: SessionOptions): Promise<string>;
 	resumeSession(sessionId: string): Promise<SessionSnapshot>;
+	/** A snapshot for inspection; unlike resume it changes nothing. */
+	readSession(sessionId: string): Promise<SessionSnapshot>;
 	renameSession(sessionId: string, title: string): Promise<void>;
 	prompt(
 		sessionId: string,

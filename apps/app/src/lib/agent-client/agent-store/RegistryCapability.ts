@@ -88,6 +88,16 @@ export class RegistryCapability {
 		this.store.registryError = undefined;
 		try {
 			this.store.registryStatus = await action();
+			// The server re-registered its catalog; pick up the new bundles,
+			// descriptors and enablement so the change shows without a restart.
+			// A failure here is logged, not raised: the registry action itself
+			// succeeded, and reporting it as failed would invite a retry that
+			// cannot help.
+			try {
+				await this.store.reloadExtensions();
+			} catch (error) {
+				console.warn('Extensions did not refresh after registry change', error);
+			}
 			return true;
 		} catch (error) {
 			this.store.registryError = errorMessage(error);

@@ -48,6 +48,9 @@ export class InvalidEventClient implements AgentClient {
 	async resumeSession(_sessionId: string): Promise<SessionSnapshot> {
 		throw new Error('No session');
 	}
+	async readSession(_sessionId: string): Promise<SessionSnapshot> {
+		throw new Error('No session');
+	}
 	async getSessionTree(_sessionId: string): Promise<SessionTree> {
 		return { entries: [], leafId: null };
 	}

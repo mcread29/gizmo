@@ -4,15 +4,11 @@ import {
 	extensionDescriptorSchema,
 	extensionUiRequestSchema,
 } from './extensions';
-import { conversationAttachmentSchema, sessionUsageSchema } from './sessions';
-
-export const sessionStateSchema = Type.Union([
-	Type.Literal('idle'),
-	Type.Literal('streaming'),
-	Type.Literal('error'),
-]);
-
-export type SessionState = Static<typeof sessionStateSchema>;
+import {
+	conversationAttachmentSchema,
+	sessionStateSchema,
+	sessionUsageSchema,
+} from './sessions';
 
 export const agentEventSchema = Type.Union([
 	Type.Object(

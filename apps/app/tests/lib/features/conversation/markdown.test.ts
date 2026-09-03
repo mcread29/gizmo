@@ -35,4 +35,11 @@ describe('renderMarkdown', () => {
 		expect(renderMarkdown('```cs\nint x;\n```')).toContain('language-csharp');
 		expect(renderMarkdown('```sh\nls -al\n```')).toContain('language-bash');
 	});
+
+	it('renders link labels through the parser marked binds', () => {
+		const html = renderMarkdown('see [the **docs**](https://example.com)');
+		expect(html).toContain('href="https://example.com"');
+		expect(html).toContain('<strong>docs</strong>');
+		expect(html).not.toContain('[object');
+	});
 });

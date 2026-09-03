@@ -190,11 +190,17 @@ export class ProjectCapability {
 		const sessionId = store.sessionId;
 		const projectPath = store.selectedProjectPath;
 		store.projectExtensions = [];
-		const results = await Promise.allSettled(
-			statusExtensionIdsForProject.map((extensionId) =>
-				this.client.watchProjectStatus(sessionId, projectPath, extensionId),
+		// Descriptors load alongside the status watches: a workspace with a
+		// project service still needs every other enabled extension's live
+		// operations (subagents, workflows, ...) activated.
+		const [results] = await Promise.all([
+			Promise.allSettled(
+				statusExtensionIdsForProject.map((extensionId) =>
+					this.client.watchProjectStatus(sessionId, projectPath, extensionId),
+				),
 			),
-		);
+			store.loadProjectExtensions(),
+		]);
 		if (
 			store.sessionId !== sessionId ||
 			store.selectedProjectPath !== projectPath

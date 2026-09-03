@@ -27,7 +27,7 @@
 	});
 </script>
 
-{#if reasoning}
+{#if reasoning?.trim()}
 	<details data-ui="reasoning" bind:open>
 		<summary>
 			<Brain size={13} />

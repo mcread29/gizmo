@@ -103,6 +103,21 @@ describe('PiEventTranslator reasoning', () => {
 		]);
 	});
 
+	it('drops whitespace-only thinking until real text arrives', () => {
+		expect(
+			reasoningOf([
+				{ type: 'thinking_start', contentIndex: 0 },
+				{ type: 'thinking_delta', contentIndex: 0, delta: '\n' },
+				{ type: 'thinking_delta', contentIndex: 0, delta: '  ' },
+				{ type: 'thinking_delta', contentIndex: 0, delta: 'real' },
+				{ type: 'thinking_delta', contentIndex: 0, delta: '\n' },
+			]),
+		).toEqual([
+			{ type: 'message.reasoning', messageId: 'message-1', delta: 'real' },
+			{ type: 'message.reasoning', messageId: 'message-1', delta: '\n' },
+		]);
+	});
+
 	it('reports a redacted block so the empty result is not read as a bug', () => {
 		expect(
 			reasoningOf([

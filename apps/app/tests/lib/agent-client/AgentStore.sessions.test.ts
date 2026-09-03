@@ -15,6 +15,9 @@ describe('AgentStore', () => {
 			// Unity's opaque status payload, stored per extension id.
 			store.projectStatuses.unity,
 		).toMatchObject({ state: 'connected' });
+		// A workspace with a project service still loads every enabled
+		// extension's descriptors, so runtime-activated extensions get tabs.
+		expect(store.projectExtensions.map(({ id }) => id)).not.toEqual([]);
 		await store.prompt('Inspect the Editor');
 		expect(store.sessions[0]?.title).toBe('Inspect the Editor');
 		expect(store.messages.length).toBeGreaterThan(0);

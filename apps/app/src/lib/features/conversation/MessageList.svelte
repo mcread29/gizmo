@@ -15,6 +15,7 @@
 	import { createMessageRows, estimateRowHeight } from './message-rows';
 	import MessageGroupView from './MessageGroup.svelte';
 	import { streamingActivity } from './streaming';
+	import { createTranscriptSettle } from './transcript-settle';
 
 	interface Props {
 		store: AgentStore;
@@ -47,10 +48,13 @@
 	let knownSession: string | undefined;
 	let rowKeys: Array<string | number> = [];
 	let rowEstimates: number[] = [];
-	let settleFrame: number | undefined;
-	/** Consecutive unchanged frames that count as "the transcript has settled". */
-	const settleFrames = 8;
-	const settleTimeout = 4_000;
+	/**
+	 * Bumped whenever a mounted row changes size. The virtualizer re-measures
+	 * on its own, but its store only notifies when the visible range moves, so
+	 * the rows below a growing one kept stale offsets and overlapped it until
+	 * the next scroll. Reading this in the derived values forces the re-render.
+	 */
+	let measureVersion = $state(0);
 
 	let activity = $derived(
 		streamingActivity(
@@ -74,7 +78,21 @@
 				notify(rect.height > 0 ? rect : initialViewport),
 			),
 	});
-	let virtualItems = $derived($virtualizer.getVirtualItems());
+	let virtualItems = $derived.by(() => {
+		void measureVersion;
+		return $virtualizer.getVirtualItems();
+	});
+	let totalSize = $derived.by(() => {
+		void measureVersion;
+		return $virtualizer.getTotalSize();
+	});
+	const settle = createTranscriptSettle({
+		viewport: () => viewport,
+		totalSize: () => get(virtualizer).getTotalSize(),
+		count: () => rows.length,
+		scrollToEnd: () => get(virtualizer).scrollToEnd(),
+		onSettled: (node) => (followOutput = isAtBottom(node)),
+	});
 	let lastMessageId = $derived(store.messages.at(-1)?.id);
 
 	// The newest message in view while following; anything after it is unread
@@ -105,55 +123,14 @@
 		});
 	});
 
-	/**
-	 * Rows are measured only after they mount, so the total size keeps growing
-	 * for several frames after a thread opens. A single scrollToEnd() is issued
-	 * against estimates and the newest message then drifts out of view, leaving
-	 * the transcript on blank space. Re-pin until the size stops moving.
-	 */
-	function pinToEnd() {
-		cancelSettle();
-		let previousSize = -1;
-		let previousCount = -1;
-		let stable = 0;
-		// Switching threads replays the whole transcript, which arrives over many
-		// frames, so the settle has to outlast the load rather than a fixed
-		// handful of frames. It still gives up rather than spinning forever.
-		const deadline = Date.now() + settleTimeout;
-		const step = () => {
-			settleFrame = undefined;
-			const node = viewport;
-			if (!node) return;
-			const instance = get(virtualizer);
-			const size = instance.getTotalSize();
-			const count = rows.length;
-			instance.scrollToEnd();
-			stable =
-				size === previousSize && count === previousCount ? stable + 1 : 0;
-			previousSize = size;
-			previousCount = count;
-			if (stable >= settleFrames || Date.now() > deadline) {
-				followOutput = isAtBottom(node);
-				return;
-			}
-			settleFrame = requestAnimationFrame(step);
-		};
-		settleFrame = requestAnimationFrame(step);
-	}
-
-	function cancelSettle() {
-		if (settleFrame !== undefined) cancelAnimationFrame(settleFrame);
-		settleFrame = undefined;
-	}
-
 	/** Reaching for the transcript hands control back immediately. */
 	function releaseOnInput() {
-		if (settleFrame === undefined) return;
-		cancelSettle();
+		if (!settle.active) return;
+		settle.cancel();
 		if (viewport) followOutput = isAtBottom(viewport);
 	}
 
-	onDestroy(cancelSettle);
+	onDestroy(settle.cancel);
 
 	// A thread opens at its newest message, not wherever the previous one sat.
 	$effect(() => {
@@ -164,7 +141,7 @@
 		followOutput = true;
 		$virtualizer.measure();
 		$virtualizer.scrollToEnd();
-		pinToEnd();
+		settle.pin();
 	});
 
 	$effect(() => {
@@ -236,15 +213,33 @@
 
 	function measure(node: HTMLDivElement) {
 		get(virtualizer).measureElement(node);
+		if (typeof ResizeObserver === 'undefined') return;
+		// Re-measuring inside the callback moves the rows below, which the
+		// observer sees in the same frame and reports as an undelivered loop.
+		// Deferring one frame keeps the layout change out of the observer's
+		// own delivery, and skipping unchanged heights keeps it quiet.
+		let height = node.offsetHeight;
+		let frame: number | undefined;
+		const observer = new ResizeObserver(() => {
+			if (node.offsetHeight === height || frame !== undefined) return;
+			frame = requestAnimationFrame(() => {
+				frame = undefined;
+				height = node.offsetHeight;
+				get(virtualizer).measureElement(node);
+				measureVersion++;
+			});
+		});
+		observer.observe(node);
+		return () => {
+			observer.disconnect();
+			if (frame !== undefined) cancelAnimationFrame(frame);
+		};
 	}
 </script>
 
 <ScrollPanel name="messages" bind:viewport>
 	<div data-ui="message-list">
-		<div
-			data-ui="virtual-canvas"
-			style={`height:${$virtualizer.getTotalSize()}px`}
-		>
+		<div data-ui="virtual-canvas" style={`height:${totalSize}px`}>
 			{#each virtualItems as virtualRow (virtualRow.key)}
 				{@const row = rows[virtualRow.index]!}
 				<div

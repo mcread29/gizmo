@@ -71,6 +71,16 @@ export class GatedResumeClient extends InvalidEventClient {
 		return this.#eventId + 1;
 	}
 
+	/** Pretends `count` events were lost on the wire. */
+	dropEvents(count: number): void {
+		this.#eventId += count;
+	}
+
+	/** A server heartbeat; `lastEventId` defaults to the newest id emitted. */
+	heartbeat(lastEventId = this.#eventId): void {
+		this.#listener?.({ protocolVersion, type: 'heartbeat', lastEventId });
+	}
+
 	async connect() {}
 	async disconnect() {}
 	async listProviders(): Promise<ProviderStatus[]> {

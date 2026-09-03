@@ -73,6 +73,10 @@ export class FakeSessionCapability {
 		return this.snapshot(session);
 	}
 
+	async read(sessionId: string) {
+		return this.snapshot(this.state.getSession(sessionId));
+	}
+
 	async tree(sessionId: string) {
 		const session = this.state.getSession(sessionId);
 		return {

@@ -66,9 +66,29 @@ export class SessionCatalogService {
 					integrations: await this.#projects.integrationsFor(
 						session.workspacePath ?? session.projectPath,
 					),
+					// A resident runtime knows whether it is mid-turn; anything
+					// not resident is idle by definition.
+					state: this.#stateOf(session.id),
 				})),
 			),
 		};
+	}
+
+	/** Reads a session for display without resuming it. */
+	async readSession(sessionId: string) {
+		const snapshot = await this.#repository.snapshot(sessionId);
+		snapshot.session.integrations = await this.#projects.integrationsFor(
+			snapshot.session.workspacePath ?? snapshot.session.projectPath,
+		);
+		snapshot.state = this.#stateOf(sessionId);
+		return snapshot;
+	}
+
+	#stateOf(sessionId: string): 'idle' | 'streaming' {
+		return this.#pool.has(sessionId) &&
+			this.#pool.session(sessionId).isStreaming
+			? 'streaming'
+			: 'idle';
 	}
 
 	async resumeSession(sessionId: string) {
@@ -100,6 +120,8 @@ export class SessionCatalogService {
 			this.#pool.attachSnapshot(sessionId, snapshot);
 		}
 		await this.#repository.setLastSession(sessionId);
+		// Read last: activation above may have just started the runtime.
+		snapshot.state = this.#stateOf(sessionId);
 		return snapshot;
 	}
 
