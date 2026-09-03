@@ -12,7 +12,7 @@ import { publishHostModules } from './host-modules';
  * arrives as source over the existing agent connection and is turned into a
  * blob URL here, so no extra HTTP server is needed.
  *
- * This requires `script-src ... blob:` in the Tauri CSP; see tauri.conf.json.
+ * This requires `script-src ... blob:` in any CSP the app is served under.
  */
 
 /**

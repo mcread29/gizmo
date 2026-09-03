@@ -11,7 +11,7 @@
  * not share context or reactivity. Those specifiers are rewritten to read from
  * a global the host publishes (see `host-modules.ts`), rather than left
  * external and resolved through an import map — import-map support varies
- * across the webviews Tauri uses, a global does not.
+ * across browsers, a global does not.
  *
  * Usage: bun scripts/build-web-extension.ts <package-dir> [--out <file>]
  */

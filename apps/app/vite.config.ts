@@ -5,11 +5,25 @@ export default defineConfig({
 	plugins: [svelte()],
 	clearScreen: false,
 	server: {
-		host: process.env.TAURI_DEV_HOST || false,
+		host: process.env.GIZMO_DEV_HOST || false,
 		strictPort: true,
-		watch: {
-			ignored: ['**/src-tauri/**'],
+		proxy: {
+			'/agent': {
+				target: 'ws://127.0.0.1:8787',
+				ws: true,
+			},
 		},
+	},
+	// `vite preview` serves the production build for the always-on web server.
+	// The built client derives its socket URL from window.location, so the
+	// preview server has to proxy /agent the same way the dev server does.
+	preview: {
+		strictPort: true,
+		// Vite rejects unknown Host headers, which would otherwise 403 every
+		// request that arrives by MagicDNS name rather than by raw IP.
+		...(process.env.GIZMO_WEB_ALLOWED_HOSTS
+			? { allowedHosts: process.env.GIZMO_WEB_ALLOWED_HOSTS.split(',') }
+			: {}),
 		proxy: {
 			'/agent': {
 				target: 'ws://127.0.0.1:8787',
@@ -21,8 +35,8 @@ export default defineConfig({
 		conditions: ['browser'],
 	},
 	build: {
-		minify: process.env.TAURI_ENV_DEBUG ? false : 'esbuild',
-		sourcemap: Boolean(process.env.TAURI_ENV_DEBUG),
+		minify: process.env.GIZMO_DEBUG_BUILD ? false : 'esbuild',
+		sourcemap: Boolean(process.env.GIZMO_DEBUG_BUILD),
 		rolldownOptions: {
 			output: {
 				codeSplitting: {

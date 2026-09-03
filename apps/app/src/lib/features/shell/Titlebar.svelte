@@ -7,7 +7,6 @@
 	import { streamingActivity } from '../conversation/streaming';
 	import { shortcutHint } from './shortcuts';
 	import PanelToggle from './PanelToggle.svelte';
-	import WindowControls from './WindowControls.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
 	import { webExtensions } from '../../extensions/registry.svelte';
 	import { workspaceNameFromPath } from '../../extensions/workspace-label';
@@ -73,7 +72,7 @@
 </script>
 
 <!-- The window has no native decorations, so the bar itself moves it. -->
-<header data-ui="titlebar" data-tauri-drag-region>
+<header data-ui="titlebar">
 	<div data-ui="titlebar-start">
 		{#if settingsOpen}
 			<Tooltip text="Back">
@@ -96,16 +95,16 @@
 				onToggle={() => layout.toggleLeft()}
 			/>
 		{/if}
-		<div data-ui="brand-mark" data-tauri-drag-region>
+		<div data-ui="brand-mark">
 			<BrandMark />
 		</div>
-		<strong data-tauri-drag-region>{agent.name}</strong>
+		<strong>{agent.name}</strong>
 		<span data-ui="preview-badge">Preview</span>
 	</div>
 	{#if screenOpen}
-		<div data-ui="titlebar-center" data-tauri-drag-region></div>
+		<div data-ui="titlebar-center"></div>
 	{:else}
-		<div data-ui="titlebar-center" data-tauri-drag-region>
+		<div data-ui="titlebar-center">
 			<span
 				data-ui="project-dot"
 				data-state={store.connection}
@@ -175,6 +174,5 @@
 				onToggle={() => layout.toggleRight()}
 			/>
 		{/if}
-		<WindowControls />
 	</div>
 </header>

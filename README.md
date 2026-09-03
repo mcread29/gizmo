@@ -99,19 +99,24 @@ files, and `Packages/manifest.json` mark the thread as pending compilation.
 new warning/error console entries. `unity_test` runs focused synchronous tests
 in the connected Editor and returns linked per-test results.
 
-## Desktop
+## Always-on web server
 
-The Tauri app compiles the TypeScript agent server into a self-contained Bun
-sidecar, starts it on loopback, waits until it is ready, and terminates it with
-the desktop application. A system Node installation is not required.
+`pnpm web:server:start` runs the production stack in the background: the agent
+server on loopback, plus `vite preview` serving the built app and proxying
+`/agent` through to it. Build first with `pnpm build`.
 
 ```sh
-pnpm desktop:dev
-pnpm desktop:build
+pnpm build
+pnpm web:server:start
+pnpm web:server:status
+pnpm web:server:stop
 ```
 
-The build script names the sidecar for the local Rust target triple. Desktop
-bundles are written under `apps/app/src-tauri/target/release/bundle`.
+`GIZMO_WEB_PORT` (default 4173) and `GIZMO_PORT` (default 8787) set the ports.
+`GIZMO_WEB_HOSTS` is a comma-separated list of the hostnames the app is reached
+by; it becomes both the allowed-host list for the web server and the allowed
+WebSocket origins for the agent server, so add an entry for any LAN or Tailscale
+name you want to use.
 
 The lower-level discovery commands are:
 

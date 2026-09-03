@@ -1,7 +1,5 @@
 <script lang="ts">
 	import type { CommandContribution } from '../../../extensions/types';
-	import { isDesktop } from '../../../desktop';
-	import NativeWorkspacePicker from './NativeWorkspacePicker.svelte';
 	import RootCommandList from './RootCommandList.svelte';
 	import type { CommandPaletteMode, WorkspacePaletteStore } from './types';
 	import WorkspaceBrowser from './WorkspaceBrowser.svelte';
@@ -48,8 +46,6 @@
 		{onSearchThreads}
 		{onClose}
 	/>
-{:else if isDesktop()}
-	<NativeWorkspacePicker {store} onWorkspaceAdded={selectWorkspace} />
 {:else}
 	<WorkspaceBrowser
 		{store}

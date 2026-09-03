@@ -1,6 +1,5 @@
 import type { AgentStore } from '../../agent-client';
 import type { WorkspaceIntegration } from '@gizmo/protocol';
-import { isDesktop, saveTextFile } from '../../desktop';
 import type { ToastQueue } from '../../toasts.svelte';
 import {
 	downloadTranscript,
@@ -100,18 +99,13 @@ export class SessionActions {
 		} else this.#toasts.show(`Deleted “${title}”`);
 	}
 
-	/** Native save dialog on the desktop, browser download everywhere else. */
+	/** Downloads the transcript as a Markdown file. */
 	async exportTranscript(sessionId = this.#store.sessionId): Promise<void> {
 		if (!sessionId) return;
 		try {
 			const snapshot = await this.#snapshot(sessionId);
 			const fileName = transcriptFileName(snapshot.session.title);
 			const markdown = transcriptMarkdown(snapshot, this.#agentName);
-			if (isDesktop()) {
-				const path = await saveTextFile(fileName, markdown);
-				if (path) this.#toasts.show(`Saved ${fileName}`);
-				return;
-			}
 			downloadTranscript(markdown, fileName);
 			this.#toasts.show(`Exported ${fileName}`);
 		} catch (error) {

@@ -39,9 +39,6 @@ export class WebSocketAgentClient extends GitRequests implements AgentClient {
 }
 
 function defaultAgentUrl() {
-	if ('__TAURI_INTERNALS__' in window) {
-		return 'ws://127.0.0.1:8787/agent';
-	}
 	const url = new URL('/agent', window.location.href);
 	url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
 	return url.href;

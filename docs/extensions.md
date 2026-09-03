@@ -85,7 +85,7 @@ render but never update. Those specifiers are rewritten to read from a global
 the host publishes (`__gizmoHostModules__`, see
 `apps/app/src/lib/extensions/runtime/host-modules.ts`) rather than left
 external and resolved through an import map — import-map support varies across
-the webviews Tauri uses on different platforms, a global does not. The list of
+browsers, a global does not. The list of
 names to re-export is read from the installed Svelte package at build time, so
 it tracks the version in use; names that are reserved words (`if`, `await`,
 `try`) are renamed in the export clause. Everything else a plugin imports —
@@ -122,15 +122,13 @@ or hash-pinning a bundle so a silently updated dependency cannot swap code
 under an id already trusted) is future work, not yet done.
 
 **CSP.** Importing a blob URL as a module requires `script-src 'self' blob:`
-in `apps/app/src-tauri/tauri.conf.json`. The previous `default-src 'self'` (with no
+in whatever CSP the app is served under. A bare `default-src 'self'` (with no
 `script-src`) blocked it; both the block and the fix were confirmed in a real
 Chromium against the exact CSP strings. This does loosen the policy — it is
 the cost of loading third-party UI code at all, and is why bundles arrive only
 from extensions the user explicitly linked from a registry.
 
-_Not verified:_ the blob-import path was confirmed in Chromium (which is what
-Tauri uses on Windows and what WebView2 is built on), not in WebKitGTK, which
-Tauri uses on Linux.
+_Not verified:_ the blob-import path was confirmed in Chromium, not in WebKit.
 
 **No built-ins.** `registry.svelte.ts` starts empty. Every browser integration
 arrives through `extensions.web`; duplicate ids are de-duplicated at runtime.

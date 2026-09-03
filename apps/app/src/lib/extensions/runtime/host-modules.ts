@@ -12,7 +12,7 @@ import * as svelteInternalClient from 'svelte/internal/client';
  *
  * A plugin bundle is built with these specifiers rewritten to read from
  * `globalThis[hostModulesKey]`, which avoids depending on import-map support
- * in whichever webview Tauri uses on the host platform. Everything else a
+ * in every browser the app is served to. Everything else a
  * plugin imports is bundled into it normally.
  */
 // Module namespace objects are already read-only per spec; freezing the

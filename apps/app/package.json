@@ -6,12 +6,8 @@
 	"scripts": {
 		"build": "vite build",
 		"check": "svelte-check --tsconfig ./tsconfig.json",
-		"desktop:build": "pnpm sidecar:build && tauri build",
-		"desktop:dev": "pnpm sidecar:build && tauri dev",
 		"dev": "vite",
 		"preview": "vite preview",
-		"sidecar:build": "bun ../../scripts/build-sidecar.ts",
-		"tauri": "tauri",
 		"test": "vitest run",
 		"extension:build": "node --experimental-strip-types scripts/build-web-extension.ts"
 	},
@@ -21,8 +17,6 @@
 		"@gizmo/ui": "workspace:*",
 		"@lucide/svelte": "^1.31.0",
 		"@tanstack/svelte-virtual": "^3.13.36",
-		"@tauri-apps/api": "^2.11.1",
-		"@tauri-apps/plugin-dialog": "^2.7.2",
 		"bits-ui": "latest",
 		"dompurify": "^3.4.13",
 		"marked": "^18.0.9",
@@ -30,7 +24,6 @@
 	},
 	"devDependencies": {
 		"@sveltejs/vite-plugin-svelte": "latest",
-		"@tauri-apps/cli": "^2.11.4",
 		"@testing-library/jest-dom": "latest",
 		"@testing-library/svelte": "latest",
 		"jsdom": "latest",
