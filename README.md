@@ -118,6 +118,13 @@ by; it becomes both the allowed-host list for the web server and the allowed
 WebSocket origins for the agent server, so add an entry for any LAN or Tailscale
 name you want to use.
 
+`pnpm web:update` is the one-command update for a running instance: rebuild the
+app, then stop and start the daemon. When a machine-local launcher exists at
+`.gizmo-web/startup.cmd` (Windows), the start goes through it so the
+instance's configured hosts and ports survive the restart — a bare restart
+would default `GIZMO_WEB_HOSTS` back to localhost only and drop Tailscale
+reachability.
+
 The lower-level discovery commands are:
 
 ```sh
