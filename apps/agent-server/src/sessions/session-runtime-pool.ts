@@ -1,10 +1,16 @@
 import type { SessionManager } from '@earendil-works/pi-coding-agent';
 import type { SessionSnapshot } from '@gizmo/protocol';
-import { PiEventTranslator, readUsage } from './pi-event-translator';
+import { PiEventTranslator } from './pi-event-translator';
 import { PiExtensionUiRuntime } from './pi-extension-ui-runtime';
 import { strandedMessages } from './queue-recovery';
-import { inFlightAssistantView } from './session-transcript';
 import { AgentEventHub } from './agent-event-hub';
+import { ConfirmationRegistry } from './session-confirmations';
+import { SessionEviction } from './session-eviction';
+import {
+	emitUsageSnapshot,
+	spliceInFlightMessage,
+	withContextWindow,
+} from './session-snapshot';
 import type {
 	PiAgentServiceOptions,
 	PiSessionCallbacks,
@@ -22,30 +28,26 @@ export interface ActiveSession {
 	translator: PiEventTranslator;
 }
 
-/** Owns resident Pi runtimes, their event subscriptions, and their lifetime. */
+/**
+ * Owns resident Pi runtimes and their event subscriptions. Eviction,
+ * confirmations, and snapshot reconciliation each live in their own module;
+ * this class wires them around the session map.
+ */
 export class SessionRuntimePool {
 	readonly #sessions = new Map<string, ActiveSession>();
 	readonly #extensionUiRuntimes = new Map<string, PiExtensionUiRuntime>();
-	readonly #confirmations = new Map<
-		string,
-		{ sessionId: string; resolve: (accepted: boolean) => void }
-	>();
-	#confirmationId = 0;
-	readonly #maxActiveSessions: number;
-	readonly #idleTimeoutMs: number;
-	readonly #sweepTimer: NodeJS.Timeout;
+	readonly #confirmations = new ConfirmationRegistry();
+	readonly #eviction: SessionEviction;
 
 	constructor(
 		readonly events: AgentEventHub,
 		options: PiAgentServiceOptions = {},
 	) {
-		this.#maxActiveSessions = options.maxActiveSessions ?? 24;
-		this.#idleTimeoutMs = options.idleTimeoutMs ?? 30 * 60_000;
-		this.#sweepTimer = setInterval(
-			() => void this.#evictIdle(),
-			options.sweepIntervalMs ?? 5 * 60_000,
+		this.#eviction = new SessionEviction(
+			this.#sessions,
+			this.#extensionUiRuntimes,
+			options,
 		);
-		this.#sweepTimer.unref?.();
 	}
 
 	has(sessionId: string) {
@@ -83,16 +85,14 @@ export class SessionRuntimePool {
 		return {
 			extensionUi,
 			confirmStopPlayMode: (projectPath) =>
-				new Promise<boolean>((resolve) => {
-					const confirmationId = `confirmation-${++this.#confirmationId}`;
-					this.#confirmations.set(confirmationId, { sessionId, resolve });
+				this.#confirmations.create(sessionId, (confirmationId) =>
 					this.events.emit(sessionId, {
 						type: 'confirmation.requested',
 						confirmationId,
 						kind: 'stop_play_mode_for_compile',
 						projectPath,
-					});
-				}),
+					}),
+				),
 		};
 	}
 
@@ -122,42 +122,29 @@ export class SessionRuntimePool {
 			extensionUi,
 			translator,
 		});
-		this.events.emit(sessionId, {
-			type: 'session.created',
-			title,
-			// `domains` is the protocol-v25 wire name for enabled extension IDs.
-			...(session.enabledExtensionIds
-				? { domains: [...session.enabledExtensionIds] }
-				: {}),
-			...(session.getActiveToolNames
-				? { tools: session.getActiveToolNames() }
-				: {}),
-			...(session.model
-				? {
-						model: {
-							provider: session.model.provider,
-							id: session.model.id,
-							thinkingLevel: session.thinkingLevel ?? 'off',
-						},
-					}
-				: {}),
-		});
+		this.#emitSessionCreated(sessionId, session, title);
 		this.events.emit(sessionId, { type: 'session.state', state: 'idle' });
-		this.#emitUsageSnapshot(sessionId, session, manager);
-		void this.#evictIdle();
+		emitUsageSnapshot(this.events, sessionId, session, manager);
+		void this.#eviction.sweep();
 	}
 
 	/** Reconciles a resident streaming runtime with a newly read snapshot. */
 	attachSnapshot(sessionId: string, snapshot: SessionSnapshot) {
 		this.touch(sessionId);
-		this.#spliceInFlightMessage(sessionId, snapshot);
 		const active = this.#sessions.get(sessionId);
+		if (active?.session.isStreaming) {
+			spliceInFlightMessage(
+				snapshot,
+				active.translator.activeAssistantMessageId,
+				active.session.messages,
+			);
+		}
 		this.events.emit(sessionId, {
 			type: 'session.state',
 			state: active?.session.isStreaming ? 'streaming' : 'idle',
 		});
 		if (active) {
-			this.#emitUsageSnapshot(sessionId, active.session, active.manager);
+			emitUsageSnapshot(this.events, sessionId, active.session, active.manager);
 		}
 	}
 
@@ -177,20 +164,11 @@ export class SessionRuntimePool {
 		confirmationId: string,
 		accepted: boolean,
 	) {
-		const pending = this.#confirmations.get(confirmationId);
-		if (!pending || pending.sessionId !== sessionId) {
-			throw new Error(`Unknown confirmation: ${confirmationId}`);
-		}
-		this.#confirmations.delete(confirmationId);
-		pending.resolve(accepted);
+		this.#confirmations.resolve(sessionId, confirmationId, accepted);
 	}
 
 	cancelConfirmations(sessionId: string) {
-		for (const [id, pending] of this.#confirmations) {
-			if (pending.sessionId !== sessionId) continue;
-			this.#confirmations.delete(id);
-			pending.resolve(false);
-		}
+		this.#confirmations.cancelAll(sessionId);
 	}
 
 	discardPendingRuntime(sessionId: string) {
@@ -199,8 +177,7 @@ export class SessionRuntimePool {
 	}
 
 	async remove(sessionId: string) {
-		const active = this.#sessions.get(sessionId);
-		if (active) await this.#evict(sessionId, active);
+		return this.#eviction.remove(sessionId);
 	}
 
 	async abortStreamingSessions() {
@@ -225,101 +202,35 @@ export class SessionRuntimePool {
 	}
 
 	async dispose() {
-		clearInterval(this.#sweepTimer);
-		for (const { resolve } of this.#confirmations.values()) resolve(false);
-		this.#confirmations.clear();
-		const evictions = [...this.#sessions].map(([sessionId, active]) =>
-			this.#evict(sessionId, active),
-		);
-		await Promise.all(evictions);
+		await this.#eviction.dispose();
+		this.#confirmations.dispose();
 		this.#extensionUiRuntimes.clear();
 	}
 
-	#spliceInFlightMessage(sessionId: string, snapshot: SessionSnapshot) {
-		const active = this.#sessions.get(sessionId);
-		if (!active?.session.isStreaming) return;
-		const messageId = active.translator.activeAssistantMessageId;
-		const last = active.session.messages?.at(-1);
-		if (!messageId || !last || last.role !== 'assistant') return;
-		snapshot.messages = [
-			...snapshot.messages,
-			inFlightAssistantView(
-				{ role: 'assistant', content: last.content, timestamp: last.timestamp },
-				messageId,
-			),
-		];
-	}
-
-	#emitUsageSnapshot(
+	#emitSessionCreated(
 		sessionId: string,
 		session: PiSessionLike,
-		manager: SessionManager,
+		title: string,
 	) {
-		if (typeof manager.getBranch !== 'function') return;
-		const branch = manager.getBranch();
-		for (let i = branch.length - 1; i >= 0; i--) {
-			const entry = branch[i];
-			if (entry.type !== 'message' || entry.message.role !== 'assistant')
-				continue;
-			const usage = readUsage(entry.message.usage);
-			if (!usage) continue;
-			this.events.emit(
-				sessionId,
-				withContextWindow(session, { type: 'session.usage', usage }),
-			);
-			return;
-		}
+		this.events.emit(sessionId, {
+			type: 'session.created',
+			title,
+			// `domains` is the protocol-v25 wire name for enabled extension IDs.
+			...(session.enabledExtensionIds
+				? { domains: [...session.enabledExtensionIds] }
+				: {}),
+			...(session.getActiveToolNames
+				? { tools: session.getActiveToolNames() }
+				: {}),
+			...(session.model
+				? {
+						model: {
+							provider: session.model.provider,
+							id: session.model.id,
+							thinkingLevel: session.thinkingLevel ?? 'off',
+						},
+					}
+				: {}),
+		});
 	}
-
-	/**
-	 * Flushes extension shutdown handlers before disposal so the journal
-	 * records the session's un-recorded tail; eviction is what deletes know
-	 * of `session_shutdown`, which `AgentSession.dispose()` alone never fires.
-	 * The map entries are dropped before awaiting so a concurrent sweep or
-	 * re-activation cannot evict or hand out the dying runtime twice.
-	 */
-	async #evict(sessionId: string, active: ActiveSession) {
-		this.#sessions.delete(sessionId);
-		this.#extensionUiRuntimes.delete(sessionId);
-		active.extensionUi.clear();
-		active.unsubscribe();
-		try {
-			await active.session.shutdown?.();
-		} catch (error) {
-			console.error(`Error flushing session ${sessionId} on eviction:`, error);
-		} finally {
-			active.session.dispose();
-		}
-	}
-
-	async #evictIdle(now = Date.now()) {
-		for (const [id, active] of this.#sessions) {
-			if (
-				!active.session.isStreaming &&
-				now - active.lastActiveAt > this.#idleTimeoutMs
-			) {
-				void this.#evict(id, active);
-			}
-		}
-		if (this.#sessions.size <= this.#maxActiveSessions) return;
-		const candidates = [...this.#sessions.entries()]
-			.filter(([, active]) => !active.session.isStreaming)
-			.sort(([, a], [, b]) => a.lastActiveAt - b.lastActiveAt);
-		for (const [id, active] of candidates) {
-			if (this.#sessions.size <= this.#maxActiveSessions) break;
-			void this.#evict(id, active);
-		}
-	}
-}
-
-function withContextWindow(
-	session: PiSessionLike,
-	event: Parameters<AgentEventHub['emit']>[1],
-) {
-	if (event.type !== 'session.usage' || !session.model?.contextWindow)
-		return event;
-	return {
-		...event,
-		usage: { ...event.usage, contextWindow: session.model.contextWindow },
-	};
 }

@@ -1,4 +1,6 @@
 @import './settings-parts/layout.css';
+@import './settings-parts/segmented.css';
+@import './settings-parts/resource-shared.css';
 @import './settings-parts/skills-library.css';
 @import './settings-parts/skill-editor.css';
 @import './settings-parts/instructions-editor.css';

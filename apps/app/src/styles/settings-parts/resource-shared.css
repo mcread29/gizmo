@@ -1,0 +1,95 @@
+/* Resource primitives shared by the skills, agent, and extensions pages:
+   search field, list rows, scope badge, and empty/error notes. */
+[data-ui='search-field'] {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	padding: 0 var(--space-3);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text-muted);
+}
+
+[data-ui='search-field'] input {
+	flex: 1;
+	min-width: 0;
+	padding: 7px 0;
+	border: 0;
+	background: none;
+	color: var(--color-text);
+	font-size: var(--text-xs);
+}
+
+[data-ui='search-field'] input:focus {
+	outline: none;
+}
+
+[data-ui='search-field']:focus-within {
+	border-color: var(--color-accent);
+	box-shadow: var(--focus-ring);
+}
+
+[data-ui='resource-scope'] {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	padding: 1px 5px;
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.4 var(--font-mono);
+	font-style: normal;
+}
+
+[data-ui='resource-detail'] {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='resource-list'] {
+	display: grid;
+}
+
+[data-ui='resource-row'] {
+	display: grid;
+	gap: 3px;
+	min-width: 0;
+	padding: var(--space-3) var(--space-4);
+}
+
+[data-ui='resource-row'] + [data-ui='resource-row'] {
+	border-top: 1px solid var(--color-border);
+}
+
+[data-ui='resource-row'] strong {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-size: var(--text-sm);
+}
+
+[data-ui='resource-row'] span {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	line-height: 1.45;
+}
+
+[data-ui='resource-row'] small {
+	overflow: hidden;
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.35 var(--font-mono);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='resource-empty'],
+[data-ui='resource-error'] {
+	margin: 0;
+	padding: var(--space-3) var(--space-4);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='resource-error'] {
+	color: var(--color-danger);
+}

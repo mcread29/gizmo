@@ -73,6 +73,14 @@
 	font-size: var(--text-lg);
 }
 
+[data-ui='workspace-path'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.4 var(--font-mono);
+}
+
 [data-ui='workspace-path'] > span {
 	overflow: hidden;
 	text-overflow: ellipsis;

@@ -1,0 +1,55 @@
+/* Segmented control: mutually exclusive choices that fit on one line. */
+[data-ui='segmented'] {
+	display: flex;
+	gap: 2px;
+	padding: 2px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+}
+
+[data-ui='segmented-option'] {
+	border: 0;
+	border-radius: calc(var(--radius-sm) - 1px);
+	padding: 5px var(--space-3);
+	background: none;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	cursor: pointer;
+}
+
+[data-ui='segmented-option'][data-state='active'] {
+	background: var(--color-surface);
+	color: var(--color-text);
+	font-weight: 600;
+}
+
+/* The Agent/Skills/Extensions sub-nav reuses the segmented control but
+   shouldn't stretch to the grid track's full width like a filter bar does. */
+[data-ui='settings-content'] > [data-ui='segmented'] {
+	justify-self: start;
+}
+
+[data-ui='connection-state'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	white-space: nowrap;
+}
+
+[data-ui='connection-state'] i {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--color-text-muted);
+}
+
+[data-ui='connection-state'][data-tone='ok'] i {
+	background: var(--color-success);
+}
+
+[data-ui='connection-state'][data-tone='danger'] i {
+	background: var(--color-danger);
+}
