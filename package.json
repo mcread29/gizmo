@@ -18,6 +18,7 @@
 		"web:server:stop": "pnpm web:server stop",
 		"web:server:restart": "pnpm web:server restart",
 		"web:server:status": "pnpm web:server status",
+		"web:update": "pnpm -C apps/app build && pnpm web:server restart",
 		"pi-web:dev": "cross-env GIZMO_PI_WEB=1 pnpm --parallel --filter @gizmo/agent-server --filter @gizmo/app dev",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
