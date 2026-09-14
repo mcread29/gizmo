@@ -23,6 +23,7 @@ export class FakePiSession implements PiSessionLike {
 	readonly configureCompaction = vi.fn((_policy: CompactionPolicy) => {});
 	readonly setSessionName = vi.fn((name: string) => (this.sessionName = name));
 	readonly dispose = vi.fn();
+	readonly shutdown = vi.fn(async () => {});
 	/** Text steered into the run in flight and not yet delivered. */
 	queued: string[] = [];
 	readonly clearQueue = vi.fn(() => ({

@@ -56,7 +56,7 @@ describe('PiAgentService session creation', () => {
 		await projects.setGizmoExtension(projectPath, 'notes', false);
 		await service.createSession({ cwd: projectPath });
 		expect(options.at(-1)).toMatchObject({ integrations: [] });
-		service.dispose();
+		await service.dispose();
 		registerExtensions([]);
 	});
 

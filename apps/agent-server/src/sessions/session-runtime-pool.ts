@@ -42,7 +42,7 @@ export class SessionRuntimePool {
 		this.#maxActiveSessions = options.maxActiveSessions ?? 24;
 		this.#idleTimeoutMs = options.idleTimeoutMs ?? 30 * 60_000;
 		this.#sweepTimer = setInterval(
-			() => this.#evictIdle(),
+			() => void this.#evictIdle(),
 			options.sweepIntervalMs ?? 5 * 60_000,
 		);
 		this.#sweepTimer.unref?.();
@@ -144,7 +144,7 @@ export class SessionRuntimePool {
 		});
 		this.events.emit(sessionId, { type: 'session.state', state: 'idle' });
 		this.#emitUsageSnapshot(sessionId, session, manager);
-		this.#evictIdle();
+		void this.#evictIdle();
 	}
 
 	/** Reconciles a resident streaming runtime with a newly read snapshot. */
@@ -198,9 +198,9 @@ export class SessionRuntimePool {
 		this.#extensionUiRuntimes.delete(sessionId);
 	}
 
-	remove(sessionId: string) {
+	async remove(sessionId: string) {
 		const active = this.#sessions.get(sessionId);
-		if (active) this.#evict(sessionId, active);
+		if (active) await this.#evict(sessionId, active);
 	}
 
 	async abortStreamingSessions() {
@@ -224,13 +224,14 @@ export class SessionRuntimePool {
 		);
 	}
 
-	dispose() {
+	async dispose() {
 		clearInterval(this.#sweepTimer);
 		for (const { resolve } of this.#confirmations.values()) resolve(false);
 		this.#confirmations.clear();
-		for (const [sessionId, active] of this.#sessions) {
-			this.#evict(sessionId, active);
-		}
+		const evictions = [...this.#sessions].map(([sessionId, active]) =>
+			this.#evict(sessionId, active),
+		);
+		await Promise.all(evictions);
 		this.#extensionUiRuntimes.clear();
 	}
 
@@ -270,21 +271,34 @@ export class SessionRuntimePool {
 		}
 	}
 
-	#evict(sessionId: string, active: ActiveSession) {
-		active.extensionUi.clear();
-		this.#extensionUiRuntimes.delete(sessionId);
-		active.unsubscribe();
-		active.session.dispose();
+	/**
+	 * Flushes extension shutdown handlers before disposal so the journal
+	 * records the session's un-recorded tail; eviction is what deletes know
+	 * of `session_shutdown`, which `AgentSession.dispose()` alone never fires.
+	 * The map entries are dropped before awaiting so a concurrent sweep or
+	 * re-activation cannot evict or hand out the dying runtime twice.
+	 */
+	async #evict(sessionId: string, active: ActiveSession) {
 		this.#sessions.delete(sessionId);
+		this.#extensionUiRuntimes.delete(sessionId);
+		active.extensionUi.clear();
+		active.unsubscribe();
+		try {
+			await active.session.shutdown?.();
+		} catch (error) {
+			console.error(`Error flushing session ${sessionId} on eviction:`, error);
+		} finally {
+			active.session.dispose();
+		}
 	}
 
-	#evictIdle(now = Date.now()) {
+	async #evictIdle(now = Date.now()) {
 		for (const [id, active] of this.#sessions) {
 			if (
 				!active.session.isStreaming &&
 				now - active.lastActiveAt > this.#idleTimeoutMs
 			) {
-				this.#evict(id, active);
+				void this.#evict(id, active);
 			}
 		}
 		if (this.#sessions.size <= this.#maxActiveSessions) return;
@@ -293,7 +307,7 @@ export class SessionRuntimePool {
 			.sort(([, a], [, b]) => a.lastActiveAt - b.lastActiveAt);
 		for (const [id, active] of candidates) {
 			if (this.#sessions.size <= this.#maxActiveSessions) break;
-			this.#evict(id, active);
+			void this.#evict(id, active);
 		}
 	}
 }

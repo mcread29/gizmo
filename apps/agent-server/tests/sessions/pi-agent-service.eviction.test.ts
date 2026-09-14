@@ -83,6 +83,7 @@ function fakeSession(
 		prompt: async () => {},
 		steer: async () => {},
 		abort: vi.fn(async () => {}),
+		shutdown: vi.fn(async () => {}),
 		dispose: vi.fn(),
 	};
 }
@@ -113,8 +114,8 @@ describe('PiAgentService idle eviction', () => {
 		sessions = new Map();
 	});
 
-	afterEach(() => {
-		service?.dispose();
+	afterEach(async () => {
+		await service?.dispose();
 		vi.useRealTimers();
 	});
 
@@ -137,10 +138,32 @@ describe('PiAgentService idle eviction', () => {
 		repository.openCalls = 0;
 
 		vi.advanceTimersByTime(1_500);
+		// Eviction now flushes shutdown handlers before disposal, so let the
+		// in-flight eviction promise settle before asserting.
+		await vi.advanceTimersByTimeAsync(0);
 		expect(sessions.get(sessionId)?.dispose).toHaveBeenCalledOnce();
+		// Eviction flushes the journal tail before disposal.
+		expect(sessions.get(sessionId)?.shutdown).toHaveBeenCalledOnce();
 
 		await service.prompt(sessionId, 'hello');
 		expect(repository.openCalls).toBe(1);
+	});
+
+	it('disposes an idle session even when its shutdown flush fails', async () => {
+		createService({ idleTimeoutMs: 1_000, sweepIntervalMs: 500 });
+		const sessionId = await service.createSession();
+		const session = sessions.get(sessionId)!;
+		session.shutdown = vi.fn(async () => {
+			throw new Error('boom');
+		});
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		vi.advanceTimersByTime(1_500);
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(session.dispose).toHaveBeenCalledOnce();
+		expect(errorSpy).toHaveBeenCalled();
+		vi.restoreAllMocks();
 	});
 
 	it('never evicts a streaming session, even past the idle timeout', async () => {
@@ -160,6 +183,7 @@ describe('PiAgentService idle eviction', () => {
 		await service.createSession();
 		vi.advanceTimersByTime(10);
 		await service.createSession();
+		await vi.advanceTimersByTimeAsync(0);
 
 		expect(sessions.get(first)?.dispose).toHaveBeenCalledOnce();
 	});

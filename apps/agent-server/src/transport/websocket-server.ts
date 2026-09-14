@@ -117,14 +117,15 @@ export async function createAgentWebSocketServer(
 						console.error('Error aborting streaming sessions:', error);
 					}
 					// A failure in one resource must not leak resources disposed
-					// after it.
+					// after it. Disposal is awaited so the journal tail flushes
+					// complete before the server stops.
 					for (const disposeOne of [
 						() => agent.dispose(),
 						() => projectServices.dispose(),
 						() => extensions.dispose(),
 					]) {
 						try {
-							disposeOne();
+							await disposeOne();
 						} catch (error) {
 							console.error('Error disposing agent session resource:', error);
 						}

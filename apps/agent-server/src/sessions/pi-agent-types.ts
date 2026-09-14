@@ -48,6 +48,12 @@ export interface PiSessionLike {
 		timestamp?: number;
 	}>;
 	setSessionName?(name: string): void;
+	/**
+	 * Emits `session_shutdown` to extensions so shutdown handlers can flush
+	 * state — notably the memory journal's un-recorded tail — while the
+	 * extension context is still alive. The caller disposes afterwards.
+	 */
+	shutdown?(): Promise<void>;
 	dispose(): void;
 }
 

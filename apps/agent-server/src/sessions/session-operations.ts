@@ -239,7 +239,9 @@ export class SessionOperations {
 
 	async deleteSession(sessionId: string) {
 		this.#pool.cancelConfirmations(sessionId);
-		this.#pool.remove(sessionId);
+		// The pool flushes the journal tail via `session_shutdown` before
+		// disposing, so the session is journaled before its file is archived.
+		await this.#pool.remove(sessionId);
 		await this.#repository.delete(sessionId);
 	}
 }

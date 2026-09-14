@@ -295,8 +295,9 @@ export class PiAgentService {
 		return this.#pool.abortStreamingSessions();
 	}
 
-	dispose() {
-		this.#pool.dispose();
+	async dispose() {
+		// Awaited so the journal flushes finish before the process tears down.
+		await this.#pool.dispose();
 		this.#events.clear();
 	}
 }

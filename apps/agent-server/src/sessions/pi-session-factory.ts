@@ -176,6 +176,15 @@ export const createDefaultPiSession: PiSessionFactory = async (
 				},
 			});
 		},
+		async shutdown() {
+			// Mirrors pi's own `AgentSessionRuntime.dispose`: shutdown handlers
+			// (the journal records the tail with trigger 'session-end') get one
+			// pass while the extension context is still valid, then the caller
+			// disposes and invalidates it.
+			const runner = session.extensionRunner;
+			if (runner.hasHandlers('session_shutdown'))
+				await runner.emit({ type: 'session_shutdown', reason: 'quit' });
+		},
 		getCommands() {
 			const extensionCommands = session.extensionRunner
 				.getRegisteredCommands()

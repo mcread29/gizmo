@@ -24,7 +24,7 @@ describe('PiAgentService commands', () => {
 		expect(pi.prompt).toHaveBeenCalledWith('Inspect this');
 		expect(pi.steer).toHaveBeenCalledWith('Focus on the player');
 		expect(pi.abort).toHaveBeenCalledOnce();
-		expect(pi.dispose).toHaveBeenCalledOnce();
+		await expect.poll(() => pi.dispose).toHaveBeenCalledOnce();
 	});
 
 	it('configures automatic compaction and routes manual compaction', async () => {
@@ -98,6 +98,11 @@ describe('PiAgentService commands', () => {
 		await service.deleteSession(sessionId);
 
 		expect(pi.dispose).toHaveBeenCalledOnce();
+		// Shutdown handlers (the journal tail flush) ran before disposal.
+		expect(pi.shutdown).toHaveBeenCalledOnce();
+		expect(pi.shutdown.mock.invocationCallOrder[0]).toBeLessThan(
+			pi.dispose.mock.invocationCallOrder[0],
+		);
 		await expect(service.prompt(sessionId, 'No longer active')).rejects.toThrow(
 			'Unknown session',
 		);
