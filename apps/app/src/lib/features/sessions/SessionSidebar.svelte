@@ -163,6 +163,13 @@
 				</div>
 			{/if}
 
+			{#if query.trim() && matches.length === 0}
+				<div data-ui="sidebar-empty">
+					<strong>No matching threads</strong>
+					<span>Try a different search.</span>
+				</div>
+			{/if}
+
 			{#each store.projects as project (project.path)}
 				{@const threads = threadsByPath.get(project.path) ?? []}
 				{@const open = isOpen(project)}
@@ -184,15 +191,19 @@
 					ondrop={(event) => reorder.finishDrop(event)}
 					ondragend={(event) => reorder.finishDrop(event)}
 				>
-					<button
-						data-ui="workspace-disclosure"
-						data-open={open || undefined}
-						aria-label={`${open ? 'Collapse' : 'Expand'} ${project.title}`}
-						aria-expanded={open}
-						onclick={() => toggle(project)}
-					>
-						<ChevronRight size={14} />
-					</button>
+					{#if threads.length > 0}
+						<button
+							data-ui="workspace-disclosure"
+							data-open={open || undefined}
+							aria-label={`${open ? 'Collapse' : 'Expand'} ${project.title}`}
+							aria-expanded={open}
+							onclick={() => toggle(project)}
+						>
+							<ChevronRight size={14} />
+						</button>
+					{:else}
+						<span data-ui="workspace-disclosure" aria-hidden="true"></span>
+					{/if}
 					<button
 						data-ui="workspace-entry"
 						data-context-kind="workspace"
@@ -249,22 +260,8 @@
 					</div>
 				</div>
 
-				{#if open}
+				{#if open && threads.length > 0}
 					<div data-ui="workspace-threads">
-						{#if threads.length === 0}
-							<div data-ui="sidebar-empty" data-scope="workspace">
-								<strong
-									>{query.trim()
-										? 'No matching threads'
-										: 'No threads yet'}</strong
-								>
-								<span
-									>{query.trim()
-										? 'Try a different search.'
-										: 'Start one to begin work here.'}</span
-								>
-							</div>
-						{/if}
 						{#each threads as session (session.id)}
 							<SessionRow
 								{session}

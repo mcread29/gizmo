@@ -8,7 +8,10 @@ import TitlebarTestHost from './fixtures/TitlebarTestHost.svelte';
 
 const fakeExtension: GizmoWebExtension = {
 	id: 'fake',
-	statusBar: () => [{ id: 'fake.status', label: 'main (2)', tone: 'accent' }],
+	statusBar: () => [
+		{ id: 'fake.status', label: 'main (2)', tone: 'accent' },
+		{ id: 'git.branch', label: 'pi-web' },
+	],
 };
 
 vi.mock('../../../../src/lib/extensions/registry.svelte', () => ({
@@ -35,6 +38,7 @@ describe('Titlebar', () => {
 			onOpenSettings: () => {},
 			onCloseSettings: () => {},
 		});
+		expect(result.queryByText('pi-web')).not.toBeInTheDocument();
 		expect(result.getByText('game')).toBeInTheDocument();
 		expect(result.getByText('1 extension')).toBeInTheDocument();
 		const item = result.container.querySelector('[data-ui="status-bar-item"]');

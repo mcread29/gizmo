@@ -67,7 +67,9 @@
 						store,
 						projectPath: store.selectedProjectPath,
 					}) ?? [],
-			),
+			)
+			// The overview and Git inspector already show the branch.
+			.filter(({ id }) => id !== 'git.branch'),
 	);
 </script>
 

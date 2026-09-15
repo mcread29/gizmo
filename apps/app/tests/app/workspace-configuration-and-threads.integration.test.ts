@@ -90,6 +90,23 @@ describe('workspace configuration and thread sidebar', () => {
 		);
 	});
 
+	it('shows only a header row for a workspace without threads', async () => {
+		const { findByRole, getByRole } = renderApp();
+		await findByRole('button', { name: 'Open RenderingPlayground' });
+		const row = getByRole('group', { name: 'RenderingPlayground' });
+		expect(
+			within(row).queryByRole('button', { name: /Expand|Collapse/ }),
+		).toBeNull();
+		expect(row.nextElementSibling?.getAttribute('data-ui')).not.toBe(
+			'workspace-threads',
+		);
+		expect(
+			within(row).getByRole('button', {
+				name: 'New thread in RenderingPlayground',
+			}),
+		).toBeEnabled();
+	});
+
 	it('filters threads by title from the sidebar search', async () => {
 		const { container, findByRole, getByRole } = renderApp();
 		await findByRole('button', {

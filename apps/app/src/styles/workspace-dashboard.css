@@ -126,11 +126,13 @@
 
 [data-ui='workspace-home'] {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: var(--space-5);
 	min-height: 0;
 }
 
 [data-ui='workspace-home'] > * {
+	min-width: 0;
 	width: min(920px, 100%);
 	margin-inline: auto;
 }
@@ -144,6 +146,7 @@
 
 [data-ui='workspace-fact'] {
 	display: flex;
+	max-width: 100%;
 	align-items: center;
 	gap: var(--space-2);
 	min-width: 0;

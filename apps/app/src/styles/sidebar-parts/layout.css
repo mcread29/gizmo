@@ -85,10 +85,13 @@
 	border: 0;
 	background: none;
 	color: var(--color-text-faint);
+}
+
+button[data-ui='workspace-disclosure'] {
 	cursor: pointer;
 }
 
-[data-ui='workspace-disclosure']:hover {
+button[data-ui='workspace-disclosure']:hover {
 	color: var(--color-text);
 }
 
