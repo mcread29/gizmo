@@ -22,6 +22,31 @@ describe('FakeAgentClient', () => {
 		expect(store.sessionState).toBe('idle');
 	});
 
+	it('keeps the original branch when starting an alternate path', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const store = new AgentStore(client);
+		await store.connect();
+		await store.prompt('Original path');
+		const originalPrompt = store.messages[0];
+		if (!originalPrompt || !store.sessionId) {
+			throw new Error('Expected a started session with a prompt');
+		}
+
+		expect(await store.branchTo(originalPrompt.id)).toBe(true);
+		await store.prompt('Alternate path');
+
+		const tree = await client.getSessionTree(store.sessionId);
+		expect(
+			tree.entries
+				.filter(({ kind }) => kind === 'user')
+				.map(({ detail }) => detail),
+		).toEqual(['Original path', 'Alternate path']);
+		expect(
+			tree.entries.find(({ detail }) => detail === 'Original path')?.parentId,
+		).toBeNull();
+		expect(tree.leafId).toBe(tree.entries.at(-1)?.id);
+	});
+
 	it('isolates events by session', async () => {
 		const client = new FakeAgentClient({ latencyMs: 0 });
 		const events: AgentEvent[] = [];

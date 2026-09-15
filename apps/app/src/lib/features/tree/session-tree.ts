@@ -115,7 +115,10 @@ export function treeRows(
 
 	const visibleParent = (entry: SessionTreeEntry): string | null => {
 		let current = entry.parentId;
+		const seen = new Set<string>();
 		while (current && !visible.has(current)) {
+			if (seen.has(current)) return null;
+			seen.add(current);
 			current = byId.get(current)?.parentId ?? null;
 		}
 		return current;

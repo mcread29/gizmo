@@ -19,6 +19,9 @@ export class FakePiSession implements PiSessionLike {
 	readonly prompt = vi.fn(async () => {});
 	readonly steer = vi.fn(async () => {});
 	readonly abort = vi.fn(async () => {});
+	readonly navigateTree = vi.fn(async (_targetId: string) => ({
+		cancelled: false,
+	}));
 	readonly compact = vi.fn(async () => ({}));
 	readonly configureCompaction = vi.fn((_policy: CompactionPolicy) => {});
 	readonly setSessionName = vi.fn((name: string) => (this.sessionName = name));

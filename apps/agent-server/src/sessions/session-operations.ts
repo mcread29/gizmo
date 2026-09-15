@@ -134,10 +134,35 @@ export class SessionOperations {
 		if (session.isStreaming) {
 			throw new Error('Cannot change branch while the agent is responding');
 		}
-		if (entryId === null) manager.resetLeaf();
-		else if (!manager.getEntry(entryId)) {
-			throw new Error(`Unknown entry: ${entryId}`);
-		} else manager.branch(entryId);
+		if (entryId === null) {
+			const firstUserEntry = manager
+				.getEntries()
+				.find(
+					(entry) => entry.type === 'message' && entry.message.role === 'user',
+				);
+			if (firstUserEntry && manager.getLeafId() === firstUserEntry.id) {
+				manager.resetLeaf();
+				await session.reload?.();
+			} else if (firstUserEntry) {
+				await session.navigateTree(firstUserEntry.id);
+			} else manager.resetLeaf();
+		} else {
+			const target = manager.getEntry(entryId);
+			if (!target) throw new Error(`Unknown entry: ${entryId}`);
+			if (
+				target.type === 'message' &&
+				target.message.role === 'user' &&
+				manager.getLeafId() === target.id
+			) {
+				if (target.parentId) manager.branch(target.parentId);
+				else manager.resetLeaf();
+				await session.reload?.();
+			} else {
+				const result = await session.navigateTree(entryId);
+				if (result.cancelled)
+					return this.#repository.snapshotOf(manager, sessionId);
+			}
+		}
 		return this.#repository.snapshotOf(manager, sessionId);
 	}
 

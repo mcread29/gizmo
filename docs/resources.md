@@ -42,13 +42,15 @@ workspace must be registered with Gizmo before it can hold overrides.
 Gizmo reads global resources from Pi's own folders instead of maintaining a
 second copy. Workspace resources remain project-local.
 
-| Scope     | Skills                                     | Prompts                                      | Context                         |
-| --------- | ------------------------------------------ | -------------------------------------------- | ------------------------------- |
-| Global    | `~/.pi/agent/skills/`, `~/.agents/skills/` | `~/.pi/agent/prompts/`, `~/.agents/prompts/` | `~/.pi/agent/AGENTS.md`         |
-| Workspace | `.gizmo/skills/`, `.agents/skills/`        | `.gizmo/prompts/`, `.agents/prompts/`        | `AGENTS.md`, `.gizmo/AGENTS.md` |
+| Scope     | Skills                                     | Prompts                                               | Context                         |
+| --------- | ------------------------------------------ | ----------------------------------------------------- | ------------------------------- |
+| Global    | `~/.pi/agent/skills/`, `~/.agents/skills/` | `~/.pi/agent/prompts/`, `~/.agents/prompts/`          | `~/.pi/agent/AGENTS.md`         |
+| Workspace | `.gizmo/skills/`, `.agents/skills/`        | `.pi/prompts/`, `.gizmo/prompts/`, `.agents/prompts/` | `AGENTS.md`, `.gizmo/AGENTS.md` |
 
-`~/.agents/` is the cross-harness [Agent Skills](https://agentskills.io)
-location, so skills shared with other tools work without being copied.
+Project-local `.pi/prompts/` is supported so Pi prompt templates work in Gizmo
+without being copied. `~/.agents/` is the cross-harness
+[Agent Skills](https://agentskills.io) location, so skills shared with other
+tools work without being copied.
 `~/.gizmo/` is also Gizmo's data directory, holding sessions, `projects.json`,
 and `resources.json`; `GIZMO_DATA_DIR` moves all of that app data. Workspace
 overrides remain in the selected project under `.gizmo/config.json`.

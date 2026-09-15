@@ -23,6 +23,7 @@ export interface PiSessionLike {
 	};
 	readonly thinkingLevel?: string;
 	readonly isStreaming?: boolean;
+	navigateTree(targetId: string): Promise<{ cancelled: boolean }>;
 	getActiveToolNames?(): string[];
 	getModelCatalog?(): Promise<AgentModelCatalog>;
 	getCommands?(): ComposerCommand[];

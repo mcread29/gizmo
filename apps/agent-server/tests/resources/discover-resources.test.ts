@@ -79,7 +79,7 @@ describe('discoverResources', () => {
 		);
 	});
 
-	it('uses Pi global resources and ignores project-local .pi resources', async () => {
+	it('uses Pi global resources and project-local Pi prompts', async () => {
 		const data = await temporary('gizmo-data-');
 		const agentDir = await temporary('gizmo-pi-');
 		const project = await temporary('gizmo-project-');
@@ -92,15 +92,28 @@ describe('discoverResources', () => {
 			join(agentDir, 'prompts', 'pi-only.md'),
 			'---\ndescription: From Pi\n---\nNo.\n',
 		);
+		await mkdir(join(project, '.pi', 'prompts'), { recursive: true });
+		await writeFile(
+			join(project, '.pi', 'prompts', 'continue.md'),
+			'---\ndescription: Continue the plan\n---\nResume.\n',
+		);
 		await writeFile(join(agentDir, 'AGENTS.md'), 'Pi instructions.\n');
 		await skill(join(project, '.pi', 'skills', 'legacy'), 'legacy', 'Old');
 
 		const discovery = await discoverResources(project);
 
 		expect(discovery.skills.map(({ name }) => name)).toContain('pi-only');
-		expect(discovery.prompts).toEqual([
-			expect.objectContaining({ name: 'pi-only', scope: 'global' }),
-		]);
+		expect(discovery.skills.map(({ name }) => name)).not.toContain('legacy');
+		expect(discovery.prompts).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ name: 'pi-only', scope: 'global' }),
+				expect.objectContaining({
+					name: 'continue',
+					scope: 'project',
+					path: join(project, '.pi', 'prompts', 'continue.md'),
+				}),
+			]),
+		);
 		expect(discovery.agentsFiles).toEqual([
 			expect.objectContaining({ path: join(agentDir, 'AGENTS.md') }),
 		]);

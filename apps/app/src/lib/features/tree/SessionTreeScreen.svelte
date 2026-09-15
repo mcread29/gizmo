@@ -1,15 +1,11 @@
 <script lang="ts">
 	import type { SessionTree } from '@gizmo/protocol';
-	import {
-		ArrowLeft,
-		Bookmark,
-		ChevronDown,
-		ChevronRight,
-	} from '@lucide/svelte';
+	import { ArrowLeft } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel, SelectField } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import SessionTreeActions from './SessionTreeActions.svelte';
+	import SessionTreeList from './SessionTreeList.svelte';
 	import { focusOnOpen } from '../shell/modal-screen';
 	import {
 		treeFilterLabels,
@@ -32,12 +28,13 @@
 	let search = $state('');
 	let folded = $state(new Set<string>());
 	let selectedId = $state<string>();
-	let editing = $state<{ id: string; parentId: string | null; text: string }>();
+	let editing = $state<{ id: string; text: string }>();
 	let labelling = $state<{ id: string; text: string }>();
+	let branching = $state(false);
 	let loadedRevision = '';
 	let loadedSessionId: string | undefined;
 	let treeRevision = $derived(
-		`${store.sessionId ?? ''}:${store.sessions.find((session) => session.id === store.sessionId)?.messageCount ?? 0}`,
+		`${store.sessionId ?? ''}:${store.sessions.find((session) => session.id === store.sessionId)?.messageCount ?? 0}:${store.sessionState}`,
 	);
 
 	$effect(() => {
@@ -65,7 +62,8 @@
 
 	let rows = $derived(tree ? treeRows(tree, { filter, search, folded }) : []);
 	let selected = $derived(
-		rows.find((row) => row.entry.id === selectedId)?.entry,
+		rows.find((row) => row.entry.id === selectedId)?.entry ??
+			rows.filter((row) => row.active).at(-1)?.entry,
 	);
 	let branchCount = $derived(
 		rows.filter((row) => row.branchCount > 1 && row.branchIndex === 0).length,
@@ -77,26 +75,37 @@
 		folded = next;
 	}
 
-	/** Moves the thread's leaf, so the next prompt continues from here. */
-	async function goHere(entryId: string) {
-		if (!(await store.branchTo(entryId))) return;
-		loadedRevision = '';
-		toasts.show('Thread continues from this point', 'success');
-		onClose();
+	/** Select a point, then continue in the conversation from that branch. */
+	async function startAlternatePath(entryId: string) {
+		if (branching) return;
+		branching = true;
+		try {
+			if (!(await store.branchTo(entryId))) return;
+			loadedRevision = '';
+			toasts.show('Alternate path ready — write the next prompt', 'success');
+			onClose();
+		} finally {
+			branching = false;
+		}
 	}
 
 	/**
-	 * Re-running a prompt means continuing from its parent, so the new reply is
-	 * a sibling of the old one rather than a child of it.
+	 * The server treats a user entry as a fork point before that prompt, so the
+	 * replacement becomes a sibling instead of an accidental child.
 	 */
 	async function runEdited() {
-		if (!editing) return;
-		const { parentId, text } = editing;
-		editing = undefined;
-		if (!(await store.branchTo(parentId))) return;
-		loadedRevision = '';
-		onClose();
-		await store.prompt(text);
+		if (!editing || branching) return;
+		const { id, text } = editing;
+		branching = true;
+		try {
+			if (!(await store.branchTo(id))) return;
+			editing = undefined;
+			loadedRevision = '';
+			onClose();
+			await store.prompt(text);
+		} finally {
+			branching = false;
+		}
 	}
 
 	async function saveLabel() {
@@ -124,23 +133,31 @@
 		{@attach focusOnOpen}
 	>
 		<header data-ui="tree-header">
-			<button data-ui="settings-back" onclick={onClose}>
-				<ArrowLeft size={15} />
-				<span>Back</span>
-			</button>
-			<h1 id="tree-screen-title">Session tree</h1>
-			<span>
-				Every turn this thread has taken, including the branches it walked away
-				from. Nothing here is ever deleted.
-			</span>
+			<div data-ui="tree-header-inner">
+				<button data-ui="tree-back" onclick={onClose}>
+					<ArrowLeft size={15} />
+					<span>Back to thread</span>
+				</button>
+				<div data-ui="tree-heading">
+					<span data-ui="eyebrow">THREAD HISTORY</span>
+					<h1 id="tree-screen-title">Session tree</h1>
+					<p>
+						Every turn is kept. Select a point to create an alternate path
+						without losing the work that came after it.
+					</p>
+				</div>
+			</div>
 			<div data-ui="tree-controls">
-				<input
-					type="search"
-					bind:value={search}
-					placeholder="Search this thread…"
-					aria-label="Search the session tree"
-					autocomplete="off"
-				/>
+				<label data-ui="tree-search">
+					<span>Search</span>
+					<input
+						type="search"
+						bind:value={search}
+						placeholder="Search this thread…"
+						aria-label="Search the session tree"
+						autocomplete="off"
+					/>
+				</label>
 				<SelectField
 					value={filter}
 					label="Show"
@@ -153,60 +170,33 @@
 			</div>
 		</header>
 
-		<ScrollPanel>
+		<ScrollPanel name="session-tree">
 			<div data-ui="tree-body">
-				{#if loading && !tree}
-					<p data-ui="tree-empty">Reading the session…</p>
-				{:else if !rows.length}
-					<p data-ui="tree-empty">
-						{search ? 'Nothing matches that search.' : 'This thread is empty.'}
-					</p>
-				{:else}
-					<ol data-ui="tree-list">
-						{#each rows as row (row.entry.id)}
-							<li
-								data-ui="tree-row"
-								data-kind={row.entry.kind}
-								data-active={row.active || undefined}
-								data-leaf={row.leaf || undefined}
-								data-selected={row.entry.id === selectedId || undefined}
-								style={`--depth:${row.depth}`}
-							>
-								<button
-									data-ui="tree-fold"
-									aria-label={row.folded ? 'Unfold' : 'Fold'}
-									disabled={!row.foldable}
-									onclick={() => toggleFold(row.entry.id)}
-								>
-									{#if row.foldable}
-										{#if row.folded}<ChevronRight
-												size={13}
-											/>{:else}<ChevronDown size={13} />{/if}
-									{/if}
-								</button>
-								<button
-									data-ui="tree-entry"
-									onclick={() => (selectedId = row.entry.id)}
-									ondblclick={() => void goHere(row.entry.id)}
-								>
-									<span data-ui="tree-kind">{row.entry.kind}</span>
-									<span data-ui="tree-summary">{row.entry.summary}</span>
-									{#if row.entry.label}
-										<span data-ui="tree-label">
-											<Bookmark size={11} />{row.entry.label}
-										</span>
-									{/if}
-									{#if row.branchCount > 1}
-										<span data-ui="tree-branch"
-											>branch {row.branchIndex + 1}/{row.branchCount}</span
-										>
-									{/if}
-									{#if row.leaf}<span data-ui="tree-here">here</span>{/if}
-								</button>
-							</li>
-						{/each}
-					</ol>
-				{/if}
+				<section data-ui="tree-panel" aria-label="Thread branches">
+					<header data-ui="tree-panel-header">
+						<div>
+							<h2>Paths through this thread</h2>
+							<span>{tree?.entries.length ?? 0} recorded turns</span>
+						</div>
+						<span data-ui="tree-panel-hint">Current path is highlighted</span>
+					</header>
+					{#if loading && !tree}
+						<p data-ui="tree-empty">Reading the session…</p>
+					{:else if !rows.length}
+						<p data-ui="tree-empty">
+							{search
+								? 'Nothing matches that search.'
+								: 'This thread is empty.'}
+						</p>
+					{:else}
+						<SessionTreeList
+							{rows}
+							{selectedId}
+							onToggleFold={toggleFold}
+							onSelect={(id) => (selectedId = id)}
+						/>
+					{/if}
+				</section>
 			</div>
 		</ScrollPanel>
 
@@ -214,16 +204,16 @@
 			{selected}
 			{branchCount}
 			streaming={store.sessionState === 'streaming'}
+			busy={branching}
 			onLabel={(entry) =>
 				(labelling = { id: entry.id, text: entry.label ?? '' })}
 			onCopy={(detail) => void copyEntry(detail)}
 			onEdit={(entry) =>
 				(editing = {
 					id: entry.id,
-					parentId: entry.parentId,
 					text: entry.detail ?? entry.summary,
 				})}
-			onContinue={(entryId) => void goHere(entryId)}
+			onContinue={(entryId) => void startAlternatePath(entryId)}
 		/>
 
 		{#if editing}
@@ -242,8 +232,8 @@
 					<Button
 						variant="primary"
 						size="sm"
-						disabled={!editing.text.trim()}
-						onclick={() => void runEdited()}>Run</Button
+						disabled={!editing.text.trim() || branching}
+						onclick={() => void runEdited()}>Fork</Button
 					>
 				</div>
 			</div>

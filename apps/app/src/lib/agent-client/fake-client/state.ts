@@ -5,6 +5,7 @@ import {
 	type ComposerCommand,
 	type ConversationMessage,
 	type ExtensionUiResponse,
+	type SessionTreeEntry,
 	type SkillResource,
 	type StoredProject,
 } from '@gizmo/protocol';
@@ -21,6 +22,9 @@ export interface FakeSession {
 	thinkingLevel: string;
 	summary: AgentSessionSummary;
 	messages: ConversationMessage[];
+	treeEntries: SessionTreeEntry[];
+	messageById: Map<string, ConversationMessage>;
+	leafId: string | null;
 	labels: Map<string, string>;
 }
 

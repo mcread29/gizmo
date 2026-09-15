@@ -126,8 +126,10 @@
 		</div>
 		<div data-ui="conversation-header-actions">
 			<Button
-				variant="secondary"
+				data-ui="tree-trigger"
+				variant="ghost"
 				size="sm"
+				title="Browse alternate paths"
 				disabled={!store.sessionId}
 				onclick={onOpenTree}><GitBranch size={14} /> Tree</Button
 			>

@@ -177,11 +177,10 @@ describe('workspace configuration and thread sidebar', () => {
 		).not.toBeNull();
 		await fireEvent.click(treeButton);
 
+		expect(getByText('Paths through this thread')).toBeVisible();
 		expect(
 			await findByRole('dialog', { name: 'Session tree' }),
 		).toBeInTheDocument();
-		expect(
-			getByText(/including the branches it walked away from/),
-		).toBeVisible();
+		expect(getByText(/Every turn is kept.*alternate path/)).toBeVisible();
 	});
 });

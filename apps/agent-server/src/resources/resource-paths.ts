@@ -41,6 +41,7 @@ export function workspaceResourceRoots(workspacePath: string): ResourceRoots {
 			join(workspacePath, '.agents', 'skills'),
 		],
 		prompts: [
+			join(workspacePath, '.pi', 'prompts'),
 			join(workspacePath, '.gizmo', 'prompts'),
 			join(workspacePath, '.agents', 'prompts'),
 		],

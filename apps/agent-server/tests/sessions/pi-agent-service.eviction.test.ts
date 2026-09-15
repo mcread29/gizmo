@@ -83,6 +83,7 @@ function fakeSession(
 		prompt: async () => {},
 		steer: async () => {},
 		abort: vi.fn(async () => {}),
+		navigateTree: vi.fn(async (_targetId: string) => ({ cancelled: false })),
 		shutdown: vi.fn(async () => {}),
 		dispose: vi.fn(),
 	};

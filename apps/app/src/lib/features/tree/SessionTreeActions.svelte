@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { SessionTreeEntry } from '@gizmo/protocol';
-	import { Bookmark, Copy, CornerUpLeft, Pencil } from '@lucide/svelte';
+	import { Bookmark, Copy, GitFork, Pencil } from '@lucide/svelte';
 	import { Button } from '../../components';
 
 	interface Props {
@@ -8,6 +8,7 @@
 		selected?: SessionTreeEntry;
 		branchCount: number;
 		streaming: boolean;
+		busy: boolean;
 		onLabel: (entry: SessionTreeEntry) => void;
 		onCopy: (detail: string) => void;
 		onEdit: (entry: SessionTreeEntry) => void;
@@ -18,6 +19,7 @@
 		selected,
 		branchCount,
 		streaming,
+		busy,
 		onLabel,
 		onCopy,
 		onEdit,
@@ -32,34 +34,39 @@
 		>
 	{/if}
 	{#if selected}
-		<Button variant="secondary" size="sm" onclick={() => onLabel(selected)}
-			><Bookmark size={13} /> Label</Button
+		<Button
+			variant="secondary"
+			size="sm"
+			disabled={busy}
+			onclick={() => onLabel(selected)}><Bookmark size={13} /> Label</Button
 		>
 		{#if selected.detail}
 			<Button
 				variant="secondary"
 				size="sm"
+				disabled={busy}
 				onclick={() => onCopy(selected.detail ?? '')}
 				><Copy size={13} /> Copy</Button
 			>
 		{/if}
 		{#if selected.kind === 'user'}
 			<Button
-				variant="secondary"
+				variant="primary"
 				size="sm"
-				disabled={streaming}
+				disabled={streaming || busy}
 				onclick={() => onEdit(selected)}
-				><Pencil size={13} /> Edit and re-run</Button
+				><Pencil size={13} /> Fork and edit</Button
+			>
+		{:else}
+			<Button
+				variant="primary"
+				size="sm"
+				disabled={streaming || busy}
+				onclick={() => onContinue(selected.id)}
+				><GitFork size={13} /> Start alternate path</Button
 			>
 		{/if}
-		<Button
-			variant="primary"
-			size="sm"
-			disabled={streaming}
-			onclick={() => onContinue(selected.id)}
-			><CornerUpLeft size={13} /> Continue from here</Button
-		>
 	{:else}
-		<span data-ui="tree-count">Select an entry to act on it.</span>
+		<span data-ui="tree-count">Select a point to start an alternate path.</span>
 	{/if}
 </footer>

@@ -28,6 +28,9 @@ class StreamingPiSession implements PiSessionLike {
 	readonly thinkingLevel = 'low';
 	readonly steer = vi.fn(async () => {});
 	readonly abort = vi.fn(async () => {});
+	readonly navigateTree = vi.fn(async (_targetId: string) => ({
+		cancelled: false,
+	}));
 	readonly setSessionName = vi.fn((name: string) => (this.sessionName = name));
 	readonly dispose = vi.fn();
 	#listener?: (event: AgentSessionEvent) => void;

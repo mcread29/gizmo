@@ -33,6 +33,14 @@
 	gap: var(--space-1);
 }
 
+[data-ui='tree-trigger'] {
+	color: var(--color-text-muted);
+}
+
+[data-ui='tree-trigger']:hover {
+	color: var(--color-accent);
+}
+
 [data-scroll='messages'] {
 	flex: 1;
 	min-height: 0;

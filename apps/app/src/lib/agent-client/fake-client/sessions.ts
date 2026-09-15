@@ -2,6 +2,7 @@ import {
 	agentToolPolicy,
 	sessionTitle,
 	type AgentModelCatalog,
+	type ConversationMessage,
 	type SessionOptions,
 } from '@gizmo/protocol';
 import { fakeModels, fakeProviders, fakeThinkingLevels } from './fixtures';
@@ -58,6 +59,9 @@ export class FakeSessionCapability {
 				messageCount: 0,
 			},
 			messages: [],
+			treeEntries: [],
+			messageById: new Map(),
+			leafId: null,
 			labels: new Map(),
 		};
 		this.state.sessions.set(sessionId, session);
@@ -80,31 +84,36 @@ export class FakeSessionCapability {
 	async tree(sessionId: string) {
 		const session = this.state.getSession(sessionId);
 		return {
-			entries: session.messages.map((message, index) => ({
-				id: message.id,
-				parentId: session.messages[index - 1]?.id ?? null,
-				kind: message.role,
-				summary: message.content.slice(0, 120),
-				detail: message.content,
-				...(session.labels.has(message.id)
-					? { label: session.labels.get(message.id)! }
+			entries: session.treeEntries.map((entry) => ({
+				...entry,
+				...(session.messageById.has(entry.id)
+					? {
+							summary: session.messageById.get(entry.id)!.content.slice(0, 120),
+							detail: session.messageById.get(entry.id)!.content,
+						}
 					: {}),
-				createdAt: message.createdAt,
+				...(session.labels.has(entry.id)
+					? { label: session.labels.get(entry.id)! }
+					: {}),
 			})),
-			leafId: session.messages.at(-1)?.id ?? null,
+			leafId: session.leafId,
 		};
 	}
 
 	async branch(sessionId: string, entryId: string | null) {
 		const session = this.state.getSession(sessionId);
-		const index =
-			entryId === null
-				? -1
-				: session.messages.findIndex((message) => message.id === entryId);
-		if (entryId !== null && index < 0) {
+		const target = entryId
+			? session.treeEntries.find((entry) => entry.id === entryId)
+			: undefined;
+		if (entryId !== null && !target) {
 			throw new Error(`Unknown entry: ${entryId}`);
 		}
-		session.messages = session.messages.slice(0, index + 1);
+		session.leafId = target
+			? target.kind === 'user'
+				? target.parentId
+				: target.id
+			: null;
+		this.rebuildMessages(session);
 		session.summary.messageCount = session.messages.length;
 		return this.snapshot(session);
 	}
@@ -181,6 +190,21 @@ export class FakeSessionCapability {
 		if (session.summary.title === 'New session') {
 			session.summary.title = sessionTitle(text);
 		}
+	}
+
+	private rebuildMessages(session: FakeSession) {
+		const messages: ConversationMessage[] = [];
+		const seen = new Set<string>();
+		let current = session.leafId;
+		while (current && !seen.has(current)) {
+			seen.add(current);
+			const message = session.messageById.get(current);
+			if (message) messages.push(message);
+			current =
+				session.treeEntries.find((entry) => entry.id === current)?.parentId ??
+				null;
+		}
+		session.messages = messages.reverse();
 	}
 
 	private snapshot(session: FakeSession) {

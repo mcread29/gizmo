@@ -2,6 +2,7 @@ import type { AgentAttachment, CompactionPolicy } from '@gizmo/protocol';
 import { fakeEditFile, fakeEditResult } from './fixtures';
 import type { FakeSessionCapability } from './sessions';
 import type { FakeClientState, FakeSession } from './state';
+import { appendMessageToTree } from './tree';
 
 export class FakePromptCapability {
 	constructor(
@@ -85,14 +86,15 @@ export class FakePromptCapability {
 	) {
 		const messageId = this.state.nextId('message');
 		const createdAt = Date.now();
-		session.messages.push({
+		const message = {
 			id: messageId,
-			role: 'user',
+			role: 'user' as const,
 			content: text,
 			createdAt,
 			complete: true,
 			tools: [],
-		});
+		};
+		appendMessageToTree(session, message);
 		session.summary.messageCount++;
 		session.summary.lastActiveAt = Date.now();
 		this.sessions.setTitleFromPrompt(session, text);
@@ -123,7 +125,7 @@ export class FakePromptCapability {
 			complete: false,
 			tools: [],
 		};
-		session.messages.push(message);
+		appendMessageToTree(session, message);
 		session.summary.messageCount++;
 		this.state.emit({
 			type: 'message.started',
