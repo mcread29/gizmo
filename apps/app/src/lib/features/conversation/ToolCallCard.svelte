@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { ToolCallView } from '@gizmo/protocol';
+	import { readDisplayResult, type ToolCallView } from '@gizmo/protocol';
+	import DisplayResult from './DisplayResult.svelte';
 	import {
 		Check,
 		CircleCheck,
@@ -48,7 +49,14 @@
 	let resultText = $derived(formatToolResult(tool.result));
 	// Progress text is the useful subtitle while a tool runs; once it has
 	// finished, "Completed" says nothing the status icon has not already said.
-	let summary = $derived(toolSummary(tool.input));
+	let display = $derived(
+		tool.name === 'display' && tool.status !== 'error'
+			? readDisplayResult(tool.result)
+			: undefined,
+	);
+	let summary = $derived(
+		tool.name === 'display' ? display?.title : toolSummary(tool.input),
+	);
 	let subtitle = $derived(
 		tool.status === 'running' ? tool.statusText : (summary ?? tool.statusText),
 	);
@@ -167,7 +175,7 @@
 		</button>
 	{/if}
 
-	{#if open}
+	{#if open && !display}
 		<div data-ui="tool-content">
 			<ToolResult {tool} {projectPath} {consoleEntries} {errors} />
 
@@ -195,3 +203,7 @@
 		</div>
 	{/if}
 </details>
+
+{#if display}
+	<DisplayResult {display} />
+{/if}

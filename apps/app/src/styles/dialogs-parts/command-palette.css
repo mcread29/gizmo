@@ -109,16 +109,6 @@
 	border-radius: var(--radius-lg);
 }
 
-[data-ui='native-folder-picker'] {
-	display: grid;
-	place-items: center;
-	gap: var(--space-3);
-	min-height: 260px;
-	color: var(--color-text-muted);
-	font-size: var(--text-sm);
-	text-align: center;
-}
-
 [data-ui='integration-row'] > span {
 	display: grid;
 	min-width: 0;

@@ -195,6 +195,7 @@ export const agentEventSchema = Type.Union([
 			type: Type.Literal('tool.updated'),
 			toolCallId: Type.String({ minLength: 1 }),
 			message: Type.String(),
+			result: Type.Optional(Type.Unknown()),
 		},
 		{ additionalProperties: false },
 	),

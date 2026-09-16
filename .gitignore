@@ -11,7 +11,3 @@ coverage/
 .gizmo-dev/
 .gizmo-web/
 .DS_Store
-
-# Conversation transcripts recorded by the memory journal. Remove this line
-# to commit them as shared team knowledge.
-.gizmo/memory/journal/

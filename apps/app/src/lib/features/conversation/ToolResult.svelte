@@ -57,7 +57,7 @@
 	);
 </script>
 
-{#if parameters.length}
+{#if parameters.length && tool.name !== 'display'}
 	<dl data-ui="tool-parameters">
 		{#each parameters as [name, value] (name)}
 			<div>

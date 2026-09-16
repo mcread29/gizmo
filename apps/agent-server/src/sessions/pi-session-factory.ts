@@ -76,7 +76,11 @@ export const createDefaultPiSession: PiSessionFactory = async (
 	const systemPrompt = activeExtensions.systemPrompt ?? customSystemPrompt;
 	const resourceLoaderOptions = {
 		noExtensions: true,
-		additionalExtensionPaths: [journalExtensionPath(), ...piExtensions],
+		additionalExtensionPaths: [
+			journalExtensionPath(),
+			displayExtensionPath(),
+			...piExtensions,
+		],
 		noSkills: true,
 		additionalSkillPaths: skillPaths,
 		noPromptTemplates: true,
@@ -270,6 +274,11 @@ export function journalExtensionPath(): string {
 	return fileURLToPath(
 		new URL('../pi-extensions/memory-journal.ts', import.meta.url),
 	);
+}
+
+/** Static displays and browser-backed input ship with every Gizmo session. */
+export function displayExtensionPath() {
+	return fileURLToPath(new URL('../pi-extensions/display.ts', import.meta.url));
 }
 
 async function readAgentsFiles(cwd: string) {

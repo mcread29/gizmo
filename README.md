@@ -20,6 +20,10 @@ Gizmo extensions are installed globally and on by default; Pi extensions and
 skills are managed in Settings → Agent, and any of them can be overridden per
 workspace in its Configure screen.
 
+The included `display` tool renders formatted cards, tables, lists, and metrics
+in chat using json-render. It can also wait for a text answer, selection, or
+confirmation. See [`docs/chat-display.md`](docs/chat-display.md).
+
 ## Development
 
 Install dependencies and start both the Svelte app and local Pi agent server:

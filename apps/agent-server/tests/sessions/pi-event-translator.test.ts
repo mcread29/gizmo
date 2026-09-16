@@ -1,5 +1,6 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
 import { describe, expect, it } from 'vitest';
+import { parseAgentEvent, protocolVersion } from '@gizmo/protocol';
 import {
 	PiEventTranslator,
 	type TranslatedPiEvent,
@@ -27,6 +28,64 @@ function translate(result: unknown, isError = false): TranslatedPiEvent {
 }
 
 describe('PiEventTranslator tool results', () => {
+	it.each([
+		{ content: [{ type: 'text', text: 'Working' }] },
+		{ content: [{ type: 'text', text: 'Working' }], details: undefined },
+	])('keeps text-only updates free of result: %j', (partialResult) => {
+		const events: TranslatedPiEvent[] = [];
+		const translator = new PiEventTranslator((translated) =>
+			events.push(translated),
+		);
+		translator.receive(
+			event({
+				type: 'tool_execution_update',
+				toolCallId: 'tool-1',
+				partialResult,
+			}),
+		);
+		expect(events).toEqual([
+			{ type: 'tool.updated', toolCallId: 'tool-1', message: 'Working' },
+		]);
+	});
+
+	it('normalizes partial details through the wire event schema', () => {
+		const events: TranslatedPiEvent[] = [];
+		const translator = new PiEventTranslator((translated) =>
+			events.push(translated),
+		);
+		const details = {
+			gizmoDisplay: { state: 'waiting', title: 'Choose' },
+			omitted: undefined,
+		};
+		translator.receive(
+			event({
+				type: 'tool_execution_update',
+				toolCallId: 'tool-1',
+				toolName: 'display',
+				partialResult: { content: [], details },
+			}),
+		);
+		const wireEvent = parseAgentEvent(
+			JSON.parse(
+				JSON.stringify({
+					protocolVersion,
+					sessionId: 'session-1',
+					eventId: 1,
+					...events[0],
+				}),
+			),
+		);
+		expect(wireEvent).toMatchObject({
+			type: 'tool.updated',
+			message: 'Running',
+			result: { gizmoDisplay: { state: 'waiting', title: 'Choose' } },
+		});
+		if (events[0]?.type === 'tool.updated') {
+			expect(events[0].result).not.toBe(details);
+			expect(events[0].result).not.toHaveProperty('omitted');
+		}
+	});
+
 	it('falls back to text when details is undefined', () => {
 		expect(
 			translate({

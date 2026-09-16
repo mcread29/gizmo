@@ -48,7 +48,12 @@ export type TranslatedPiEvent =
 			toolName: string;
 			input: unknown;
 	  }
-	| { type: 'tool.updated'; toolCallId: string; message: string }
+	| {
+			type: 'tool.updated';
+			toolCallId: string;
+			message: string;
+			result?: unknown;
+	  }
 	| {
 			type: 'tool.completed';
 			toolCallId: string;
@@ -71,11 +76,7 @@ export class PiEventTranslator {
 		this.#emit = emit;
 	}
 
-	/**
-	 * The id the in-flight assistant message is streaming under, if any. A
-	 * client that subscribes mid-stream needs this to splice the partial
-	 * message into its view so later deltas land on the right message.
-	 */
+	/** In-flight assistant id for clients splicing a mid-stream subscription. */
 	get activeAssistantMessageId(): string | undefined {
 		return this.#activeMessageIds.get('assistant');
 	}
@@ -221,6 +222,12 @@ export class PiEventTranslator {
 					type: 'tool.updated',
 					toolCallId: event.toolCallId,
 					message: getToolResultText(event.partialResult) || 'Running',
+					...(event.partialResult &&
+					typeof event.partialResult === 'object' &&
+					'details' in event.partialResult &&
+					event.partialResult.details !== undefined
+						? { result: normalizeToolResult(event.partialResult) }
+						: {}),
 				});
 				break;
 			case 'tool_execution_end':
@@ -235,11 +242,7 @@ export class PiEventTranslator {
 	}
 }
 
-/**
- * Context used is what the next request has to re-send: everything the model
- * read this turn plus what it wrote. Cached tokens still occupy the window, so
- * they count even though they are cheap.
- */
+/** Context includes input, output, and cached tokens resent next turn. */
 export function readUsage(value: unknown): TranslatedUsage | undefined {
 	if (!value || typeof value !== 'object') return undefined;
 	const usage = value as Record<string, unknown>;

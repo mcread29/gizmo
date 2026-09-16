@@ -1,4 +1,4 @@
-import { protocolVersion } from '@gizmo/protocol';
+import { parseAgentEvent, protocolVersion } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
 import {
 	applyAgentEvent,
@@ -31,6 +31,85 @@ function state(): AgentEventState {
 const envelope = { protocolVersion, sessionId: 'session-1' } as const;
 
 describe('applyAgentEvent', () => {
+	it('stores partial results while running and preserves them across text-only updates', () => {
+		const target = state();
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 1,
+			type: 'message.started',
+			messageId: 'message-1',
+			role: 'assistant',
+			createdAt: 1,
+		});
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 2,
+			type: 'tool.started',
+			messageId: 'message-1',
+			toolCallId: 'tool-1',
+			toolName: 'display',
+			input: {},
+		});
+		const result = { gizmoDisplay: { state: 'waiting', title: 'Choose' } };
+		applyAgentEvent(
+			target,
+			parseAgentEvent(
+				JSON.parse(
+					JSON.stringify({
+						...envelope,
+						eventId: 3,
+						type: 'tool.updated',
+						toolCallId: 'tool-1',
+						message: 'Waiting for input',
+						result,
+					}),
+				),
+			),
+		);
+		const tool = target.messages[0]?.tools[0];
+		expect(tool).toMatchObject({
+			status: 'running',
+			statusText: 'Waiting for input',
+			result,
+		});
+		for (const update of [{}, { result: undefined }]) {
+			applyAgentEvent(target, {
+				...envelope,
+				eventId: 4,
+				type: 'tool.updated',
+				toolCallId: 'tool-1',
+				message: 'Still waiting',
+				...update,
+			});
+			expect(tool).toMatchObject({
+				status: 'running',
+				statusText: 'Still waiting',
+				result,
+			});
+		}
+		const replacement = {
+			gizmoDisplay: { state: 'waiting', title: 'Updated' },
+		};
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 5,
+			type: 'tool.updated',
+			toolCallId: 'tool-1',
+			message: 'Updated',
+			result: replacement,
+		});
+		expect(tool).toMatchObject({ status: 'running', result: replacement });
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 6,
+			type: 'tool.completed',
+			toolCallId: 'tool-1',
+			result: 'Answered',
+			isError: false,
+		});
+		expect(tool).toMatchObject({ status: 'complete', result: 'Answered' });
+	});
+
 	it('replaces project extension descriptors when discovery changes', () => {
 		const target = state();
 		target.selectedProjectPath = '/projects/game';

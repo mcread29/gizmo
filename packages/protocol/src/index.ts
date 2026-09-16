@@ -1,4 +1,5 @@
 export * from './core';
+export * from './display';
 export * from './errors';
 export * from './events';
 export * from './extensions';

@@ -4,3 +4,6 @@ coverage
 pnpm-lock.yaml
 README.md
 milestones.md
+
+# Append-only conversation transcripts; preserve captured formatting.
+.gizmo/memory/journal/

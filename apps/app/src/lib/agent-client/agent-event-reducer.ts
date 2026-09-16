@@ -102,7 +102,10 @@ export function applyAgentEvent(
 			break;
 		case 'tool.updated': {
 			const tool = findTool(state, event.toolCallId);
-			if (tool) tool.statusText = event.message;
+			if (tool) {
+				tool.statusText = event.message;
+				if (event.result !== undefined) tool.result = event.result;
+			}
 			break;
 		}
 		case 'tool.completed': {
