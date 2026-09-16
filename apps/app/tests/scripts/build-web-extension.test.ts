@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildWebExtension } from '../../scripts/build-web-extension';
+import { jsonRenderSvelteExports } from '../../scripts/json-render-exports';
+import { sharedModules } from '../../src/lib/extensions/runtime/host-modules';
 
 let root: string;
 
@@ -21,6 +23,38 @@ async function write(path: string, contents: string): Promise<void> {
 }
 
 describe('buildWebExtension', () => {
+	it('keeps the Svelte renderer export list aligned with the pinned package', () => {
+		expect([...jsonRenderSvelteExports].sort()).toEqual(
+			Object.keys(sharedModules['@json-render/svelte']).sort(),
+		);
+	});
+
+	it('uses host json-render and Zod without extension-local dependencies', async () => {
+		await write(
+			'src/web/index.ts',
+			`
+import { defineCatalog } from '@json-render/core';
+import { Renderer, defineRegistry } from '@json-render/svelte';
+import { schema } from '@json-render/svelte/schema';
+import { z } from 'zod';
+export const gizmoWebExtension = { defineCatalog, Renderer, defineRegistry, schema, z };
+`,
+		);
+		const out = join(root, 'dist/web.js');
+		await buildWebExtension(root, out);
+		const code = await readFile(out, 'utf8');
+		expect(code).not.toMatch(/^\s*import\s.*from\s*["']/m);
+		for (const specifier of [
+			'@json-render/core',
+			'@json-render/svelte',
+			'@json-render/svelte/schema',
+			'zod',
+		]) {
+			expect(code).toContain(specifier);
+		}
+		expect(code.length).toBeLessThan(10_000);
+	}, 60_000);
+
 	it('produces a standalone module that shares the host Svelte runtime', async () => {
 		await write(
 			'src/web/Panel.svelte',

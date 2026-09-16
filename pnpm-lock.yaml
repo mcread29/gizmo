@@ -72,6 +72,12 @@ importers:
       '@gizmo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@json-render/core':
+        specifier: 0.20.0
+        version: 0.20.0(zod@4.4.3)
+      '@json-render/svelte':
+        specifier: 0.20.0
+        version: 0.20.0(svelte@5.56.10)(zod@4.4.3)
       '@lucide/svelte':
         specifier: ^1.31.0
         version: 1.31.0(svelte@5.56.10)
@@ -90,6 +96,9 @@ importers:
       svelte:
         specifier: 5.56.10
         version: 5.56.10
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: latest
@@ -1876,6 +1885,20 @@ packages:
   zimmerframe@1.1.4:
     resolution: {integrity: sha512-B58NGBEoc8Y9MWWCQGl/gq9xBCe4IiKM0a2x7GZdQKOW5Exr8S1W24J6OgM1njK8xCRGvAJIL/MxXHf6SkmQKQ==}
 
+  '@json-render/core@0.20.0':
+    resolution: {integrity: sha512-cXAXn7h3QaylefQgh85AEGPuVq4C8SJ3k9JqigWLJhaBSozF1Fmsrm43DP16RmkqNiVgj5pBRdmB48lEO5qlow==}
+    peerDependencies:
+      zod: ^4.0.0
+
+  '@json-render/svelte@0.20.0':
+    resolution: {integrity: sha512-Hq494bWBoveW7LNVCtQ3bM0XzkD9Mp92r5Bc1cBDw72UwQAXZuzWMGixovYCYBdx2z1DAi7PNGsBsLCtItGCMg==}
+    peerDependencies:
+      svelte: ^5.0.0
+      zod: ^4.0.0
+
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@adobe/css-tools@4.5.0': {}
@@ -3494,3 +3517,15 @@ snapshots:
   yaml@2.9.0: {}
 
   zimmerframe@1.1.4: {}
+
+  '@json-render/core@0.20.0(zod@4.4.3)':
+    dependencies:
+      zod: 4.4.3
+
+  '@json-render/svelte@0.20.0(svelte@5.56.10)(zod@4.4.3)':
+    dependencies:
+      '@json-render/core': 0.20.0(zod@4.4.3)
+      svelte: 5.56.10
+      zod: 4.4.3
+
+  zod@4.4.3: {}

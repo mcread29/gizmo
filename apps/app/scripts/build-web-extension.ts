@@ -7,11 +7,12 @@
  * The way around that is to build the plugin separately and load it through a
  * genuinely runtime `import()`, which the JS engine resolves itself.
  *
- * The one thing a plugin must not bundle is the Svelte runtime: two copies do
+ * A plugin must not bundle the Svelte runtime: two copies do
  * not share context or reactivity. Those specifiers are rewritten to read from
  * a global the host publishes (see `host-modules.ts`), rather than left
  * external and resolved through an import map — import-map support varies
- * across browsers, a global does not.
+ * across browsers, a global does not. json-render and Zod also use the host's
+ * pinned copies.
  *
  * Usage: bun scripts/build-web-extension.ts <package-dir> [--out <file>]
  */
@@ -19,9 +20,17 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { build, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { jsonRenderSvelteExports } from './json-render-exports.ts';
 
 const hostModulesKey = '__gizmoHostModules__';
-const sharedSpecifiers = ['svelte', 'svelte/internal/client'];
+const sharedSpecifiers = [
+	'svelte',
+	'svelte/internal/client',
+	'@json-render/core',
+	'@json-render/svelte',
+	'@json-render/svelte/schema',
+	'zod',
+];
 
 /**
  * Side-effect-only imports the Svelte compiler injects. They export nothing and
@@ -36,8 +45,8 @@ const inertSpecifiers = [
 
 /**
  * Emits, for each shared specifier, a module re-exporting every name the host's
- * copy actually exports. The list is read from the installed package at build
- * time, so it tracks the Svelte version in use instead of a hand-kept list.
+ * copy actually exports. Node-loadable packages are inspected at build time;
+ * json-render's Svelte source needs an explicit, test-checked export list.
  */
 function shareHostModules(): Plugin {
 	const prefix = '\0gizmo-host:';
@@ -53,9 +62,12 @@ function shareHostModules(): Plugin {
 			if (!id.startsWith(prefix)) return null;
 			const specifier = id.slice(prefix.length);
 			if (inertSpecifiers.includes(specifier)) return 'export {};';
-			const names = Object.keys(await import(specifier)).filter(
-				(name) => name !== 'default',
-			);
+			const names =
+				specifier === '@json-render/svelte'
+					? jsonRenderSvelteExports
+					: Object.keys(await import(specifier)).filter(
+							(name) => name !== 'default',
+						);
 			const access = `globalThis[${JSON.stringify(hostModulesKey)}][${JSON.stringify(specifier)}]`;
 			// Svelte's internal client exports names that are reserved words
 			// (`if`, `await`, `try`), so each binds to a safe local and is
@@ -76,7 +88,7 @@ function shareHostModules(): Plugin {
 				`export { ${bindings
 					.map(({ name, local }) => `${local} as ${JSON.stringify(name)}`)
 					.join(', ')} };`,
-				'export default host;',
+				'export default host.default ?? host;',
 			].join('\n');
 		},
 	};

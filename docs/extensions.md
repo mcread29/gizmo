@@ -88,8 +88,45 @@ external and resolved through an import map — import-map support varies across
 browsers, a global does not. The list of
 names to re-export is read from the installed Svelte package at build time, so
 it tracks the version in use; names that are reserved words (`if`, `await`,
-`try`) are renamed in the export clause. Everything else a plugin imports —
-`@gizmo/design` components, icons — is bundled into it normally.
+`try`) are renamed in the export clause. The host also shares the pinned
+json-render modules described below. Other imports, such as `@gizmo/design`
+components and icons, are bundled normally.
+
+### json-render for web extensions
+
+Gizmo provides `@json-render/core` and `@json-render/svelte` at exactly `0.20.0`,
+plus `zod` at `4.4.3`. These are host dependencies, not extension registrations.
+Extensions define their own component catalogs, renderers, and action handlers.
+
+Use these imports in an extension's browser code:
+
+```ts
+import { defineCatalog } from '@json-render/core';
+import { defineRegistry, Renderer } from '@json-render/svelte';
+import { schema } from '@json-render/svelte/schema';
+import { z } from 'zod';
+```
+
+Gizmo's `extension:build` command rewrites those four specifiers to use the
+host's modules. A standalone registry with its own build tooling must apply the
+same rewrite to `globalThis.__gizmoHostModules__[specifier]`; merely marking
+imports external does not work with runtime-loaded browser bundles. Rebuild
+extensions after adopting this support, and use them with an updated Gizmo host.
+
+For local type checking, extension repositories should install the same exact
+versions as development dependencies:
+
+```sh
+pnpm add -D -E @json-render/core@0.20.0 @json-render/svelte@0.20.0 zod@4.4.3
+```
+
+Only the listed specifiers are shared. Other subpaths are not part of this
+contract. Backend Pi extensions still need their own dependencies; browser host
+modules are not available in Node. When upgrading json-render, update both pins,
+review `apps/app/scripts/json-render-exports.ts`, and run the extension builder
+tests. The tests check that the renderer export list matches the installed version.
+
+### Bundle delivery
 
 **Delivering.** Linking places browser companions under
 `~/.pi/agent/extension-web/`, outside Pi's backend auto-discovery directory.
