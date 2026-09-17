@@ -442,3 +442,4 @@
 {"id":"0442","session":"01a0a760-b3c1-72e4-9ce6-0f7f81f55602","firstEntryId":"30067cc4","lastEntryId":"f09adaa4","at":"2026-09-16T03:37:32.770Z","messages":3,"bytes":1703,"trigger":"backfill","source":"pi-archive"}
 {"id":"0443","session":"01a0a760-b3c1-72e4-9ce6-0f7f81f55602","firstEntryId":"0652a3eb","lastEntryId":"09a11690","at":"2026-09-16T03:38:35.941Z","messages":3,"bytes":4980,"trigger":"backfill","source":"pi-archive"}
 {"id":"0444","session":"01a0a760-b3c1-72e4-9ce6-0f7f81f55602","firstEntryId":"1d09d6ca","lastEntryId":"b73a027a","at":"2026-09-16T04:30:00.452Z","messages":2,"bytes":2129,"trigger":"session-end"}
+{"id":"0445","session":"01a0ad63-b1b7-704d-9ea6-935a63bdd85c","firstEntryId":"d0bdf4be","lastEntryId":"bfabf4d5","at":"2026-09-17T21:04:21.680Z","messages":9,"bytes":11410,"trigger":"threshold"}

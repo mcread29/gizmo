@@ -32,6 +32,12 @@
 	let setup = $state<Setup>();
 	let error = $state<string>();
 	let busyExtension = $state<string>();
+	let legacyExtensions = $derived(
+		(setup?.available ?? []).filter(
+			({ id }) =>
+				!store.resources?.extensions?.some((extension) => extension.id === id),
+		),
+	);
 
 	// Re-runs when the workspace appears or disappears from the catalog (and
 	// when its path prop changes), then loads its configuration once per
@@ -100,15 +106,17 @@
 
 		{#if error}<ResourceNote tone="error">{error}</ResourceNote>{/if}
 
-		<GizmoExtensionOverridesSection
-			{store}
-			workspacePath={project.path}
-			available={setup.available}
-			config={setup.config}
-			{busyExtension}
-			onBusy={(id) => (busyExtension = id)}
-			onReapply={(work) => void reapply(work)}
-		/>
+		{#if legacyExtensions.length}
+			<GizmoExtensionOverridesSection
+				{store}
+				workspacePath={project.path}
+				available={legacyExtensions}
+				config={setup.config}
+				{busyExtension}
+				onBusy={(id) => (busyExtension = id)}
+				onReapply={(work) => void reapply(work)}
+			/>
+		{/if}
 
 		<PiExtensionOverridesSection
 			{store}

@@ -4,6 +4,14 @@ import { registerExtensions } from '../../src/extensions/registry';
 import { ProjectCatalog } from '../../src/projects/project-catalog';
 import { PiAgentService } from '../../src/sessions/pi-agent-service';
 import { PiSessionRepository } from '../../src/sessions/session-repository';
+
+vi.mock('../../src/resources/pi-global-resources', async (original) => ({
+	...(await original<
+		typeof import('../../src/resources/pi-global-resources')
+	>()),
+	listPiExtensions: async () => [],
+	listGizmoCompatiblePiExtensions: async () => [],
+}));
 import {
 	createTemporaryDirectory,
 	FakePiSession,

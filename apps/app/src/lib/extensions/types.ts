@@ -1,4 +1,5 @@
 import type { ExtensionDescriptor, ToolCallView } from '@gizmo/protocol';
+import type { ComponentRegistry } from '@json-render/svelte';
 import type { Component } from 'svelte';
 import type { AgentStore } from '../agent-client';
 
@@ -121,6 +122,14 @@ export interface GizmoWebExtension {
 	 * per-project activation required.
 	 */
 	statusBar?(context: StatusBarContext): StatusBarContribution[];
+
+	/**
+	 * json-render component registries a tool result can name through
+	 * `gizmoDisplay.catalog` as `"<extensionId>/<name>"`. Rendered by the
+	 * host's shared json-render, so a tool describes a card as data instead
+	 * of the extension shipping a bespoke result component.
+	 */
+	displayCatalogs?: Record<string, ComponentRegistry>;
 
 	labels?: Record<string, string>;
 	iconFor?(name: string): string | undefined;

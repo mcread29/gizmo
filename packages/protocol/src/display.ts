@@ -68,6 +68,39 @@ export const displaySpecSchema = Type.Object(
 	strict,
 );
 
+/**
+ * An element rendered by an extension-contributed catalog. The host cannot
+ * know the extension's prop shapes, so it checks only what it can: the tree
+ * (below), the JSON budget, and that every prop is plain data. The extension
+ * validates its own props when it renders.
+ */
+const catalogElementSchema = Type.Object(
+	{
+		type: Type.String({ minLength: 1, maxLength: 64 }),
+		props: Type.Record(Type.String({ maxLength: 64 }), Type.Unknown()),
+		children,
+	},
+	strict,
+);
+export const catalogDisplaySpecSchema = Type.Object(
+	{
+		root: id,
+		elements: Type.Record(id, catalogElementSchema, {
+			minProperties: 1,
+			maxProperties: 100,
+			additionalProperties: false,
+		}),
+	},
+	strict,
+);
+
+/** `<extensionId>/<catalogName>`, the key a web extension registers under. */
+export const displayCatalogId = Type.String({
+	minLength: 3,
+	maxLength: 160,
+	pattern: '^[a-z0-9][a-z0-9.-]*/[A-Za-z0-9_-]+$',
+});
+
 export const displayInputSchema = Type.Union([
 	Type.Object(
 		{
@@ -102,14 +135,26 @@ export const displayParametersSchema = Type.Object(
 	},
 	strict,
 );
-const envelopeSchema = Type.Object(
-	{
-		version: Type.Literal(1),
-		title: Type.Optional(title),
-		spec: displaySpecSchema,
-	},
-	strict,
-);
+const envelopeSchema = Type.Union([
+	Type.Object(
+		{
+			version: Type.Literal(1),
+			title: Type.Optional(title),
+			spec: displaySpecSchema,
+		},
+		strict,
+	),
+	Type.Object(
+		{
+			version: Type.Literal(1),
+			title: Type.Optional(title),
+			/** Names the extension catalog that renders `spec`. */
+			catalog: displayCatalogId,
+			spec: catalogDisplaySpecSchema,
+		},
+		strict,
+	),
+]);
 const responseSchema = Type.Union([
 	Type.Object(
 		{
@@ -123,6 +168,7 @@ const responseSchema = Type.Union([
 
 export type DisplayElement = Static<typeof displayElementSchema>;
 export type DisplaySpec = Static<typeof displaySpecSchema>;
+export type CatalogDisplaySpec = Static<typeof catalogDisplaySpecSchema>;
 export type DisplayInput = Static<typeof displayInputSchema>;
 export type DisplayEnvelope = Static<typeof envelopeSchema>;
 export type DisplayResponse = Static<typeof responseSchema>;
@@ -165,54 +211,85 @@ export function parseDisplaySpec(value: unknown): DisplaySpec | undefined {
 	try {
 		if (!boundedJson(value) || !Value.Check(displaySpecSchema, value)) return;
 		const spec = value as DisplaySpec;
-		const seen = new Set<string>();
-		const visit = (key: string, depth: number): boolean => {
-			if (depth > 16 || seen.has(key) || !Object.hasOwn(spec.elements, key))
-				return false;
-			seen.add(key);
-			const node = spec.elements[key]!;
+		const wellFormed = (node: DisplayElement) => {
 			if (
 				node.type !== 'Card' &&
 				node.type !== 'Stack' &&
 				node.children?.length
 			)
 				return false;
-			if (
+			return !(
 				node.type === 'Table' &&
 				node.props.rows.some((row) => row.length !== node.props.columns.length)
-			)
-				return false;
-			return (node.children ?? []).every((child) => visit(child, depth + 1));
+			);
 		};
-		if (!visit(spec.root, 1) || seen.size !== Object.keys(spec.elements).length)
-			return;
-		return structuredClone(spec);
+		return rootedTree(spec, wellFormed) ? structuredClone(spec) : undefined;
 	} catch {
 		return undefined;
 	}
 }
 
+/**
+ * Like `parseDisplaySpec` for an extension catalog: any element type may
+ * have children, since the host does not know which types are containers.
+ */
+export function parseCatalogDisplaySpec(
+	value: unknown,
+	validateNode: (
+		node: CatalogDisplaySpec['elements'][string],
+	) => boolean = () => true,
+): CatalogDisplaySpec | undefined {
+	try {
+		if (!boundedJson(value) || !Value.Check(catalogDisplaySpecSchema, value))
+			return;
+		const spec = value as CatalogDisplaySpec;
+		return rootedTree(spec, validateNode) ? structuredClone(spec) : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+function rootedTree<T extends { children?: string[] }>(
+	spec: { root: string; elements: Record<string, T> },
+	wellFormed: (node: T) => boolean,
+): boolean {
+	const seen = new Set<string>();
+	const visit = (key: string, depth: number): boolean => {
+		if (depth > 16 || seen.has(key) || !Object.hasOwn(spec.elements, key))
+			return false;
+		seen.add(key);
+		const node = spec.elements[key]!;
+		if (!wellFormed(node)) return false;
+		return (node.children ?? []).every((child) => visit(child, depth + 1));
+	};
+	return visit(spec.root, 1) && seen.size === Object.keys(spec.elements).length;
+}
+
 /** Read tool *details* and return its validated versioned gizmoDisplay envelope. */
 export function readDisplayResult(value: unknown): DisplayEnvelope | undefined {
 	try {
+		// Only the envelope is inspected: an extension tool keeps whatever other
+		// details it records for the model or its own result component.
 		if (
-			!boundedJson(value, 70_000, 11_000) ||
-			!Value.Check(
-				Type.Object(
-					{
-						gizmoDisplay: envelopeSchema,
-						response: Type.Optional(responseSchema),
-					},
-					strict,
-				),
-				value,
-			)
+			value === null ||
+			typeof value !== 'object' ||
+			!('gizmoDisplay' in value) ||
+			!boundedJson((value as DisplayResult).gizmoDisplay, 70_000, 11_000) ||
+			!Value.Check(envelopeSchema, (value as DisplayResult).gizmoDisplay) ||
+			('response' in value &&
+				!Value.Check(
+					Type.Optional(responseSchema),
+					(value as DisplayResult).response,
+				))
 		)
 			return;
-		const details = value as DisplayResult;
-		const spec = parseDisplaySpec(details.gizmoDisplay.spec);
-		if (!spec) return;
-		return { ...details.gizmoDisplay, spec };
+		const envelope = (value as DisplayResult).gizmoDisplay;
+		if ('catalog' in envelope) {
+			const spec = parseCatalogDisplaySpec(envelope.spec);
+			return spec ? { ...envelope, spec } : undefined;
+		}
+		const spec = parseDisplaySpec(envelope.spec);
+		return spec ? { ...envelope, spec } : undefined;
 	} catch {
 		return undefined;
 	}

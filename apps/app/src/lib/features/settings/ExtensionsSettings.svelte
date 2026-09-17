@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Download, Unlink2 } from '@lucide/svelte';
+	import { Download, RefreshCw, Unlink2 } from '@lucide/svelte';
 	import { Switch } from 'bits-ui';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ResourceNote } from '../../components';
+	import { toasts } from '../../toasts.svelte';
 	import ExtensionRegistrySection from './ExtensionRegistrySection.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
@@ -42,7 +43,10 @@
 			.filter(({ id }) => installedFrom.has(id) && !known.has(id))
 			.map(({ id, name, enabled }) => ({ id, name, enabled, pi: true }));
 		return [
-			...gizmoExtensions.map((extension) => ({ ...extension, pi: false })),
+			...gizmoExtensions.map((extension) => ({
+				...extension,
+				pi: piExtensions.some(({ id }) => id === extension.id),
+			})),
 			...linked,
 		].sort((left, right) => left.name.localeCompare(right.name));
 	});
@@ -69,6 +73,29 @@
 		const registryName = installedFrom.get(id);
 		if (registryName) await store.registryUnlink(registryName, id);
 	}
+
+	let reloading = $state(false);
+	/** In-place reload of every linked extension; no server restart. */
+	async function reload() {
+		reloading = true;
+		try {
+			const diagnostics = await store.reloadExtensions();
+			toasts.show(
+				diagnostics.length
+					? 'Extensions reloaded with warnings'
+					: 'Extensions reloaded',
+				diagnostics.length ? 'warning' : 'success',
+			);
+			for (const diagnostic of diagnostics) console.warn(diagnostic);
+		} catch (error) {
+			toasts.show(
+				error instanceof Error ? error.message : 'Extension reload failed',
+				'danger',
+			);
+		} finally {
+			reloading = false;
+		}
+	}
 </script>
 
 <SettingsPage
@@ -86,8 +113,18 @@
 		<strong>Installed</strong>
 		<span
 			>Gizmo extensions add tools, panels, and project services. Off keeps one
-			installed but out of every thread.</span
+			installed but out of every thread. Reload picks up edited extension source
+			without restarting the server.</span
 		>
+		<Button
+			variant="secondary"
+			size="sm"
+			disabled={reloading || store.registryBusy}
+			onclick={() => void reload()}
+		>
+			<RefreshCw size={13} />
+			{reloading ? 'Reloading…' : 'Reload extensions'}
+		</Button>
 	</div>
 	<div data-ui="settings-card">
 		{#if loading}

@@ -94,7 +94,7 @@ export class RegistryCapability {
 			// succeeded, and reporting it as failed would invite a retry that
 			// cannot help.
 			try {
-				await this.store.reloadExtensions();
+				await this.store.reloadExtensions({ server: false });
 			} catch (error) {
 				console.warn('Extensions did not refresh after registry change', error);
 			}

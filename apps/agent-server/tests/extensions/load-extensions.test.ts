@@ -12,6 +12,23 @@ afterEach(async () => {
 });
 
 describe('loadLinkedExtensionIntegrations', () => {
+	it('reloads changed transitive source without restarting the process', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'gizmo-reload-'));
+		paths.push(root);
+		await writeFile(
+			join(root, 'index.ts'),
+			`import { name } from './name'; export const gizmoExtension = { id: 'fixture', name };`,
+		);
+		await writeFile(join(root, 'name.ts'), `export const name = 'before';`);
+		expect((await loadLinkedExtensionIntegrations(root))[0]?.name).toBe(
+			'before',
+		);
+		await writeFile(join(root, 'name.ts'), `export const name = 'after';`);
+		expect((await loadLinkedExtensionIntegrations(root))[0]?.name).toBe(
+			'after',
+		);
+	});
+
 	it('loads generic Gizmo capabilities exported by a linked Pi extension', async () => {
 		const root = await mkdtemp(join(tmpdir(), 'gizmo-linked-extension-'));
 		const sourceRoot = await mkdtemp(join(tmpdir(), 'gizmo-source-extension-'));

@@ -5,6 +5,7 @@ import ToolCallCard from '../../../../src/lib/features/conversation/ToolCallCard
 
 vi.mock('../../../../src/lib/extensions/registry.svelte', () => ({
 	webExtensions: () => [],
+	extension: () => undefined,
 }));
 
 const spec = {
@@ -162,11 +163,39 @@ describe('inline display tools', () => {
 		expect(container.querySelector('[data-ui="tool-parameters"]')).toBeNull();
 	});
 
-	it('does not claim another tool’s result', () => {
+	it('renders a display envelope from any tool, not only display', () => {
+		// An extension tool may describe its card as data too.
 		const { container } = render(ToolCallCard, {
-			tool: tool({ name: 'bash' }),
+			tool: tool({ name: 'search', result: { hits: 3, ...result } }),
+		});
+		expect(
+			container.querySelector('[data-ui="display-result"]'),
+		).not.toBeNull();
+		expect(
+			render(ToolCallCard, {
+				tool: tool({ name: 'bash', result: { stdout: 'ok' } }),
+			}).container.querySelector('[data-ui="display-result"]'),
+		).toBeNull();
+	});
+
+	it('falls back to the normal result when no extension provides the catalog', async () => {
+		const { container } = render(ToolCallCard, {
+			tool: tool({
+				name: 'search',
+				result: {
+					gizmoDisplay: {
+						version: 1,
+						catalog: 'search-and-scrape/results',
+						spec: { root: 'r', elements: { r: { type: 'Hit', props: {} } } },
+					},
+				},
+			}),
 		});
 		expect(container.querySelector('[data-ui="display-result"]')).toBeNull();
+		await fireEvent.click(container.querySelector('summary')!);
+		expect(
+			container.querySelector('[data-ui="structured-result"]'),
+		).toHaveTextContent('search-and-scrape/results');
 	});
 
 	it('does not replace errors with a display', () => {

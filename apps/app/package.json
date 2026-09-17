@@ -9,7 +9,7 @@
 		"dev": "vite",
 		"preview": "vite preview",
 		"test": "vitest run",
-		"extension:build": "node --experimental-strip-types scripts/build-web-extension.ts"
+		"extension:build": "node --experimental-strip-types ../../packages/extension-build/src/cli.ts"
 	},
 	"dependencies": {
 		"@gizmo/design": "workspace:*",
@@ -26,6 +26,7 @@
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
+		"@gizmo/extension-build": "workspace:*",
 		"@sveltejs/vite-plugin-svelte": "latest",
 		"@testing-library/jest-dom": "latest",
 		"@testing-library/svelte": "latest",

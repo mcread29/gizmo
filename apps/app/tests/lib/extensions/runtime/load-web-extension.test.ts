@@ -113,6 +113,33 @@ describe('loadWebExtensions', () => {
 		expect(result.diagnostics).toEqual([]);
 	});
 
+	it('keeps display catalogs whose registries hold components and drops the rest', async () => {
+		const result = await loadWebExtensions([
+			{
+				id: 'a',
+				code: `export const gizmoWebExtension = {
+					id: 'a',
+					displayCatalogs: { cards: { Card: () => {}, Row: () => {} } },
+				};`,
+			},
+			{
+				id: 'b',
+				code: `export const gizmoWebExtension = {
+					id: 'b',
+					displayCatalogs: { cards: { Card: 'not a component' } },
+				};`,
+			},
+		]);
+
+		expect(
+			Object.keys(result.extensions[0]?.displayCatalogs?.cards ?? {}),
+		).toEqual(['Card', 'Row']);
+		expect(result.extensions[1]).not.toHaveProperty('displayCatalogs');
+		expect(result.diagnostics).toEqual([
+			'Web extension "b": "displayCatalogs" is not a record of component registries; ignoring it',
+		]);
+	});
+
 	it('drops one malformed field instead of failing the whole bundle', async () => {
 		const result = await loadWebExtensions([
 			{

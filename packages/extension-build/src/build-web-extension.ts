@@ -14,13 +14,20 @@
  * across browsers, a global does not. json-render and Zod also use the host's
  * pinned copies.
  *
- * Usage: bun scripts/build-web-extension.ts <package-dir> [--out <file>]
+ * Usage: see `cli.ts`; the agent-server invokes it for every linked extension.
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { build, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { jsonRenderSvelteExports } from './json-render-exports.ts';
+import * as designFormat from '../../design/src/format.ts';
+import * as designHighlight from '../../design/src/highlight.ts';
+
+const designModules = {
+	'@gizmo/design/format': designFormat,
+	'@gizmo/design/highlight': designHighlight,
+};
 
 const hostModulesKey = '__gizmoHostModules__';
 const sharedSpecifiers = [
@@ -30,6 +37,7 @@ const sharedSpecifiers = [
 	'@json-render/svelte',
 	'@json-render/svelte/schema',
 	'zod',
+	...Object.keys(designModules),
 ];
 
 /**
@@ -41,6 +49,9 @@ const inertSpecifiers = [
 	'svelte/internal/disclose-version',
 	'svelte/internal/flags/legacy',
 	'svelte/internal/flags/async',
+	'@gizmo/design',
+	'@gizmo/design/component-styles',
+	'@gizmo/design/tokens',
 ];
 
 /**
@@ -65,9 +76,10 @@ function shareHostModules(): Plugin {
 			const names =
 				specifier === '@json-render/svelte'
 					? jsonRenderSvelteExports
-					: Object.keys(await import(specifier)).filter(
-							(name) => name !== 'default',
-						);
+					: Object.keys(
+							designModules[specifier as keyof typeof designModules] ??
+								(await import(specifier)),
+						).filter((name) => name !== 'default');
 			const access = `globalThis[${JSON.stringify(hostModulesKey)}][${JSON.stringify(specifier)}]`;
 			// Svelte's internal client exports names that are reserved words
 			// (`if`, `await`, `try`), so each binds to a safe local and is
@@ -165,18 +177,4 @@ export async function buildWebExtension(
 	await mkdir(dirname(target), { recursive: true });
 	await writeFile(target, `${installStyles}\n${chunks[0]!.code}`, 'utf8');
 	return target;
-}
-
-if (import.meta.main) {
-	const [packageDir, ...rest] = process.argv.slice(2);
-	if (!packageDir) {
-		console.error(
-			'Usage: bun scripts/build-web-extension.ts <package-dir> [--out <file>]',
-		);
-		process.exit(1);
-	}
-	const outIndex = rest.indexOf('--out');
-	const outFile =
-		outIndex >= 0 ? rest[outIndex + 1]! : join(packageDir, 'dist/web.js');
-	console.log(await buildWebExtension(packageDir, outFile));
 }

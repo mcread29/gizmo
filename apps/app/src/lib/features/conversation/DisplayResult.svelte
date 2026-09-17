@@ -5,6 +5,7 @@
 		Renderer,
 		type ComponentRegistry,
 	} from '@json-render/svelte';
+	import { extension } from '../../extensions/registry.svelte';
 	import DisplayElement from './DisplayElement.svelte';
 	import { displayCatalog } from './display-catalog';
 
@@ -18,7 +19,7 @@
 			]),
 		),
 	});
-	const registry = {
+	const builtin = {
 		Heading: DisplayElement,
 		Text: DisplayElement,
 		Card: DisplayElement,
@@ -29,11 +30,37 @@
 		Divider: DisplayElement,
 	} satisfies ComponentRegistry &
 		Record<keyof typeof displayCatalog.data.components, typeof DisplayElement>;
+
+	// A catalog names the extension and registry that render this spec. The
+	// web extension registry is reactive, so a bundle that arrives (or is
+	// reloaded) after the card mounted still renders it.
+	let catalog = $derived('catalog' in display ? display.catalog : undefined);
+	let registry = $derived.by((): ComponentRegistry | undefined => {
+		if (!catalog) return builtin;
+		const slash = catalog.indexOf('/');
+		const found = extension(catalog.slice(0, slash))?.displayCatalogs?.[
+			catalog.slice(slash + 1)
+		];
+		if (!found) return undefined;
+		// Every element type must be known to the registry; json-render would
+		// otherwise render nothing for it silently.
+		const types = new Set(
+			Object.values(display.spec.elements).map(({ type }) => type),
+		);
+		return [...types].every((type) => type in found) ? found : undefined;
+	});
 </script>
 
 <div data-ui="display-result">
 	{#if display.title}<h3>{display.title}</h3>{/if}
-	<JsonUIProvider><Renderer {spec} {registry} /></JsonUIProvider>
+	{#if registry}
+		<JsonUIProvider><Renderer {spec} {registry} /></JsonUIProvider>
+	{:else}
+		<p class="missing">
+			This card needs the "{catalog}" display catalog, which no installed
+			extension provides.
+		</p>
+	{/if}
 </div>
 
 <style>
@@ -48,5 +75,9 @@
 		margin: 0;
 		font-size: var(--text-base);
 		font-weight: 600;
+	}
+	.missing {
+		margin: 0;
+		color: var(--color-text-muted);
 	}
 </style>

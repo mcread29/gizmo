@@ -24,6 +24,7 @@ import type {
 	Extensions,
 	ExtensionUiResponse,
 	WebExtensionBundles,
+	ExtensionReloadResult,
 } from '@gizmo/protocol';
 
 export type AgentEventListener = (event: unknown) => void;
@@ -171,6 +172,12 @@ export interface AgentClient {
 	listProjectExtensions(projectPath: string): Promise<Extensions>;
 	/** Standalone web-extension bundles to load at runtime, if the client supports them. */
 	listWebExtensionBundles?(): Promise<WebExtensionBundles>;
+	/**
+	 * Asks the server to reload every linked extension in place: server code
+	 * re-evaluates, web bundles rebuild, idle Pi runtimes reload. Optional
+	 * because the demo client has nothing to reload.
+	 */
+	reloadExtensions?(): Promise<ExtensionReloadResult>;
 	invokeProjectExtension(
 		projectPath: string,
 		extensionId: string,

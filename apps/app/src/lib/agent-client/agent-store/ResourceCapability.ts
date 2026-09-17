@@ -95,7 +95,7 @@ export class ResourceCapability {
 				gizmoExtensionId,
 				enabled,
 			);
-			await this.store.reloadExtensions();
+			await this.store.reloadExtensions({ server: false });
 		} catch (error) {
 			this.store.resourceError = errorMessage(error);
 		}

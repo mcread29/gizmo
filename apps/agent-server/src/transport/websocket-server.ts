@@ -11,6 +11,7 @@ import {
 	type ProjectEmitters,
 } from './project-watch-coordinator';
 import { attachAgentConnection } from './websocket-connection';
+import type { RequestServices } from './request-router';
 
 export interface AgentWebSocketServerOptions {
 	host?: string;
@@ -31,6 +32,8 @@ export interface AgentWebSocketServerOptions {
 
 export interface AgentWebSocketServer {
 	readonly server: WebSocketServer;
+	/** The server-owned services, for reload wiring outside the transport. */
+	readonly services: RequestServices;
 	close(): Promise<void>;
 }
 
@@ -103,6 +106,7 @@ export async function createAgentWebSocketServer(
 
 	return {
 		server,
+		services: { agent, projectServices, extensions, watchCoordinator },
 		close: () =>
 			new Promise<void>((resolve, reject) => {
 				// Detach clients first so nothing races the disposals below. Their

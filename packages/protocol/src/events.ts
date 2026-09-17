@@ -151,6 +151,20 @@ export const agentEventSchema = Type.Union([
 		},
 		{ additionalProperties: false },
 	),
+	/**
+	 * The server reloaded its extension catalog (an explicit reload, a
+	 * registry change, or the dev file watcher). Broadcast to every
+	 * connection so each tab re-fetches web bundles and descriptors.
+	 */
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('extensions.reloaded'),
+			generation: Type.Integer({ minimum: 0 }),
+			extensions: Type.Array(Type.String({ minLength: 1, maxLength: 128 })),
+		},
+		{ additionalProperties: false },
+	),
 	Type.Object(
 		{
 			...eventEnvelope,

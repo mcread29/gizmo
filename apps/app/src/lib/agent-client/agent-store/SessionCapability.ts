@@ -1,33 +1,12 @@
-import {
-	parseAgentEvent,
-	type AgentEvent,
-	type AgentModelOption,
-	type ConversationMessage,
-	type SessionState,
-	type SessionUsage,
-} from '@gizmo/protocol';
+import { parseAgentEvent, type AgentEvent } from '@gizmo/protocol';
 import { applyAgentEvent, emptyQueue } from '../agent-event-reducer';
 import type { AgentClient } from '../AgentClient';
-import type { AgentModel, AgentStore } from '../AgentStore.svelte';
+import type { AgentStore } from '../AgentStore.svelte';
+import type { SessionSelection } from './session-selection';
 import { EventReplay } from './event-replay';
 import type { ProjectCapability } from './ProjectCapability';
 import type { SessionSyncCapability } from './SessionSyncCapability';
 import { errorMessage } from './shared';
-
-interface SessionSelection {
-	sessionId?: string;
-	sessionState: SessionState;
-	messages: ConversationMessage[];
-	messagesLoading: boolean;
-	model?: AgentModel;
-	availableModels: AgentModelOption[];
-	thinkingLevels: string[];
-	enabledExtensionIds: string[];
-	selectedProjectPath?: string;
-	projectStatuses: Record<string, unknown>;
-	projectServiceErrors: Record<string, string>;
-	usage?: SessionUsage;
-}
 
 export class SessionCapability {
 	#selectionVersion = 0;
@@ -264,6 +243,12 @@ export class SessionCapability {
 			store.pendingConfirmations.push(event);
 			return;
 		} else if (event.type.startsWith('extension.ui.')) return;
+		else if (event.type === 'extensions.reloaded') {
+			// The server already reloaded; every tab re-fetches bundles and
+			// descriptors so the change shows without a page reload.
+			void store.reloadExtensions({ server: false });
+			return;
+		}
 		if (this.replay.hold(event)) return;
 		// Project events describe a workspace and carry whichever session
 		// registered the watch; the reducer matches them on project path.

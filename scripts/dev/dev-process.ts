@@ -3,6 +3,7 @@ import { appendFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { connect } from 'node:net';
+import { homedir } from 'node:os';
 import { createRequire } from 'node:module';
 import { delay, isRunning, logFile, root, runtimeDirectory } from './dev-state';
 
@@ -70,13 +71,17 @@ export async function runManagedServer() {
 
 	// The agent runs under `tsx watch`, so edits to the server or to any
 	// workspace package it imports (protocol, extensions) restart it in place.
-	// The browser client reconnects on its own.
+	// The browser client reconnects on its own. Linked registry extensions are
+	// imported through the same graph but excluded from the watch: a restart
+	// would kill every live thread, and the server can reload them in place
+	// (`extensions.reload`, or `GIZMO_EXTENSION_WATCH=1` for automatic reloads).
 	const agent = spawn(
 		process.execPath,
 		[
 			tsxCli,
 			'watch',
 			'--clear-screen=false',
+			...excludedWatchPaths().flatMap((glob) => ['--exclude', glob]),
 			join(root, 'apps', 'agent-server', 'src', 'server.ts'),
 		],
 		{
@@ -180,4 +185,24 @@ export async function waitForExit(pid: number, timeoutMilliseconds: number) {
 		await delay(100);
 	}
 	return !isRunning(pid);
+}
+
+/**
+ * Globs tsx must not watch: Pi's extension directory (junctions into registry
+ * clones) and the registry clones themselves. Forward slashes on every
+ * platform, which is what tsx's glob matcher expects.
+ */
+export function excludedWatchPaths(): string[] {
+	const slashes = (path: string) => path.replaceAll('\\', '/');
+	const home = slashes(homedir());
+	const agentDir = slashes(
+		process.env.PI_CODING_AGENT_DIR?.replace(/^~(?=$|[\\/])/, home) ??
+			`${home}/.pi/agent`,
+	);
+	const dataDir = slashes(process.env.GIZMO_DATA_DIR ?? `${home}/.gizmo`);
+	return [
+		`${agentDir}/extensions/**`,
+		`${agentDir}/extensions-disabled/**`,
+		`${dataDir}/registries/**`,
+	];
 }

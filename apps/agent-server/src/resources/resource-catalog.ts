@@ -3,7 +3,10 @@ import type { ResourceCatalog, SkillResource } from '@gizmo/protocol';
 import { registeredExtensions } from '../extensions/registry';
 import { ProjectCatalog } from '../projects/project-catalog';
 import { GlobalResourceStore } from './global-resource-settings';
-import { listGizmoCompatiblePiExtensions } from './pi-global-resources';
+import {
+	listGizmoCompatiblePiExtensions,
+	setPiExtensionEnabled,
+} from './pi-global-resources';
 import {
 	discoverResources,
 	type DiscoveredSkill,
@@ -43,13 +46,16 @@ export class ResourceCatalogService {
 		const installed = new Set(settings.installedSkills);
 		const enabledGlobally = new Set(settings.enabledSkills);
 		const globallyDisabled = new Set(settings.disabledGizmoExtensions);
+		const extensions = await listGizmoCompatiblePiExtensions();
 		return {
 			...(path ? { workspacePath: path } : {}),
-			extensions: await listGizmoCompatiblePiExtensions(),
+			extensions,
 			gizmoExtensions: registeredExtensions().map(({ id, name }) => ({
 				id,
 				name,
-				enabled: !globallyDisabled.has(id),
+				enabled:
+					extensions.find((extension) => extension.id === id)?.enabled ??
+					!globallyDisabled.has(id),
 			})),
 			skills: discovery.skills.map((skill) => {
 				const override = overrides.get(skill.id);
@@ -112,6 +118,14 @@ export class ResourceCatalogService {
 		extensionId: string,
 		enabled: boolean,
 	): Promise<ResourceCatalog> {
+		if (
+			(await listGizmoCompatiblePiExtensions()).some(
+				({ id }) => id === extensionId,
+			)
+		) {
+			await setPiExtensionEnabled(extensionId, enabled);
+			return this.list();
+		}
 		const settings = await this.#global.read();
 		const disabled = new Set(settings.disabledGizmoExtensions);
 		if (enabled) disabled.delete(extensionId);

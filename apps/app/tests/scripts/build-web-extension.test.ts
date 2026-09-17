@@ -3,8 +3,10 @@ import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildWebExtension } from '../../scripts/build-web-extension';
-import { jsonRenderSvelteExports } from '../../scripts/json-render-exports';
+import {
+	buildWebExtension,
+	jsonRenderSvelteExports,
+} from '@gizmo/extension-build';
 import { sharedModules } from '../../src/lib/extensions/runtime/host-modules';
 
 let root: string;
@@ -23,6 +25,31 @@ async function write(path: string, contents: string): Promise<void> {
 }
 
 describe('buildWebExtension', () => {
+	it('shares design helpers and highlighting without bundling host styles', async () => {
+		await write(
+			'src/web/index.ts',
+			`
+import '@gizmo/design';
+import * as format from '@gizmo/design/format';
+import * as highlight from '@gizmo/design/highlight';
+export const gizmoWebExtension = { id: 'fixture', format, highlight };
+`,
+		);
+		const out = join(root, 'dist/web.js');
+		await buildWebExtension(root, out);
+		const code = await readFile(out, 'utf8');
+		for (const specifier of [
+			'@gizmo/design/format',
+			'@gizmo/design/highlight',
+		] as const) {
+			expect(code).toContain(specifier);
+			for (const name of Object.keys(sharedModules[specifier]))
+				expect(code).toContain(name);
+		}
+		expect(code.length).toBeLessThan(10_000);
+		expect(code).not.toContain('data-gizmo-extension-style');
+	}, 60_000);
+
 	it('keeps the Svelte renderer export list aligned with the pinned package', () => {
 		expect([...jsonRenderSvelteExports].sort()).toEqual(
 			Object.keys(sharedModules['@json-render/svelte']).sort(),

@@ -36,6 +36,12 @@ export interface GizmoServerExtension {
 		signal: AbortSignal,
 	): Promise<unknown>;
 	createProjectService?(): ProjectService;
+	/**
+	 * Called when the extension is replaced by a reload or unlinked. Release
+	 * timers, sockets, watchers, and child processes here: the module graph is
+	 * re-evaluated on reload, so anything left running would leak.
+	 */
+	dispose?(): void | Promise<void>;
 }
 
 export interface ActiveExtensions {

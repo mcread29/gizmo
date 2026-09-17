@@ -1,8 +1,10 @@
-import { readdir } from 'node:fs/promises';
+import { lstat, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { RegistryStatus } from '@gizmo/protocol';
+import { readExtensionManifest } from './extension-manifest';
 import {
 	extensionsDir,
+	disabledExtensionsDir,
 	extensionWebDir,
 	readRegistryManifest,
 	registryCloneDir,
@@ -30,12 +32,19 @@ export async function catalogFor(
 	for (const entry of entries) {
 		if (!entry.isDirectory()) continue;
 		const id = entry.name;
+		// Unsupported extensions must remain visible so users can unlink them.
+		const metadata = await readExtensionManifest(join(dir, id), false);
 		const linked = registry.linked.includes(id);
 		let extensionEntry: string | undefined;
 		let web: string | undefined;
 		if (linked) {
-			extensionEntry = join(extensionsDir(), id);
-			web = join(extensionWebDir(), `${id}.web.js`);
+			const disabled = join(disabledExtensionsDir(), id);
+			extensionEntry = await lstat(disabled).then(
+				() => disabled,
+				() => join(extensionsDir(), id),
+			);
+			if (metadata?.web !== false)
+				web = join(extensionWebDir(), `${id}.web.js`);
 		}
 		catalog.push({
 			id,

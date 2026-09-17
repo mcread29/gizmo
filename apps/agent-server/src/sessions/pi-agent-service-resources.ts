@@ -5,6 +5,7 @@ import {
 } from '../resources/pi-global-resources';
 import { listProviders, reimportPiAuth } from './pi-model-runtime';
 import { PiAgentServiceCore } from './pi-agent-service-core';
+import { reloadExtensions } from '../extensions/extension-reload';
 
 /** Resource, skill, extension, and tool-policy commands. */
 export class PiAgentServiceResources extends PiAgentServiceCore {
@@ -65,11 +66,14 @@ export class PiAgentServiceResources extends PiAgentServiceCore {
 
 	async setGlobalExtension(extensionId: string, enabled: boolean) {
 		await setPiExtensionEnabled(extensionId, enabled);
+		await reloadExtensions({ rebuild: false });
 		return this.context.resources.list();
 	}
 
-	setGlobalGizmoExtension(extensionId: string, enabled: boolean) {
-		return this.context.resources.setGlobalGizmoExtension(extensionId, enabled);
+	async setGlobalGizmoExtension(extensionId: string, enabled: boolean) {
+		await this.context.resources.setGlobalGizmoExtension(extensionId, enabled);
+		await reloadExtensions({ rebuild: false });
+		return this.context.resources.list();
 	}
 
 	getToolPolicy(workspacePath?: string) {

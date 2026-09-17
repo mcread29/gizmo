@@ -33,16 +33,16 @@ export interface ActiveSession {
 	compactedThisRun?: boolean;
 }
 
-/**
- * Owns resident Pi runtimes and their event subscriptions. Eviction,
- * confirmations, and snapshot reconciliation each live in their own module;
- * this class wires them around the session map.
- */
+/** Owns resident Pi runtimes, their subscriptions, and lifecycle coordination. */
 export class SessionRuntimePool {
 	readonly #sessions = new Map<string, ActiveSession>();
 	readonly #extensionUiRuntimes = new Map<string, PiExtensionUiRuntime>();
 	readonly #confirmations = new ConfirmationRegistry();
 	readonly #eviction: SessionEviction;
+	/** Sessions that were streaming when a reload was requested. */
+	readonly #pendingReload = new Set<string>();
+	/** Runs a deferred reload once the session's turn has settled. */
+	onPendingReload?: (sessionId: string) => Promise<void>;
 
 	constructor(
 		readonly events: AgentEventHub,
@@ -57,6 +57,15 @@ export class SessionRuntimePool {
 
 	has(sessionId: string) {
 		return this.#sessions.has(sessionId);
+	}
+
+	/** Every resident session id, streaming or idle. */
+	sessionIds(): string[] {
+		return [...this.#sessions.keys()];
+	}
+
+	deferReload(sessionId: string) {
+		this.#pendingReload.add(sessionId);
 	}
 
 	active(sessionId: string) {
@@ -123,12 +132,23 @@ export class SessionRuntimePool {
 			translator.receive(event);
 			if (event.type === 'agent_start') active.compactedThisRun = false;
 			if (event.type === 'compaction_start') active.compactedThisRun = true;
-			if (event.type !== 'agent_settled') return;
-			const messages = strandedMessages(session);
+			if (event.type !== 'agent_settled' && event.type !== 'compaction_end')
+				return;
+			const messages =
+				event.type === 'agent_settled' ? strandedMessages(session) : [];
 			if (messages.length) {
 				this.events.emit(sessionId, { type: 'session.unsent', messages });
 			}
-			void this.#compactIfOverdue(sessionId, active);
+			const settled =
+				event.type === 'agent_settled'
+					? this.#compactIfOverdue(sessionId, active)
+					: Promise.resolve();
+			void settled.then(() => {
+				if (!this.#pendingReload.delete(sessionId)) return;
+				return this.onPendingReload?.(sessionId).catch((error) => {
+					console.error(`Deferred reload failed for ${sessionId}:`, error);
+				});
+			});
 		});
 		this.#sessions.set(sessionId, active);
 		this.#emitSessionCreated(sessionId, session, title);
@@ -220,6 +240,7 @@ export class SessionRuntimePool {
 	}
 
 	async remove(sessionId: string) {
+		this.#pendingReload.delete(sessionId);
 		return this.#eviction.remove(sessionId);
 	}
 

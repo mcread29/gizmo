@@ -10,6 +10,7 @@ import {
 import type { PiAgentService } from '../sessions/pi-agent-service';
 import type { ProjectWatchCoordinator } from './project-watch-coordinator';
 import type { RouteResult } from './request-router';
+import { listGizmoCompatiblePiExtensions } from '../resources/pi-global-resources';
 
 type ProjectRequestType =
 	| 'project.list'
@@ -130,12 +131,18 @@ export async function handleProjectRequest(
 				},
 			};
 		case 'extensions.web': {
+			const installed = await listGizmoCompatiblePiExtensions();
+			const disabled = new Set(
+				installed.filter(({ enabled }) => !enabled).map(({ id }) => id),
+			);
 			// Browser companions are kept outside Pi's backend extension directory.
 			const pi = await piExtensionWebBundles([extensionWebDir()]);
 			const gizmo = await webExtensionBundles(registeredExtensions());
 			return {
 				result: {
-					bundles: [...gizmo.bundles, ...pi.bundles],
+					bundles: [...gizmo.bundles, ...pi.bundles].filter(
+						({ id }) => !disabled.has(id),
+					),
 					diagnostics: [...gizmo.diagnostics, ...pi.diagnostics],
 				},
 			};

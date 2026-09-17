@@ -155,4 +155,44 @@ describe('display validation', () => {
 			expect(readDisplayResult(value)).toBeUndefined();
 		}
 	});
+
+	it('accepts an extension catalog envelope with unknown element types', () => {
+		const details = {
+			gizmoDisplay: {
+				version: 1,
+				catalog: 'search-and-scrape/results',
+				spec: {
+					root: 'list',
+					elements: {
+						list: {
+							type: 'ResultList',
+							props: { query: 'x' },
+							children: ['r1'],
+						},
+						r1: { type: 'Result', props: { url: 'https://a', score: 0.5 } },
+					},
+				},
+			},
+		};
+		expect(readDisplayResult(details)?.spec.root).toBe('list');
+		// Still one rooted tree: a cycle is rejected even for a custom catalog.
+		details.gizmoDisplay.spec.elements.r1 = {
+			type: 'Result',
+			props: {},
+			children: ['list'],
+		} as never;
+		expect(readDisplayResult(details)).toBeUndefined();
+		// The catalog id must name an extension and a registry.
+		expect(
+			readDisplayResult({
+				gizmoDisplay: { version: 1, catalog: 'nope', spec: spec() },
+			}),
+		).toBeUndefined();
+		// Built-in specs never carry unknown types.
+		expect(
+			readDisplayResult({
+				gizmoDisplay: { version: 1, spec: spec({ type: 'Result', props: {} }) },
+			}),
+		).toBeUndefined();
+	});
 });

@@ -76,8 +76,8 @@ export class AgentStore extends AgentStoreState {
 	disconnect() {
 		return this.#connection.disconnect();
 	}
-	reloadExtensions() {
-		return this.#extensions.reloadExtensions();
+	reloadExtensions(options?: { server?: boolean }) {
+		return this.#extensions.reloadExtensions(options);
 	}
 	refreshProjects() {
 		return this.#projects.refreshProjects();

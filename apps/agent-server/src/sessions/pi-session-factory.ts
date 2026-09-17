@@ -23,6 +23,7 @@ import { ResourceCatalogService } from '../resources/resource-catalog';
 import { defaultDataDir } from './session-repository';
 import { gizmoModelRuntime } from './pi-model-runtime';
 import type { PiSessionFactory } from './pi-agent-types';
+import { refreshExtensionPaths } from './extension-reload-paths';
 
 // Kept as the default behind the facade; tests can still inject the same factory API.
 export const createDefaultPiSession: PiSessionFactory = async (
@@ -52,7 +53,9 @@ export const createDefaultPiSession: PiSessionFactory = async (
 	};
 	const activeExtensions = await activateExtensions(
 		{ workspacePath: cwd, confirm },
-		options.integrations ?? [],
+		(options.integrations ?? []).filter(({ id }) =>
+			registeredExtensions().some((extension) => extension.id === id),
+		),
 	);
 	const customTools = [
 		...activeExtensions.tools,
@@ -139,8 +142,17 @@ export const createDefaultPiSession: PiSessionFactory = async (
 				error.error,
 			),
 	});
+	const reload = session.reload.bind(session);
 	return Object.assign(session, {
-		enabledExtensionIds: activeExtensions.extensions.map(({ id }) => id),
+		async reload(options?: Parameters<typeof reload>[0]) {
+			await refreshExtensionPaths(
+				resourceLoaderOptions.additionalExtensionPaths,
+				[journalExtensionPath(), displayExtensionPath()],
+				cwd,
+			);
+			return reload(options);
+		},
+		enabledExtensionIds: (options.integrations ?? []).map(({ id }) => id),
 		generateCommitMessage: (context: string) =>
 			generateCommitMessage(session, context),
 		configureCompaction(policy: CompactionPolicy, options?: CompactionOptions) {

@@ -1,4 +1,5 @@
 import {
+	parseExtensionReloadResult,
 	parseRegistryStatus,
 	parseResourceCatalog,
 	parseToolPolicy,
@@ -124,6 +125,11 @@ export class ResourceRequests extends ProjectRequests {
 			id,
 		});
 		return parseRegistryStatus(response.result);
+	}
+
+	async reloadExtensions() {
+		const response = await this.request({ type: 'extensions.reload' });
+		return parseExtensionReloadResult(response.result);
 	}
 
 	async setGlobalGizmoExtension(gizmoExtensionId: string, enabled: boolean) {

@@ -60,6 +60,27 @@ export const webExtensionBundlesSchema = Type.Object(
 
 export type WebExtensionBundles = Static<typeof webExtensionBundlesSchema>;
 
+/**
+ * Outcome of `extensions.reload`: the server re-evaluated every linked
+ * extension from disk, rebuilt project services, and reloaded idle Pi
+ * runtimes. Sessions mid-turn reload when their turn settles.
+ */
+export const extensionReloadResultSchema = Type.Object(
+	{
+		/** Monotonic catalog generation; changes on every reload. */
+		generation: Type.Integer({ minimum: 0 }),
+		extensions: Type.Array(Type.String({ minLength: 1, maxLength: 128 })),
+		/** Sessions whose Pi runtime reloaded immediately. */
+		reloadedSessions: Type.Array(Type.String({ minLength: 1 })),
+		/** Sessions still streaming; they reload once the turn ends. */
+		pendingSessions: Type.Array(Type.String({ minLength: 1 })),
+		diagnostics: Type.Array(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+
+export type ExtensionReloadResult = Static<typeof extensionReloadResultSchema>;
+
 export const extensionUiRequestSchema = Type.Union([
 	Type.Object(
 		{

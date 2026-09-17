@@ -1,11 +1,19 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { GizmoServerExtension } from '@gizmo/extensions';
 import { ProjectCatalog } from '../../src/projects/project-catalog';
 import { registerExtensions } from '../../src/extensions/registry';
 import { GlobalResourceStore } from '../../src/resources/global-resource-settings';
+
+vi.mock('../../src/resources/pi-global-resources', async (original) => ({
+	...(await original<
+		typeof import('../../src/resources/pi-global-resources')
+	>()),
+	listPiExtensions: async () => [],
+	listGizmoCompatiblePiExtensions: async () => [],
+}));
 
 const svelteExtension: GizmoServerExtension = {
 	id: 'svelte',

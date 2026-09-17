@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { readDisplayResult, type ToolCallView } from '@gizmo/protocol';
 	import DisplayResult from './DisplayResult.svelte';
+	import { hasDisplayCatalog } from '../../extensions/display-catalog';
 	import {
 		Check,
 		CircleCheck,
@@ -48,11 +49,14 @@
 	let pinned = $state(false);
 
 	let resultText = $derived(formatToolResult(tool.result));
-	let display = $derived(
-		tool.name === 'display' && tool.status !== 'error'
-			? readDisplayResult(tool.result)
-			: undefined,
-	);
+	// Any tool may return a `gizmoDisplay` envelope, not only the built-in
+	// display tool: an extension tool describes its card as data and names the
+	// catalog its web bundle registers.
+	let display = $derived.by(() => {
+		if (tool.status === 'error' || !hasDisplay(tool.result)) return undefined;
+		const parsed = readDisplayResult(tool.result);
+		return parsed && hasDisplayCatalog(parsed) ? parsed : undefined;
+	});
 	let summary = $derived(
 		tool.name === 'display' ? display?.title : toolSummary(tool.input),
 	);
@@ -117,6 +121,14 @@
 		}
 		copied = true;
 		window.setTimeout(() => (copied = false), 1_500);
+	}
+
+	function hasDisplay(result: unknown): boolean {
+		return (
+			result !== null &&
+			typeof result === 'object' &&
+			'gizmoDisplay' in (result as Record<string, unknown>)
+		);
 	}
 
 	function readArray(value: unknown, key: string): unknown[] {

@@ -50,6 +50,10 @@ export class PiAgentServiceSessions extends PiAgentServiceProjects {
 		return this.context.operations.reloadSession(sessionId);
 	}
 
+	reloadAllSessions() {
+		return this.context.operations.reloadAllSessions();
+	}
+
 	async resolveExtensionUi(
 		sessionId: string,
 		runtimeId: string,

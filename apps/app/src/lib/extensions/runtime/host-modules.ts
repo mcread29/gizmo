@@ -3,6 +3,8 @@ import * as jsonRenderCore from '@json-render/core';
 import * as jsonRenderSvelte from '@json-render/svelte';
 import * as jsonRenderSchema from '@json-render/svelte/schema';
 import * as zod from 'zod';
+import * as designFormat from '@gizmo/design/format';
+import * as designHighlight from '@gizmo/design/highlight';
 // Svelte ships no types for its internal entry: it is not a public API. Gizmo
 // only ever passes it through to a plugin bundle, never calls into it.
 // @ts-expect-error -- untyped internal entry, intentionally opaque here
@@ -29,6 +31,8 @@ export const sharedModules = Object.freeze({
 	'@json-render/svelte': jsonRenderSvelte,
 	'@json-render/svelte/schema': jsonRenderSchema,
 	zod,
+	'@gizmo/design/format': designFormat,
+	'@gizmo/design/highlight': designHighlight,
 });
 
 export const hostModulesKey = '__gizmoHostModules__';

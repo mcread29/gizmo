@@ -140,6 +140,19 @@ function validate(
 			),
 		'a string-to-string record',
 	);
+	keep(
+		'displayCatalogs',
+		(v) =>
+			v !== null &&
+			typeof v === 'object' &&
+			Object.values(v as Record<string, unknown>).every(
+				(registry) =>
+					registry !== null &&
+					typeof registry === 'object' &&
+					Object.values(registry as Record<string, unknown>).every(isFunction),
+			),
+		'a record of component registries',
+	);
 	keep('iconFor', isFunction, 'a function');
 	keep('consoleEntriesKey', isFunction, 'a function');
 	keep('parametersFor', isFunction, 'a function');

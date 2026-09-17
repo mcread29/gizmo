@@ -27,7 +27,10 @@
 	let extensions = $derived(store.resources?.extensions ?? []);
 
 	function overrideFor(id: string) {
-		return config.piExtensions?.find((override) => override.id === id)?.enabled;
+		return (
+			config.piExtensions?.find((override) => override.id === id)?.enabled ??
+			config.gizmoExtensions?.find((override) => override.id === id)?.enabled
+		);
 	}
 
 	function toggleExtension(id: string, checked: boolean) {
@@ -44,8 +47,8 @@
 </script>
 
 <ConfigureSectionHeading
-	title="Pi extensions"
-	description="Enable or disable globally in Settings → Agent; a workspace can only turn an on extension off."
+	title="Extensions"
+	description="Tools and browser panels share one setting. Enable globally in Settings → Extensions, or turn off for this workspace."
 />
 <div data-ui="settings-card">
 	{#if extensions.length === 0}
@@ -54,7 +57,7 @@
 		<div data-ui="integration-list" data-layout="workspace-setup">
 			{#each extensions as extension (extension.id)}
 				{@const override = overrideFor(extension.id)}
-				{@const effective = override ?? extension.enabled}
+				{@const effective = extension.enabled && (override ?? true)}
 				<div
 					data-ui="integration-row"
 					data-changed={override !== undefined || undefined}

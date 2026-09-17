@@ -24,6 +24,8 @@ export interface RegistryManifest {
 export const registryHome = () => join(defaultDataDir(), 'registries');
 export const registryCloneDir = (name: string) => join(registryHome(), name);
 export const extensionsDir = () => join(piAgentDir(), 'extensions');
+export const disabledExtensionsDir = () =>
+	join(piAgentDir(), 'extensions-disabled');
 export const extensionWebDir = () => join(piAgentDir(), 'extension-web');
 
 const installedManifestFile = () => join(registryHome(), 'installed.json');

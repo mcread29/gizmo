@@ -21,6 +21,7 @@ import {
 } from './project-catalog-store';
 import { ProjectConfigStore, withOverride } from './project-config-store';
 import { ProjectIntegrationResolver } from './project-integration-resolver';
+import { listPiExtensions } from '../resources/pi-global-resources';
 
 /**
  * Project-scoped configuration, stored as `.gizmo/config.json` inside the
@@ -148,6 +149,9 @@ export class ProjectCatalog {
 		extensionId: string,
 		enabled: boolean | null,
 	): Promise<ProjectConfig> {
+		if ((await listPiExtensions()).some(({ id }) => id === extensionId)) {
+			return this.setPiExtension(projectPath, extensionId, enabled);
+		}
 		return this.#updateConfig(projectPath, (config) => ({
 			...config,
 			gizmoExtensions: withOverride(
@@ -166,6 +170,9 @@ export class ProjectCatalog {
 	): Promise<ProjectConfig> {
 		return this.#updateConfig(projectPath, (config) => ({
 			...config,
+			gizmoExtensions: (config.gizmoExtensions ?? []).filter(
+				({ id }) => id !== extensionId,
+			),
 			piExtensions: withOverride(
 				config.piExtensions ?? [],
 				extensionId,
@@ -185,7 +192,13 @@ export class ProjectCatalog {
 	/** Pi extension ids this workspace turns off despite the global state. */
 	async disabledPiExtensionsFor(path: string): Promise<string[]> {
 		const config = await this.configFor(path);
-		return (config.piExtensions ?? [])
+		return [
+			...new Map(
+				[...(config.gizmoExtensions ?? []), ...(config.piExtensions ?? [])].map(
+					(row) => [row.id, row],
+				),
+			).values(),
+		]
 			.filter((override) => !override.enabled)
 			.map((override) => override.id);
 	}

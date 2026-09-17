@@ -10,8 +10,24 @@ export class ExtensionCapability {
 		private readonly client: AgentClient,
 	) {}
 
-	async reloadExtensions() {
-		const diagnostics = await installWebExtensions(this.client);
+	/**
+	 * Refreshes everything extension-shaped on this client. With `server`
+	 * (the default) the server reloads its linked extensions first, so an
+	 * edited extension runs new code; registry actions and reload broadcasts
+	 * pass `server: false` because the server already did that part.
+	 */
+	async reloadExtensions(options: { server?: boolean } = {}) {
+		const diagnostics: string[] = [];
+		if (options.server !== false && this.client.reloadExtensions) {
+			const result = await this.client.reloadExtensions();
+			diagnostics.push(...result.diagnostics);
+			if (result.pendingSessions.length) {
+				diagnostics.push(
+					`${result.pendingSessions.length} thread(s) are mid-turn and reload when they finish`,
+				);
+			}
+		}
+		diagnostics.push(...(await installWebExtensions(this.client)));
 		const store = this.store;
 		if (store.connection !== 'connected') return diagnostics;
 		await Promise.all([store.refreshResources(), store.refreshProjects()]);
@@ -38,17 +54,24 @@ export class ExtensionCapability {
 			enabled,
 		);
 		if (projectPath === this.store.selectedProjectPath) {
-			await this.reloadExtensions();
+			await this.reloadExtensions({ server: false });
 		}
 		return config;
 	}
 
-	setProjectPiExtension(
+	async setProjectPiExtension(
 		projectPath: string,
 		extensionId: string,
 		enabled: boolean | null,
 	): Promise<ProjectConfig> {
-		return this.client.setProjectPiExtension(projectPath, extensionId, enabled);
+		const config = await this.client.setProjectPiExtension(
+			projectPath,
+			extensionId,
+			enabled,
+		);
+		if (projectPath === this.store.selectedProjectPath)
+			await this.reloadExtensions();
+		return config;
 	}
 
 	async loadProjectExtensions() {

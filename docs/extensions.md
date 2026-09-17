@@ -51,14 +51,32 @@ Gizmo ships no Pi extensions. Users add Git registry repositories in
 extension directories into `~/.pi/agent/extensions/`.
 
 A registry's `gizmo.registry.json` declares its extension directory, optional
-build command, and catalog. Each extension directory contains `index.ts`,
-`pi-extension.ts`, and may contain `src/web/index.ts`; its local build emits a
-sibling `<id>.web.js`. Gizmo directory-links the extension into Pi so relative
-imports and registry dependencies resolve correctly, and installs/removes the
-host-only web bundle as part of the same unit. Registry repositories are independent of the Gizmo application
-repository, so users download only extension source and its build tooling.
+install command (`build`, typically `pnpm install --frozen-lockfile`), and
+catalog. Each extension directory contains `index.ts`, `pi-extension.ts`, and
+may contain `src/web/index.ts`. Gizmo directory-links the extension into Pi so
+relative imports and registry dependencies resolve correctly, and **builds the
+browser bundle itself** from `src/web/index.ts` into
+`~/.pi/agent/extension-web/<id>.web.js` as part of the same unit. A registry
+that ships a prebuilt sibling `<id>.web.js` and no web entry is still linked
+the old way. Registry repositories are independent of the Gizmo application
+repository, so users download only extension source.
 
 ## Discovery
+
+### Manifest and enablement
+
+Registry extensions may declare `gizmo.json` with `apiVersion: 1`, a boolean
+`web`, and a `capabilities` array of identifiers. Linking validates the manifest
+before changing installed files; unsupported API versions are refused. A false
+`web` skips the browser build and removes stale bundles. Legacy Pi extensions
+without this sidecar remain compatible.
+
+Paired extensions use Pi's enabled/disabled directories for both their backend
+and browser integration. Workspace `piExtensions` overrides can disable an
+enabled extension for that workspace. Legacy paired `gizmoExtensions` overrides
+remain effective until the next edit migrates them, and legacy global opt-outs
+migrate at server startup. Package-only integrations retain compatibility controls.
+Updating a registry preserves disabled links; unlinking removes either location.
 
 ### Server: linked Pi extensions
 
@@ -68,6 +86,11 @@ also exports a named `gizmoExtension`, Gizmo registers those generic host
 capabilities without knowing what the extension does. Linked extensions take
 precedence over the now-empty transitional `gizmo.extensions.json` config.
 
+Both loaders read the files through jiti with the module cache off, so every
+scan re-evaluates the extension's whole module graph from disk. That is what
+makes an in-place reload possible (see "Reloading" below); native `import()`
+would pin the first graph for the life of the process.
+
 ### Client: runtime-loaded bundles
 
 Vite — like any bundler — resolves import specifiers by static analysis at
@@ -75,9 +98,13 @@ build time, so the app's own build can never see a plugin installed later. The
 way around it is to build the plugin separately and load it through a genuine
 runtime `import(url)`, which the JS engine resolves itself.
 
-**Building.** `apps/app/scripts/build-web-extension.ts` (`pnpm --filter
-@gizmo/app extension:build <package-dir>`) compiles a package's `src/web`
-entry into one standalone ES module with no remaining imports.
+**Building.** `@gizmo/extension-build` (`packages/extension-build`) compiles
+an extension's `src/web` entry into one standalone ES module with no remaining
+imports. The agent-server runs it in a child process when an extension is
+linked, when a registry updates, and on every reload; `pnpm --filter
+@gizmo/app extension:build <dir>` runs the same builder by hand. Gizmo owning
+the build is what keeps the shared-module contract below honest: a registry no
+longer carries its own copy of the builder that can drift.
 
 The one thing a plugin must _not_ bundle is the Svelte runtime: two copies do
 not share context or a reactivity graph, so a plugin carrying its own would
@@ -89,8 +116,9 @@ browsers, a global does not. The list of
 names to re-export is read from the installed Svelte package at build time, so
 it tracks the version in use; names that are reserved words (`if`, `await`,
 `try`) are renamed in the export clause. The host also shares the pinned
-json-render modules described below. Other imports, such as `@gizmo/design`
-components and icons, are bundled normally.
+json-render modules described below, plus `@gizmo/design/format` and
+`@gizmo/design/highlight`. Host design CSS imports are omitted because the app
+already includes those styles. Other components and icons are bundled normally.
 
 ### json-render for web extensions
 
@@ -107,11 +135,29 @@ import { schema } from '@json-render/svelte/schema';
 import { z } from 'zod';
 ```
 
-Gizmo's `extension:build` command rewrites those four specifiers to use the
-host's modules. A standalone registry with its own build tooling must apply the
-same rewrite to `globalThis.__gizmoHostModules__[specifier]`; merely marking
-imports external does not work with runtime-loaded browser bundles. Rebuild
-extensions after adopting this support, and use them with an updated Gizmo host.
+Gizmo's builder rewrites those four specifiers to use the host's modules, so
+an extension never bundles its own json-render or Zod.
+
+**Display catalogs.** A web extension can register json-render component
+registries under `displayCatalogs`:
+
+```ts
+export const gizmoWebExtension = {
+	id: 'search-and-scrape',
+	displayCatalogs: { results: { ResultList, Result } },
+};
+```
+
+A tool then returns a card as data instead of the extension shipping a bespoke
+result component. On the server, `gizmoDisplay(spec, { catalog:
+'search-and-scrape/results', title })` from `@gizmo/extensions` builds the
+`details` envelope; the tool card renders it with the named registry through
+the host's shared renderer. The host validates the tree and JSON budget
+(`parseCatalogDisplaySpec`); prop shapes are the extension's own. A catalog no
+installed extension provides falls back to the ordinary tool result.
+`gizmoDisplay` validates the envelope on the server and accepts a `validateNode`
+callback for extension-specific property validation.
+`resultFor` remains for genuinely interactive results.
 
 For local type checking, extension repositories should install the same exact
 versions as development dependencies:
@@ -123,8 +169,9 @@ pnpm add -D -E @json-render/core@0.20.0 @json-render/svelte@0.20.0 zod@4.4.3
 Only the listed specifiers are shared. Other subpaths are not part of this
 contract. Backend Pi extensions still need their own dependencies; browser host
 modules are not available in Node. When upgrading json-render, update both pins,
-review `apps/app/scripts/json-render-exports.ts`, and run the extension builder
-tests. The tests check that the renderer export list matches the installed version.
+review `packages/extension-build/src/json-render-exports.ts`, and run the
+extension builder tests. The tests check that the renderer export list matches
+the installed version.
 
 ### Bundle delivery
 
@@ -171,6 +218,39 @@ _Not verified:_ the blob-import path was confirmed in Chromium, not in WebKit.
 arrives through `extensions.web`; duplicate ids are de-duplicated at runtime.
 The registry is reactive, so extensions that arrive after first render still
 reach the UI.
+
+## Reloading without a restart
+
+`extensions.reload` (Settings → Extensions → Reload extensions, or `/reload`
+in the composer) reloads every linked extension in place:
+
+1. web bundles rebuild from source for every linked extension with a web
+   entry;
+2. the server catalog rescans: each previously linked `gizmoExtension` gets
+   `dispose()` if it defines one, then the module graph re-evaluates from disk;
+3. project services are recreated from the new catalog
+   (`ProjectServiceRegistry.replace`), the old ones disposed, and live
+   status watches re-subscribed;
+4. every idle Pi runtime reloads (Pi clears its own extension cache on
+   `session.reload`, so it re-reads the same files). A session mid-turn is
+   deferred and reloads when its turn settles; compaction also defers reload.
+   The explicit extension-path array is refreshed so newly linked and removed
+   extensions affect resident runtimes;
+5. an `extensions.reloaded` event is broadcast, so **every** connected tab
+   re-fetches bundles and descriptors.
+
+Registry link, unlink, and update run the same reload. In development
+`GIZMO_EXTENSION_WATCH=1` makes the agent-server follow every linked
+extension to its registry source: an edit under `src/web` rebuilds that bundle
+and notifies clients; any other edit runs the full reload. The dev runner
+excludes the extension directories from `tsx watch` so an edit there never
+restarts the process and kills a live thread. Because the module graph is
+re-evaluated rather than unloaded, an extension that starts timers, sockets,
+or child processes must implement `dispose` or they leak across reloads.
+
+Web builds replace installed bundles only after success. Failed builds retain
+the previous version and return diagnostics. Reloads arriving during a scan
+queue another pass so subsequent edits are not lost.
 
 ## Tool policy: Pi's `defaultTools` setting
 

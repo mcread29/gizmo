@@ -18,6 +18,7 @@ import {
 import { sessionTree } from './session-transcript';
 import type { SessionRepository } from './session-repository';
 import type { SessionCatalogService } from './session-catalog-service';
+import { reloadAllSessions, reloadRuntime } from './session-reload';
 import type { SessionRuntimePool } from './session-runtime-pool';
 
 /** Commands that operate on a live session, transparently restoring it first. */
@@ -89,16 +90,11 @@ export class SessionOperations {
 		if (active.session.isStreaming) {
 			throw new Error('Cannot reload while the agent is responding');
 		}
-		if (!active.session.reload) {
-			throw new Error('Runtime reload is unavailable for this session');
-		}
-		active.extensionUi.clear();
-		await active.session.reload({
-			beforeSessionStart: () => {
-				active.extensionUi.clear();
-				active.extensionUi.startNewRuntime();
-			},
-		});
+		await reloadRuntime(active);
+	}
+
+	reloadAllSessions() {
+		return reloadAllSessions(this.#pool);
 	}
 
 	resolveExtensionUi(

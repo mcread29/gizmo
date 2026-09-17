@@ -31,10 +31,38 @@ export interface ProjectService {
  * implicit "first service wins" routing.
  */
 export class ProjectServiceRegistry {
-	readonly #services: ReadonlyMap<string, ProjectService>;
+	#services: Map<string, ProjectService>;
 
 	constructor(entries: Iterable<readonly [string, ProjectService]>) {
 		this.#services = new Map(entries);
+	}
+
+	/**
+	 * Swaps in a freshly created set of services after an extension reload.
+	 * Every previous service is disposed, since the extension code that
+	 * created it has been replaced; the ids whose service was replaced or
+	 * dropped are returned so watchers can re-subscribe.
+	 */
+	replace(entries: Iterable<readonly [string, ProjectService]>): {
+		replaced: string[];
+		removed: string[];
+	} {
+		const previous = this.#services;
+		this.#services = new Map(entries);
+		for (const service of previous.values()) {
+			try {
+				service.dispose();
+			} catch {
+				// One service failing to dispose must not prevent the rest.
+			}
+		}
+		const replaced = [...previous.keys()].filter((id) =>
+			this.#services.has(id),
+		);
+		const removed = [...previous.keys()].filter(
+			(id) => !this.#services.has(id),
+		);
+		return { replaced, removed };
 	}
 
 	get ids(): readonly string[] {

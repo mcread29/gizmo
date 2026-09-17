@@ -9,6 +9,8 @@ import {
 	type Extensions,
 	webExtensionBundlesSchema,
 	type WebExtensionBundles,
+	extensionReloadResultSchema,
+	type ExtensionReloadResult,
 } from './extensions';
 import {
 	fileRevertResultSchema,
@@ -101,6 +103,9 @@ export const parseAgentModelCatalog = parser<AgentModelCatalog>(
 	agentModelCatalogSchema,
 );
 export const parseExtensions = parser<Extensions>(extensionsSchema);
+export const parseExtensionReloadResult = parser<ExtensionReloadResult>(
+	extensionReloadResultSchema,
+);
 export const parseWebExtensionBundles = parser<WebExtensionBundles>(
 	webExtensionBundlesSchema,
 );

@@ -33,6 +33,8 @@ export interface ProjectEmitters {
 export class ProjectWatchCoordinator {
 	/** The path each service currently watches; watchStatus replaces in place. */
 	readonly #watched = new Map<string, string>();
+	/** The envelope session tag each extension's watch was registered under. */
+	readonly #watchSessions = new Map<string, string>();
 	/** One extension-host watch per path, shared by every service on it. */
 	readonly #paths = new Map<
 		string,
@@ -59,7 +61,37 @@ export class ProjectWatchCoordinator {
 		const path = this.#joinPath(sessionId, projectPath);
 		path.services.add(extensionId);
 		this.#watched.set(extensionId, projectPath);
+		this.#watchSessions.set(extensionId, sessionId);
 		return this.#subscribe(service, sessionId, projectPath, extensionId);
+	}
+
+	/**
+	 * After an extension reload replaced the project services, re-subscribes
+	 * every live watch against the new service so status keeps flowing. A
+	 * watch whose extension no longer has a service is dropped.
+	 */
+	async refresh(): Promise<void> {
+		for (const [extensionId, projectPath] of [...this.#watched]) {
+			const sessionId = this.#watchSessions.get(extensionId) ?? 'server';
+			const service = this.projectServices.serviceFor(extensionId);
+			if (!service) {
+				this.#leavePath(extensionId);
+				this.#watched.delete(extensionId);
+				this.#watchSessions.delete(extensionId);
+				continue;
+			}
+			try {
+				const status = await this.#subscribe(
+					service,
+					sessionId,
+					projectPath,
+					extensionId,
+				);
+				this.emit.status(sessionId, projectPath, extensionId, status);
+			} catch (error) {
+				console.error(`Could not re-watch ${extensionId} after reload:`, error);
+			}
+		}
 	}
 
 	#subscribe(

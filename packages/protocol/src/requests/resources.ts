@@ -142,6 +142,18 @@ export const resourcesRequestSchemas = [
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('extensions.reload'),
+			/**
+			 * Web bundle rebuild before reloading: omitted rebuilds bundles whose
+			 * source changed, true forces every bundle, false skips the build.
+			 */
+			rebuild: Type.Optional(Type.Boolean()),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('tools.policy.get'),
 			/** Omitted resolves the default workspace (server cwd). */
 			workspacePath: Type.Optional(Type.String({ minLength: 1 })),

@@ -7,6 +7,7 @@ import {
 	registryUnlink,
 	registryUpdate,
 } from '../extensions/registry-manager';
+import { reloadExtensions } from '../extensions/extension-reload';
 import {
 	handleInstructionsRead,
 	handleInstructionsWrite,
@@ -29,6 +30,7 @@ type ResourceRequestType =
 	| 'registry.remove'
 	| 'registry.link'
 	| 'registry.unlink'
+	| 'extensions.reload'
 	| 'tools.policy.get'
 	| 'tools.policy.global.set'
 	| 'tools.policy.project.set'
@@ -110,6 +112,10 @@ export async function handleResourceRequest(
 		case 'registry.unlink':
 			return {
 				result: await registryUnlink(request.registry, request.id),
+			};
+		case 'extensions.reload':
+			return {
+				result: await reloadExtensions({ rebuild: request.rebuild ?? true }),
 			};
 		case 'tools.policy.get':
 			return {

@@ -67,6 +67,7 @@ export async function routeRequest(
 		case 'registry.remove':
 		case 'registry.link':
 		case 'registry.unlink':
+		case 'extensions.reload':
 		case 'tools.policy.get':
 		case 'tools.policy.global.set':
 		case 'tools.policy.project.set':
