@@ -1,4 +1,5 @@
 import { sessionTitle } from '@gizmo/protocol';
+import { compactRequested } from './compaction-fallback';
 import type {
 	AgentAttachment,
 	AgentModelCatalog,
@@ -76,11 +77,10 @@ export class SessionOperations {
 		if (session.isStreaming) {
 			throw new Error('Cannot compact while the agent is responding');
 		}
-		if (!session.compact) {
-			throw new Error('Compaction is unavailable for this session');
+		if (session.isCompacting) {
+			throw new Error('Compaction is already in progress');
 		}
-		session.configureCompaction?.(policy);
-		await session.compact();
+		await compactRequested(session, policy);
 	}
 
 	async reloadSession(sessionId: string) {

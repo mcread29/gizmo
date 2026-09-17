@@ -99,21 +99,21 @@ export class SessionRuntimeCapability {
 
 	async compact() {
 		const store = this.store;
-		if (
-			!store.sessionId ||
-			store.compacting ||
-			store.sessionState === 'streaming'
-		)
+		const sessionId = store.sessionId;
+		if (!sessionId || store.compacting || store.sessionState === 'streaming')
 			return;
 		store.error = undefined;
 		store.compacting = true;
+		store.compactingSessions[sessionId] = true;
 		try {
-			await this.client.compact(store.sessionId, store.compactionPolicy);
-			store.usage = undefined;
+			await this.client.compact(sessionId, store.compactionPolicy);
+			if (store.sessionId === sessionId) store.usage = undefined;
 		} catch (error) {
-			this.#fail('agent', error);
+			if (store.sessionId === sessionId) this.#fail('agent', error);
 		} finally {
-			store.compacting = false;
+			// The user may have moved to another thread while this one compacted.
+			delete store.compactingSessions[sessionId];
+			if (store.sessionId === sessionId) store.compacting = false;
 		}
 	}
 

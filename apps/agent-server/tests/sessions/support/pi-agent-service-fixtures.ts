@@ -16,6 +16,7 @@ export class FakePiSession implements PiSessionLike {
 	model = { provider: 'openai-codex', id: 'gpt-5.6-sol' };
 	thinkingLevel = 'high';
 	isStreaming = false;
+	isCompacting = false;
 	readonly prompt = vi.fn(async () => {});
 	readonly steer = vi.fn(async () => {});
 	readonly abort = vi.fn(async () => {});

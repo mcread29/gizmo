@@ -1,3 +1,75 @@
+diff --git a/dist/core/agent-session.js b/dist/core/agent-session.js
+index fd82b71cf332715f185d07459429f04ed7491ce9..ed3f4a4ab9db62fd3b827ece2793b3c091f0c62c 100644
+--- a/dist/core/agent-session.js
++++ b/dist/core/agent-session.js
+@@ -1467,7 +1467,13 @@ export class AgentSession {
+      */
+     async compact(customInstructions) {
+         await this.abort();
+-        this._compactionAbortController = new AbortController();
++        // A second compaction on the same session would clear the first one's
++        // controller from under it; refuse rather than corrupt the run in flight.
++        if (this._compactionAbortController !== undefined) {
++            throw new Error("Compaction is already in progress");
++        }
++        const abortController = new AbortController();
++        this._compactionAbortController = abortController;
+         this._emit({ type: "compaction_start", reason: "manual" });
+         let fromExtension = false;
+         try {
+@@ -1495,7 +1501,7 @@ export class AgentSession {
+                     customInstructions,
+                     reason: "manual",
+                     willRetry: false,
+-                    signal: this._compactionAbortController.signal,
++                    signal: abortController.signal,
+                 }));
+                 if (result?.cancel) {
+                     throw new Error("Compaction cancelled");
+@@ -1520,14 +1526,14 @@ export class AgentSession {
+             }
+             else {
+                 // Shared default summary generator, also used by automatic compaction.
+-                const result = await this._runDefaultCompaction(preparation, requestModel, apiKey, headers, customInstructions, this._compactionAbortController.signal, env, "manual");
++                const result = await this._runDefaultCompaction(preparation, requestModel, apiKey, headers, customInstructions, abortController.signal, env, "manual");
+                 summary = result.summary;
+                 firstKeptEntryId = result.firstKeptEntryId;
+                 tokensBefore = result.tokensBefore;
+                 usage = result.usage;
+                 details = result.details;
+             }
+-            if (this._compactionAbortController.signal.aborted) {
++            if (abortController.signal.aborted) {
+                 throw new Error("Compaction cancelled");
+             }
+             this.sessionManager.appendCompaction(summary, firstKeptEntryId, tokensBefore, details, fromExtension, usage);
+@@ -1555,7 +1561,7 @@ export class AgentSession {
+                 details,
+             };
+             // compaction_end listeners may submit queued prompts, so expose idle state before notifying them.
+-            this._compactionAbortController = undefined;
++            if (this._compactionAbortController === abortController) this._compactionAbortController = undefined;
+             this._emit({
+                 type: "compaction_end",
+                 reason: "manual",
+@@ -1569,7 +1575,7 @@ export class AgentSession {
+             const message = error instanceof Error ? error.message : String(error);
+             const aborted = message === "Compaction cancelled" || (error instanceof Error && error.name === "AbortError");
+             const errorMessage = aborted ? undefined : `Compaction failed: ${message}`;
+-            this._compactionAbortController = undefined;
++            if (this._compactionAbortController === abortController) this._compactionAbortController = undefined;
+             this._emit({
+                 type: "compaction_end",
+                 reason: "manual",
+@@ -1588,7 +1594,7 @@ export class AgentSession {
+             throw error;
+         }
+         finally {
+-            this._compactionAbortController = undefined;
++            if (this._compactionAbortController === abortController) this._compactionAbortController = undefined;
+         }
+     }
+     /**
 diff --git a/dist/core/compaction/compaction.d.ts b/dist/core/compaction/compaction.d.ts
 index 6f867f98bac5a371ca2bfbe0a9db6344e1a42b3f..e6d0c1dcd1abf7fdaf1815983361a0a5d9a60b24 100644
 --- a/dist/core/compaction/compaction.d.ts

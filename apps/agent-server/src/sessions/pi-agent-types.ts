@@ -23,6 +23,8 @@ export interface PiSessionLike {
 	};
 	readonly thinkingLevel?: string;
 	readonly isStreaming?: boolean;
+	/** Whether Pi is summarizing (compaction or branch summary) right now. */
+	readonly isCompacting?: boolean;
 	navigateTree(targetId: string): Promise<{ cancelled: boolean }>;
 	getActiveToolNames?(): string[];
 	getModelCatalog?(): Promise<AgentModelCatalog>;

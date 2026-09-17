@@ -29,7 +29,10 @@ export class AgentStoreState {
 		fillPercent: 25,
 		retainPercent: 10,
 	});
+	/** Whether the selected thread is being compacted. */
 	compacting = $state(false);
+	/** Threads with a compaction in flight, selected or not. */
+	compactingSessions = $state<Record<string, boolean>>({});
 	connection = $state<ConnectionState>('disconnected');
 	reconnectAttempt = $state(0);
 	sessionId = $state<string>();

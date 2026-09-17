@@ -1,4 +1,5 @@
 import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
+import type { CompactionReason } from '@gizmo/protocol';
 import { normalizeToolResult, toolResultIsError } from '../tools/tool-result';
 import { displayedUserMessage } from '../attachments/attachment-message';
 import { isStoppedTurn } from './transcript-settling';
@@ -75,9 +76,15 @@ export class PiEventTranslator {
 	 * the user sees should be the threshold that actually caused it.
 	 */
 	#compactionReasonOverride?: 'threshold';
+	#activeCompactionReason?: CompactionReason;
 
 	constructor(emit: Emit) {
 		this.#emit = emit;
+	}
+
+	/** Reason of the compaction in flight, for clients attaching mid-way. */
+	get activeCompactionReason(): CompactionReason | undefined {
+		return this.#activeCompactionReason;
 	}
 
 	/** In-flight assistant id for clients splicing a mid-stream subscription. */
@@ -93,14 +100,17 @@ export class PiEventTranslator {
 	receive(event: AgentSessionEvent): void {
 		switch (event.type) {
 			case 'compaction_start':
+				this.#activeCompactionReason =
+					this.#compactionReasonOverride ?? event.reason;
 				this.#emit({
 					type: 'session.compaction',
 					active: true,
-					reason: this.#compactionReasonOverride ?? event.reason,
+					reason: this.#activeCompactionReason,
 				});
 				break;
 			case 'compaction_end': {
 				const result = readCompactionResult(event.result);
+				this.#activeCompactionReason = undefined;
 				this.#emit({
 					type: 'session.compaction',
 					active: false,

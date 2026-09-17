@@ -122,6 +122,7 @@ export class SessionCapability {
 		store.queue = emptyQueue();
 		store.messagesLoading = true;
 		store.sessionState = store.sessionStates[sessionId] ?? 'idle';
+		store.compacting = store.compactingSessions[sessionId] ?? false;
 		store.usage = undefined;
 		this.replay.begin(sessionId);
 		const summaryPath = session.workspacePath ?? session.projectPath;
@@ -228,6 +229,7 @@ export class SessionCapability {
 		}
 		store.sessions = store.sessions.filter(({ id }) => id !== sessionId);
 		delete store.sessionStates[sessionId];
+		delete store.compactingSessions[sessionId];
 		if (store.sessionId !== sessionId) return;
 		const next = store.sessions[0];
 		if (next) await store.switchSession(next.id);
@@ -251,6 +253,11 @@ export class SessionCapability {
 		const store = this.store;
 		if (event.type === 'session.state') {
 			store.sessionStates[event.sessionId] = event.state;
+		} else if (event.type === 'session.compaction') {
+			// Tracked for every thread: the flag for the selected one is derived
+			// from this on switch, so another thread's compaction never leaks in.
+			if (event.active) store.compactingSessions[event.sessionId] = true;
+			else delete store.compactingSessions[event.sessionId];
 		} else if (event.type === 'error') {
 			store.sessionStates[event.sessionId] = 'error';
 		} else if (event.type === 'confirmation.requested') {

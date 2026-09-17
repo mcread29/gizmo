@@ -21,16 +21,53 @@ export function compactionOverdue(
 	return usage.percent >= policy.fillPercent;
 }
 
+/** Pi's refusal when a whole-turn cut leaves nothing before the kept tail. */
+function nothingToCompact(error: unknown): boolean {
+	return error instanceof Error && /Nothing to compact/.test(error.message);
+}
+
+/**
+ * A requested compaction prefers whole-turn cuts, but when the only turn
+ * since the last summary is the entire remaining context, that cut has
+ * nothing to fold away and Pi refuses with "session too small". The request
+ * then retries allowing the cut to land inside that turn.
+ */
+export async function compactRequested(
+	session: PiSessionLike,
+	policy: CompactionPolicy,
+): Promise<void> {
+	if (!session.compact || !session.configureCompaction) {
+		throw new Error('Compaction is unavailable for this session');
+	}
+	session.configureCompaction(policy);
+	try {
+		await session.compact();
+	} catch (error) {
+		if (!nothingToCompact(error)) throw error;
+		session.configureCompaction(policy, { splitTurns: true });
+		try {
+			await session.compact();
+		} finally {
+			session.configureCompaction(policy);
+		}
+	}
+}
+
 export async function compactOverdueRun(
 	session: PiSessionLike,
 	policy: CompactionPolicy,
 	onError: (message: string) => void,
 ): Promise<void> {
 	if (!session.compact || !session.configureCompaction) return;
+	// Two compactions on one Pi session tear each other down mid-flight; the
+	// one already running will bring the context back under the threshold.
+	if (session.isCompacting) return;
 	session.configureCompaction(policy, { splitTurns: true });
 	try {
 		await session.compact();
 	} catch (error) {
+		// The client only gets the message; keep the stack where it can be found.
+		console.error(`Overdue compaction failed for ${session.sessionId}:`, error);
 		onError(
 			`Context is past the auto-compaction threshold but could not be compacted: ${
 				error instanceof Error ? error.message : String(error)

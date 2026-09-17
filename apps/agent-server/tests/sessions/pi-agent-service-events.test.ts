@@ -249,6 +249,39 @@ describe('PiAgentService events', () => {
 			// reflected in the snapshot; the state event is the first replayable.
 			expect(snapshot.lastEventId).toBe(state!.eventId - 1);
 		});
+
+		it('re-announces a compaction still in flight', async () => {
+			const pi = new FakePiSession();
+			const service = await createTestService(pi);
+			const sessionId = await service.createSession();
+			pi.emit(piEvent({ type: 'compaction_start', reason: 'threshold' }));
+
+			const events: AgentEvent[] = [];
+			service.subscribe((agentEvent) => events.push(agentEvent));
+			await service.resumeSession(sessionId);
+
+			expect(events).toContainEqual(
+				expect.objectContaining({
+					type: 'session.compaction',
+					active: true,
+					reason: 'threshold',
+				}),
+			);
+
+			pi.emit(
+				piEvent({
+					type: 'compaction_end',
+					reason: 'threshold',
+					aborted: false,
+					willRetry: false,
+				}),
+			);
+			events.length = 0;
+			await service.resumeSession(sessionId);
+			expect(events.some((item) => item.type === 'session.compaction')).toBe(
+				false,
+			);
+		});
 	});
 });
 

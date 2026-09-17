@@ -154,6 +154,14 @@ export class SessionRuntimePool {
 		});
 		if (active) {
 			emitUsageSnapshot(this.events, sessionId, active.session, active.manager);
+			const compactionReason = active.translator.activeCompactionReason;
+			if (compactionReason) {
+				this.events.emit(sessionId, {
+					type: 'session.compaction',
+					active: true,
+					reason: compactionReason,
+				});
+			}
 			// A client joining mid-run needs to see what is still queued.
 			this.events.emit(sessionId, {
 				type: 'session.queue',
@@ -167,6 +175,7 @@ export class SessionRuntimePool {
 		if (
 			active.compactedThisRun ||
 			active.session.isStreaming ||
+			active.session.isCompacting ||
 			!active.compaction ||
 			!compactionOverdue(active.session, active.compaction)
 		)

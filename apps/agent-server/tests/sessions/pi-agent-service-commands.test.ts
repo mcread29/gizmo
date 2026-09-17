@@ -45,6 +45,23 @@ describe('PiAgentService commands', () => {
 		expect(pi.compact).toHaveBeenCalledOnce();
 	});
 
+	it('refuses a second compaction while one is running', async () => {
+		const pi = new FakePiSession();
+		const service = await createTestService(pi);
+		const sessionId = await service.createSession();
+		const policy: CompactionPolicy = {
+			enabled: true,
+			fillPercent: 25,
+			retainPercent: 10,
+		};
+
+		pi.isCompacting = true;
+		await expect(service.compact(sessionId, policy)).rejects.toThrow(
+			'Compaction is already in progress',
+		);
+		expect(pi.compact).not.toHaveBeenCalled();
+	});
+
 	it('stores attachments with the session and sends images to Pi', async () => {
 		const dataDir = await createTemporaryDirectory();
 		const pi = new FakePiSession();
