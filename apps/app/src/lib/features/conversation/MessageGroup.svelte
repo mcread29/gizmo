@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Bot, Check, CircleSlash, Copy, User } from '@lucide/svelte';
 	import { Button } from '../../components';
+	import { copyToClipboard } from '../../clipboard';
+	import { toasts } from '../../toasts.svelte';
 	import MarkdownContent from './MarkdownContent.svelte';
 	import MessageAttachments from './MessageAttachments.svelte';
 	import ReasoningBlock from './ReasoningBlock.svelte';
@@ -61,9 +63,10 @@
 	);
 
 	async function copyGroup() {
-		const content = groupContent(group);
-		if (!content || !navigator.clipboard) return;
-		await navigator.clipboard.writeText(content);
+		if (!(await copyToClipboard(groupContent(group)))) {
+			toasts.show('Could not copy: clipboard is unavailable here', 'danger');
+			return;
+		}
 		copied = true;
 		window.setTimeout(() => (copied = false), 1_500);
 	}

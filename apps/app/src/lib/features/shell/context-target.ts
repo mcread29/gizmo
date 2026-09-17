@@ -1,3 +1,5 @@
+import { copyToClipboard } from '../../clipboard';
+
 export type ContextKind = 'shell' | 'thread' | 'message' | 'tool' | 'composer';
 
 export interface ContextTarget {
@@ -49,14 +51,7 @@ export function readContextTarget(event: MouseEvent): ContextTarget {
 }
 
 export async function copyText(text: string | undefined): Promise<boolean> {
-	if (!text || !navigator.clipboard) return false;
-	try {
-		await navigator.clipboard.writeText(text);
-		return true;
-	} catch {
-		// Clipboard permissions can be denied outside a secure browser context.
-		return false;
-	}
+	return copyToClipboard(text);
 }
 
 export async function pasteInto(

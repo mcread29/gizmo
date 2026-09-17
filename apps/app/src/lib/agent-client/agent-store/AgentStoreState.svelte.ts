@@ -14,6 +14,7 @@ import type {
 	StoredProject,
 	ToolPolicy,
 } from '@gizmo/protocol';
+import { emptyQueue } from '../agent-event-reducer';
 import type {
 	AgentError,
 	AgentModel,
@@ -23,13 +24,12 @@ import type {
 
 /** Reactive data owned by the coordinating AgentStore facade. */
 export class AgentStoreState {
-	compactionPolicy: CompactionPolicy = {
+	compactionPolicy = $state<CompactionPolicy>({
 		enabled: true,
 		fillPercent: 25,
 		retainPercent: 10,
-	};
+	});
 	compacting = $state(false);
-	lastAutomaticCompactionReason = $state<'threshold' | 'overflow'>();
 	connection = $state<ConnectionState>('disconnected');
 	reconnectAttempt = $state(0);
 	sessionId = $state<string>();
@@ -50,6 +50,8 @@ export class AgentStoreState {
 	 * is handed back rather than lost.
 	 */
 	unsent = $state<string[]>([]);
+	/** Steering and follow-up text still queued against the run in flight. */
+	queue = $state(emptyQueue());
 	lastPrompt = $state<string>();
 	sessions = $state<AgentSessionSummary[]>([]);
 	projects = $state<StoredProject[]>([]);

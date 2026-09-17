@@ -1,5 +1,6 @@
 import type { SessionManager } from '@earendil-works/pi-coding-agent';
-import type { SessionSnapshot } from '@gizmo/protocol';
+import type { CompactionPolicy, SessionSnapshot } from '@gizmo/protocol';
+import { compactOverdueRun, compactionOverdue } from './compaction-fallback';
 import { PiEventTranslator } from './pi-event-translator';
 import { PiExtensionUiRuntime } from './pi-extension-ui-runtime';
 import { strandedMessages } from './queue-recovery';
@@ -26,6 +27,10 @@ export interface ActiveSession {
 	extensionUi: PiExtensionUiRuntime;
 	/** Owns the streaming message ids referenced by live events. */
 	translator: PiEventTranslator;
+	/** The policy the last prompt was sent under, for the post-run check. */
+	compaction?: CompactionPolicy;
+	/** Whether Pi compacted on its own during the run in flight. */
+	compactedThisRun?: boolean;
 }
 
 /**
@@ -106,22 +111,26 @@ export class SessionRuntimePool {
 		const translator = new PiEventTranslator((event) =>
 			this.events.emit(sessionId, withContextWindow(session, event)),
 		);
-		const unsubscribe = session.subscribe((event) => {
+		const active: ActiveSession = {
+			session,
+			manager,
+			unsubscribe: () => {},
+			lastActiveAt: Date.now(),
+			extensionUi,
+			translator,
+		};
+		active.unsubscribe = session.subscribe((event) => {
 			translator.receive(event);
+			if (event.type === 'agent_start') active.compactedThisRun = false;
+			if (event.type === 'compaction_start') active.compactedThisRun = true;
 			if (event.type !== 'agent_settled') return;
 			const messages = strandedMessages(session);
 			if (messages.length) {
 				this.events.emit(sessionId, { type: 'session.unsent', messages });
 			}
+			void this.#compactIfOverdue(sessionId, active);
 		});
-		this.#sessions.set(sessionId, {
-			session,
-			manager,
-			unsubscribe,
-			lastActiveAt: Date.now(),
-			extensionUi,
-			translator,
-		});
+		this.#sessions.set(sessionId, active);
 		this.#emitSessionCreated(sessionId, session, title);
 		this.events.emit(sessionId, { type: 'session.state', state: 'idle' });
 		emitUsageSnapshot(this.events, sessionId, session, manager);
@@ -145,7 +154,32 @@ export class SessionRuntimePool {
 		});
 		if (active) {
 			emitUsageSnapshot(this.events, sessionId, active.session, active.manager);
+			// A client joining mid-run needs to see what is still queued.
+			this.events.emit(sessionId, {
+				type: 'session.queue',
+				steering: [...(active.session.getSteeringMessages?.() ?? [])],
+				followUp: [...(active.session.getFollowUpMessages?.() ?? [])],
+			});
 		}
+	}
+
+	async #compactIfOverdue(sessionId: string, active: ActiveSession) {
+		if (
+			active.compactedThisRun ||
+			active.session.isStreaming ||
+			!active.compaction ||
+			!compactionOverdue(active.session, active.compaction)
+		)
+			return;
+		active.compactedThisRun = true;
+		active.translator.expectThresholdCompaction();
+		await compactOverdueRun(active.session, active.compaction, (message) =>
+			this.events.emit(sessionId, {
+				type: 'error',
+				code: 'compaction_failed',
+				message,
+			}),
+		);
 	}
 
 	resolveExtensionUi(

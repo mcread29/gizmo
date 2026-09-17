@@ -15,7 +15,8 @@ export interface AgentEventState {
 	compacting: boolean;
 	/** Steered text a dead run never delivered, waiting to go back to the composer. */
 	unsent: string[];
-	lastAutomaticCompactionReason?: 'threshold' | 'overflow';
+	/** Text queued against the run in flight, shown in the thread until delivered. */
+	queue: { steering: string[]; followUp: string[] };
 	usage?: SessionUsage;
 	messages: ConversationMessage[];
 	sessions: AgentSessionSummary[];
@@ -40,6 +41,14 @@ export function applyAgentEvent(
 			break;
 		case 'session.state':
 			state.sessionState = event.state;
+			// Nothing can be queued against a run that is over.
+			if (event.state !== 'streaming') state.queue = emptyQueue();
+			break;
+		case 'session.queue':
+			state.queue = {
+				steering: [...event.steering],
+				followUp: [...event.followUp],
+			};
 			break;
 		case 'session.unsent':
 			state.unsent = [...state.unsent, ...event.messages];
@@ -48,8 +57,24 @@ export function applyAgentEvent(
 			state.compacting = event.active;
 			if (!event.active) {
 				state.usage = undefined;
-				if (event.reason !== 'manual') {
-					state.lastAutomaticCompactionReason = event.reason;
+				// A completed compaction becomes a row in the thread, where the
+				// history it rewrote was; a resync reads the same row back from
+				// the session file.
+				if (event.result) {
+					state.messages.push({
+						id: `compaction-${event.eventId}`,
+						role: 'event',
+						content: '',
+						createdAt: Date.now(),
+						complete: true,
+						tools: [],
+						event: {
+							kind: 'compaction',
+							reason: event.reason,
+							tokensBefore: event.result.tokensBefore,
+							summary: event.result.summary,
+						},
+					});
 				}
 			}
 			break;
@@ -139,6 +164,10 @@ export function applyAgentEvent(
 			state.sessionState = 'error';
 			return event.message;
 	}
+}
+
+export function emptyQueue(): AgentEventState['queue'] {
+	return { steering: [], followUp: [] };
 }
 
 function findMessage(state: AgentEventState, messageId: string) {

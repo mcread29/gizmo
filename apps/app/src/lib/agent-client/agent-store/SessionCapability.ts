@@ -6,7 +6,7 @@ import {
 	type SessionState,
 	type SessionUsage,
 } from '@gizmo/protocol';
-import { applyAgentEvent } from '../agent-event-reducer';
+import { applyAgentEvent, emptyQueue } from '../agent-event-reducer';
 import type { AgentClient } from '../AgentClient';
 import type { AgentModel, AgentStore } from '../AgentStore.svelte';
 import { EventReplay } from './event-replay';
@@ -66,13 +66,13 @@ export class SessionCapability {
 		store.sessionId = undefined;
 		store.messages = [];
 		store.unsent = [];
+		store.queue = emptyQueue();
 		store.model = undefined;
 		store.availableModels = [];
 		store.thinkingLevels = [];
 		store.commands = [];
 		store.sessionState = 'idle';
 		store.usage = undefined;
-		store.lastAutomaticCompactionReason = undefined;
 		try {
 			const sessionId = await this.client.createSession({
 				...(store.selectedProjectPath
@@ -119,10 +119,10 @@ export class SessionCapability {
 		store.sessionId = sessionId;
 		store.messages = [];
 		store.unsent = [];
+		store.queue = emptyQueue();
 		store.messagesLoading = true;
 		store.sessionState = store.sessionStates[sessionId] ?? 'idle';
 		store.usage = undefined;
-		store.lastAutomaticCompactionReason = undefined;
 		this.replay.begin(sessionId);
 		const summaryPath = session.workspacePath ?? session.projectPath;
 		if (summaryPath && summaryPath !== store.selectedProjectPath) {

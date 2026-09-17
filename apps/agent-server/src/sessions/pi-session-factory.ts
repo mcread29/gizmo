@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { ComposerCommand, CompactionPolicy } from '@gizmo/protocol';
+import type { CompactionOptions } from './pi-agent-types';
+import { generateCommitMessage } from './commit-message';
 import {
 	activateExtensions,
 	registeredExtensions,
@@ -139,33 +141,9 @@ export const createDefaultPiSession: PiSessionFactory = async (
 	});
 	return Object.assign(session, {
 		enabledExtensionIds: activeExtensions.extensions.map(({ id }) => id),
-		async generateCommitMessage(context: string) {
-			if (!session.model) throw new Error('No model is selected');
-			const message = await session.modelRuntime.completeSimple(
-				session.model,
-				{
-					systemPrompt:
-						'Write a concise Git commit message for the supplied changes. Return only the message: an imperative subject line, optionally followed by a blank line and a short explanatory body. Do not use Markdown fences or quotes.',
-					messages: [{ role: 'user', content: context, timestamp: Date.now() }],
-				},
-				{ maxTokens: 300 },
-			);
-			if (message.stopReason === 'error') {
-				throw new Error(
-					message.errorMessage || 'Pi could not generate a commit message',
-				);
-			}
-			const text = message.content
-				.filter((block) => block.type === 'text')
-				.map((block) => block.text)
-				.join('')
-				.trim()
-				.replace(/^```(?:text)?\s*|\s*```$/g, '')
-				.trim();
-			if (!text) throw new Error('Pi returned an empty commit message');
-			return text;
-		},
-		configureCompaction(policy: CompactionPolicy) {
+		generateCommitMessage: (context: string) =>
+			generateCommitMessage(session, context),
+		configureCompaction(policy: CompactionPolicy, options?: CompactionOptions) {
 			const contextWindow = session.model?.contextWindow ?? 128_000;
 			settingsManager.applyOverrides({
 				compaction: {
@@ -176,7 +154,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 					keepRecentTokens: Math.round(
 						contextWindow * (policy.retainPercent / 100),
 					),
-					fullTurnBoundaries: true,
+					fullTurnBoundaries: !options?.splitTurns,
 				},
 			});
 		},

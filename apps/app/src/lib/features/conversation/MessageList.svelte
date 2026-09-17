@@ -10,11 +10,18 @@
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel } from '../../components';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
-	import { bottomTolerance, isAtBottom, scrollIntoEnd } from './follow';
+	import {
+		bottomTolerance,
+		isAtBottom,
+		observeFollow,
+		scrollIntoEnd,
+	} from './follow';
 	import { dayKey, formatDay } from './message-groups';
 	import { createMessageRows, estimateRowHeight } from './message-rows';
 	import MessageGroupView from './MessageGroup.svelte';
+	import { createRowMeasurer } from './row-measure';
 	import { streamingActivity } from './streaming';
+	import ThreadEvent from './ThreadEvent.svelte';
 	import { createTranscriptSettle } from './transcript-settle';
 
 	interface Props {
@@ -49,10 +56,9 @@
 	let rowKeys: Array<string | number> = [];
 	let rowEstimates: number[] = [];
 	/**
-	 * Bumped whenever a mounted row changes size. The virtualizer re-measures
-	 * on its own, but its store only notifies when the visible range moves, so
-	 * the rows below a growing one kept stale offsets and overlapped it until
-	 * the next scroll. Reading this in the derived values forces the re-render.
+	 * Bumped whenever a mounted row changes size: the virtualizer's store only
+	 * notifies when the visible range moves, so rows below a growing one kept
+	 * stale offsets until the next scroll. Reading it forces the re-render.
 	 */
 	let measureVersion = $state(0);
 
@@ -63,7 +69,15 @@
 			extensionUi?.workingFor(store.sessionId),
 		),
 	);
-	let rows = $derived(createMessageRows(store.messages));
+	// Queued steering and a compaction in progress are rows at the end of the
+	// thread, so what is pending is visible where the user is already looking.
+	let rows = $derived(
+		createMessageRows(store.messages, {
+			steering: store.queue?.steering ?? [],
+			followUp: store.queue?.followUp ?? [],
+			compacting: Boolean(store.compacting),
+		}),
+	);
 	const initialViewport = { width: 800, height: 800 };
 	const virtualizer = createVirtualizer<HTMLElement, HTMLDivElement>({
 		count: 0,
@@ -108,6 +122,11 @@
 		if (followOutput) seenMessageId = lastMessageId;
 	});
 
+	/** While following, every change in size re-pins the end. */
+	function pinIfFollowing() {
+		if (followOutput && autoFollowOutput) get(virtualizer).scrollToEnd();
+	}
+
 	$effect(() => {
 		const count = rows.length;
 		rowKeys = rows.map((row) => row.id);
@@ -121,14 +140,11 @@
 			anchorTo: shouldFollow ? 'end' : 'start',
 			followOnAppend: shouldFollow,
 		});
+		// The virtualizer only follows appends it saw from within its own
+		// tolerance; a row that grew past it first is left behind. Re-pin once
+		// the DOM has the new content.
+		if (shouldFollow) void tick().then(pinIfFollowing);
 	});
-
-	/** Reaching for the transcript hands control back immediately. */
-	function releaseOnInput() {
-		if (!settle.active) return;
-		settle.cancel();
-		if (viewport) followOutput = isAtBottom(viewport);
-	}
 
 	onDestroy(settle.cancel);
 
@@ -148,18 +164,17 @@
 		const node = viewport;
 		get(virtualizer).setOptions({ getScrollElement: () => node });
 		if (!node) return;
-		const update = () => {
-			followOutput = isAtBottom(node);
-		};
-		node.addEventListener('scroll', update, { passive: true });
-		node.addEventListener('wheel', releaseOnInput, { passive: true });
-		node.addEventListener('touchstart', releaseOnInput, { passive: true });
-		update();
-		return () => {
-			node.removeEventListener('scroll', update);
-			node.removeEventListener('wheel', releaseOnInput);
-			node.removeEventListener('touchstart', releaseOnInput);
-		};
+		followOutput = isAtBottom(node);
+		// Reaching the bottom always re-engages following; only the user
+		// scrolling away releases it. Programmatic scrolls in between (a smooth
+		// jump, the virtualizer keeping up with a growing reply) leave it alone.
+		return observeFollow(node, (atBottom, byUser) => {
+			if (atBottom) followOutput = true;
+			else if (byUser) {
+				settle.cancel();
+				followOutput = false;
+			}
+		});
 	});
 
 	// Sending re-engages following even if the user had scrolled up to read.
@@ -211,66 +226,56 @@
 		);
 	};
 
-	function measure(node: HTMLDivElement) {
-		get(virtualizer).measureElement(node);
-		if (typeof ResizeObserver === 'undefined') return;
-		// Re-measuring inside the callback moves the rows below, which the
-		// observer sees in the same frame and reports as an undelivered loop.
-		// Deferring one frame keeps the layout change out of the observer's
-		// own delivery, and skipping unchanged heights keeps it quiet.
-		let height = node.offsetHeight;
-		let frame: number | undefined;
-		const observer = new ResizeObserver(() => {
-			if (node.offsetHeight === height || frame !== undefined) return;
-			frame = requestAnimationFrame(() => {
-				frame = undefined;
-				height = node.offsetHeight;
-				get(virtualizer).measureElement(node);
-				measureVersion++;
-			});
-		});
-		observer.observe(node);
-		return () => {
-			observer.disconnect();
-			if (frame !== undefined) cancelAnimationFrame(frame);
-		};
-	}
+	const measure = createRowMeasurer<HTMLDivElement>(
+		(node) => get(virtualizer).measureElement(node),
+		() => {
+			measureVersion++;
+			pinIfFollowing();
+		},
+	);
 </script>
 
 <ScrollPanel name="messages" bind:viewport>
 	<div data-ui="message-list">
 		<div data-ui="virtual-canvas" style={`height:${totalSize}px`}>
 			{#each virtualItems as virtualRow (virtualRow.key)}
-				{@const row = rows[virtualRow.index]!}
-				<div
-					data-ui="virtual-message"
-					data-index={virtualRow.index}
-					{@attach measure}
-					style={`transform:translateY(${virtualRow.start}px)`}
-				>
-					{#if virtualRow.index === 0 || dayKey(rows[virtualRow.index - 1]!.createdAt) !== dayKey(row.createdAt)}
-						<div data-ui="day-separator">
-							<span>{formatDay(row.createdAt)}</span>
-						</div>
-					{/if}
-					<MessageGroupView
-						group={row}
-						groupedBefore={row.groupedBefore}
-						groupedAfter={row.groupedAfter}
-						{agentName}
-						{expandReasoning}
-						{collapseToken}
-						{matched}
-						onReadAttachment={(id) => store.readAttachment(id)}
-						onRevealAttachment={(id) => store.revealAttachment(id)}
-						projectPath={currentSession?.projectPath}
-						activity={activity.streaming &&
-						row.sourceMessageId === lastMessageId &&
-						row.activityTarget
-							? activity
-							: undefined}
-					/>
-				</div>
+				{@const row = rows[virtualRow.index]}
+				<!-- Rows can shrink, so an item can outlive its row for a frame. -->
+				{#if row}
+					<div
+						data-ui="virtual-message"
+						data-index={virtualRow.index}
+						{@attach measure}
+						style={`transform:translateY(${virtualRow.start}px)`}
+					>
+						{#if virtualRow.index === 0 || dayKey(rows[virtualRow.index - 1]!.createdAt) !== dayKey(row.createdAt)}
+							<div data-ui="day-separator">
+								<span>{formatDay(row.createdAt)}</span>
+							</div>
+						{/if}
+						{#if row.kind === 'message' || row.kind === 'tool'}
+							<MessageGroupView
+								group={row}
+								groupedBefore={row.groupedBefore}
+								groupedAfter={row.groupedAfter}
+								{agentName}
+								{expandReasoning}
+								{collapseToken}
+								{matched}
+								onReadAttachment={(id) => store.readAttachment(id)}
+								onRevealAttachment={(id) => store.revealAttachment(id)}
+								projectPath={currentSession?.projectPath}
+								activity={activity.streaming &&
+								row.sourceMessageId === lastMessageId &&
+								row.activityTarget
+									? activity
+									: undefined}
+							/>
+						{:else}
+							<ThreadEvent {row} />
+						{/if}
+					</div>
+				{/if}
 			{/each}
 		</div>
 	</div>

@@ -234,10 +234,16 @@ describe('PiAgentService events', () => {
 
 			// A client that missed the original stream start (reload, reconnect,
 			// first view) still learns the session is mid-response.
-			const state = events.at(-1);
+			const state = events.find((item) => item.type === 'session.state');
 			expect(state).toMatchObject({
 				type: 'session.state',
 				state: 'streaming',
+			});
+			// ...and what is still queued against that response.
+			expect(events.at(-1)).toMatchObject({
+				type: 'session.queue',
+				steering: [],
+				followUp: [],
 			});
 			// Everything up to and including the pre-snapshot events is already
 			// reflected in the snapshot; the state event is the first replayable.

@@ -16,12 +16,6 @@
 	}
 </script>
 
-<div data-ui="settings-subhead">
-	<strong>Registries</strong>
-	<span>Update sources, manage installed extensions, or remove a registry.</span
-	>
-</div>
-
 {#if store.registryBusy && registries.length === 0}
 	<div data-ui="settings-card">
 		<ResourceNote>Loading…</ResourceNote>

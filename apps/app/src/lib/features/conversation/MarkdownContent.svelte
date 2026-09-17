@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { copyToClipboard } from '../../clipboard';
 	import { renderMarkdown } from './markdown';
 
 	interface Props {
@@ -36,9 +37,8 @@
 			const button = target.closest<HTMLButtonElement>('[data-copy-code]');
 			if (!button) return;
 			const code = button.parentElement?.nextElementSibling?.textContent;
-			if (!code || !navigator.clipboard) return;
-			await navigator.clipboard.writeText(code);
-			button.textContent = 'Copied';
+			const copied = await copyToClipboard(code ?? undefined);
+			button.textContent = copied ? 'Copied' : 'Copy failed';
 			window.setTimeout(() => (button.textContent = 'Copy'), 1_500);
 		};
 		node.addEventListener('click', copyCode);

@@ -2,7 +2,7 @@
 	position: relative;
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);
-	align-items: start;
+	align-items: stretch;
 	gap: var(--space-2);
 	width: 100%;
 	padding: var(--space-2) var(--space-2);
@@ -44,8 +44,19 @@
 	color: color-mix(in srgb, var(--color-accent) 55%, var(--color-text-muted));
 }
 
-[data-ui='session-item'] [data-ui='session-icon'] {
-	margin-top: 1px;
+/*
+ * A tile the full height of the row. Idle it is a quiet glyph; while the
+ * agent works it becomes the indicator: accent tile, spinning glyph, and a
+ * slow pulse that is visible from across the room without being a marquee.
+ */
+[data-ui='session-icon'] {
+	display: grid;
+	width: 28px;
+	min-height: 32px;
+	place-items: center;
+	align-self: stretch;
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
 	color: var(--color-text-faint);
 }
 
@@ -53,26 +64,43 @@
 	color: inherit;
 }
 
-[data-ui='session-icon'] {
-	position: relative;
-	display: grid;
-	place-items: center;
+[data-ui='session-item'][data-running] [data-ui='session-icon'] {
+	background: var(--color-accent-soft);
+	color: var(--color-accent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent);
+	animation: session-working-glow 1.6s ease-in-out infinite;
 }
 
-[data-ui='session-running'] {
-	position: absolute;
-	right: -2px;
-	bottom: -2px;
-	width: 7px;
-	height: 7px;
-	border: 1px solid var(--color-surface);
-	border-radius: 50%;
-	background: var(--color-accent);
-	animation: pulse 1.4s ease-in-out infinite;
+[data-ui='session-item'][data-running] small {
+	color: var(--color-accent);
 }
 
-[data-ui='session-item'] > span:last-child {
+[data-ui='session-working'] {
+	animation: spin 1.2s linear infinite;
+}
+
+@keyframes session-working-glow {
+	0%,
+	100% {
+		box-shadow: 0 0 0 1px
+			color-mix(in srgb, var(--color-accent) 45%, transparent);
+	}
+	50% {
+		box-shadow: 0 0 0 3px
+			color-mix(in srgb, var(--color-accent) 30%, transparent);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-ui='session-item'][data-running] [data-ui='session-icon'],
+	[data-ui='session-working'] {
+		animation: none;
+	}
+}
+
+[data-ui='session-item'] > span:nth-child(2) {
 	display: grid;
+	align-self: center;
 	gap: 2px;
 	min-width: 0;
 }

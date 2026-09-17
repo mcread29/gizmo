@@ -1,6 +1,6 @@
 import type { SessionManager } from '@earendil-works/pi-coding-agent';
 import type { SessionSnapshot } from '@gizmo/protocol';
-import { readUsage } from './pi-event-translator';
+import { readUsage } from './pi-event-helpers';
 import { inFlightAssistantView } from './session-transcript';
 import type { AgentEventHub } from './agent-event-hub';
 import type { PiSessionLike } from './pi-agent-types';

@@ -5,6 +5,7 @@ import {
 	extensionUiRequestSchema,
 } from './extensions';
 import {
+	compactionReasonSchema,
 	conversationAttachmentSchema,
 	sessionStateSchema,
 	sessionUsageSchema,
@@ -53,16 +54,36 @@ export const agentEventSchema = Type.Union([
 		},
 		{ additionalProperties: false },
 	),
+	/**
+	 * Text queued against the run in flight. Steering is delivered at the next
+	 * model call; follow-ups wait for the run to finish. Sent whenever the
+	 * queue changes, so the thread can show what is still waiting.
+	 */
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('session.queue'),
+			steering: Type.Array(Type.String()),
+			followUp: Type.Array(Type.String()),
+		},
+		{ additionalProperties: false },
+	),
 	Type.Object(
 		{
 			...eventEnvelope,
 			type: Type.Literal('session.compaction'),
 			active: Type.Boolean(),
-			reason: Type.Union([
-				Type.Literal('manual'),
-				Type.Literal('threshold'),
-				Type.Literal('overflow'),
-			]),
+			reason: compactionReasonSchema,
+			/** Present when a completed compaction actually rewrote history. */
+			result: Type.Optional(
+				Type.Object(
+					{
+						tokensBefore: Type.Integer({ minimum: 0 }),
+						summary: Type.String(),
+					},
+					{ additionalProperties: false },
+				),
+			),
 		},
 		{ additionalProperties: false },
 	),

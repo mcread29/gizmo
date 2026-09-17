@@ -55,6 +55,7 @@
 	{#if store.sessionId && store.usage && store.usage.contextUsed > 0}
 		<UsageMeter
 			usage={store.usage}
+			compaction={store.compactionPolicy}
 			compactDisabled={streaming ||
 				store.compacting ||
 				store.connection !== 'connected'}

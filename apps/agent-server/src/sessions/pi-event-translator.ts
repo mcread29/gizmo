@@ -2,6 +2,15 @@ import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
 import { normalizeToolResult, toolResultIsError } from '../tools/tool-result';
 import { displayedUserMessage } from '../attachments/attachment-message';
 import { isStoppedTurn } from './transcript-settling';
+import {
+	getToolResultText,
+	isRedactedThinking,
+	readCompactionResult,
+	readUsage,
+	type TranslatedUsage,
+} from './pi-event-helpers';
+
+export { readUsage } from './pi-event-helpers';
 
 export type TranslatedPiEvent =
 	| {
@@ -12,7 +21,9 @@ export type TranslatedPiEvent =
 			type: 'session.compaction';
 			active: boolean;
 			reason: 'manual' | 'threshold' | 'overflow';
+			result?: { tokensBefore: number; summary: string };
 	  }
+	| { type: 'session.queue'; steering: string[]; followUp: string[] }
 	| {
 			type: 'message.started';
 			messageId: string;
@@ -28,19 +39,7 @@ export type TranslatedPiEvent =
 			redacted?: boolean;
 	  }
 	| { type: 'message.completed'; messageId: string }
-	| {
-			type: 'session.usage';
-			usage: {
-				input: number;
-				output: number;
-				cacheRead: number;
-				cacheWrite: number;
-				contextUsed: number;
-				cost: number;
-				/** Filled in by the service, which knows the model. */
-				contextWindow?: number;
-			};
-	  }
+	| { type: 'session.usage'; usage: TranslatedUsage }
 	| {
 			type: 'tool.started';
 			messageId: string;
@@ -71,6 +70,11 @@ export class PiEventTranslator {
 	#lastAssistantMessageId?: string;
 	/** Whether the current assistant message has already emitted reasoning. */
 	#reasoningOpen = false;
+	/**
+	 * Pi reports a compaction Gizmo forced after a run as "manual"; the reason
+	 * the user sees should be the threshold that actually caused it.
+	 */
+	#compactionReasonOverride?: 'threshold';
 
 	constructor(emit: Emit) {
 		this.#emit = emit;
@@ -81,21 +85,29 @@ export class PiEventTranslator {
 		return this.#activeMessageIds.get('assistant');
 	}
 
+	/** Reports the next compaction as threshold-driven rather than manual. */
+	expectThresholdCompaction(): void {
+		this.#compactionReasonOverride = 'threshold';
+	}
+
 	receive(event: AgentSessionEvent): void {
 		switch (event.type) {
 			case 'compaction_start':
 				this.#emit({
 					type: 'session.compaction',
 					active: true,
-					reason: event.reason,
+					reason: this.#compactionReasonOverride ?? event.reason,
 				});
 				break;
-			case 'compaction_end':
+			case 'compaction_end': {
+				const result = readCompactionResult(event.result);
 				this.#emit({
 					type: 'session.compaction',
 					active: false,
-					reason: event.reason,
+					reason: this.#compactionReasonOverride ?? event.reason,
+					...(result ? { result } : {}),
 				});
+				this.#compactionReasonOverride = undefined;
 				if (event.errorMessage) {
 					this.#emit({
 						type: 'error',
@@ -103,6 +115,14 @@ export class PiEventTranslator {
 						message: event.errorMessage,
 					});
 				}
+				break;
+			}
+			case 'queue_update':
+				this.#emit({
+					type: 'session.queue',
+					steering: [...event.steering],
+					followUp: [...event.followUp],
+				});
 				break;
 			case 'agent_start':
 				this.#emit({ type: 'session.state', state: 'streaming' });
@@ -240,61 +260,4 @@ export class PiEventTranslator {
 				break;
 		}
 	}
-}
-
-/** Context includes input, output, and cached tokens resent next turn. */
-export function readUsage(value: unknown): TranslatedUsage | undefined {
-	if (!value || typeof value !== 'object') return undefined;
-	const usage = value as Record<string, unknown>;
-	const input = count(usage.input);
-	const output = count(usage.output);
-	const cacheRead = count(usage.cacheRead);
-	const cacheWrite = count(usage.cacheWrite);
-	const cost = usage.cost as { total?: unknown } | undefined;
-	return {
-		input,
-		output,
-		cacheRead,
-		cacheWrite,
-		contextUsed: input + cacheRead + cacheWrite + output,
-		cost: count(cost?.total),
-	};
-}
-
-type TranslatedUsage = Extract<
-	TranslatedPiEvent,
-	{ type: 'session.usage' }
->['usage'];
-
-function count(value: unknown): number {
-	return typeof value === 'number' && Number.isFinite(value) && value > 0
-		? Math.round(value)
-		: 0;
-}
-
-function isRedactedThinking(partial: unknown, index: number): boolean {
-	if (!partial || typeof partial !== 'object' || !('content' in partial))
-		return false;
-	const content = (partial as { content: unknown }).content;
-	if (!Array.isArray(content)) return false;
-	const block = content[index] as
-		{ type?: string; redacted?: boolean } | undefined;
-	return block?.type === 'thinking' && block.redacted === true;
-}
-
-function getMessageText(content: unknown): string {
-	if (typeof content === 'string') return content;
-	if (!Array.isArray(content)) return '';
-	return content
-		.filter(
-			(item): item is { type: 'text'; text: string } => item?.type === 'text',
-		)
-		.map((item) => item.text)
-		.join('');
-}
-
-function getToolResultText(result: unknown): string {
-	if (!result || typeof result !== 'object' || !('content' in result))
-		return '';
-	return getMessageText(result.content);
 }

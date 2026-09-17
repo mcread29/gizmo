@@ -58,11 +58,43 @@ export type ConversationAttachment = Static<
 	typeof conversationAttachmentSchema
 >;
 
+export const compactionReasonSchema = Type.Union([
+	Type.Literal('manual'),
+	Type.Literal('threshold'),
+	Type.Literal('overflow'),
+]);
+
+export type CompactionReason = Static<typeof compactionReasonSchema>;
+
+/**
+ * Something that happened to the thread rather than something said in it.
+ * Rendered inline so the transcript explains its own gaps.
+ */
+export const conversationEventSchema = Type.Object(
+	{
+		kind: Type.Literal('compaction'),
+		/** Unknown for compactions read back from the session file. */
+		reason: Type.Optional(compactionReasonSchema),
+		/** Context size the summarized history occupied before compaction. */
+		tokensBefore: Type.Optional(Type.Integer({ minimum: 0 })),
+		summary: Type.Optional(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+
+export type ConversationEvent = Static<typeof conversationEventSchema>;
+
 export const conversationMessageSchema = Type.Object(
 	{
 		id: Type.String({ minLength: 1 }),
-		role: Type.Union([Type.Literal('user'), Type.Literal('assistant')]),
+		role: Type.Union([
+			Type.Literal('user'),
+			Type.Literal('assistant'),
+			Type.Literal('event'),
+		]),
 		content: Type.String(),
+		/** Present on `event` rows, which carry no prose of their own. */
+		event: Type.Optional(conversationEventSchema),
 		/** Model reasoning, when the provider exposes it in readable form. */
 		reasoning: Type.Optional(Type.String()),
 		/**

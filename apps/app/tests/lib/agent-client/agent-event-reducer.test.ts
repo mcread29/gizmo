@@ -11,6 +11,7 @@ function state(): AgentEventState {
 		sessionState: 'idle',
 		compacting: false,
 		unsent: [],
+		queue: { steering: [], followUp: [] },
 		messages: [],
 		sessions: [
 			{
@@ -134,7 +135,7 @@ describe('applyAgentEvent', () => {
 		expect(target.projectExtensions[0]?.id).toBe('com.gizmo.extras.console');
 	});
 
-	it('records completed automatic compaction and invalidates stale usage', () => {
+	it('records a completed compaction in the thread and invalidates stale usage', () => {
 		const target = state();
 		target.usage = {
 			input: 100,
@@ -151,13 +152,24 @@ describe('applyAgentEvent', () => {
 			type: 'session.compaction',
 			active: false,
 			reason: 'threshold',
+			result: { tokensBefore: 120_000, summary: 'We fixed the build.' },
 		});
 
 		expect(target.usage).toBeUndefined();
-		expect(target.lastAutomaticCompactionReason).toBe('threshold');
+		expect(target.messages).toEqual([
+			expect.objectContaining({
+				role: 'event',
+				event: {
+					kind: 'compaction',
+					reason: 'threshold',
+					tokensBefore: 120_000,
+					summary: 'We fixed the build.',
+				},
+			}),
+		]);
 	});
 
-	it('does not label manual compaction as automatic', () => {
+	it('adds no thread row for a compaction that changed nothing', () => {
 		const target = state();
 
 		applyAgentEvent(target, {
@@ -168,7 +180,29 @@ describe('applyAgentEvent', () => {
 			reason: 'manual',
 		});
 
-		expect(target.lastAutomaticCompactionReason).toBeUndefined();
+		expect(target.messages).toEqual([]);
+	});
+
+	it('tracks the queue while a run is in flight and clears it when the run ends', () => {
+		const target = state();
+		target.sessionState = 'streaming';
+
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 1,
+			type: 'session.queue',
+			steering: ['Focus on the tests'],
+			followUp: [],
+		});
+		expect(target.queue.steering).toEqual(['Focus on the tests']);
+
+		applyAgentEvent(target, {
+			...envelope,
+			eventId: 2,
+			type: 'session.state',
+			state: 'idle',
+		});
+		expect(target.queue).toEqual({ steering: [], followUp: [] });
 	});
 
 	it('owns transcript and tool-call progression', () => {

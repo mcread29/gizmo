@@ -22,7 +22,9 @@ export function groupMessages(
 	const groups: MessageGroup[] = [];
 	for (const message of messages) {
 		const current = groups.at(-1);
+		// Events mark a point in the thread; each stands on its own.
 		const continues =
+			message.role !== 'event' &&
 			current?.role === message.role &&
 			message.createdAt - (current.messages.at(-1)?.createdAt ?? 0) <= windowMs;
 		if (continues) current.messages.push(message);

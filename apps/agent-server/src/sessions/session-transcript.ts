@@ -39,6 +39,24 @@ export function sessionTranscript(
 	const lastAssistantId = lastAssistantEntryId(branch);
 
 	for (const entry of branch) {
+		if (entry.type === 'compaction') {
+			// The file records that history was rewritten here; the thread should
+			// say so rather than silently jumping from one topic to another.
+			messages.push({
+				id: entry.id,
+				role: 'event',
+				content: '',
+				createdAt: Date.parse(entry.timestamp) || 0,
+				complete: true,
+				tools: [],
+				event: {
+					kind: 'compaction',
+					tokensBefore: entry.tokensBefore,
+					summary: entry.summary,
+				},
+			});
+			continue;
+		}
 		if (entry.type !== 'message') continue;
 		const message = (entry as SessionMessageEntry).message;
 		if (message.role === 'user') {

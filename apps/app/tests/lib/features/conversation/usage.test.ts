@@ -33,6 +33,31 @@ describe('usageView', () => {
 		).toBe('full');
 	});
 
+	it('reads the meter against the auto-compaction threshold when one is set', () => {
+		const policy = { enabled: true, fillPercent: 25, retainPercent: 10 };
+		const at = (contextUsed: number) =>
+			usageView({ ...base, contextUsed, contextWindow: 200_000 }, policy);
+
+		// 16% of the window is well under the model's wall, but four fifths of
+		// the way to a 25% threshold.
+		expect(at(30_000).level).toBe('ok');
+		expect(at(42_000).level).toBe('warn');
+		expect(at(50_000).level).toBe('full');
+		expect(at(42_000).threshold).toBeCloseTo(0.25);
+		expect(at(42_000).policy).toBe('Auto-compacts at 25% (50k)');
+	});
+
+	it('falls back to the model wall when auto-compaction is off', () => {
+		const policy = { enabled: false, fillPercent: 25, retainPercent: 10 };
+		const view = usageView(
+			{ ...base, contextUsed: 60_000, contextWindow: 200_000 },
+			policy,
+		);
+		expect(view.level).toBe('ok');
+		expect(view.threshold).toBeUndefined();
+		expect(view.policy).toBe('Auto-compaction is off');
+	});
+
 	it('still reports a total when the model has no stated window', () => {
 		const view = usageView(base);
 		expect(view.fraction).toBeUndefined();

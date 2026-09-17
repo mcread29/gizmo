@@ -147,6 +147,13 @@ kbd {
 	stroke: var(--color-danger);
 }
 
+/* Where auto-compaction fires, so the fill is read against it. */
+[data-ui='usage-threshold'] {
+	stroke: var(--color-text-muted);
+	stroke-width: 1.5;
+	stroke-linecap: round;
+}
+
 /*
  * Agent questions (extension UI select/input requests) take the composer's
  * place while the agent waits for an answer: the question, a vertical list

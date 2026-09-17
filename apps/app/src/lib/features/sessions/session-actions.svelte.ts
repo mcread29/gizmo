@@ -1,3 +1,4 @@
+import { copyToClipboard } from '../../clipboard';
 import type { AgentStore } from '../../agent-client';
 import type { WorkspaceIntegration } from '@gizmo/protocol';
 import type { ToastQueue } from '../../toasts.svelte';
@@ -114,12 +115,13 @@ export class SessionActions {
 	}
 
 	async copyTranscript(sessionId = this.#store.sessionId): Promise<void> {
-		if (!sessionId || !navigator.clipboard) return;
+		if (!sessionId) return;
 		try {
 			const snapshot = await this.#snapshot(sessionId);
-			await navigator.clipboard.writeText(
+			const copied = await copyToClipboard(
 				transcriptMarkdown(snapshot, this.#agentName),
 			);
+			if (!copied) throw new Error('Clipboard is unavailable here');
 			this.#toasts.show('Transcript copied as Markdown');
 		} catch (error) {
 			this.#report(error);

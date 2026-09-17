@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentSessionSummary } from '@gizmo/protocol';
-	import { MessageSquare } from '@lucide/svelte';
+	import { LoaderCircle, MessageSquare } from '@lucide/svelte';
 	import { formatSessionTime, threadTitle } from './session-groups';
 
 	interface Props {
@@ -13,9 +13,11 @@
 	let { session, active, running, onOpen }: Props = $props();
 
 	let subtitle = $derived(
-		`${session.messageCount} ${
-			session.messageCount === 1 ? 'message' : 'messages'
-		} · ${formatSessionTime(session.lastActiveAt)}`,
+		running
+			? 'Agent working…'
+			: `${session.messageCount} ${
+					session.messageCount === 1 ? 'message' : 'messages'
+				} · ${formatSessionTime(session.lastActiveAt)}`,
 	);
 </script>
 
@@ -29,15 +31,18 @@
 	aria-current={active ? 'page' : undefined}
 	onclick={onOpen}
 >
-	<span data-ui="session-icon">
-		<MessageSquare size={15} />
+	<!-- The icon is a tile the full height of the row; while the agent works
+	     it becomes the working indicator itself rather than a dot beside one. -->
+	<span data-ui="session-icon" aria-hidden="true">
 		{#if running}
-			<span data-ui="session-running"></span>
-			<span data-ui="sr-only">· agent working</span>
+			<LoaderCircle size={15} data-ui="session-working" />
+		{:else}
+			<MessageSquare size={15} />
 		{/if}
 	</span>
 	<span>
 		<strong>{threadTitle(session.title)}</strong>
 		<small>{subtitle}</small>
 	</span>
+	{#if running}<span data-ui="sr-only">Agent working</span>{/if}
 </button>

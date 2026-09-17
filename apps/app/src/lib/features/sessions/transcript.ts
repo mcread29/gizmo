@@ -8,6 +8,10 @@ export function transcriptMarkdown(
 ): string {
 	const lines = [`# ${snapshot.session.title}`, ''];
 	for (const message of snapshot.messages) {
+		if (message.role === 'event') {
+			lines.push('> _Context compacted; earlier history was summarized._', '');
+			continue;
+		}
 		lines.push(`## ${message.role === 'user' ? 'You' : agentName}`, '');
 		if (message.content) lines.push(message.content, '');
 		for (const tool of message.tools) {

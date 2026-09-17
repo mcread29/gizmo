@@ -1,5 +1,42 @@
 # Work log
 
+## 2026-09-16 — Thread tells its own story: queue, compaction, follow, cards
+
+- Pending steering is a row in the thread. Pi's `queue_update` is forwarded
+  as `session.queue`, the reducer keeps it per run, and the message list
+  appends a dashed "Queued" bubble after the transcript until Pi delivers
+  it. A client joining mid-run gets the queue with its snapshot.
+- Compaction is a row too. Compaction entries in the session file become
+  `role: 'event'` messages, and a completed live compaction pushes the same
+  row with Pi's summary and token count; "Compacting context…" shows in the
+  thread while it runs. The banner above the composer is gone.
+- The context meter is read against the user's auto-compaction threshold,
+  with a tick on the ring where it fires and the setting in the tooltip,
+  instead of against the model wall the thread will never reach.
+- Found why auto-compaction could silently do nothing: Pi's threshold pass
+  keeps whole turns and returns without an event when the only turn since
+  the last summary is the oversized one. After a run settles over the
+  threshold with no compaction, the server now compacts anyway, allowing a
+  cut inside that turn, and reports it as threshold-driven.
+- Following the transcript is released only by the user (wheel, key, touch,
+  drag), not by every scroll event that misses the bottom, and every row
+  re-measure re-pins the end while following. A smooth "Jump to latest" no
+  longer drops follow halfway down.
+- Tool cards are one fixed-height line in every state: the tool name in
+  full, the identifying argument truncated, a failure's message in place of
+  "Failed". Sidebar thread icons fill the row and become the working
+  indicator while the agent runs.
+- Copy buttons fall back to the selection command where the async clipboard
+  is missing, which is every plain-http LAN or tailnet address.
+- Settings → Extensions lists Gizmo extensions and registry installs only;
+  stray Pi extensions sit behind a fold. Protocol v28.
+- Commit-message generation had died with "Request is missing
+  x-opencode-session": a bare `modelRuntime.completeSimple` skips the
+  per-request headers Pi's agent loop adds, and OpenCode's gateway refuses
+  the call. `commit-message.ts` now passes the session id and the OpenCode
+  session header, and carries the user's house-style prompt (single-word
+  lowercase prefix, present tense, 72-column wrap, 50/70 title limits).
+
 ## 2026-09-01 — Protocol v26: one project service per extension, no first-service routing
 
 - Project services were still a singular path: core held exactly one

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { copyToClipboard } from '../../clipboard';
 	import type { SessionTree } from '@gizmo/protocol';
 	import { ArrowLeft } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
@@ -117,8 +118,7 @@
 	}
 
 	async function copyEntry(text: string) {
-		if (!navigator.clipboard) return;
-		await navigator.clipboard.writeText(text);
+		if (!(await copyToClipboard(text))) return;
 		toasts.show('Copied', 'success');
 	}
 </script>

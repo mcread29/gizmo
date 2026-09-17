@@ -12,6 +12,7 @@
 		Terminal,
 	} from '@lucide/svelte';
 	import { Button } from '../../components';
+	import { copyToClipboard } from '../../clipboard';
 	import { toasts } from '../../toasts.svelte';
 	import ToolResult from './ToolResult.svelte';
 	import {
@@ -47,8 +48,6 @@
 	let pinned = $state(false);
 
 	let resultText = $derived(formatToolResult(tool.result));
-	// Progress text is the useful subtitle while a tool runs; once it has
-	// finished, "Completed" says nothing the status icon has not already said.
 	let display = $derived(
 		tool.name === 'display' && tool.status !== 'error'
 			? readDisplayResult(tool.result)
@@ -57,11 +56,8 @@
 	let summary = $derived(
 		tool.name === 'display' ? display?.title : toolSummary(tool.input),
 	);
-	let subtitle = $derived(
-		tool.status === 'running' ? tool.statusText : (summary ?? tool.statusText),
-	);
 	let errors = $derived(readArray(tool.result, 'errors'));
-	/** The failure, carried on the collapsed card so a crashed run does not
+	/** The failure, carried on the card's one line so a crashed run does not
 	 * look calmer than it is; the full output stays one click away. */
 	let errorExcerpt = $derived.by(() => {
 		if (tool.status !== 'error') return undefined;
@@ -72,9 +68,17 @@
 				: (stringValue(recordValue(first, 'message')) ??
 					stringValue(recordValue(first, 'error')) ??
 					stringValue(recordValue(tool.result, 'error')));
-		if (!message) return undefined;
-		return message.length > 240 ? `${message.slice(0, 240)}…` : message;
+		return message?.replace(/\s+/g, ' ').trim() || undefined;
 	});
+	// Every card is one line: the tool name in full, then whatever identifies
+	// this call, truncated. Progress text is the useful subtitle while a tool
+	// runs; a failure's message beats "Failed"; once finished, the status icon
+	// already says "Completed".
+	let subtitle = $derived(
+		tool.status === 'running'
+			? tool.statusText
+			: (errorExcerpt ?? summary ?? tool.statusText),
+	);
 	let consoleEntriesKey = $derived(
 		toolPresentationPlugins()
 			.map((plugin) => plugin.consoleEntriesKey?.(tool.name))
@@ -107,11 +111,7 @@
 	});
 
 	async function copyResult() {
-		if (!resultText) return;
-		try {
-			if (!navigator.clipboard) throw new Error('Clipboard unavailable');
-			await navigator.clipboard.writeText(resultText);
-		} catch {
+		if (!(await copyToClipboard(resultText))) {
 			toasts.show('Could not copy: clipboard is unavailable here', 'danger');
 			return;
 		}
@@ -149,10 +149,11 @@
 		{:else}
 			<Terminal size={15} />
 		{/if}
-		<span>
-			<strong>{toolLabel(tool.name)}</strong>
-			<small title={summary}>{subtitle}</small>
-		</span>
+		<strong>{toolLabel(tool.name)}</strong>
+		<small
+			data-tone={errorExcerpt && !open ? 'danger' : undefined}
+			title={subtitle}>{subtitle}</small
+		>
 		{#if tool.status === 'running'}
 			<CircleDashed data-ui="spinner" size={15} />
 		{:else if tool.status === 'complete'}
@@ -161,19 +162,6 @@
 			<CircleX size={15} />
 		{/if}
 	</summary>
-
-	{#if errorExcerpt && !open}
-		<button
-			type="button"
-			data-ui="tool-error-inline"
-			onclick={() => {
-				pinned = true;
-				open = true;
-			}}
-		>
-			{errorExcerpt}
-		</button>
-	{/if}
 
 	{#if open && !display}
 		<div data-ui="tool-content">

@@ -1,0 +1,94 @@
+/*
+ * Rows about the thread rather than turns in it: a compaction that rewrote
+ * history, a message queued against the run in flight, a compaction under
+ * way. Quiet, but in the transcript where the gap they explain is.
+ */
+[data-ui='thread-event'] {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: start;
+	gap: var(--space-2);
+	margin-bottom: var(--space-6);
+	padding: var(--space-2) var(--space-3);
+	border: 1px dashed var(--color-border-strong);
+	border-radius: var(--radius-md);
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}
+
+[data-ui='thread-event'] > svg {
+	margin-top: 2px;
+	color: var(--color-accent);
+}
+
+[data-ui='thread-event'] > span {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
+[data-ui='thread-event'] strong {
+	color: var(--color-text);
+	font-weight: 600;
+}
+
+[data-ui='thread-event'] small {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='thread-event'][data-kind='compacting'] > svg {
+	animation: spin 1.2s linear infinite;
+}
+
+/* Queued text reads as the user's bubble it is about to become. */
+[data-ui='thread-event'][data-kind='queued'] {
+	grid-template-columns: minmax(0, 1fr);
+	justify-self: end;
+	width: fit-content;
+	max-width: min(80%, 620px);
+	margin-left: auto;
+	padding: 8px 14px 10px;
+	border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs);
+	background: color-mix(in srgb, var(--color-surface-soft) 60%, transparent);
+}
+
+[data-ui='thread-event'][data-kind='queued'] p {
+	margin: 0;
+	color: var(--color-text);
+	font-size: var(--text-sm);
+	line-height: 1.5;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+[data-ui='thread-event'][data-kind='queued'] small svg {
+	color: var(--color-accent);
+}
+
+[data-ui='thread-event-toggle'] {
+	width: fit-content;
+	margin-top: 2px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-accent);
+	font: inherit;
+	font-size: var(--text-2xs);
+	cursor: pointer;
+}
+
+[data-ui='thread-event-toggle']:hover {
+	text-decoration: underline;
+}
+
+[data-ui='thread-event-summary'] {
+	margin-top: var(--space-2);
+	padding-left: var(--space-3);
+	border-left: 2px solid var(--color-border);
+	color: var(--color-text-muted);
+	font-size: var(--text-sm);
+}

@@ -5,6 +5,55 @@ import {
 	estimateRowHeight,
 } from '../../../../src/lib/features/conversation/message-rows';
 
+describe('createMessageRows pending rows', () => {
+	it('appends queued text and a running compaction after the transcript', () => {
+		const rows = createMessageRows([message('Hello')], {
+			steering: ['Focus on tests'],
+			followUp: ['Then lint'],
+			compacting: true,
+		});
+
+		expect(rows.map((row) => row.kind)).toEqual([
+			'message',
+			'queued',
+			'queued',
+			'compacting',
+		]);
+		expect(rows[1]?.pending).toEqual({
+			text: 'Focus on tests',
+			delivery: 'steer',
+		});
+		expect(rows[2]?.pending).toEqual({
+			text: 'Then lint',
+			delivery: 'followUp',
+		});
+		// Dated with the last message, so no day separator splits them off.
+		expect(rows[3]?.createdAt).toBe(rows[0]?.createdAt);
+	});
+
+	it('gives a compaction event its own row', () => {
+		const rows = createMessageRows([
+			message('Before'),
+			{
+				id: 'c1',
+				role: 'event',
+				content: '',
+				createdAt: 2,
+				complete: true,
+				tools: [],
+				event: { kind: 'compaction', tokensBefore: 1000, summary: 'x' },
+			},
+			message('After'),
+		]);
+
+		expect(rows.map((row) => row.kind)).toEqual([
+			'message',
+			'event',
+			'message',
+		]);
+	});
+});
+
 describe('estimateRowHeight', () => {
 	it('scales with the length of the message', () => {
 		const [short] = createMessageRows([message('Hi')]);

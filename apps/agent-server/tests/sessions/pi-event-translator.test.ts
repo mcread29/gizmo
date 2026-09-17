@@ -214,7 +214,7 @@ describe('PiEventTranslator compaction', () => {
 			event({
 				type: 'compaction_end',
 				reason: 'threshold',
-				result: {},
+				result: { summary: 'Earlier work', tokensBefore: 90_000 },
 				aborted: false,
 				willRetry: false,
 			}),
@@ -222,7 +222,49 @@ describe('PiEventTranslator compaction', () => {
 
 		expect(events).toEqual([
 			{ type: 'session.compaction', active: true, reason: 'threshold' },
-			{ type: 'session.compaction', active: false, reason: 'threshold' },
+			{
+				type: 'session.compaction',
+				active: false,
+				reason: 'threshold',
+				result: { summary: 'Earlier work', tokensBefore: 90_000 },
+			},
+		]);
+	});
+
+	it('reports a forced post-run compaction under the threshold reason', () => {
+		const events: TranslatedPiEvent[] = [];
+		const translator = new PiEventTranslator((translated) =>
+			events.push(translated),
+		);
+
+		translator.expectThresholdCompaction();
+		translator.receive(event({ type: 'compaction_start', reason: 'manual' }));
+		translator.receive(
+			event({
+				type: 'compaction_end',
+				reason: 'manual',
+				result: undefined,
+				aborted: true,
+				willRetry: false,
+			}),
+		);
+		translator.receive(event({ type: 'compaction_start', reason: 'manual' }));
+
+		expect(events.map((item) => 'reason' in item && item.reason)).toEqual([
+			'threshold',
+			'threshold',
+			'manual',
+		]);
+	});
+
+	it('forwards the queue so the thread can show what is still waiting', () => {
+		const events: TranslatedPiEvent[] = [];
+		const translator = new PiEventTranslator((e) => events.push(e));
+		translator.receive(
+			event({ type: 'queue_update', steering: ['Go faster'], followUp: [] }),
+		);
+		expect(events).toEqual([
+			{ type: 'session.queue', steering: ['Go faster'], followUp: [] },
 		]);
 	});
 });

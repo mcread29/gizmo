@@ -171,3 +171,39 @@ describe('sessionTranscript interruption', () => {
 		expect(message?.interrupted).toBeUndefined();
 	});
 });
+
+describe('sessionTranscript compaction entries', () => {
+	it('becomes an event row where history was rewritten', () => {
+		const compaction = {
+			type: 'compaction',
+			id: 'c1',
+			parentId: null,
+			timestamp: '2026-09-16T10:00:00.000Z',
+			summary: 'Earlier we set up the build.',
+			firstKeptEntryId: 'e2',
+			tokensBefore: 150_000,
+		} as SessionEntry;
+		const branch = [
+			entry({ role: 'user', content: 'hi', timestamp: 1 }),
+			compaction,
+			entry({ role: 'user', content: 'again', timestamp: 2 }),
+		];
+
+		const messages = sessionTranscript(managerOf(branch));
+
+		expect(messages.map((message) => message.role)).toEqual([
+			'user',
+			'event',
+			'user',
+		]);
+		expect(messages[1]).toMatchObject({
+			id: 'c1',
+			createdAt: Date.parse('2026-09-16T10:00:00.000Z'),
+			event: {
+				kind: 'compaction',
+				tokensBefore: 150_000,
+				summary: 'Earlier we set up the build.',
+			},
+		});
+	});
+});

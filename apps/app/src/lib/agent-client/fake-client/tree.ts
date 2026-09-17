@@ -10,7 +10,7 @@ export function appendMessageToTree(
 	session.treeEntries.push({
 		id: message.id,
 		parentId: session.leafId,
-		kind: message.role,
+		kind: message.role === 'event' ? 'compaction' : message.role,
 		summary: message.content.slice(0, 120),
 		detail: message.content,
 		createdAt: message.createdAt,

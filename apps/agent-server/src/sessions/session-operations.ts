@@ -54,6 +54,7 @@ export class SessionOperations {
 		if (compaction) {
 			validateCompactionPolicy(compaction);
 			active.session.configureCompaction?.(compaction);
+			active.compaction = compaction;
 		}
 		if (
 			!active.session.sessionName ||

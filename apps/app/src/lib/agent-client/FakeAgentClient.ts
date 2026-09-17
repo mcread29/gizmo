@@ -76,7 +76,7 @@ export class FakeAgentClient implements AgentClient {
 	listCommands: AgentClient['listCommands'] = (sessionId) =>
 		this.#sessions.listCommands(sessionId);
 	compact: AgentClient['compact'] = (sessionId) =>
-		this.#sessions.compact(sessionId);
+		this.#prompts.compact(sessionId);
 	reloadSession: AgentClient['reloadSession'] = (sessionId) =>
 		this.#sessions.reload(sessionId);
 	steer: AgentClient['steer'] = (sessionId, text, attachments) =>

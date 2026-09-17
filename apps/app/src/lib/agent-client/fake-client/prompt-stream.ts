@@ -2,13 +2,18 @@ import type { AgentAttachment, CompactionPolicy } from '@gizmo/protocol';
 import { fakeEditFile, fakeEditResult } from './fixtures';
 import type { FakeSessionCapability } from './sessions';
 import type { FakeClientState, FakeSession } from './state';
-import { appendMessageToTree } from './tree';
+import { addFakeAssistantMessage, addFakeUserMessage } from './messages';
+import { FakeThreadExtras } from './thread-extras';
 
 export class FakePromptCapability {
+	readonly #extras: FakeThreadExtras;
+
 	constructor(
 		private readonly state: FakeClientState,
 		private readonly sessions: FakeSessionCapability,
-	) {}
+	) {
+		this.#extras = new FakeThreadExtras(state);
+	}
 
 	async prompt(
 		sessionId: string,
@@ -22,9 +27,9 @@ export class FakePromptCapability {
 		const abortController = new AbortController();
 		session.abortController = abortController;
 		session.running = true;
-		this.addUserMessage(sessionId, session, text);
+		addFakeUserMessage(this.state, this.sessions, sessionId, session, text);
 		const { message: assistantMessage, id: assistantMessageId } =
-			this.addAssistantMessage(sessionId, session);
+			addFakeAssistantMessage(this.state, sessionId, session);
 
 		try {
 			for (const delta of [
@@ -56,6 +61,11 @@ export class FakePromptCapability {
 				session,
 				abortController.signal,
 			);
+			// Steered text is delivered once the tools are done, as Pi does.
+			for (const text of this.#extras.takeQueued(sessionId)) {
+				if (!(await this.state.wait(abortController.signal))) return;
+				addFakeUserMessage(this.state, this.sessions, sessionId, session, text);
+			}
 		} finally {
 			assistantMessage.complete = true;
 			session.summary.lastActiveAt = Date.now();
@@ -64,9 +74,11 @@ export class FakePromptCapability {
 				sessionId,
 				messageId: assistantMessageId,
 			});
+			this.#extras.emitUsage(sessionId, session);
 			this.state.emit({ type: 'session.state', sessionId, state: 'idle' });
 			session.abortController = undefined;
 			session.running = false;
+			this.#extras.compactIfLong(sessionId, session);
 		}
 	}
 
@@ -75,66 +87,16 @@ export class FakePromptCapability {
 		text: string,
 		attachments?: AgentAttachment[],
 	) {
-		await this.sessions.abort(sessionId);
-		await this.prompt(sessionId, text, undefined, attachments);
+		const session = this.state.getSession(sessionId);
+		if (!session.running) {
+			await this.prompt(sessionId, text, undefined, attachments);
+			return;
+		}
+		this.#extras.queue(sessionId, text);
 	}
 
-	private addUserMessage(
-		sessionId: string,
-		session: FakeSession,
-		text: string,
-	) {
-		const messageId = this.state.nextId('message');
-		const createdAt = Date.now();
-		const message = {
-			id: messageId,
-			role: 'user' as const,
-			content: text,
-			createdAt,
-			complete: true,
-			tools: [],
-		};
-		appendMessageToTree(session, message);
-		session.summary.messageCount++;
-		session.summary.lastActiveAt = Date.now();
-		this.sessions.setTitleFromPrompt(session, text);
-		this.state.emit({
-			type: 'message.started',
-			sessionId,
-			messageId,
-			role: 'user',
-			createdAt: Date.now(),
-		});
-		this.state.emit({
-			type: 'message.delta',
-			sessionId,
-			messageId,
-			delta: text,
-		});
-		this.state.emit({ type: 'message.completed', sessionId, messageId });
-		this.state.emit({ type: 'session.state', sessionId, state: 'streaming' });
-	}
-
-	private addAssistantMessage(sessionId: string, session: FakeSession) {
-		const id = this.state.nextId('message');
-		const message = {
-			id,
-			role: 'assistant' as const,
-			content: '',
-			createdAt: Date.now(),
-			complete: false,
-			tools: [],
-		};
-		appendMessageToTree(session, message);
-		session.summary.messageCount++;
-		this.state.emit({
-			type: 'message.started',
-			sessionId,
-			messageId: id,
-			role: 'assistant',
-			createdAt: Date.now(),
-		});
-		return { id, message };
+	compact(sessionId: string) {
+		return this.#extras.compact(sessionId);
 	}
 
 	private async runUnityStatus(

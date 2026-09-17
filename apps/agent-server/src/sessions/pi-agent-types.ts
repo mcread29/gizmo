@@ -30,8 +30,13 @@ export interface PiSessionLike {
 	selectModel?(provider: string, modelId: string): Promise<void>;
 	selectThinkingLevel?(level: string): void;
 	generateCommitMessage?(context: string): Promise<string>;
-	configureCompaction?(policy: CompactionPolicy): void;
+	configureCompaction?(
+		policy: CompactionPolicy,
+		options?: CompactionOptions,
+	): void;
 	compact?(): Promise<unknown>;
+	/** Pi's own reading of the context, in the same terms its trigger uses. */
+	getContextUsage?(): { percent: number | null } | undefined;
 	reload?(options?: {
 		beforeSessionStart?: () => void | Promise<void>;
 	}): Promise<void>;
@@ -42,6 +47,8 @@ export interface PiSessionLike {
 	/** Steering and follow-up text queued against the run in flight. */
 	readonly pendingMessageCount?: number;
 	clearQueue?(): { steering: string[]; followUp: string[] };
+	getSteeringMessages?(): readonly string[];
+	getFollowUpMessages?(): readonly string[];
 	/** Live state used to reconstruct the assistant message during streaming. */
 	readonly messages?: ReadonlyArray<{
 		role: string;
@@ -56,6 +63,15 @@ export interface PiSessionLike {
 	 */
 	shutdown?(): Promise<void>;
 	dispose(): void;
+}
+
+export interface CompactionOptions {
+	/**
+	 * Whether compaction may cut inside a turn. Off by default so a summary
+	 * never splits a request from its answer; on for the fallback that has to
+	 * shrink a single oversized turn.
+	 */
+	splitTurns?: boolean;
 }
 
 export type PiSessionRuntimeOptions = SessionOptions & {
