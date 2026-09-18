@@ -1,3 +1,9 @@
+import {
+	formatDigestHit,
+	searchDigests,
+	type DigestHit,
+} from './digest-search';
+import type { JournalDigest } from './journal-digest';
 import type { JournalStore } from './journal-store';
 
 export interface SearchOptions {
@@ -8,6 +14,14 @@ export interface SearchOptions {
 	maxHits?: number;
 	/** Budget for all excerpt text together; the tool result goes into the model's context. */
 	maxBytes?: number;
+	/**
+	 * The derived digests to search first. Absent or empty is normal: a
+	 * project whose journal has never been digested still searches its
+	 * segments, just without the conclusions layer.
+	 */
+	digests?: readonly JournalDigest[];
+	/** Most digests reported, before any segment excerpt is shown. */
+	maxDigests?: number;
 }
 
 export interface SearchHit {
@@ -20,27 +34,37 @@ export interface SearchHit {
 
 export interface SearchResult {
 	terms: string[];
+	/** What earlier sessions concluded, ranked. Empty when nothing is digested. */
+	digests: DigestHit[];
 	hits: SearchHit[];
 	/** True when caps dropped hits that matched. */
 	truncated: boolean;
 	segmentsSearched: number;
 }
 
-const defaults: Required<SearchOptions> = {
+const defaults: Required<Omit<SearchOptions, 'digests'>> = {
 	context: 3,
 	perSegment: 3,
 	maxHits: 12,
 	maxBytes: 12_000,
+	maxDigests: 5,
 };
 
 /** Long lines are usually JSON tool arguments; keep the neighbourhood of the hit. */
 const maxLineChars = 240;
 
 /**
- * Lexical search over every segment body. There is no index: the whole
- * journal is a few megabytes of markdown and a linear scan finishes in
- * milliseconds, which keeps the store append-only and free of derived state
- * that could drift from it.
+ * Lexical search in two stages: the digests, then the segment bodies.
+ *
+ * Digests lead because they are the answer to the question usually being
+ * asked — what did we decide, what broke, did it ship — while excerpts are
+ * the evidence behind it. Both are returned: a digest can be wrong or stale,
+ * and a segment that has never been digested is still searchable, so the raw
+ * scan is never skipped on the strength of a digest hit.
+ *
+ * There is no index for either. The whole journal is a few megabytes of
+ * markdown and a linear scan finishes in milliseconds, which keeps the store
+ * append-only and free of derived state that could drift from it.
  */
 export async function searchJournal(
 	store: JournalStore,
@@ -51,8 +75,17 @@ export async function searchJournal(
 	const terms = tokenize(query);
 	const segments = await store.list();
 	if (terms.length === 0) {
-		return { terms, hits: [], truncated: false, segmentsSearched: 0 };
+		return {
+			terms,
+			digests: [],
+			hits: [],
+			truncated: false,
+			segmentsSearched: 0,
+		};
 	}
+
+	const ranked = searchDigests(options.digests ?? [], terms);
+	const digestHits = ranked.slice(0, settings.maxDigests);
 
 	const candidates: SearchHit[] = [];
 	for (const meta of segments) {
@@ -88,21 +121,38 @@ export async function searchJournal(
 		bytes += size;
 		hits.push(hit);
 	}
-	return { terms, hits, truncated, segmentsSearched: segments.length };
+	return {
+		terms,
+		digests: digestHits,
+		hits,
+		truncated: truncated || ranked.length > digestHits.length,
+		segmentsSearched: segments.length,
+	};
 }
 
 export function formatSearchResult(result: SearchResult): string {
 	if (result.terms.length === 0) return 'No search terms given.';
-	if (result.hits.length === 0) {
+	if (result.hits.length === 0 && result.digests.length === 0) {
 		return `No matches for ${result.terms.join(' ')} across ${result.segmentsSearched} journal segments.`;
 	}
-	const blocks = result.hits.map(
-		(hit) => `[segment ${hit.segment} line ${hit.line}]\n${hit.excerpt}`,
-	);
+	const sections: string[] = [];
+	if (result.digests.length > 0) {
+		const blocks = result.digests.map(formatDigestHit).join('\n\n');
+		sections.push(`What earlier sessions concluded:\n\n${blocks}`);
+	}
+	if (result.hits.length > 0) {
+		const blocks = result.hits
+			.map((hit) => `[segment ${hit.segment} line ${hit.line}]\n${hit.excerpt}`)
+			.join('\n\n');
+		// The heading only earns its space when there is a digest block above
+		// it to tell the excerpts apart from.
+		const heading = result.digests.length > 0 ? 'Matching excerpts:\n\n' : '';
+		sections.push(`${heading}${blocks}`);
+	}
 	const footer = result.truncated
 		? '\n\n(More matches were omitted. Narrow the query, or use journal_read on a segment id above.)'
 		: '';
-	return `${blocks.join('\n\n')}${footer}`;
+	return `${sections.join('\n\n')}${footer}`;
 }
 
 /** Splits the query into lowercase words; short words match nothing useful. */
@@ -129,7 +179,7 @@ function excerpts(
 	segment: string,
 	text: string,
 	terms: string[],
-	settings: Required<SearchOptions>,
+	settings: { context: number },
 ): SearchHit[] {
 	const lines = text.split('\n');
 	const firstBodyLine = bodyStart(lines);
