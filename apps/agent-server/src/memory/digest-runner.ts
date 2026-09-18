@@ -27,7 +27,10 @@ export class DigestRunner {
 	}
 
 	/** Queues digests for freshly written segments. Never throws, never awaits. */
-	schedule(workspacePath: string, segments: readonly JournalSegmentMeta[]): void {
+	schedule(
+		workspacePath: string,
+		segments: readonly JournalSegmentMeta[],
+	): void {
 		if (segments.length === 0) return;
 		const ids = segments.map(({ id }) => id);
 		const queued = (this.#queues.get(workspacePath) ?? Promise.resolve())
@@ -56,7 +59,14 @@ export class DigestRunner {
 		for (const id of ids) {
 			const text = await journal.read(id);
 			if (!text) continue;
-			const digest = await generateDigest(id, text, settings.model, complete);
+			const digest = await generateDigest(
+				id,
+				text,
+				settings.model,
+				complete,
+				undefined,
+				(reason) => console.error(`Memory digest failed for ${id}:`, reason),
+			);
 			if (digest) await digests.write(digest);
 		}
 	}

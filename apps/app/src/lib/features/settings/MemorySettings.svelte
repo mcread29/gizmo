@@ -182,6 +182,9 @@
 						{#if status.running.failed > 0}
 							· {status.running.failed} failed
 						{/if}
+						{#if status.running.error}
+							<span data-ui="memory-error">{status.running.error}</span>
+						{/if}
 					{:else if undigested > 0}
 						{undigested} segment{undigested === 1 ? '' : 's'} not yet digested.
 					{:else if status && status.segments > 0}

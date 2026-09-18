@@ -40,6 +40,9 @@ export class MemoryService {
 							done: active.progress.done,
 							total: active.progress.total,
 							failed: active.progress.failed,
+							...(active.progress.error
+								? { error: active.progress.error }
+								: {}),
 						},
 					}
 				: {}),
@@ -120,13 +123,23 @@ export class MemoryService {
 					{
 						regenerate,
 						signal: controller.signal,
+						onFailure: (segment, reason) =>
+							console.error(`Memory digest failed for ${segment}:`, reason),
 						onProgress: (progress) => {
 							entry.progress = progress;
 						},
 					},
 				);
-			} catch (error) {
-				console.error('Memory backfill failed:', error);
+			} catch (failure) {
+				// Reaching here means the run never started -- typically an
+				// unresolvable model -- so no progress callback carried a reason.
+				const reason =
+					failure instanceof Error ? failure.message : String(failure);
+				entry.progress = { ...entry.progress, error: reason };
+				console.error('Memory backfill failed:', reason);
+				// Held briefly so a polling UI can read the reason before the
+				// run disappears from the status.
+				await new Promise((resolve) => setTimeout(resolve, 10_000));
 			} finally {
 				this.#running.delete(workspacePath);
 			}

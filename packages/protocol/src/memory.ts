@@ -56,6 +56,8 @@ export const memoryStatusSchema = Type.Object(
 					done: Type.Integer({ minimum: 0 }),
 					total: Type.Integer({ minimum: 0 }),
 					failed: Type.Integer({ minimum: 0 }),
+					/** Why the most recent failure failed, when one has. */
+					error: Type.Optional(Type.String()),
 				},
 				{ additionalProperties: false },
 			),

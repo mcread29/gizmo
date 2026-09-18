@@ -110,3 +110,14 @@
 	color: var(--color-text-muted);
 	font-size: var(--text-xs);
 }
+
+/**
+ * A failing backfill reports why. It sits inside the coverage line rather
+ * than in a toast because the run is long and detached: the reason has to
+ * still be readable when the user comes back to the page.
+ */
+[data-ui='memory-error'] {
+	display: block;
+	margin-top: 4px;
+	color: var(--color-danger);
+}

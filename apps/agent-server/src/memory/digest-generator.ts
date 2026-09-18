@@ -33,6 +33,11 @@ export type CompleteText = (
  * unavailable, rate-limited, or answer with something that is not a digest.
  * Because digests are derived, a missing one costs only a later retry, so
  * nothing here throws and no caller has to handle a failure specially.
+ *
+ * The reason is still reported through `onFailure`. Swallowing it outright
+ * makes a run where every segment fails indistinguishable from one where the
+ * model merely had nothing to say, and the difference is the whole diagnosis:
+ * one is a wrong model setting, the other is a bad segment.
  */
 export async function generateDigest(
 	segment: string,
@@ -40,14 +45,30 @@ export async function generateDigest(
 	model: DigestModelRef,
 	complete: CompleteText,
 	signal?: AbortSignal,
+	onFailure?: (reason: string) => void,
 ): Promise<JournalDigest | undefined> {
 	let raw: string;
 	try {
 		raw = await complete(digestSystemPrompt, digestPrompt(segmentText), signal);
-	} catch {
+	} catch (error) {
+		onFailure?.(error instanceof Error ? error.message : String(error));
 		return;
 	}
-	return parseDigest(raw, segment, formatModelRef(model));
+	const digest = parseDigest(raw, segment, formatModelRef(model));
+	if (!digest) {
+		// The answer itself is the diagnosis. A model that prefaces its JSON,
+		// refuses, or emits reasoning all read as "not a digest" otherwise,
+		// and they call for three different responses.
+		onFailure?.(`The model did not answer with a digest: ${preview(raw)}`);
+	}
+	return digest;
+}
+
+/** Enough of an answer to recognise it, short enough for one line of UI. */
+function preview(raw: string): string {
+	const collapsed = raw.replace(/\s+/g, ' ').trim();
+	if (collapsed.length === 0) return '(empty answer)';
+	return collapsed.length > 160 ? `${collapsed.slice(0, 160)}…` : collapsed;
 }
 
 export interface BackfillProgress {
@@ -55,12 +76,16 @@ export interface BackfillProgress {
 	total: number;
 	failed: number;
 	segment: string;
+	/** Why the most recent failure failed, for the UI to show. */
+	error?: string;
 }
 
 export interface BackfillOptions {
 	/** Segments already digested are skipped unless this is set. */
 	regenerate?: boolean;
 	onProgress?: (progress: BackfillProgress) => void;
+	/** Called once per failed segment, for logging a run that goes wrong. */
+	onFailure?: (segment: string, reason: string) => void;
 	signal?: AbortSignal;
 	/**
 	 * Segments digested at once. Kept low: the gateways rate-limit, and a
@@ -77,6 +102,8 @@ export interface BackfillResult {
 	skipped: number;
 	failed: number;
 	aborted: boolean;
+	/** The most recent failure's reason, absent when nothing failed. */
+	error?: string;
 }
 
 /** The minimum of each store the backfill touches, so both can be faked. */
@@ -114,6 +141,7 @@ export async function backfillDigests(
 	let failed = 0;
 	let next = 0;
 	let aborted = false;
+	let error: string | undefined;
 
 	const worker = async (): Promise<void> => {
 		for (;;) {
@@ -128,12 +156,23 @@ export async function backfillDigests(
 
 			const text = await stores.readSegment(segment);
 			const digest = text
-				? await generateDigest(segment, text, model, complete, options.signal)
+				? await generateDigest(
+						segment,
+						text,
+						model,
+						complete,
+						options.signal,
+						(reason) => {
+							error = reason;
+							options.onFailure?.(segment, reason);
+						},
+					)
 				: undefined;
 			if (digest) {
 				await stores.writeDigest(digest);
 				digested += 1;
 			} else {
+				if (!text) error = 'The segment could not be read.';
 				failed += 1;
 			}
 			options.onProgress?.({
@@ -141,6 +180,7 @@ export async function backfillDigests(
 				total: pending.length,
 				failed,
 				segment,
+				...(error ? { error } : {}),
 			});
 		}
 	};
@@ -149,5 +189,5 @@ export async function backfillDigests(
 	await Promise.all(
 		Array.from({ length: Math.min(width, pending.length) }, worker),
 	);
-	return { digested, skipped, failed, aborted };
+	return { digested, skipped, failed, aborted, ...(error ? { error } : {}) };
 }
