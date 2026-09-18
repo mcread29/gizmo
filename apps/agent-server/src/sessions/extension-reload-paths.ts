@@ -7,9 +7,12 @@ export async function refreshExtensionPaths(
 	builtins: readonly string[],
 	workspacePath: string,
 ) {
-	const disabled = await new ProjectCatalog().disabledPiExtensionsFor(
+	const overrides = await new ProjectCatalog().piExtensionOverridesFor(
 		workspacePath,
 	);
-	const enabled = await enabledPiExtensionPaths(new Set(disabled));
-	paths.splice(0, paths.length, ...builtins, ...enabled);
+	const paths_ = await enabledPiExtensionPaths(
+		new Set(overrides.disabled),
+		new Set(overrides.enabled),
+	);
+	paths.splice(0, paths.length, ...builtins, ...paths_);
 }

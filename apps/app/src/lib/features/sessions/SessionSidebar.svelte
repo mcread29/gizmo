@@ -218,17 +218,16 @@
 					>
 						<FolderOpen size={15} />
 						<span>
-							<strong>{project.title}</strong>
+							<strong title={project.path}>{project.title}</strong>
 							<!--
-								The path, not a thread count: "1 thread" repeated down the rail
-								says nothing, while the path is what tells two workspaces of the
-								same name apart. The count stays once there is one worth reading.
+								The name alone: the path has no break opportunities, so showing
+								it here truncated both it and the title and told the reader
+								neither. It survives as the row's tooltip. The thread count
+								stays once there is one worth reading.
 							-->
-							<small title={project.path}>
-								{threads.length > 1
-									? `${threads.length} threads`
-									: project.path}
-							</small>
+							{#if threads.length > 1}
+								<small>{threads.length} threads</small>
+							{/if}
 						</span>
 					</button>
 					<div data-ui="workspace-row-actions">

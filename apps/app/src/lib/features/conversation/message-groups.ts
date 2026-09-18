@@ -8,6 +8,8 @@ export interface MessageGroup {
 	role: ConversationMessage['role'];
 	createdAt: number;
 	messages: ConversationMessage[];
+	/** When the run this block belongs to began; defaults to its own start. */
+	turnStartedAt?: number;
 }
 
 /**
@@ -38,6 +40,20 @@ export function groupMessages(
 		}
 	}
 	return groups;
+}
+
+/**
+ * How long the agent worked on a finished reply: from the start of the run to
+ * the moment it stopped. Only the last message of a turn carries an end, so
+ * this is undefined everywhere else — including while the turn is still
+ * going, and on transcripts written before turns recorded one.
+ */
+export function workedMs(group: MessageGroup): number | undefined {
+	if (group.role !== 'assistant') return undefined;
+	const completedAt = group.messages.at(-1)?.completedAt;
+	if (!completedAt) return undefined;
+	const worked = completedAt - (group.turnStartedAt ?? group.createdAt);
+	return worked > 0 ? worked : undefined;
 }
 
 export function groupContent(group: MessageGroup): string {

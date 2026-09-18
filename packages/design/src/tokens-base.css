@@ -65,6 +65,14 @@
 	--radius-xs: 4px;
 	--radius-full: 999px;
 	--titlebar-height: 48px;
+	/* Shared height of the column header rows: conversation, workspace, inspector. */
+	--header-row-h: 66px;
+	/*
+	 * The tab strip that closes a column header. The workspace and inspector
+	 * fill it with tabs; the thread has none and reserves it empty, so all
+	 * three columns carry their shelf line at the same height.
+	 */
+	--header-shelf-h: 31px;
 	--content-max: 780px;
 	--control-height-sm: 30px;
 	--control-height-md: 36px;

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import type { ComposerCommand, CompactionPolicy } from '@gizmo/protocol';
 import type { CompactionOptions } from './pi-agent-types';
 import { generateCommitMessage } from './commit-message';
+import { generateSessionTitle, type TitleModel } from './session-title';
 import {
 	activateExtensions,
 	registeredExtensions,
@@ -74,7 +75,10 @@ export const createDefaultPiSession: PiSessionFactory = async (
 		existingDirectories(resourceRoots(cwd).prompts),
 		readAgentsFiles(cwd),
 		extensionResourceRoots(registeredExtensions()),
-		enabledPiExtensionPaths(new Set(options.disabledPiExtensions ?? [])),
+		enabledPiExtensionPaths(
+			new Set(options.disabledPiExtensions ?? []),
+			new Set(options.enabledPiExtensions ?? []),
+		),
 		userSystemPrompt(),
 	]);
 	// An active extension's prompt wins over the user's saved override.
@@ -155,6 +159,8 @@ export const createDefaultPiSession: PiSessionFactory = async (
 		enabledExtensionIds: (options.integrations ?? []).map(({ id }) => id),
 		generateCommitMessage: (context: string) =>
 			generateCommitMessage(session, context),
+		generateTitle: (text: string, model?: TitleModel) =>
+			generateSessionTitle(session, text, model),
 		configureCompaction(policy: CompactionPolicy, options?: CompactionOptions) {
 			const contextWindow = session.model?.contextWindow ?? 128_000;
 			settingsManager.applyOverrides({

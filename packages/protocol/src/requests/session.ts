@@ -75,6 +75,25 @@ export const sessionRequestSchemas = [
 		},
 		{ additionalProperties: false },
 	),
+	/** Names a thread from its opening message, on the configured title model. */
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('session.title'),
+			sessionId: Type.String({ minLength: 1 }),
+			text: Type.String({ minLength: 1, maxLength: 8000 }),
+			model: Type.Optional(
+				Type.Object(
+					{
+						provider: Type.String({ minLength: 1, maxLength: 64 }),
+						id: Type.String({ minLength: 1, maxLength: 128 }),
+					},
+					{ additionalProperties: false },
+				),
+			),
+		},
+		{ additionalProperties: false },
+	),
 	Type.Object(
 		{
 			...envelope,

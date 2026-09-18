@@ -165,6 +165,7 @@
 					onExport={() => void sessions.exportTranscript()}
 					onDelete={() => sessions.beginDelete()}
 					onOpenTree={() => router.go('tree')}
+					onNewThread={() => void onStartThread()}
 				/>
 			{/if}
 

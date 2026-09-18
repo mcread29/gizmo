@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentSessionSummary } from '@gizmo/protocol';
-	import { GitBranch, MoreHorizontal } from '@lucide/svelte';
+	import { FolderOpen, GitBranch, MoreHorizontal, Plus } from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Menu } from '../../components';
@@ -31,6 +31,7 @@
 		onExport: () => void;
 		onDelete: () => void;
 		onOpenTree: () => void;
+		onNewThread: () => void;
 	}
 
 	let {
@@ -47,6 +48,7 @@
 		onExport,
 		onDelete,
 		onOpenTree,
+		onNewThread,
 	}: Props = $props();
 
 	let searchOpen = $state(false);
@@ -119,11 +121,33 @@
 	data-state={store.sessionState}
 	tabindex="-1"
 >
+	<!--
+		The same two rows as the workspace screen: the workspace identifies the
+		column, and the row beneath says which of its surfaces is open. There
+		the row holds Overview/Configure; here the open thread takes their
+		place, so switching between the two does not move the shelf line.
+	-->
 	<div data-ui="conversation-header">
 		<div>
-			<span data-ui="eyebrow">Thread</span>
-			<h1>{threadTitle(currentSession?.title ?? 'New thread')}</h1>
+			<h1>{workspaceLabel ?? 'Workspace'}</h1>
+			{#if store.selectedProjectPath}
+				<p data-ui="workspace-path" title={store.selectedProjectPath}>
+					<FolderOpen size={13} />
+					<span>{store.selectedProjectPath}</span>
+				</p>
+			{/if}
 		</div>
+		<Button
+			size="sm"
+			disabled={store.connection !== 'connected'}
+			onclick={onNewThread}><Plus size={14} /> New thread</Button
+		>
+	</div>
+
+	<div data-ui="conversation-shelf">
+		<strong title={threadTitle(currentSession?.title ?? 'New thread')}
+			>{threadTitle(currentSession?.title ?? 'New thread')}</strong
+		>
 		<div data-ui="conversation-header-actions">
 			<Button
 				data-ui="tree-trigger"

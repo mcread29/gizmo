@@ -142,10 +142,8 @@ button[data-ui='workspace-disclosure']:hover {
 }
 
 /*
- * The hint — a thread count, or the workspace's path — yields to the row
- * actions on hover and ellipsizes instead of pushing the row wider than the
- * rail: a path with no break opportunities made this the widest thing in the
- * list and sliced every row at the sidebar's edge.
+ * The hint — a thread count — yields to the row actions on hover and
+ * ellipsizes instead of pushing the row wider than the rail.
  */
 [data-ui='workspace-entry'] small {
 	/* The hint gives up its width long before the title does. */

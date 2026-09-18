@@ -39,7 +39,7 @@ export type TranslatedPiEvent =
 			delta: string;
 			redacted?: boolean;
 	  }
-	| { type: 'message.completed'; messageId: string }
+	| { type: 'message.completed'; messageId: string; interrupted?: true }
 	| { type: 'session.usage'; usage: TranslatedUsage }
 	| {
 			type: 'tool.started';

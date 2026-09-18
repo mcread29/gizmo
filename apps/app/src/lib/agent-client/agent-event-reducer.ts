@@ -39,11 +39,22 @@ export function applyAgentEvent(
 			state.enabledExtensionIds = event.domains ?? [];
 			state.activeTools = event.tools ?? [];
 			break;
-		case 'session.state':
+		case 'session.state': {
+			// Only a run this client watched end says anything about how long
+			// it took. Opening an old thread also reports idle, and stamping
+			// that moment claimed the agent had been working since the thread
+			// was last touched — days, in one case.
+			const ended =
+				state.sessionState === 'streaming' && event.state === 'idle';
 			state.sessionState = event.state;
 			// Nothing can be queued against a run that is over.
 			if (event.state !== 'streaming') state.queue = emptyQueue();
+			// The turn — not the message — is what the thread reports the
+			// duration of. Individual assistant messages complete several
+			// times within one run.
+			if (ended) stampTurnEnd(state);
 			break;
+		}
 		case 'session.queue':
 			state.queue = {
 				steering: [...event.steering],
@@ -168,6 +179,17 @@ export function applyAgentEvent(
 
 export function emptyQueue(): AgentEventState['queue'] {
 	return { steering: [], followUp: [] };
+}
+
+/** Marks the turn's last assistant message with the moment the run stopped. */
+function stampTurnEnd(state: AgentEventState): void {
+	for (let index = state.messages.length - 1; index >= 0; index--) {
+		const message = state.messages[index];
+		if (message.role === 'user') return;
+		if (message.role !== 'assistant') continue;
+		if (message.completedAt === undefined) message.completedAt = Date.now();
+		return;
+	}
 }
 
 function findMessage(state: AgentEventState, messageId: string) {

@@ -56,6 +56,23 @@ export class SessionRequests extends RequestClient {
 		await this.request({ type: 'session.rename', sessionId, title });
 	}
 
+	async generateSessionTitle(
+		sessionId: string,
+		text: string,
+		model?: { provider: string; id: string },
+	) {
+		const response = await this.request({
+			type: 'session.title',
+			sessionId,
+			text,
+			...(model ? { model } : {}),
+		});
+		if (typeof response.result !== 'string' || !response.result.trim()) {
+			throw new Error('Agent server returned an invalid thread title');
+		}
+		return response.result;
+	}
+
 	async prompt(
 		sessionId: string,
 		text: string,

@@ -70,6 +70,8 @@ export interface AppSettings {
 	inspectorTabOrder: string[];
 	/** Empty means "use the built-in address for this platform". */
 	agentUrl: string;
+	/** Model that names new threads, `provider/id`. Empty means don't. */
+	titleModel: string;
 }
 
 export type PanelName = 'sidebar' | 'inspector';
@@ -101,6 +103,7 @@ export const defaultAppSettings: AppSettings = {
 	inspectorWidth: panelWidthLimits.inspector.default,
 	inspectorTabOrder: [],
 	agentUrl: '',
+	titleModel: '',
 };
 
 /**
@@ -201,6 +204,10 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 				: [],
 			agentUrl:
 				typeof settings.agentUrl === 'string' ? settings.agentUrl.trim() : '',
+			titleModel:
+				typeof settings.titleModel === 'string'
+					? settings.titleModel.trim()
+					: '',
 		};
 	} catch {
 		return fallback;

@@ -12,6 +12,7 @@ type SessionRequestType =
 	| 'session.resume'
 	| 'session.read'
 	| 'session.rename'
+	| 'session.title'
 	| 'session.prompt'
 	| 'session.commands'
 	| 'session.compact'
@@ -63,6 +64,14 @@ export async function handleSessionRequest(
 		case 'session.rename':
 			await service.renameSession(request.sessionId, request.title);
 			return {};
+		case 'session.title':
+			return {
+				result: await service.generateTitle(
+					request.sessionId,
+					request.text,
+					request.model,
+				),
+			};
 		case 'session.prompt':
 			await service.prompt(
 				request.sessionId,

@@ -188,10 +188,10 @@ describe('workspace configuration and thread sidebar', () => {
 			name: 'New thread in ThirdPersonSandbox',
 		});
 
+		// The thread's own controls live on the shelf row, beside its title,
+		// where the workspace screen puts Overview/Configure.
 		const treeButton = getByRole('button', { name: 'Tree' });
-		expect(
-			treeButton.closest('[data-ui="conversation-header"]'),
-		).not.toBeNull();
+		expect(treeButton.closest('[data-ui="conversation-shelf"]')).not.toBeNull();
 		await fireEvent.click(treeButton);
 
 		expect(getByText('Paths through this thread')).toBeVisible();

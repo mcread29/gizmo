@@ -29,21 +29,23 @@ export class ProjectIntegrationResolver {
 		const piOverrides = new Map(
 			(config.piExtensions ?? []).map(({ id, enabled }) => [id, enabled]),
 		);
+		/*
+		 * A project override is the last word, both ways. Reading the global
+		 * flag first made it a gate instead: a workspace could turn an
+		 * extension off, but a workspace asking for one that is globally off —
+		 * a Unity project naming the Unity extension — was silently ignored.
+		 */
+		const enabledFor = (id: string) =>
+			piById.has(id)
+				? (piOverrides.get(id) ?? overrides.get(id) ?? piById.get(id)!.enabled)
+				: (overrides.get(id) ?? !globallyDisabled.has(id));
 		const integrations = registeredExtensions()
-			.filter(({ id }) =>
-				piById.has(id)
-					? piById.get(id)!.enabled &&
-						(piOverrides.get(id) ?? overrides.get(id) ?? true)
-					: (overrides.get(id) ?? !globallyDisabled.has(id)),
-			)
+			.filter(({ id }) => enabledFor(id))
 			.map(({ id }) => ({ id, root: '.' }));
 		// UI-only companions also need enablement ids, even without a server integration.
 		for (const extension of pi) {
 			if (
-				extension.enabled &&
-				(piOverrides.get(extension.id) ??
-					overrides.get(extension.id) ??
-					true) &&
+				enabledFor(extension.id) &&
 				!integrations.some(({ id }) => id === extension.id)
 			) {
 				integrations.push({ id: extension.id, root: '.' });

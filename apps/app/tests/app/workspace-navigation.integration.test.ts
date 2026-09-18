@@ -7,6 +7,65 @@ import { renderApp, setupAppIntegrationTests } from '../support/app';
 setupAppIntegrationTests();
 
 describe('workspace navigation', () => {
+	it('puts the workspace back on the thread when returning to the open one', async () => {
+		const { findByRole, findAllByText } = renderApp();
+		const list = await findByRole('navigation', {
+			name: 'Workspaces and threads',
+		});
+		await waitFor(() =>
+			expect(
+				list.querySelectorAll('[data-ui="session-item"]').length,
+			).toBeGreaterThan(0),
+		);
+		const thread = list.querySelector<HTMLElement>('[data-ui="session-item"]')!;
+		await fireEvent.click(thread);
+		// Give the thread a transcript: an empty one proves nothing about
+		// whether returning to it brings its messages back.
+		const composer = await findByRole('textbox', { name: 'Message Gizmo' });
+		await fireEvent.input(composer, {
+			target: { value: 'Inspect the Editor' },
+		});
+		await waitFor(() =>
+			expect(document.querySelectorAll('[data-ui="message"]').length).toBe(0),
+		);
+		await fireEvent.click(await findByRole('button', { name: 'Send message' }));
+		await waitFor(() =>
+			expect(
+				document.querySelectorAll('[data-ui="message"]').length,
+			).toBeGreaterThan(0),
+		);
+		const header = await findByRole('main', { name: 'Thread' }).catch(
+			async () => document.querySelector('[data-ui="conversation-header"]')!,
+		);
+		const workspaceOf = () =>
+			document
+				.querySelector('[data-ui="conversation-header"] h1')
+				?.textContent?.trim();
+		const opened = workspaceOf();
+		expect(header).toBeTruthy();
+
+		// A workspace screen moves the selected workspace…
+		await fireEvent.click(
+			await findByRole('button', { name: 'Open RenderingPlayground' }),
+		);
+		await findByRole('main', { name: 'Workspace' });
+		expect((await findAllByText('RenderingPlayground')).length).toBeGreaterThan(
+			0,
+		);
+
+		// …and returning to the thread that never closed has to move it back,
+		// or the header and inspector keep describing the workspace instead.
+		await fireEvent.click(thread);
+		await waitFor(() => expect(workspaceOf()).toBe(opened));
+		// The workspace screen discarded the transcript on the way through; the
+		// thread has to come back with it, not as an empty conversation.
+		await waitFor(() =>
+			expect(
+				document.querySelectorAll('[data-ui="message"]').length,
+			).toBeGreaterThan(0),
+		);
+	});
+
 	it('opens a workspace without opening or creating a thread', async () => {
 		const { findAllByText, findByRole } = renderApp();
 		const list = await findByRole('navigation', {
@@ -62,9 +121,9 @@ describe('workspace navigation', () => {
 			const rendering = rows.find((row) =>
 				row.textContent?.includes('RenderingPlayground'),
 			);
-			// A lone thread shows the workspace path instead of a "1 thread"
-			// caption, so the thread itself is what proves where it landed.
-			expect(rendering?.textContent).toContain('/projects/');
+			// The row shows the workspace name only — no path, no "1 thread"
+			// caption — so the thread itself is what proves where it landed.
+			expect(rendering?.textContent).not.toContain('/projects/');
 			const threads = rendering?.nextElementSibling;
 			expect(threads?.getAttribute('data-ui')).toBe('workspace-threads');
 			expect(
@@ -216,6 +275,21 @@ describe('workspace navigation', () => {
 		// which session is loaded behind it.
 		const thread = list.querySelector<HTMLElement>('[data-ui="session-item"]')!;
 		await fireEvent.click(thread);
+		// Give the thread a transcript: an empty one proves nothing about
+		// whether returning to it brings its messages back.
+		const composer = await findByRole('textbox', { name: 'Message Gizmo' });
+		await fireEvent.input(composer, {
+			target: { value: 'Inspect the Editor' },
+		});
+		await waitFor(() =>
+			expect(document.querySelectorAll('[data-ui="message"]').length).toBe(0),
+		);
+		await fireEvent.click(await findByRole('button', { name: 'Send message' }));
+		await waitFor(() =>
+			expect(
+				document.querySelectorAll('[data-ui="message"]').length,
+			).toBeGreaterThan(0),
+		);
 
 		await waitFor(() =>
 			expect(queryByRole('main', { name: 'Workspace' })).toBeNull(),

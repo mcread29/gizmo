@@ -155,7 +155,7 @@
 					{#if page === 'appearance'}
 						<AppearanceSettings {layout} />
 					{:else if page === 'chat'}
-						<ChatSettings {layout} />
+						<ChatSettings {layout} {store} />
 					{:else if page === 'context'}
 						<ContextSettings {layout} />
 					{:else if page === 'connection'}

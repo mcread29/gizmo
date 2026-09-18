@@ -29,6 +29,8 @@ export class AgentStoreState {
 		fillPercent: 25,
 		retainPercent: 10,
 	});
+	/** Model that names new threads, as `provider/id`. Empty disables naming. */
+	titleModel = $state('');
 	/** Whether the selected thread is being compacted. */
 	compacting = $state(false);
 	/** Threads with a compaction in flight, selected or not. */

@@ -189,18 +189,22 @@ export class ProjectCatalog {
 		return (await this.#integrations.resolve(projectPath)).integrations;
 	}
 
-	/** Pi extension ids this workspace turns off despite the global state. */
-	async disabledPiExtensionsFor(path: string): Promise<string[]> {
+	/** Pi extension ids this workspace switches, against the global state. */
+	async piExtensionOverridesFor(
+		path: string,
+	): Promise<{ disabled: string[]; enabled: string[] }> {
 		const config = await this.configFor(path);
-		return [
+		const rows = [
 			...new Map(
 				[...(config.gizmoExtensions ?? []), ...(config.piExtensions ?? [])].map(
 					(row) => [row.id, row],
 				),
 			).values(),
-		]
-			.filter((override) => !override.enabled)
-			.map((override) => override.id);
+		];
+		return {
+			disabled: rows.filter((row) => !row.enabled).map(({ id }) => id),
+			enabled: rows.filter((row) => row.enabled).map(({ id }) => id),
+		};
 	}
 
 	async configFor(projectPath: string): Promise<ProjectConfig> {

@@ -129,6 +129,13 @@ export class FakeSessionCapability {
 		this.state.getSession(sessionId).summary.title = title.trim();
 	}
 
+	/** Stands in for a small model: the opening line, trimmed to a label. */
+	async generateTitle(sessionId: string, text: string) {
+		this.state.getSession(sessionId);
+		const words = text.trim().split(/\s+/).slice(0, 6).join(' ');
+		return words.charAt(0).toUpperCase() + words.slice(1);
+	}
+
 	async compact(sessionId: string) {
 		this.state.getSession(sessionId);
 	}

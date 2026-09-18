@@ -193,6 +193,15 @@ export interface AgentClient {
 		sessionId: string,
 		projectPath: string,
 	): Promise<string>;
+	/**
+	 * Names a thread from its opening message. Optional: a transport with no
+	 * model behind it has nothing to ask.
+	 */
+	generateSessionTitle?(
+		sessionId: string,
+		text: string,
+		model?: { provider: string; id: string },
+	): Promise<string>;
 	/** Optional: transports with a configurable address implement this. */
 	setEndpoint?(url: string): void;
 	subscribe(listener: AgentEventListener): () => void;

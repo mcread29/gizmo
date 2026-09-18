@@ -11,11 +11,16 @@
 [data-ui='workspace-screen-header'] {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: flex-start;
+	align-items: center;
 	justify-content: space-between;
 	gap: var(--space-4);
+	/*
+	 * The same row height as the conversation and inspector headers, so the
+	 * tab strip below starts level with the inspector's own tab strip.
+	 */
+	min-height: var(--header-row-h);
 	/* No bottom border: the folder tab strip below carries the shelf line. */
-	padding: var(--space-4) var(--space-5) var(--space-2);
+	padding: var(--space-2) var(--space-5);
 }
 
 /*
@@ -34,6 +39,7 @@
  */
 [data-ui='tabs'][data-variant='folder'] > [data-ui='tabs-list'] {
 	display: flex;
+	min-height: var(--header-shelf-h);
 	gap: var(--space-1);
 	padding: 0 var(--space-5);
 	background: transparent;
@@ -137,56 +143,8 @@
 	margin-inline: auto;
 }
 
-/* A compact, live glance strip — facts, not big tiles. */
-[data-ui='workspace-facts'] {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-2);
-}
-
-[data-ui='workspace-fact'] {
-	display: flex;
-	max-width: 100%;
-	align-items: center;
-	gap: var(--space-2);
-	min-width: 0;
-	padding: var(--space-2) var(--space-3);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-full);
-	background: var(--color-surface-soft);
-	color: var(--color-text);
-	font-size: var(--text-xs);
-}
-
-[data-ui='workspace-fact'] > svg {
-	flex: 0 0 auto;
-	color: var(--color-text-muted);
-}
-
-[data-ui='workspace-fact'] strong {
-	overflow: hidden;
-	font-size: var(--text-xs);
-	font-weight: 600;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-[data-ui='workspace-fact'] span {
-	color: var(--color-text-muted);
-	font-size: var(--text-2xs);
-}
-
-[data-ui='workspace-fact'][data-clickable='true'] {
-	cursor: pointer;
-}
-
-[data-ui='workspace-fact'][data-clickable='true']:hover {
-	border-color: var(--color-border-strong);
-	background: var(--color-surface-raised);
-}
-
 [data-ui='workspace-recent'] {
-	margin-top: var(--space-8);
+	margin-top: var(--space-2);
 }
 
 [data-ui='workspace-dashboard-section-heading'] {

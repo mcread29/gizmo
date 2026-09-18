@@ -9,7 +9,8 @@
 	import StreamingIndicator from './StreamingIndicator.svelte';
 	import ToolCallCard from './ToolCallCard.svelte';
 	import { formatMessageTime } from '@gizmo/design/format';
-	import { groupContent, type MessageGroup } from './message-groups';
+	import { groupContent, workedMs, type MessageGroup } from './message-groups';
+	import { formatElapsed } from './streaming';
 	import type { StreamingActivity } from './streaming';
 	import type { AttachmentContent } from '../../agent-client/AgentClient';
 
@@ -52,6 +53,10 @@
 		group.messages.some((message) => Boolean(message.content)),
 	);
 	let lastMessageId = $derived(group.messages.at(-1)?.id);
+	// Only at the very end of a finished run: mid-run rows have no end of
+	// their own, and a turn still going reports its elapsed time in the
+	// streaming indicator instead.
+	let worked = $derived(activity || groupedAfter ? undefined : workedMs(group));
 	let copyLabel = $derived(
 		group.role === 'user'
 			? copied
@@ -158,5 +163,22 @@
 		{/each}
 
 		{#if activity}<StreamingIndicator {activity} />{/if}
+
+		{#if worked !== undefined}
+			<!-- The reply's own footer: how long it took, and a copy control that
+			     stays reachable at the end of a long answer. -->
+			<div data-ui="message-footer">
+				<span>Worked for {formatElapsed(worked)}</span>
+				<Button
+					variant="ghost"
+					size="icon"
+					aria-label={copyLabel}
+					title={copied ? 'Copied' : 'Copy'}
+					onclick={copyGroup}
+				>
+					{#if copied}<Check size={14} />{:else}<Copy size={14} />{/if}
+				</Button>
+			</div>
+		{/if}
 	</div>
 </article>

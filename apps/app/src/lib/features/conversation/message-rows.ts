@@ -34,6 +34,7 @@ export function createMessageRows(
 			id: row.message.id,
 			role: group.role,
 			createdAt: row.message.createdAt,
+			turnStartedAt: group.createdAt,
 			messages: [row.message],
 			sourceMessageId: row.sourceMessageId,
 			kind: row.kind,

@@ -30,11 +30,14 @@ export class ProjectCapability {
 		store.projectError = undefined;
 		try {
 			store.projects = await this.client.listProjects();
+			// The open thread owns the workspace; falling back to the first
+			// project without asking moved everything to an unrelated one.
 			if (
 				!store.selectedProjectPath ||
 				!store.projects.some(({ path }) => path === store.selectedProjectPath)
 			) {
-				store.selectedProjectPath = store.projects[0]?.path;
+				store.selectedProjectPath =
+					this.openSessionWorkspace() ?? store.projects[0]?.path;
 			}
 			await this.refreshProjectStatus();
 		} catch (error) {
@@ -42,6 +45,27 @@ export class ProjectCapability {
 		} finally {
 			store.projectsLoading = false;
 		}
+	}
+
+	/** The workspace the thread on screen belongs to, when it names one. */
+	openSessionWorkspace(): string | undefined {
+		const store = this.store;
+		if (!store.sessionId) return undefined;
+		const session = store.sessions.find(({ id }) => id === store.sessionId);
+		return session?.workspacePath ?? session?.projectPath;
+	}
+
+	/** Points the workspace at the thread on screen, keeping its transcript. */
+	adoptSessionWorkspace(): void {
+		const store = this.store;
+		const workspacePath = this.openSessionWorkspace();
+		if (!workspacePath || workspacePath === store.selectedProjectPath) return;
+		const session = store.sessions.find(({ id }) => id === store.sessionId);
+		this.enterWorkspace(
+			workspacePath,
+			session?.integrations?.map(({ id }) => id),
+			{ keepTranscript: true },
+		);
 	}
 
 	refreshProjectStatus(): Promise<void> {
@@ -149,7 +173,16 @@ export class ProjectCapability {
 		]);
 	}
 
-	enterWorkspace(projectPath: string, enabledExtensionIds?: string[]) {
+	/**
+	 * `keepTranscript` adopts the workspace of the thread already on screen:
+	 * switching workspace normally discards the transcript with it, but there
+	 * the thread is not changing and clearing it would blank what is open.
+	 */
+	enterWorkspace(
+		projectPath: string,
+		enabledExtensionIds?: string[],
+		{ keepTranscript = false }: { keepTranscript?: boolean } = {},
+	) {
 		const store = this.store;
 		store.selectedProjectPath = projectPath;
 		store.projectStatuses = {};
@@ -159,8 +192,10 @@ export class ProjectCapability {
 		store.projectExtensions = [];
 		store.gitLoading = true;
 		store.statusLoading = {};
-		store.messages = [];
-		store.unsent = [];
+		if (!keepTranscript) {
+			store.messages = [];
+			store.unsent = [];
+		}
 		store.enabledExtensionIds =
 			enabledExtensionIds ??
 			store.projects

@@ -103,6 +103,8 @@ export const conversationMessageSchema = Type.Object(
 		 */
 		reasoningRedacted: Type.Optional(Type.Boolean()),
 		createdAt: Type.Integer({ minimum: 0 }),
+		/** When the turn ended. Only on a completed turn's last message. */
+		completedAt: Type.Optional(Type.Integer({ minimum: 0 })),
 		complete: Type.Boolean(),
 		/**
 		 * The turn stopped without finishing — aborted, or ended in a provider

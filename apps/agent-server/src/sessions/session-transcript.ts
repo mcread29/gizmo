@@ -11,6 +11,7 @@ import type {
 } from '@gizmo/protocol';
 import { displayedUserMessage } from '../attachments/attachment-message';
 import { normalizeToolResult, toolResultIsError } from '../tools/tool-result';
+import { stampTurnEnds } from './transcript-turn-ends';
 import {
 	isStoppedTurn,
 	lastAssistantEntryId,
@@ -119,6 +120,7 @@ export function sessionTranscript(
 	}
 
 	settleOrphanedTools(tools, owners, branch, lastAssistantId);
+	stampTurnEnds(messages, branch);
 
 	return messages;
 }

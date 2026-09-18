@@ -45,6 +45,7 @@ export class WorkspaceLayout {
 	inspectorWidth = $state(panelWidthLimits.inspector.default);
 	inspectorTabOrder = $state<string[]>([]);
 	agentUrl = $state('');
+	titleModel = $state('');
 
 	viewportWidth = $state(currentViewportWidth());
 	leftDrawerOpen = $state(false);
@@ -96,6 +97,7 @@ export class WorkspaceLayout {
 		this.inspectorWidth = settings.inspectorWidth;
 		this.inspectorTabOrder = [...settings.inspectorTabOrder];
 		this.agentUrl = settings.agentUrl;
+		this.titleModel = settings.titleModel;
 	}
 
 	get settings(): AppSettings {
@@ -115,6 +117,7 @@ export class WorkspaceLayout {
 			inspectorWidth: this.inspectorWidth,
 			inspectorTabOrder: $state.snapshot(this.inspectorTabOrder),
 			agentUrl: this.agentUrl,
+			titleModel: this.titleModel,
 		};
 	}
 

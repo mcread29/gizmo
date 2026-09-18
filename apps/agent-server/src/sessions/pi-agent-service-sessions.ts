@@ -72,6 +72,14 @@ export class PiAgentServiceSessions extends PiAgentServiceProjects {
 		return this.context.operations.generateCommitMessage(sessionId, context);
 	}
 
+	generateTitle(
+		sessionId: string,
+		text: string,
+		model?: { provider: string; id: string },
+	) {
+		return this.context.operations.generateTitle(sessionId, text, model);
+	}
+
 	getTree(sessionId: string) {
 		return this.context.operations.getTree(sessionId);
 	}

@@ -96,7 +96,6 @@
 								workspacePath={project.path}
 								{onOpenThread}
 								onNewThread={() => onNewThread(project.path)}
-								onConfigure={() => selectTab('configure')}
 							/>
 						{/if}
 					</div>

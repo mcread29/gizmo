@@ -99,6 +99,10 @@
 	});
 
 	$effect(() => {
+		store.titleModel = layout.titleModel;
+	});
+
+	$effect(() => {
 		store.compactionPolicy = {
 			enabled: layout.autoCompact,
 			fillPercent: layout.autoCompactFillPercent,

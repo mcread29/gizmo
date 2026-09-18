@@ -48,10 +48,22 @@ export async function filterGizmoCompatiblePiExtensions(
 	return extensions.filter((_, index) => compatibility[index]);
 }
 
-/** Paths of globally enabled Pi extensions, minus any ids the project disables. */
-export async function enabledPiExtensionPaths(disabled?: ReadonlySet<string>) {
+/**
+ * Paths of the Pi extensions a workspace runs: the globally enabled ones it
+ * does not switch off, plus any it switches on. Without the second set an
+ * extension a project asked for resolved as enabled but never had its code
+ * loaded, so it was enabled and absent at the same time.
+ */
+export async function enabledPiExtensionPaths(
+	disabled?: ReadonlySet<string>,
+	enabled?: ReadonlySet<string>,
+) {
 	return (await listGizmoCompatiblePiExtensions())
-		.filter((extension) => extension.enabled && !disabled?.has(extension.id))
+		.filter((extension) =>
+			enabled?.has(extension.id)
+				? true
+				: extension.enabled && !disabled?.has(extension.id),
+		)
 		.map((extension) => extension.path);
 }
 

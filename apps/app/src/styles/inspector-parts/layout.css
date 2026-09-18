@@ -14,7 +14,9 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--space-3);
-	padding: 14px var(--space-3) 10px;
+	/* Shared with the workspace/conversation headers so the tab strips line up. */
+	min-height: var(--header-row-h);
+	padding: var(--space-2) var(--space-3);
 }
 
 [data-ui='inspector-header'] > div {
@@ -118,6 +120,7 @@
 
 [data-ui='tabs'][data-variant='subtab'] > [data-ui='tabs-list'] {
 	display: flex;
+	min-height: var(--header-shelf-h);
 	gap: var(--space-4);
 	margin: 0 0 var(--space-2);
 	padding: 0 var(--space-4);

@@ -6,6 +6,7 @@ import type { SessionSelection } from './session-selection';
 import { EventReplay } from './event-replay';
 import type { ProjectCapability } from './ProjectCapability';
 import type { SessionSyncCapability } from './SessionSyncCapability';
+import { SessionNaming } from './session-naming';
 import { errorMessage } from './shared';
 
 export class SessionCapability {
@@ -14,13 +15,16 @@ export class SessionCapability {
 	readonly replay = new EventReplay();
 	/** Tells the sync capability about every event id this connection sees. */
 	sync?: SessionSyncCapability;
+	readonly #naming: SessionNaming;
 
 	constructor(
 		private readonly store: AgentStore,
 		private readonly client: AgentClient,
 		private readonly projects: ProjectCapability,
 		private readonly allowUnscopedSessions: boolean,
-	) {}
+	) {
+		this.#naming = new SessionNaming(store, client);
+	}
 
 	/** Bumps on every new/switch; a stale async step compares against it. */
 	get selectionVersion() {
@@ -90,7 +94,11 @@ export class SessionCapability {
 
 	async switchSession(sessionId: string) {
 		const store = this.store;
-		if (sessionId === store.sessionId) return;
+		// A workspace screen moves the workspace out from under the open thread
+		// and discards its transcript; returning re-derives neither, since the
+		// thread never changed. Rebind, or fall through to load it back.
+		if (sessionId === store.sessionId && store.messages.length)
+			return this.rebindSelection();
 		const selectionVersion = ++this.#selectionVersion;
 		const session = store.sessions.find(({ id }) => id === sessionId);
 		if (!session) return;
@@ -168,6 +176,8 @@ export class SessionCapability {
 
 	/** After a reconnect: the new server process knows none of these yet. */
 	async rebindSelection() {
+		// Nothing else re-reads which workspace the open thread belongs to.
+		this.projects.adoptSessionWorkspace();
 		await Promise.all([
 			this.store.refreshModelCatalog(),
 			this.store.refreshCommands(),
@@ -232,6 +242,9 @@ export class SessionCapability {
 		const store = this.store;
 		if (event.type === 'session.state') {
 			store.sessionStates[event.sessionId] = event.state;
+			// A thread is named from its opening message once the first run is
+			// over, so the name arrives with the reply rather than racing it.
+			if (event.state === 'idle') this.#naming.maybeName(event.sessionId);
 		} else if (event.type === 'session.compaction') {
 			// Tracked for every thread: the flag for the selected one is derived
 			// from this on switch, so another thread's compaction never leaks in.

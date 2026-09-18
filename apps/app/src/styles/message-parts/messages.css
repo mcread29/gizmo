@@ -5,8 +5,13 @@
 	margin-bottom: var(--space-6);
 }
 
+/*
+ * A turn writes one message per step, so a reply made of a dozen tool calls
+ * is a dozen grouped messages. At a full gap apiece the run read as a column
+ * of separated cards; nearly flush, it reads as the list it is.
+ */
 [data-ui='message'][data-grouped-after] {
-	margin-bottom: var(--space-2);
+	margin-bottom: 2px;
 }
 
 [data-ui='message'][data-grouped-before] [data-ui='avatar'] {
@@ -245,6 +250,15 @@
 	height: 1px;
 	background: var(--color-border);
 	content: '';
+}
+
+/* The reply's own footer: elapsed time and a copy control, set as a caption. */
+[data-ui='message-footer'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	color: var(--color-text-faint);
+	font-size: var(--text-2xs);
 }
 
 [data-ui='message-meta'] {

@@ -117,6 +117,19 @@ export class SessionOperations {
 		return session.generateCommitMessage(context);
 	}
 
+	async generateTitle(
+		sessionId: string,
+		text: string,
+		model?: { provider: string; id: string },
+	) {
+		await this.#catalog.ensureActive(sessionId);
+		const session = this.#pool.session(sessionId);
+		if (!session.generateTitle) {
+			throw new Error('Title generation is unavailable for this session');
+		}
+		return session.generateTitle(text, model);
+	}
+
 	async getTree(sessionId: string): Promise<SessionTree> {
 		await this.#catalog.resumeSession(sessionId);
 		return sessionTree(this.#pool.active(sessionId).manager);

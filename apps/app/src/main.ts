@@ -14,6 +14,13 @@ const client = useFakeAgent
 	? new (await import('./lib/agent-client/FakeAgentClient')).FakeAgentClient()
 	: undefined;
 
+// Stand-in inspector tabs, so the right rail is not empty under `?fake`.
+if (useFakeAgent) {
+	(
+		await import('./lib/agent-client/fake-client/inspector')
+	).installFakeWebExtensions();
+}
+
 mount(App, {
 	target: document.getElementById('app')!,
 	...(client ? { props: { client } } : {}),

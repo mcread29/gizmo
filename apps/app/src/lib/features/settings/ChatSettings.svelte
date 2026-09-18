@@ -1,9 +1,34 @@
 <script lang="ts">
-	import { SwitchField } from '../../components';
+	import type { AgentStore } from '../../agent-client';
+	import { SelectField, SwitchField } from '../../components';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
-	let { layout }: { layout: WorkspaceLayout } = $props();
+	let { layout, store }: { layout: WorkspaceLayout; store: AgentStore } =
+		$props();
+
+	const off = 'off';
+
+	/*
+	 * The catalog is only loaded for the thread that is open, so a stored
+	 * choice is kept in the list even when nothing can confirm it right now —
+	 * otherwise opening settings without a thread would silently reset it.
+	 */
+	let options = $derived([
+		{ value: off, label: 'Off', hint: 'Name threads after the first message' },
+		...store.availableModels.map((model) => ({
+			value: `${model.provider}/${model.id}`,
+			label: model.name,
+			hint: model.provider,
+		})),
+		...(layout.titleModel &&
+		!store.availableModels.some(
+			({ provider, id }) => `${provider}/${id}` === layout.titleModel,
+		)
+			? [{ value: layout.titleModel, label: layout.titleModel, hint: 'Stored' }]
+			: []),
+	]);
+	let selected = $derived(layout.titleModel || off);
 </script>
 
 <SettingsPage title="Chat" scope="Stored on this device">
@@ -23,5 +48,20 @@
 			label="Expand reasoning"
 			description="Reasoning is often longer than the reply. When off, it stays folded behind a single line you can open."
 		/>
+	</div>
+
+	<div data-ui="settings-card">
+		<SelectField
+			value={selected}
+			{options}
+			label="Thread name model"
+			onValueChange={(value) =>
+				(layout.titleModel = value === off ? '' : value)}
+		/>
+		<p data-ui="settings-hint">
+			Names each new thread from its first message, once the first reply is
+			done. Pick something small and cheap — a local model costs nothing to run.
+			Threads you rename yourself are left alone.
+		</p>
 	</div>
 </SettingsPage>

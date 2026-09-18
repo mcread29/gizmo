@@ -36,6 +36,7 @@ export async function routeRequest(
 		case 'session.resume':
 		case 'session.read':
 		case 'session.rename':
+		case 'session.title':
 		case 'session.prompt':
 		case 'session.commands':
 		case 'session.compact':

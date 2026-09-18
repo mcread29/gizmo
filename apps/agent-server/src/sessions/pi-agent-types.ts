@@ -32,6 +32,10 @@ export interface PiSessionLike {
 	selectModel?(provider: string, modelId: string): Promise<void>;
 	selectThinkingLevel?(level: string): void;
 	generateCommitMessage?(context: string): Promise<string>;
+	generateTitle?(
+		text: string,
+		model?: { provider: string; id: string },
+	): Promise<string>;
 	configureCompaction?(
 		policy: CompactionPolicy,
 		options?: CompactionOptions,
@@ -79,6 +83,8 @@ export interface CompactionOptions {
 export type PiSessionRuntimeOptions = SessionOptions & {
 	/** Pi extension ids this workspace disables despite the global state. */
 	disabledPiExtensions?: readonly string[];
+	/** Pi extension ids this workspace enables despite the global state. */
+	enabledPiExtensions?: readonly string[];
 };
 
 export type PiSessionFactory = (

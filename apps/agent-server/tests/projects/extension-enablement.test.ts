@@ -55,10 +55,25 @@ describe('paired extension enablement', () => {
 		expect(
 			(await catalog.integrationsFor(project)).map(({ id }) => id),
 		).toEqual(['web-only']);
-		expect(await catalog.disabledPiExtensionsFor(project)).toEqual(['paired']);
+		expect((await catalog.piExtensionOverridesFor(project)).disabled).toEqual([
+			'paired',
+		]);
+	});
+
+	it('lets a workspace switch on an extension Pi has globally disabled', async () => {
+		const { catalog, project } = await fixture();
 		state.enabled = false;
-		await catalog.setPiExtension(project, 'paired', true);
 		expect(await catalog.integrationsFor(project)).toEqual([]);
+		await catalog.setPiExtension(project, 'paired', true);
+		// A workspace that names an extension gets it: the global state is the
+		// default, not a gate. Its code has to load too, so the override is
+		// reported for the session's extension paths as well.
+		expect(
+			(await catalog.integrationsFor(project)).map(({ id }) => id),
+		).toEqual(['paired']);
+		expect((await catalog.piExtensionOverridesFor(project)).enabled).toEqual([
+			'paired',
+		]);
 	});
 	it('migrates a legacy paired toggle on write and respects it before migration', async () => {
 		const { catalog, project } = await fixture();
@@ -70,7 +85,9 @@ describe('paired extension enablement', () => {
 				gizmoExtensions: [{ id: 'paired', enabled: false }],
 			}),
 		);
-		expect(await catalog.disabledPiExtensionsFor(project)).toEqual(['paired']);
+		expect((await catalog.piExtensionOverridesFor(project)).disabled).toEqual([
+			'paired',
+		]);
 		expect(
 			(await catalog.integrationsFor(project)).map(({ id }) => id),
 		).toEqual(['web-only']);

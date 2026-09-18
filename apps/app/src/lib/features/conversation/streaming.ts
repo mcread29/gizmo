@@ -37,20 +37,39 @@ export function streamingActivity(
 	const running = last.tools.find(
 		(tool: ToolCallView) => tool.status === 'running',
 	);
+	// The elapsed time is the whole turn's, not this step's: a long run is a
+	// sequence of tool calls and replies, and restarting the count at each one
+	// hid how long the agent had actually been working.
+	const startedAt = turnStart(messages);
 	if (running) {
 		return {
 			streaming: true,
 			label: toolLabel(running.name),
-			startedAt: last.createdAt,
+			startedAt,
 			...custom,
 		};
 	}
 	return {
 		streaming: true,
 		label: last.content ? 'Responding' : 'Thinking',
-		startedAt: last.createdAt,
+		startedAt,
 		...custom,
 	};
+}
+
+/**
+ * When the agent started working on the turn in flight: the first assistant
+ * message written since the user last spoke, falling back to the user's own
+ * message while none has arrived yet.
+ */
+export function turnStart(messages: ConversationMessage[]): number | undefined {
+	let start: number | undefined;
+	for (let index = messages.length - 1; index >= 0; index--) {
+		const message = messages[index];
+		if (message.role === 'user') return start ?? message.createdAt;
+		if (message.role === 'assistant') start = message.createdAt;
+	}
+	return start;
 }
 
 export function formatElapsed(milliseconds: number): string {
