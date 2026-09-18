@@ -11,3 +11,6 @@ coverage/
 .gizmo-dev/
 .gizmo-web/
 .DS_Store
+
+# Superseded by .gizmo/memory/journal; content was backfilled into it.
+.agent-journal/

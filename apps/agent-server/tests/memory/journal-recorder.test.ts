@@ -20,6 +20,21 @@ function userEntry(id: string, text = 'hello'): SessionEntry {
 	} as SessionEntry;
 }
 
+/** Bulky raw output that normalizing trims to a few hundred bytes. */
+function toolResultEntry(id: string, text: string): SessionEntry {
+	return {
+		type: 'message',
+		id,
+		parentId: null,
+		timestamp: new Date().toISOString(),
+		message: {
+			role: 'toolResult',
+			toolCallId: `${id}-call`,
+			content: [{ type: 'text', text }],
+		},
+	} as SessionEntry;
+}
+
 function stubManager(
 	sessionId: string,
 	branch: SessionEntry[],
@@ -109,6 +124,25 @@ describe('JournalRecorder', () => {
 		expect(await recorder.recordIfLarge(stubManager('s1', branch))).toEqual([]);
 
 		branch.push(userEntry('e2', 'x'.repeat(1000)));
+		expect(
+			await recorder.recordIfLarge(stubManager('s1', branch)),
+		).toHaveLength(1);
+	});
+
+	/**
+	 * The threshold is measured in journaled prose, not raw entries. A span of
+	 * large tool results normalizes down to almost nothing, so it must not
+	 * trigger a segment that would be a fraction of the intended size — which
+	 * is what measuring the raw entries used to do.
+	 */
+	it('measures the journaled body, not the raw entries', async () => {
+		const store = new JournalStore(workspace);
+		const recorder = new JournalRecorder(store, { thresholdBytes: 4_000 });
+		const branch = [toolResultEntry('e1', 'x'.repeat(200_000))];
+
+		expect(await recorder.recordIfLarge(stubManager('s1', branch))).toEqual([]);
+
+		branch.push(userEntry('e2', 'y'.repeat(5_000)));
 		expect(
 			await recorder.recordIfLarge(stubManager('s1', branch)),
 		).toHaveLength(1);

@@ -1,4 +1,6 @@
 import type { SessionEntry } from '@earendil-works/pi-coding-agent';
+import { defaultChunkBytes } from './journal-chunk';
+import { normalizeSegment } from './journal-normalize';
 import {
 	entriesSince,
 	type JournalSegmentMeta,
@@ -29,15 +31,19 @@ export interface RecordOptions {
 
 export interface JournalRecorderOptions {
 	/**
-	 * Approximate size at which an idle session is journaled without waiting
-	 * for a compaction or a clean shutdown. Neither of those is guaranteed to
-	 * happen — a crash skips both — so this bounds how much an abandoned
-	 * session can lose.
+	 * Size of journaled prose at which an idle session is recorded without
+	 * waiting for a compaction or a clean shutdown. Neither of those is
+	 * guaranteed to happen — a crash skips both — so this bounds how much an
+	 * abandoned session can lose.
+	 *
+	 * Measured in the same units the store writes, so it defaults to one
+	 * segment's worth: a threshold cut then normally yields exactly one
+	 * segment rather than a fraction of one.
 	 */
 	thresholdBytes?: number;
 }
 
-const defaultThresholdBytes = 96_000;
+const defaultThresholdBytes = defaultChunkBytes;
 
 /**
  * Decides when a span becomes a segment. Kept separate from JournalStore so
@@ -75,7 +81,7 @@ export class JournalRecorder {
 		manager: JournaledSession,
 	): Promise<JournalSegmentMeta[]> {
 		const pending = await this.#pending(manager);
-		if (approximateBytes(pending) < this.#thresholdBytes) return [];
+		if (journaledBytes(pending) < this.#thresholdBytes) return [];
 		return this.#store.append(pending, {
 			sessionId: manager.getSessionId(),
 			trigger: 'threshold',
@@ -101,12 +107,13 @@ export function takeUntil(
 	return index < 0 ? [...entries] : entries.slice(0, index);
 }
 
-/** Cheap stand-in for token count — only the threshold comparison uses it. */
-function approximateBytes(entries: readonly SessionEntry[]): number {
-	let total = 0;
-	for (const entry of entries) {
-		if (entry.type !== 'message') continue;
-		total += JSON.stringify(entry).length;
-	}
-	return total;
+/**
+ * How much journal a span would become. Measuring the normalized body rather
+ * than the raw entries is what makes the threshold comparable to the chunk
+ * budget: raw entries carry untruncated tool results, which normalizing trims
+ * hard, so the two differ by several-fold and a raw measure would silently
+ * record segments a fraction of the intended size.
+ */
+function journaledBytes(entries: readonly SessionEntry[]): number {
+	return Buffer.byteLength(normalizeSegment(entries).body, 'utf8');
 }
