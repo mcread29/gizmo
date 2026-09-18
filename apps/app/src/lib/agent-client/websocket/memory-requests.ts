@@ -2,6 +2,7 @@ import {
 	parseDigestSettings,
 	parseJournalDigests,
 	parseMemoryStatus,
+	type DigestOverride,
 	type DigestSettings,
 } from '@gizmo/protocol';
 import { GitRequests } from './git-requests';
@@ -22,10 +23,20 @@ export class MemoryRequests extends GitRequests {
 		return parseJournalDigests(response.result);
 	}
 
-	async setMemorySettings(settings: DigestSettings) {
+	async setMemoryDefaults(settings: DigestSettings) {
 		const response = await this.request({
 			type: 'memory.settings.set',
 			settings,
+		});
+		return parseDigestSettings(response.result);
+	}
+
+	/** Writes one workspace's override, or clears it so it inherits again. */
+	async setMemoryOverride(projectPath: string, override?: DigestOverride) {
+		const response = await this.request({
+			type: 'memory.settings.set',
+			projectPath,
+			...(override ? { override } : { inherit: true }),
 		});
 		return parseDigestSettings(response.result);
 	}

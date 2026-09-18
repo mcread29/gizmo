@@ -1,4 +1,11 @@
-import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import {
+	mkdir,
+	readFile,
+	readdir,
+	rename,
+	rm,
+	writeFile,
+} from 'node:fs/promises';
 import { join } from 'node:path';
 import type { JournalDigest } from './journal-digest';
 import { journalDir } from './journal-store';
@@ -37,7 +44,11 @@ export class DigestStore {
 		await mkdir(this.#dir, { recursive: true });
 		const file = join(this.#dir, fileName(digest.segment));
 		const temporary = `${file}.tmp`;
-		await writeFile(temporary, `${JSON.stringify(digest, null, '\t')}\n`, 'utf8');
+		await writeFile(
+			temporary,
+			`${JSON.stringify(digest, null, '\t')}\n`,
+			'utf8',
+		);
 		// Rename so a reader never observes a half-written digest, and a crash
 		// mid-write leaves the previous digest rather than a corrupt one.
 		await rename(temporary, file);

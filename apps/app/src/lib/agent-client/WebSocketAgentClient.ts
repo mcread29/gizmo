@@ -7,7 +7,10 @@ export interface WebSocketAgentClientOptions {
 	createSocket?: (url: string) => WebSocket;
 }
 
-export class WebSocketAgentClient extends MemoryRequests implements AgentClient {
+export class WebSocketAgentClient
+	extends MemoryRequests
+	implements AgentClient
+{
 	constructor(options: WebSocketAgentClientOptions = {}) {
 		const url = options.url ?? defaultAgentUrl();
 		const createSocket = options.createSocket ?? ((url) => new WebSocket(url));

@@ -1,6 +1,6 @@
 import { Type } from 'typebox';
 import { envelope } from '../envelopes';
-import { digestSettingsSchema } from '../memory';
+import { digestOverrideSchema, digestSettingsSchema } from '../memory';
 
 export const memoryRequestSchemas = [
 	/** Coverage and settings for one workspace's journal. */
@@ -24,11 +24,20 @@ export const memoryRequestSchemas = [
 		},
 		{ additionalProperties: false },
 	),
+	/**
+	 * Writes either the default or one workspace's override. An override with
+	 * no keys clears it, so the workspace inherits the default again.
+	 */
 	Type.Object(
 		{
 			...envelope,
 			type: Type.Literal('memory.settings.set'),
-			settings: digestSettingsSchema,
+			/** Absent writes the default; present writes that workspace's override. */
+			projectPath: Type.Optional(Type.String({ minLength: 1 })),
+			settings: Type.Optional(digestSettingsSchema),
+			override: Type.Optional(digestOverrideSchema),
+			/** Clears the workspace's override so it inherits again. */
+			inherit: Type.Optional(Type.Boolean()),
 		},
 		{ additionalProperties: false },
 	),

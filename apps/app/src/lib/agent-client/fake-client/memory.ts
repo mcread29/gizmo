@@ -1,4 +1,5 @@
 import type {
+	DigestOverride,
 	DigestSettings,
 	JournalDigest,
 	MemoryStatus,
@@ -10,10 +11,12 @@ import type {
  * so both the coverage bar and the backfill control have something to show.
  */
 export class FakeMemoryCapability {
-	#settings: DigestSettings = {
+	#defaults: DigestSettings = {
 		auto: true,
 		model: { provider: 'opencode-go', id: 'minimax-m3' },
 	};
+	/** Absent until this workspace overrides the default, as on a real server. */
+	#override: DigestOverride | undefined;
 
 	readonly #digests: JournalDigest[] = [
 		{
@@ -53,8 +56,26 @@ export class FakeMemoryCapability {
 		return {
 			segments: 491,
 			digested: this.#digests.length,
-			settings: this.#settings,
+			settings: this.#effective(),
+			defaults: this.#defaults,
+			overridden: Boolean(this.#override),
 		};
+	}
+
+	/** The override merged over the default, the same way the server merges it. */
+	#effective(): DigestSettings {
+		const override = this.#override;
+		if (!override) return this.#defaults;
+		const model = 'model' in override ? override.model : this.#defaults.model;
+		return {
+			auto: override.auto ?? this.#defaults.auto,
+			...(model ? { model } : {}),
+		};
+	}
+
+	async setOverride(override?: DigestOverride): Promise<DigestSettings> {
+		this.#override = override;
+		return this.#effective();
 	}
 
 	async digests(query?: string, limit = 100): Promise<JournalDigest[]> {
@@ -72,8 +93,8 @@ export class FakeMemoryCapability {
 		return matches.slice(0, limit);
 	}
 
-	async setSettings(settings: DigestSettings): Promise<DigestSettings> {
-		this.#settings = settings;
-		return settings;
+	async setDefaults(settings: DigestSettings): Promise<DigestSettings> {
+		this.#defaults = settings;
+		return this.#effective();
 	}
 }

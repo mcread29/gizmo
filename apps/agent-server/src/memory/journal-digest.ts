@@ -15,11 +15,7 @@
  */
 
 /** What became of the work in a segment. */
-export type DigestOutcome =
-	| 'shipped'
-	| 'abandoned'
-	| 'blocked'
-	| 'explored';
+export type DigestOutcome = 'shipped' | 'abandoned' | 'blocked' | 'explored';
 
 export const digestOutcomes: readonly DigestOutcome[] = [
 	'shipped',
@@ -71,7 +67,8 @@ export function parseDigest(
 	if (!parsed || typeof parsed !== 'object') return;
 	const record = parsed as Record<string, unknown>;
 
-	const summary = typeof record.summary === 'string' ? record.summary.trim() : '';
+	const summary =
+		typeof record.summary === 'string' ? record.summary.trim() : '';
 	// A digest with no summary describes nothing; storing it would only put a
 	// hole in the layer that later looks like a generated digest.
 	if (!summary) return;
@@ -127,7 +124,7 @@ export function digestInput(segmentText: string, maxChars = 24_000): string {
 }
 
 export const digestSystemPrompt =
-	'You summarize one segment of a software project\'s conversation transcript into a compact record of what stays true afterwards. Reply with one JSON object and nothing else.';
+	"You summarize one segment of a software project's conversation transcript into a compact record of what stays true afterwards. Reply with one JSON object and nothing else.";
 
 /**
  * The instruction is explicit that absent fields are normal. A model asked for

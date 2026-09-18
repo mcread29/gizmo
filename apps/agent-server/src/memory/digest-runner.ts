@@ -47,7 +47,7 @@ export class DigestRunner {
 	}
 
 	async #run(workspacePath: string, ids: readonly string[]): Promise<void> {
-		const settings = await this.#settings.read();
+		const settings = await this.#settings.read(workspacePath);
 		// No model chosen is the normal state until the user picks one, so it is
 		// silent rather than an error every segment would repeat.
 		if (!settings.auto || !settings.model) return;

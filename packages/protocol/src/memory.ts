@@ -23,6 +23,22 @@ export const digestSettingsSchema = Type.Object(
 
 export type DigestSettings = Static<typeof digestSettingsSchema>;
 
+/**
+ * What one workspace overrides. `model` is nullable rather than merely
+ * optional because absent means "inherit the default" while null means
+ * "digesting is off in this workspace" — two different intentions that an
+ * optional alone cannot tell apart.
+ */
+export const digestOverrideSchema = Type.Object(
+	{
+		auto: Type.Optional(Type.Boolean()),
+		model: Type.Optional(Type.Union([digestModelRefSchema, Type.Null()])),
+	},
+	{ additionalProperties: false },
+);
+
+export type DigestOverride = Static<typeof digestOverrideSchema>;
+
 export const journalDigestSchema = Type.Object(
 	{
 		segment: Type.String({ minLength: 1 }),
@@ -48,7 +64,12 @@ export const memoryStatusSchema = Type.Object(
 	{
 		segments: Type.Integer({ minimum: 0 }),
 		digested: Type.Integer({ minimum: 0 }),
+		/** What this workspace actually runs under, after any override. */
 		settings: digestSettingsSchema,
+		/** The default it falls back to, so the UI can name what is inherited. */
+		defaults: digestSettingsSchema,
+		/** True when this workspace overrides the default rather than inheriting. */
+		overridden: Type.Boolean(),
 		/** Present while a backfill is running in this workspace. */
 		running: Type.Optional(
 			Type.Object(

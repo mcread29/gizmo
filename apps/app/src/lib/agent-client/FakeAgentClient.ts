@@ -1,4 +1,4 @@
-import type { DigestSettings } from '@gizmo/protocol';
+import type { DigestOverride, DigestSettings } from '@gizmo/protocol';
 import {
 	type ComposerCommand,
 	type ExtensionUiRequest,
@@ -39,8 +39,12 @@ export class FakeAgentClient implements AgentClient {
 		return this.#memory.digests(query, limit);
 	}
 
-	setMemorySettings(settings: DigestSettings) {
-		return this.#memory.setSettings(settings);
+	setMemoryDefaults(settings: DigestSettings) {
+		return this.#memory.setDefaults(settings);
+	}
+
+	setMemoryOverride(_projectPath: string, override?: DigestOverride) {
+		return this.#memory.setOverride(override);
 	}
 
 	startMemoryBackfill() {

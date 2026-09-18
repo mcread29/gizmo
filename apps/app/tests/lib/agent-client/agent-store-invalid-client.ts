@@ -15,7 +15,7 @@ import {
 	type StoredProject,
 	type ToolPolicy,
 } from '@gizmo/protocol';
-import type { DigestSettings } from '@gizmo/protocol';
+import type { DigestOverride, DigestSettings } from '@gizmo/protocol';
 import type {
 	AgentClient,
 	AgentEventListener,
@@ -33,19 +33,41 @@ export class InvalidEventClient implements AgentClient {
 	// The memory layer is not exercised by these connection/replay tests; the
 	// stubs exist only to satisfy the interface.
 	async memoryStatus() {
-		return { segments: 0, digested: 0, settings: { auto: false } };
+		return {
+			segments: 0,
+			digested: 0,
+			settings: { auto: false },
+			defaults: { auto: false },
+			overridden: false,
+		};
 	}
 	async memoryDigests() {
 		return [];
 	}
-	async setMemorySettings(settings: DigestSettings) {
+	async setMemoryOverride(_projectPath: string, _override?: DigestOverride) {
+		return { auto: true };
+	}
+
+	async setMemoryDefaults(settings: DigestSettings) {
 		return settings;
 	}
 	async startMemoryBackfill() {
-		return { segments: 0, digested: 0, settings: { auto: false } };
+		return {
+			segments: 0,
+			digested: 0,
+			settings: { auto: false },
+			defaults: { auto: false },
+			overridden: false,
+		};
 	}
 	async stopMemoryBackfill() {
-		return { segments: 0, digested: 0, settings: { auto: false } };
+		return {
+			segments: 0,
+			digested: 0,
+			settings: { auto: false },
+			defaults: { auto: false },
+			overridden: false,
+		};
 	}
 	async listProviders(): Promise<ProviderStatus[]> {
 		return [];

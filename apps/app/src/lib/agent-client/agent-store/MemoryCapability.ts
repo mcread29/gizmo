@@ -1,4 +1,9 @@
-import type { DigestSettings, JournalDigest, MemoryStatus } from '@gizmo/protocol';
+import type {
+	DigestOverride,
+	DigestSettings,
+	JournalDigest,
+	MemoryStatus,
+} from '@gizmo/protocol';
 import type { AgentClient } from '../AgentClient';
 import type { AgentStore } from '../AgentStore.svelte';
 
@@ -29,8 +34,12 @@ export class MemoryCapability {
 		return this.client.memoryDigests(this.#projectPath(), query, limit);
 	}
 
-	setMemorySettings(settings: DigestSettings): Promise<DigestSettings> {
-		return this.client.setMemorySettings(settings);
+	setMemoryDefaults(settings: DigestSettings): Promise<DigestSettings> {
+		return this.client.setMemoryDefaults(settings);
+	}
+
+	setMemoryOverride(override?: DigestOverride): Promise<DigestSettings> {
+		return this.client.setMemoryOverride(this.#projectPath(), override);
 	}
 
 	startMemoryBackfill(regenerate?: boolean): Promise<MemoryStatus> {

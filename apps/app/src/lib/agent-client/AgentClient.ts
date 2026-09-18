@@ -1,4 +1,5 @@
 import type {
+	DigestOverride,
 	DigestSettings,
 	JournalDigest,
 	MemoryStatus,
@@ -46,7 +47,11 @@ export interface AgentClient {
 		query?: string,
 		limit?: number,
 	): Promise<JournalDigest[]>;
-	setMemorySettings(settings: DigestSettings): Promise<DigestSettings>;
+	setMemoryDefaults(settings: DigestSettings): Promise<DigestSettings>;
+	setMemoryOverride(
+		projectPath: string,
+		override?: DigestOverride,
+	): Promise<DigestSettings>;
 	startMemoryBackfill(
 		projectPath: string,
 		regenerate?: boolean,

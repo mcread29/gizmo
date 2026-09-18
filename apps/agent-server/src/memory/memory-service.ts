@@ -1,4 +1,8 @@
-import type { DigestSettings, MemoryStatus } from '@gizmo/protocol';
+import type {
+	DigestOverride,
+	DigestSettings,
+	MemoryStatus,
+} from '@gizmo/protocol';
 import { backfillDigests, type BackfillProgress } from './digest-generator';
 import { completeWithGizmoModel } from './digest-model';
 import { DigestSettingsStore } from './digest-settings';
@@ -24,16 +28,21 @@ export class MemoryService {
 	readonly #running = new Map<string, RunningBackfill>();
 
 	async status(workspacePath: string): Promise<MemoryStatus> {
-		const [segments, digested, settings] = await Promise.all([
-			new JournalStore(workspacePath).list(),
-			new DigestStore(workspacePath).segments(),
-			this.#settings.read(),
-		]);
+		const [segments, digested, settings, defaults, overridden] =
+			await Promise.all([
+				new JournalStore(workspacePath).list(),
+				new DigestStore(workspacePath).segments(),
+				this.#settings.read(workspacePath),
+				this.#settings.readDefault(),
+				this.#settings.isOverridden(workspacePath),
+			]);
 		const active = this.#running.get(workspacePath);
 		return {
 			segments: segments.length,
 			digested: digested.length,
 			settings,
+			defaults,
+			overridden,
 			...(active
 				? {
 						running: {
@@ -73,13 +82,26 @@ export class MemoryService {
 			.slice(0, limit);
 	}
 
-	async readSettings(): Promise<DigestSettings> {
-		return this.#settings.read();
+	async readSettings(workspacePath?: string): Promise<DigestSettings> {
+		return this.#settings.read(workspacePath);
 	}
 
-	async writeSettings(settings: DigestSettings): Promise<DigestSettings> {
-		await this.#settings.write(settings);
+	/** Writes the default every workspace without an override falls back to. */
+	async writeDefaults(settings: DigestSettings): Promise<DigestSettings> {
+		await this.#settings.writeDefault(settings);
 		return settings;
+	}
+
+	/**
+	 * Writes one workspace's override, or clears it. Returns the settings that
+	 * workspace now runs under, which is the override merged over the default.
+	 */
+	async writeOverride(
+		workspacePath: string,
+		override: DigestOverride | undefined,
+	): Promise<DigestSettings> {
+		await this.#settings.writeOverride(workspacePath, override);
+		return this.#settings.read(workspacePath);
 	}
 
 	/** Starts a backfill unless one is already running for this workspace. */
@@ -89,7 +111,7 @@ export class MemoryService {
 	): Promise<MemoryStatus> {
 		if (this.#running.has(workspacePath)) return this.status(workspacePath);
 
-		const settings = await this.#settings.read();
+		const settings = await this.#settings.read(workspacePath);
 		if (!settings.model) {
 			throw new Error('Choose a digest model before backfilling memory.');
 		}

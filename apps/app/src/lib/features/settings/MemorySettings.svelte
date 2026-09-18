@@ -1,9 +1,14 @@
 <script lang="ts">
-	import type { JournalDigest, MemoryStatus } from '@gizmo/protocol';
+	import type {
+		DigestOverride,
+		JournalDigest,
+		MemoryStatus,
+	} from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import { Switch } from 'bits-ui';
 	import { Button } from '../../components';
 	import { toasts } from '../../toasts.svelte';
+	import MemoryDigestList from './MemoryDigestList.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
 	let { store }: { store: AgentStore } = $props();
@@ -30,10 +35,18 @@
 	 * because an empty value reads as "unset" to the same machinery.
 	 */
 	const noModel = 'none';
+	const inherit = 'inherit';
 	let selectedModel = $derived(
-		status?.settings.model
-			? `${status.settings.model.provider}/${status.settings.model.id}`
-			: noModel,
+		!status?.overridden
+			? inherit
+			: status.settings.model
+				? `${status.settings.model.provider}/${status.settings.model.id}`
+				: noModel,
+	);
+	let defaultLabel = $derived(
+		status?.defaults.model
+			? `${status.defaults.model.provider} · ${status.defaults.model.id}`
+			: 'off',
 	);
 
 	async function refresh() {
@@ -64,25 +77,32 @@
 		return () => clearInterval(timer);
 	});
 
+	/**
+	 * Three outcomes, not two: inheriting the default is distinct from
+	 * choosing to digest nothing here, and only an override can say the
+	 * latter.
+	 */
 	async function selectModel(value: string) {
+		if (value === inherit) return save(undefined);
 		const separator = value.indexOf('/');
-		const settings = { ...(status?.settings ?? { auto: true }) };
-		await save(
-			value !== noModel && separator > 0
-				? {
-						...settings,
-						model: {
+		await save({
+			...(status?.overridden && status.settings.auto !== status.defaults.auto
+				? { auto: status.settings.auto }
+				: {}),
+			model:
+				value === noModel || separator < 1
+					? null
+					: {
 							provider: value.slice(0, separator),
 							id: value.slice(separator + 1),
 						},
-					}
-				: { auto: settings.auto },
-		);
+		});
 	}
 
-	async function save(settings: MemoryStatus['settings']) {
+	/** Undefined clears the override, so this workspace inherits again. */
+	async function save(override: DigestOverride | undefined) {
 		try {
-			await store.memory.setMemorySettings(settings);
+			await store.memory.setMemoryOverride(override);
 			await refresh();
 		} catch (error) {
 			toasts.show(
@@ -133,15 +153,19 @@
 				<strong>Digest model</strong>
 				<span>
 					Summarizes each journal segment into what stays true afterwards, so
-					search reads decisions instead of raw transcript.
+					search reads decisions instead of raw transcript. This setting is for
+					this workspace; other projects keep their own.
 				</span>
 			</div>
 			<select
 				aria-label="Digest model"
 				onchange={(event) => selectModel(event.currentTarget.value)}
 			>
+				<option value={inherit} selected={selectedModel === inherit}>
+					Use the default ({defaultLabel})
+				</option>
 				<option value={noModel} selected={selectedModel === noModel}>
-					No model — digesting is off
+					Off for this workspace
 				</option>
 				{#each models as model (`${model.provider}/${model.id}`)}
 					{@const ref = `${model.provider}/${model.id}`}
@@ -165,7 +189,12 @@
 				checked={status?.settings.auto ?? true}
 				aria-label="Digest new segments automatically"
 				onCheckedChange={(auto: boolean) =>
-					save({ ...(status?.settings ?? { auto: true }), auto })}
+					save({
+						...(status?.overridden && status.settings.model
+							? { model: status.settings.model }
+							: {}),
+						auto,
+					})}
 			>
 				<Switch.Thumb data-ui="switch-thumb" />
 			</Switch.Root>
@@ -234,43 +263,6 @@
 			/>
 		</div>
 
-		{#each digests as digest (digest.segment)}
-			<article data-ui="memory-digest">
-				<header>
-					<code>{digest.segment}</code>
-					<em data-outcome={digest.outcome}>{digest.outcome}</em>
-				</header>
-				<p>{digest.summary}</p>
-				{#if digest.decisions.length > 0}
-					<strong>Decisions</strong>
-					<ul>
-						{#each digest.decisions as decision (decision)}
-							<li>{decision}</li>
-						{/each}
-					</ul>
-				{/if}
-				{#if digest.errors.length > 0}
-					<strong>Errors</strong>
-					<ul>
-						{#each digest.errors as issue (issue)}
-							<li>{issue}</li>
-						{/each}
-					</ul>
-				{/if}
-				{#if digest.files.length > 0}
-					<div data-ui="memory-digest-files">
-						{#each digest.files as file (file)}
-							<code>{file}</code>
-						{/each}
-					</div>
-				{/if}
-			</article>
-		{:else}
-			<p data-ui="settings-empty">
-				{query
-					? 'No memories match that filter.'
-					: 'No memories yet. Choose a model and digest this workspace.'}
-			</p>
-		{/each}
+		<MemoryDigestList {digests} {query} />
 	</div>
 </SettingsPage>

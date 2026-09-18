@@ -26,8 +26,22 @@ export async function handleMemoryRequest(
 					request.limit,
 				),
 			};
-		case 'memory.settings.set':
-			return { result: await memory.writeSettings(request.settings) };
+		case 'memory.settings.set': {
+			// No project means the default; a project means its override, which
+			// `inherit` clears so the workspace falls back to the default again.
+			if (!request.projectPath) {
+				if (!request.settings) {
+					throw new Error('Writing the default needs settings');
+				}
+				return { result: await memory.writeDefaults(request.settings) };
+			}
+			return {
+				result: await memory.writeOverride(
+					request.projectPath,
+					request.inherit ? undefined : (request.override ?? {}),
+				),
+			};
+		}
 		case 'memory.backfill.start':
 			return {
 				result: await memory.startBackfill(
