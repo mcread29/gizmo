@@ -7,6 +7,7 @@ export const settingsPages = [
 	'appearance',
 	'chat',
 	'context',
+	'memory',
 	'connection',
 	'providers',
 	'agent',

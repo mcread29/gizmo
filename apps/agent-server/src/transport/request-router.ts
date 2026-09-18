@@ -1,12 +1,14 @@
 import type { ProjectServiceRegistry } from '@gizmo/extensions';
 import type { AgentRequest } from '@gizmo/protocol';
 import type { ExtensionHostService } from '../extensions/extension-host-service';
+import { MemoryService } from '../memory/memory-service';
 import type { PiAgentService } from '../sessions/pi-agent-service';
 import {
 	handleProjectRequest,
 	type ProjectRequestServices,
 } from './project-request-handler';
 import type { ProjectWatchCoordinator } from './project-watch-coordinator';
+import { handleMemoryRequest } from './memory-request-handler';
 import { handleResourceRequest } from './resource-request-handler';
 import { handleSessionRequest } from './session-request-handler';
 
@@ -21,6 +23,12 @@ export interface RequestServices {
 	extensions: ExtensionHostService;
 	watchCoordinator: ProjectWatchCoordinator;
 }
+
+/**
+ * The memory layer holds the state of in-flight backfills, so one instance is
+ * shared across every connection rather than built per request.
+ */
+const memory = new MemoryService();
 
 export async function routeRequest(
 	services: RequestServices,
@@ -96,6 +104,13 @@ export async function routeRequest(
 				services satisfies ProjectRequestServices,
 				request,
 			);
+
+		case 'memory.status':
+		case 'memory.digests':
+		case 'memory.settings.set':
+		case 'memory.backfill.start':
+		case 'memory.backfill.stop':
+			return handleMemoryRequest(memory, request);
 	}
 
 	request satisfies never;

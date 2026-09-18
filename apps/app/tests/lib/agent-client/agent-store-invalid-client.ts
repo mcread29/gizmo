@@ -15,6 +15,7 @@ import {
 	type StoredProject,
 	type ToolPolicy,
 } from '@gizmo/protocol';
+import type { DigestSettings } from '@gizmo/protocol';
 import type {
 	AgentClient,
 	AgentEventListener,
@@ -29,6 +30,23 @@ const emptyCatalog: ResourceCatalog = {
 
 export class InvalidEventClient implements AgentClient {
 	#listener?: AgentEventListener;
+	// The memory layer is not exercised by these connection/replay tests; the
+	// stubs exist only to satisfy the interface.
+	async memoryStatus() {
+		return { segments: 0, digested: 0, settings: { auto: false } };
+	}
+	async memoryDigests() {
+		return [];
+	}
+	async setMemorySettings(settings: DigestSettings) {
+		return settings;
+	}
+	async startMemoryBackfill() {
+		return { segments: 0, digested: 0, settings: { auto: false } };
+	}
+	async stopMemoryBackfill() {
+		return { segments: 0, digested: 0, settings: { auto: false } };
+	}
 	async listProviders(): Promise<ProviderStatus[]> {
 		return [];
 	}

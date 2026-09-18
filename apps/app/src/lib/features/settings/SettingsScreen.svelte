@@ -8,6 +8,7 @@
 		Layers,
 		Sparkles,
 		KeyRound,
+		Brain,
 	} from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { ScrollPanel } from '../../components';
@@ -19,6 +20,7 @@
 	import ChatSettings from './ChatSettings.svelte';
 	import ConnectionSettings from './ConnectionSettings.svelte';
 	import ContextSettings from './ContextSettings.svelte';
+	import MemorySettings from './MemorySettings.svelte';
 	import SettingsNav, { type SettingsNavItem } from './SettingsNav.svelte';
 	import AgentSettings from './AgentSettings.svelte';
 	import ProvidersSettings from './ProvidersSettings.svelte';
@@ -84,6 +86,7 @@
 				{ page: 'appearance', label: 'Appearance', icon: Palette },
 				{ page: 'chat', label: 'Chat', icon: MessageSquare },
 				{ page: 'context', label: 'Context', icon: Layers },
+				{ page: 'memory', label: 'Memory', icon: Brain },
 				{ page: 'connection', label: 'Connection', icon: Plug },
 				{ page: 'providers', label: 'Providers', icon: KeyRound },
 				{
@@ -158,6 +161,8 @@
 						<ChatSettings {layout} {store} />
 					{:else if page === 'context'}
 						<ContextSettings {layout} />
+					{:else if page === 'memory'}
+						<MemorySettings {store} />
 					{:else if page === 'connection'}
 						<ConnectionSettings {layout} {store} />
 					{:else if page === 'agent'}

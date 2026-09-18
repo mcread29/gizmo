@@ -1,3 +1,4 @@
+import type { DigestSettings } from '@gizmo/protocol';
 import {
 	type ComposerCommand,
 	type ExtensionUiRequest,
@@ -5,6 +6,7 @@ import {
 } from '@gizmo/protocol';
 import type { AgentClient } from './AgentClient';
 import { FakeExtensionCapability } from './fake-client/extensions';
+import { FakeMemoryCapability } from './fake-client/memory';
 import { FakeProjectCapability } from './fake-client/projects';
 import { FakePromptCapability } from './fake-client/prompt-stream';
 import { FakeResourceCapability } from './fake-client/resources';
@@ -27,6 +29,28 @@ export interface FakeAgentClientOptions {
 
 /** Stable demo-client entry point; fake behavior lives in capability modules. */
 export class FakeAgentClient implements AgentClient {
+	readonly #memory = new FakeMemoryCapability();
+
+	memoryStatus() {
+		return this.#memory.status();
+	}
+
+	memoryDigests(_projectPath: string, query?: string, limit?: number) {
+		return this.#memory.digests(query, limit);
+	}
+
+	setMemorySettings(settings: DigestSettings) {
+		return this.#memory.setSettings(settings);
+	}
+
+	startMemoryBackfill() {
+		return this.#memory.status();
+	}
+
+	stopMemoryBackfill() {
+		return this.#memory.status();
+	}
+
 	readonly #state: FakeClientState;
 	readonly #tools: FakeToolPolicyCapability;
 	readonly #sessions: FakeSessionCapability;

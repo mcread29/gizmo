@@ -1,4 +1,7 @@
 import type {
+	DigestSettings,
+	JournalDigest,
+	MemoryStatus,
 	AgentAttachment,
 	AgentModelCatalog,
 	CompactionPolicy,
@@ -37,6 +40,18 @@ export interface AttachmentContent {
 }
 
 export interface AgentClient {
+	memoryStatus(projectPath: string): Promise<MemoryStatus>;
+	memoryDigests(
+		projectPath: string,
+		query?: string,
+		limit?: number,
+	): Promise<JournalDigest[]>;
+	setMemorySettings(settings: DigestSettings): Promise<DigestSettings>;
+	startMemoryBackfill(
+		projectPath: string,
+		regenerate?: boolean,
+	): Promise<MemoryStatus>;
+	stopMemoryBackfill(projectPath: string): Promise<MemoryStatus>;
 	listProviders(): Promise<ProviderStatus[]>;
 	reimportPiAuth(): Promise<ProviderStatus[]>;
 	connect(): Promise<void>;

@@ -2,6 +2,7 @@ import type {
 	ExtensionAPI,
 	ExtensionContext,
 } from '@earendil-works/pi-coding-agent';
+import { DigestRunner } from '../memory/digest-runner';
 import { JournalRecorder } from '../memory/journal-recorder';
 import { JournalStore } from '../memory/journal-store';
 import {
@@ -22,6 +23,7 @@ export default function memoryJournal(pi: ExtensionAPI) {
 	// Keyed by workspace: one journal per project, whatever cwd a call carries.
 	const stores = new Map<string, JournalStore>();
 	const recorders = new Map<string, JournalRecorder>();
+	const digests = new DigestRunner();
 
 	const storeFor = (cwd: string): JournalStore => {
 		let store = stores.get(cwd);
@@ -69,13 +71,26 @@ ${journalAvailabilityLine}`,
 	};
 
 	/**
+	 * Records a span, then queues digests for whatever it wrote. Digesting is
+	 * deliberately not awaited: it calls a model, and the journal's guarantee
+	 * is that recording never blocks or fails a turn.
+	 */
+	const record = async (
+		ctx: ExtensionContext,
+		options: Parameters<JournalRecorder['record']>[1],
+	) => {
+		const written = await forSession(ctx).record(ctx.sessionManager, options);
+		digests.schedule(ctx.cwd, written);
+	};
+
+	/**
 	 * Compaction is the primary boundary: `firstKeptEntryId` is exactly where
 	 * the rebuilt context resumes, so the segment ends there and the retained
 	 * messages are left for a later span.
 	 */
 	pi.on('session_compact', async (event, ctx) => {
 		await guard('compaction', () =>
-			forSession(ctx).record(ctx.sessionManager, {
+			record(ctx, {
 				trigger: 'compaction',
 				until: event.compactionEntry.firstKeptEntryId,
 			}),
@@ -89,9 +104,7 @@ ${journalAvailabilityLine}`,
 	 * without walking the tree.
 	 */
 	pi.on('session_before_tree', async (_event, ctx) => {
-		await guard('branch', () =>
-			forSession(ctx).record(ctx.sessionManager, { trigger: 'branch' }),
-		);
+		await guard('branch', () => record(ctx, { trigger: 'branch' }));
 	});
 
 	/**
@@ -100,14 +113,13 @@ ${journalAvailabilityLine}`,
 	 * This bounds what an abandoned session can lose.
 	 */
 	pi.on('turn_end', async (_event, ctx) => {
-		await guard('threshold', () =>
-			forSession(ctx).recordIfLarge(ctx.sessionManager),
-		);
+		await guard('threshold', async () => {
+			const written = await forSession(ctx).recordIfLarge(ctx.sessionManager);
+			digests.schedule(ctx.cwd, written);
+		});
 	});
 
 	pi.on('session_shutdown', async (_event, ctx) => {
-		await guard('session end', () =>
-			forSession(ctx).record(ctx.sessionManager, { trigger: 'session-end' }),
-		);
+		await guard('session end', () => record(ctx, { trigger: 'session-end' }));
 	});
 }

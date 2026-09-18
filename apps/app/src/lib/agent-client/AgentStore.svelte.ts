@@ -4,6 +4,7 @@ import { AgentStoreState } from './agent-store/AgentStoreState.svelte';
 import { ConnectionCapability } from './agent-store/ConnectionCapability';
 import { ExtensionCapability } from './agent-store/ExtensionCapability';
 import { GitCapability } from './agent-store/GitCapability';
+import { MemoryCapability } from './agent-store/MemoryCapability';
 import { ProjectCapability } from './agent-store/ProjectCapability';
 import { RegistryCapability } from './agent-store/RegistryCapability';
 import { ResourceCapability } from './agent-store/ResourceCapability';
@@ -12,19 +13,16 @@ import { SessionSyncCapability } from './agent-store/SessionSyncCapability';
 import { SessionRuntimeCapability } from './agent-store/SessionRuntimeCapability';
 import type { PendingConfirmation } from './agent-store/types';
 
-export type {
-	AgentError,
-	AgentErrorKind,
-	AgentModel,
-	ConnectionState,
-	PendingConfirmation,
-} from './agent-store/types';
+// prettier-ignore
+export type { AgentError, AgentErrorKind, AgentModel, ConnectionState, PendingConfirmation } from './agent-store/types';
 
 /** Stable reactive facade coordinating the agent client's capability modules. */
 export class AgentStore extends AgentStoreState {
 	readonly #connection: ConnectionCapability;
 	readonly #extensions: ExtensionCapability;
 	readonly #git: GitCapability;
+	/** The journal's derived memory layer. */
+	readonly memory: MemoryCapability;
 	readonly #projects: ProjectCapability;
 	readonly #registry: RegistryCapability;
 	readonly #resources: ResourceCapability;
@@ -54,6 +52,7 @@ export class AgentStore extends AgentStoreState {
 		);
 		this.#extensions = new ExtensionCapability(this, client);
 		this.#git = new GitCapability(this, client);
+		this.memory = new MemoryCapability(this, client);
 		this.#registry = new RegistryCapability(this, client);
 		this.#resources = new ResourceCapability(this, client);
 	}

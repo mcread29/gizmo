@@ -1,0 +1,112 @@
+/**
+ * The Memory page: digest controls and the list of saved memories.
+ *
+ * Digests are read far more than they are acted on, so a memory renders as a
+ * quiet block of prose rather than a card — the page is a reading surface, and
+ * 100 bordered cards in a column is harder to skim than 100 paragraphs.
+ */
+
+[data-ui='setting-field'] > select,
+[data-ui='setting-field'] > input[type='search'] {
+	width: 100%;
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface);
+	color: var(--color-text);
+	font-family: inherit;
+	font-size: var(--text-sm);
+}
+
+[data-ui='setting-field'] > progress {
+	width: 100%;
+	height: 6px;
+	border: none;
+	border-radius: 999px;
+	background: var(--color-surface-soft);
+	appearance: none;
+}
+[data-ui='setting-field'] > progress::-webkit-progress-bar {
+	border-radius: 999px;
+	background: var(--color-surface-soft);
+}
+[data-ui='setting-field'] > progress::-webkit-progress-value {
+	border-radius: 999px;
+	background: var(--color-accent);
+}
+
+[data-ui='setting-actions'] {
+	display: flex;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4);
+	border-top: 1px solid var(--color-border);
+}
+
+[data-ui='memory-digest'] {
+	display: grid;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4);
+	border-top: 1px solid var(--color-border);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+}
+[data-ui='memory-digest'] header {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+[data-ui='memory-digest'] header code {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+[data-ui='memory-digest'] header em {
+	padding: 1px 6px;
+	border-radius: 999px;
+	background: var(--color-surface-soft);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	font-style: normal;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+/* Only a shipped outcome earns colour; the rest are the neutral default. */
+[data-ui='memory-digest'] header em[data-outcome='shipped'] {
+	background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+	color: var(--color-accent);
+}
+[data-ui='memory-digest'] p {
+	margin: 0;
+}
+[data-ui='memory-digest'] strong {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+[data-ui='memory-digest'] ul {
+	display: grid;
+	gap: 3px;
+	margin: 0;
+	padding-left: var(--space-4);
+	color: var(--color-text-muted);
+}
+[data-ui='memory-digest-files'] {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+[data-ui='memory-digest-files'] code {
+	padding: 1px 6px;
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='settings-empty'] {
+	margin: 0;
+	padding: var(--space-4);
+	border-top: 1px solid var(--color-border);
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}

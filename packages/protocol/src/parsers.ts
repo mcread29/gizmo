@@ -31,6 +31,14 @@ import {
 	type WorkspaceDirectoryListing,
 } from './projects';
 import {
+	type DigestSettings,
+	digestSettingsSchema,
+	type JournalDigest,
+	journalDigestSchema,
+	type MemoryStatus,
+	memoryStatusSchema,
+} from './memory';
+import {
 	composerCommandSchema,
 	type ComposerCommand,
 	providerStatusSchema,
@@ -64,6 +72,11 @@ function parser<T>(schema: TSchema, kind: ParserKind = 'response') {
 }
 
 export const parseRegistryStatus = parser<RegistryStatus>(registryStatusSchema);
+export const parseMemoryStatus = parser<MemoryStatus>(memoryStatusSchema);
+export const parseJournalDigests = parser<JournalDigest[]>(
+	Type.Array(journalDigestSchema),
+);
+export const parseDigestSettings = parser<DigestSettings>(digestSettingsSchema);
 export const parseAgentRequest = parser<AgentRequest>(
 	agentRequestSchema,
 	'request',
