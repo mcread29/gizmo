@@ -1,5 +1,5 @@
 import type { SessionEntry } from '@earendil-works/pi-coding-agent';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -7,6 +7,7 @@ import {
 	entriesSince,
 	JournalStore,
 	journalDir,
+	segmentId,
 } from '../../src/memory/journal-store';
 
 function userEntry(id: string, text: string): SessionEntry {
@@ -42,13 +43,13 @@ describe('JournalStore', () => {
 			trigger: 'session-end',
 		});
 
-		expect(first[0]?.id).toBe('0001');
-		expect(second[0]?.id).toBe('0002');
+		expect(first[0]?.id).toBe('0001-e1');
+		expect(second[0]?.id).toBe('0002-e2');
 		const file = await readFile(
-			join(journalDir(workspace), '0001-abc123.md'),
+			join(journalDir(workspace), '0001-e1-abc123.md'),
 			'utf8',
 		);
-		expect(file).toContain('id: "0001"');
+		expect(file).toContain('id: "0001-e1"');
 		expect(file).toContain('trigger: compaction');
 		expect(file).toContain('## user');
 		expect(file).toContain('hello');
@@ -130,8 +131,10 @@ describe('JournalStore', () => {
 
 		expect(written.length).toBeGreaterThan(1);
 		expect(written.map(({ id }) => id)).toEqual(
-			written.map((_, n) => String(n + 1).padStart(4, '0')),
+			written.map((meta, n) => segmentId(n + 1, meta.firstEntryId)),
 		);
+		// Ordinals order the segments; the entry-id suffix keeps them unique.
+		expect(new Set(written.map(({ id }) => id)).size).toBe(written.length);
 		for (const meta of written) expect(meta.bytes).toBeLessThanOrEqual(40_000);
 		expect(written.at(-1)?.lastEntryId).toBe('e11');
 		expect(await store.resumeAfter(branch)).toBe('e11');
@@ -145,7 +148,7 @@ describe('JournalStore', () => {
 			trigger: 'compaction',
 		});
 
-		expect(await store.read('0001')).toContain('recorded');
+		expect(await store.read('0001-e1')).toContain('recorded');
 		expect(await store.read('0099')).toBeUndefined();
 	});
 
@@ -159,6 +162,54 @@ describe('JournalStore', () => {
 		await appendFile(join(journalDir(workspace), 'index.jsonl'), '{"id":"00');
 
 		expect(await store.list()).toHaveLength(1);
+	});
+
+	/**
+	 * Journals written before ids carried an entry-id suffix hold bare
+	 * ordinals, and those segments are never rewritten. Reading one has to
+	 * keep working, and a new segment appended beside it must not take an id
+	 * or a filename that a legacy segment already answers to.
+	 */
+	it('reads legacy bare-ordinal segments and appends beside them', async () => {
+		const dir = journalDir(workspace);
+		await mkdir(dir, { recursive: true });
+		const legacy = {
+			id: '0001',
+			session: 'old',
+			firstEntryId: 'a1',
+			lastEntryId: 'a1',
+			at: '2026-01-01T00:00:00.000Z',
+			messages: 1,
+			bytes: 8,
+			trigger: 'backfill',
+		};
+		await writeFile(
+			join(dir, '0001-old.md'),
+			'---\nid: "0001"\n---\n\n## user\n\nlegacy body\n',
+			'utf8',
+		);
+		await writeFile(
+			join(dir, 'index.jsonl'),
+			`${JSON.stringify(legacy)}\n`,
+			'utf8',
+		);
+
+		const store = new JournalStore(workspace);
+		expect(await store.read('0001')).toContain('legacy body');
+
+		const [written] = await store.append([userEntry('e9', 'new body')], {
+			sessionId: 'fresh',
+			trigger: 'session-end',
+		});
+
+		expect(written?.id).toBe('0002-e9');
+		expect(await store.read('0002-e9')).toContain('new body');
+		// The legacy segment is untouched and both remain addressable.
+		expect(await store.read('0001')).toContain('legacy body');
+		expect((await store.list()).map(({ id }) => id)).toEqual([
+			'0001',
+			'0002-e9',
+		]);
 	});
 });
 

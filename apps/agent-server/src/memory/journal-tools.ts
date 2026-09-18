@@ -55,12 +55,12 @@ export function createJournalTools(storeFor: (cwd: string) => JournalStore) {
 		name: 'journal_read',
 		label: 'Read journal segment',
 		description:
-			'Read one memory journal segment in full by id (for example "0042", as labelled in journal_search results). Optionally start from a line number to page through an unusually long segment.',
+			'Read one memory journal segment in full by id (for example "0042-9f293bd7", as labelled in journal_search results — copy the id exactly). Optionally start from a line number to page through an unusually long segment.',
 		promptSnippet:
 			'Read one full segment of this project’s conversation history by id',
 		parameters: Type.Object(
 			{
-				id: Type.String({ minLength: 1, maxLength: 16 }),
+				id: Type.String({ minLength: 1, maxLength: 64 }),
 				fromLine: Type.Optional(Type.Integer({ minimum: 1 })),
 			},
 			{ additionalProperties: false },

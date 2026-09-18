@@ -71,7 +71,7 @@ describe('memory-journal extension', () => {
 		);
 
 		const files = await readdir(journalDir(workspace));
-		expect(files).toContain('0001-sess1.md');
+		expect(files).toContain('0001-e1-sess1.md');
 		const index = files.filter((name) => name.endsWith('.md'));
 		expect(index).toHaveLength(1);
 	});
@@ -85,7 +85,7 @@ describe('memory-journal extension', () => {
 			stubContext(workspace, branch),
 		);
 
-		expect(await readdir(journalDir(workspace))).toContain('0001-sess1.md');
+		expect(await readdir(journalDir(workspace))).toContain('0001-e1-sess1.md');
 	});
 
 	it('records each span once across successive boundaries', async () => {
@@ -102,7 +102,7 @@ describe('memory-journal extension', () => {
 		const segments = (await readdir(journalDir(workspace))).filter((name) =>
 			name.endsWith('.md'),
 		);
-		expect(segments).toEqual(['0001-sess1.md', '0002-sess1.md']);
+		expect(segments).toEqual(['0001-e1-sess1.md', '0002-e2-sess1.md']);
 	});
 
 	it('stays silent when a handler throws', async () => {

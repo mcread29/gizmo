@@ -1,0 +1,5 @@
+# The journal index is an append-only log whose line order carries no meaning:
+# readers sort by id. Two machines journaling in parallel both append at the
+# same tail, which git would otherwise report as a conflict on every sync.
+# Union merge keeps both sides' lines, which is exactly the desired merge.
+.gizmo/memory/journal/index.jsonl merge=union

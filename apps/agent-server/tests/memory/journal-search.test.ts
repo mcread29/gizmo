@@ -46,7 +46,7 @@ describe('searchJournal', () => {
 		const result = await searchJournal(store, 'sqlite cache');
 
 		expect(result.hits[0]?.excerpt).toContain('we chose sqlite for the cache');
-		expect(result.hits[0]?.segment).toBe('0001');
+		expect(result.hits[0]?.segment).toBe('0001-e1');
 	});
 
 	it('labels excerpts with the segment id and keeps surrounding lines', async () => {
@@ -62,10 +62,10 @@ describe('searchJournal', () => {
 		const result = await searchJournal(store, 'needle');
 
 		expect(result.hits).toHaveLength(1);
-		expect(result.hits[0]?.segment).toBe('0002');
+		expect(result.hits[0]?.segment).toBe('0002-e2');
 		expect(result.hits[0]?.excerpt).toContain('before');
 		expect(result.hits[0]?.excerpt).toContain('after');
-		expect(formatSearchResult(result)).toContain('[segment 0002 line');
+		expect(formatSearchResult(result)).toContain('[segment 0002-e2 line');
 	});
 
 	it('does not match the frontmatter', async () => {
@@ -93,9 +93,9 @@ describe('searchJournal', () => {
 			perSegment: 2,
 		});
 		expect(
-			perSegment.hits.filter((hit) => hit.segment === '0001'),
+			perSegment.hits.filter((hit) => hit.segment === '0001-n0'),
 		).toHaveLength(2);
-		expect(perSegment.hits.some((hit) => hit.segment === '0002')).toBe(true);
+		expect(perSegment.hits.some((hit) => hit.segment === '0002-q1')).toBe(true);
 		expect(perSegment.truncated).toBe(true);
 
 		const total = await searchJournal(store, 'needle', {

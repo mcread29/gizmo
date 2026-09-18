@@ -101,7 +101,7 @@ export class JournalStore {
 		if (!segment.body.trim()) return;
 
 		const meta: JournalSegmentMeta = {
-			id: String(number).padStart(4, '0'),
+			id: segmentId(number, first.id),
 			session: safeSessionId(options.sessionId),
 			firstEntryId: first.id,
 			lastEntryId: last.id,
@@ -187,6 +187,25 @@ export function entriesSince(
 	const index = entries.findIndex((entry) => entry.id === lastEntryId);
 	if (index < 0) return [...entries];
 	return entries.slice(index + 1);
+}
+
+/**
+ * A segment id: a zero-padded ordinal for ordering, then the id of the first
+ * entry it holds to make it unique.
+ *
+ * The ordinal alone is allocated by counting the local index, so two machines
+ * journaling in parallel against the same synced project would both mint the
+ * same number for different spans — and the union-merged index would then
+ * carry two segments answering to one id, making `read` ambiguous. Entry ids
+ * are already unique per span, so suffixing one costs nothing and removes the
+ * collision. Ordinals may still repeat across machines; only ordering suffers,
+ * and `at` resolves that. Segments written before this suffix existed keep
+ * their bare-ordinal ids, which stay unique among themselves.
+ */
+export function segmentId(number: number, firstEntryId: string): string {
+	const suffix = firstEntryId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
+	const ordinal = String(number).padStart(4, '0');
+	return suffix ? `${ordinal}-${suffix}` : ordinal;
 }
 
 function segmentFileName(meta: JournalSegmentMeta): string {
