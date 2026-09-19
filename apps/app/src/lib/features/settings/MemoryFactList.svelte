@@ -23,10 +23,7 @@
 
 {#each groups as group (group.subject)}
 	<article data-ui="memory-fact">
-		<header>
-			<strong>{group.subject}</strong>
-			<code>{group.entries[0]?.segment}</code>
-		</header>
+		<strong>{group.subject}</strong>
 		<ul>
 			{#each group.entries as fact (fact.id)}
 				<li>
@@ -34,6 +31,10 @@
 					{#if fact.supersedes.length > 0}
 						<em title="Replaced an earlier fact">revised</em>
 					{/if}
+					<!-- Per statement, not per group: a subject accumulates facts
+					     across sessions, so one id in the heading would misattribute
+					     every statement but the newest. -->
+					<code>{fact.segment}</code>
 				</li>
 			{/each}
 		</ul>
