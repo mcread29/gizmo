@@ -2,6 +2,7 @@ import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { DigestStore } from './digest-store';
 import { FactStore } from './fact-store';
+import { JournalIndex } from './journal-index';
 import { formatSearchResult, searchJournal } from './journal-search';
 import type { JournalStore } from './journal-store';
 
@@ -24,6 +25,19 @@ export const journalAvailabilityLine =
  * carries its own cwd.
  */
 export function createJournalTools(storeFor: (cwd: string) => JournalStore) {
+	// One index per workspace, held for the life of the process. The handle
+	// carries the open database and the record of what is already indexed, so
+	// rebuilding it per call would re-read the whole journal only to discover
+	// that nothing had changed.
+	const indexes = new Map<string, JournalIndex>();
+	const indexFor = (cwd: string) => {
+		const existing = indexes.get(cwd);
+		if (existing) return existing;
+		const created = new JournalIndex(cwd);
+		indexes.set(cwd, created);
+		return created;
+	};
+
 	const search = defineTool({
 		name: 'journal_search',
 		label: 'Search journal',
@@ -54,6 +68,7 @@ export function createJournalTools(storeFor: (cwd: string) => JournalStore) {
 			const result = await searchJournal(storeFor(ctx.cwd), params.query, {
 				digests,
 				facts,
+				index: indexFor(ctx.cwd),
 				...(params.maxResults ? { maxHits: params.maxResults } : {}),
 			});
 			return {

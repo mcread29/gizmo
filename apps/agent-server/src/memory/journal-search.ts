@@ -4,7 +4,9 @@ import {
 	type DigestHit,
 } from './digest-search';
 import { type FactHit, formatFactHit, searchFacts } from './fact-search';
+import { excerpts } from './journal-excerpt';
 import type { JournalDigest } from './journal-digest';
+import type { JournalIndex } from './journal-index';
 import type { JournalFact } from './journal-fact';
 import type { JournalStore } from './journal-store';
 
@@ -32,6 +34,11 @@ export interface SearchOptions {
 	facts?: readonly JournalFact[];
 	/** Most facts reported. Kept small; this section is meant to be read in full. */
 	maxFacts?: number;
+	/**
+	 * Narrows which segments are read. Absent scans them all, which is always
+	 * correct and is what happens anyway whenever the index is unavailable.
+	 */
+	index?: JournalIndex;
 }
 
 export interface SearchHit {
@@ -54,7 +61,7 @@ export interface SearchResult {
 	segmentsSearched: number;
 }
 
-const defaults: Required<Omit<SearchOptions, 'digests' | 'facts'>> = {
+const defaults: Required<Omit<SearchOptions, 'digests' | 'facts' | 'index'>> = {
 	context: 3,
 	perSegment: 3,
 	maxHits: 12,
@@ -62,9 +69,6 @@ const defaults: Required<Omit<SearchOptions, 'digests' | 'facts'>> = {
 	maxDigests: 5,
 	maxFacts: 6,
 };
-
-/** Long lines are usually JSON tool arguments; keep the neighbourhood of the hit. */
-const maxLineChars = 240;
 
 /**
  * Lexical search in two stages: the digests, then the segment bodies.
@@ -105,8 +109,23 @@ export async function searchJournal(
 	const ranked = searchDigests(options.digests ?? [], terms);
 	const digestHits = ranked.slice(0, settings.maxDigests);
 
+	// The index answers only "which segments could match", never which rank
+	// highest. That distinction is the whole reason the results are unchanged:
+	// every segment the scan would have found is read, and the same scoring
+	// then runs on the same bytes. A broad query matches most of the journal
+	// and saves nothing, which is the honest outcome -- a specific one reads a
+	// handful of files instead of five hundred.
+	//
+	// undefined means the index is unusable, which is not a failure: it means
+	// reading them all, exactly as this did before there was an index.
+	const shortlist = await options.index?.candidates(store, terms);
+	const shortlisted = shortlist && new Set(shortlist);
+	const toRead = shortlisted
+		? segments.filter((meta) => shortlisted.has(meta.id))
+		: segments;
+
 	const candidates: SearchHit[] = [];
-	for (const meta of segments) {
+	for (const meta of toRead) {
 		const text = await store.read(meta.id);
 		if (!text) continue;
 		candidates.push(...excerpts(meta.id, text, terms, settings));
@@ -197,84 +216,4 @@ export function tokenize(query: string): string[] {
 		if (word.length >= 2) seen.add(word);
 	}
 	return [...seen];
-}
-
-interface Window {
-	start: number;
-	end: number;
-	score: number;
-}
-
-/**
- * Scores each line by how many distinct terms it contains — a line holding
- * every term outranks any number of single-term lines — then widens each
- * matching line into a window and merges the windows that overlap.
- */
-function excerpts(
-	segment: string,
-	text: string,
-	terms: string[],
-	settings: { context: number },
-): SearchHit[] {
-	const lines = text.split('\n');
-	const firstBodyLine = bodyStart(lines);
-	const windows: Window[] = [];
-	for (let index = firstBodyLine; index < lines.length; index += 1) {
-		const score = scoreLine(lines[index] ?? '', terms);
-		if (score === 0) continue;
-		const start = Math.max(firstBodyLine, index - settings.context);
-		const end = Math.min(lines.length - 1, index + settings.context);
-		const last = windows[windows.length - 1];
-		if (last && start <= last.end + 1) {
-			last.end = end;
-			last.score = Math.max(last.score, score) + 1;
-		} else {
-			windows.push({ start, end, score });
-		}
-	}
-	return windows.map((window) => ({
-		segment,
-		line: window.start + 1,
-		score: window.score,
-		excerpt: lines
-			.slice(window.start, window.end + 1)
-			.map((line) => clip(line, terms))
-			.join('\n'),
-	}));
-}
-
-function scoreLine(line: string, terms: string[]): number {
-	const lower = line.toLowerCase();
-	let distinct = 0;
-	let occurrences = 0;
-	for (const term of terms) {
-		let at = lower.indexOf(term);
-		if (at < 0) continue;
-		distinct += 1;
-		while (at >= 0) {
-			occurrences += 1;
-			at = lower.indexOf(term, at + term.length);
-		}
-	}
-	return distinct === 0 ? 0 : distinct * 100 + Math.min(occurrences, 20);
-}
-
-function clip(line: string, terms: string[]): string {
-	if (line.length <= maxLineChars) return line;
-	const lower = line.toLowerCase();
-	const hit = Math.min(
-		...terms.map((term) => lower.indexOf(term)).filter((at) => at >= 0),
-	);
-	const start = Number.isFinite(hit)
-		? Math.max(0, Math.min(hit - 40, line.length - maxLineChars))
-		: 0;
-	const slice = line.slice(start, start + maxLineChars);
-	return `${start > 0 ? '…' : ''}${slice}…`;
-}
-
-/** Frontmatter repeats the index; matching on it would only surface ids. */
-function bodyStart(lines: string[]): number {
-	if (lines[0] !== '---') return 0;
-	const close = lines.indexOf('---', 1);
-	return close < 0 ? 0 : close + 1;
 }
