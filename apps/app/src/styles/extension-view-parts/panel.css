@@ -1,0 +1,134 @@
+/*
+ * The frame around a view: how it fills its tab, how a `split` divides that
+ * space, and where the action bar sits.
+ */
+
+[data-ui='view'] {
+	display: grid;
+	/* The blocks scroll; the action bar keeps its place at the bottom. */
+	grid-template-rows: minmax(0, 1fr) auto;
+	gap: var(--space-3);
+	min-height: 0;
+	/* So a `split` can ask whether it has the width to sit side by side. */
+	container-type: inline-size;
+}
+[data-ui='view-blocks'] {
+	display: grid;
+	gap: var(--space-3);
+	align-content: start;
+	min-height: 0;
+}
+/*
+ * Nothing above a block insets it: the surface names the inset it wants in
+ * `--view-pad` and each block takes it for itself, so a block that reads
+ * better edge to edge simply declines. A `split` hands the inset on to its
+ * panes rather than taking it around them.
+ */
+[data-ui='view-blocks'] > *:not([data-ui='view-split'], [data-ui='diff']) {
+	margin-inline: var(--view-pad, 0px);
+}
+/* A section has already taken the inset around the blocks inside it. */
+[data-ui='view-section'] > [data-ui='view-blocks'] {
+	--view-pad: 0px;
+}
+[data-ui='view-panel'] > [data-ui='view-panel-header'],
+[data-ui='view-panel'] > [data-ui='view-panel-error'],
+[data-ui='view'] > [data-ui='view-actions'] {
+	margin-inline: var(--view-pad, 0px);
+}
+
+/* The outermost run of blocks is a column so a `split` can take the height
+   that is left over instead of collapsing to its content. */
+[data-ui='view'] > [data-ui='view-blocks'] {
+	display: flex;
+	flex-direction: column;
+	overflow: auto;
+}
+[data-ui='view'] > [data-ui='view-blocks'] > [data-ui='view-split'] {
+	min-height: 0;
+}
+
+[data-ui='view-split'] {
+	display: flex;
+	gap: var(--space-3);
+	flex: 1;
+	min-height: 0;
+}
+[data-ui='view-split'][data-direction='vertical'] {
+	flex-direction: column;
+}
+[data-ui='view-split-pane'] {
+	display: flex;
+	flex-direction: column;
+	flex-basis: 0;
+	min-width: 0;
+	min-height: 0;
+	overflow: auto;
+}
+/* A pane hands its height to the blocks in it, so one that can fill a pane
+   — a diff — reads as the pane itself rather than a card above empty
+   space. */
+[data-ui='view-split-pane'] > [data-ui='view-blocks'] {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+}
+/* The inspector is one narrow column, so panes stack there however the
+   extension asked for them. */
+@container (max-width: 34rem) {
+	[data-ui='view-split'] {
+		flex-direction: column;
+	}
+}
+
+[data-ui='view-actions'] {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	align-items: center;
+}
+
+/* The panel takes the whole tab rather than its content's height, so a
+   `split` has a height to divide and each pane scrolls inside it instead of
+   the tab scrolling as one long column. */
+[data-ui='view-panel'] {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	height: 100%;
+	min-height: 0;
+}
+[data-ui='view-panel'] > [data-ui='view'] {
+	flex: 1;
+	min-height: 0;
+}
+[data-ui='view-panel-header'] {
+	display: flex;
+	gap: var(--space-2);
+	align-items: baseline;
+	justify-content: space-between;
+}
+[data-ui='view-panel-header'] h3 {
+	margin: 0;
+	font-size: var(--text-sm);
+	font-weight: 600;
+}
+[data-ui='view-panel-status'] {
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	text-transform: capitalize;
+}
+[data-ui='view-panel-status'][data-status='error'] {
+	color: var(--color-danger);
+}
+[data-ui='view-panel-status'][data-status='warning'] {
+	color: var(--color-warning);
+}
+[data-ui='view-panel-status'][data-status='success'] {
+	color: var(--color-success);
+}
+[data-ui='view-panel-error'] {
+	margin: 0;
+	color: var(--color-danger);
+}

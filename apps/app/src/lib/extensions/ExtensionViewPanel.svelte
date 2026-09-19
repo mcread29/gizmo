@@ -13,6 +13,7 @@
 		viewId,
 		sessionId,
 		settings,
+		tabLabel,
 		onViewChange,
 	}: {
 		store: AgentStore;
@@ -23,6 +24,8 @@
 		sessionId?: string;
 		/** The extension's client-local settings values, sent on open. */
 		settings?: Record<string, unknown>;
+		/** The label on the tab that opened this, so the header can avoid it. */
+		tabLabel?: string;
 		/** Lets a tab show the view's badge without opening it twice. */
 		onViewChange?: (view: View | undefined) => void;
 	} = $props();
@@ -102,6 +105,17 @@
 		untrack(() => onViewChange?.(latest));
 	});
 
+	/*
+	 * `idle` is the resting state of every view; printing it puts a word in
+	 * the corner that never means anything. Only the states that are news
+	 * get shown.
+	 */
+	let busy = $derived(Boolean(view?.status) && view?.status !== 'idle');
+	let title = $derived(
+		view && view.title !== tabLabel ? view.title : error ? 'Unavailable' : '',
+	);
+	let showHeader = $derived(Boolean(title) || busy);
+
 	async function run(event: ActionEvent) {
 		try {
 			const result = await store.client.runExtensionViewAction(address, event);
@@ -123,14 +137,18 @@
 </script>
 
 <div data-ui="view-panel">
-	<div data-ui="view-panel-header">
-		<h3>{view?.title ?? 'Loading…'}</h3>
-		{#if view?.status}
-			<span data-ui="view-panel-status" data-status={view.status}
-				>{view.status}</span
-			>
-		{/if}
-	</div>
+	<!-- The tab already names the view, so the header only earns its row when
+	     the title says something else, or when the status is worth a word. -->
+	{#if showHeader}
+		<div data-ui="view-panel-header">
+			{#if title}<h3>{title}</h3>{/if}
+			{#if busy}
+				<span data-ui="view-panel-status" data-status={view?.status}
+					>{view?.status}</span
+				>
+			{/if}
+		</div>
+	{/if}
 	{#if error}
 		<p data-ui="view-panel-error">{error}</p>
 	{:else if view}

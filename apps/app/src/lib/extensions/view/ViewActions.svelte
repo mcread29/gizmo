@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { Action, ActionEvent } from '@gizmo/extension-api';
-	import { Button, ConfirmDialog, Dialog, SelectField } from '@gizmo/ui';
+	import { Button, Menu, type MenuItem } from '@gizmo/ui';
+	import { extensionIcon, hasExtensionIcon } from '../icons';
 	import { runIntent, type ViewIntentHost } from './intents';
+	import type { ActionSelection } from './item-actions';
+	import ViewActionDialogs from './ViewActionDialogs.svelte';
 
 	let {
 		actions,
@@ -13,8 +16,8 @@
 	}: {
 		actions: readonly Action[];
 		selectionOf: (blockId: string) => string | undefined;
-		/** The path of whatever is picked in a block, for `selection` intents. */
-		pathOf: (blockId: string) => string | undefined;
+		/** The path behind a row, defaulting to whatever the block has picked. */
+		pathOf: (blockId: string, itemId?: string) => string | undefined;
 		host: ViewIntentHost;
 		onSend: (event: ActionEvent) => void;
 		/**
@@ -24,13 +27,30 @@
 		readonly?: boolean;
 	} = $props();
 
-	let confirming = $state<Action>();
-	let prompting = $state<Action>();
-	let inputValue = $state('');
+	type Pending = { action: Action; selection?: ActionSelection };
 
-	let shown = $derived(actions.filter((action) => !readonly || action.intent));
+	let confirming = $state<Pending>();
+	let prompting = $state<Pending>();
 
-	function selectionFor(action: Action) {
+	/** Row actions are drawn by the blocks themselves, not by this bar. */
+	let bar = $derived(
+		actions.filter(
+			(action) =>
+				action.placement !== 'item' && (!readonly || Boolean(action.intent)),
+		),
+	);
+	let shown = $derived(bar.filter((action) => action.group !== 'overflow'));
+	let overflow = $derived(bar.filter((action) => action.group === 'overflow'));
+	let menuItems = $derived<MenuItem[]>(
+		overflow.map((action) => ({
+			label: action.label,
+			tone: action.tone === 'danger' ? 'danger' : 'default',
+			disabled: disabled(action),
+			onSelect: () => start(action),
+		})),
+	);
+
+	function selectionFor(action: Action): ActionSelection | undefined {
 		if (!action.selection) return undefined;
 		const itemId = selectionOf(action.selection.blockId);
 		return itemId ? { blockId: action.selection.blockId, itemId } : undefined;
@@ -41,153 +61,119 @@
 		return Boolean(action.selection?.required) && !selectionFor(action);
 	}
 
-	function start(action: Action) {
+	function variant(action: Action) {
+		if (action.tone === 'primary') return 'primary' as const;
+		if (action.tone === 'danger') return 'danger' as const;
+		return action.group === 'secondary'
+			? ('ghost' as const)
+			: ('secondary' as const);
+	}
+
+	/**
+	 * A quiet action with an icon earns its place as the icon alone; the
+	 * label stays as the accessible name and the tooltip.
+	 */
+	function iconOnly(action: Action) {
+		return action.group === 'secondary' && hasExtensionIcon(action.icon);
+	}
+
+	/** Runs an action, on a row when one is named and on the bar otherwise. */
+	export function start(action: Action, selection?: ActionSelection): void {
+		const pending = { action, selection: selection ?? selectionFor(action) };
 		if (action.confirm) {
-			confirming = action;
+			confirming = pending;
 			return;
 		}
-		collect(action);
+		collect(pending);
 	}
 
-	function collect(action: Action) {
-		if (!action.input) {
-			finish(action);
+	function collect(pending: Pending) {
+		if (!pending.action.input) {
+			finish(pending);
 			return;
 		}
-		inputValue =
-			action.input.kind === 'select' ? '' : (action.input.initialValue ?? '');
-		prompting = action;
+		prompting = pending;
 	}
 
-	function finish(action: Action, value?: string) {
-		const event: ActionEvent = {
-			actionId: action.id,
-			cancelled: false,
-			...(selectionFor(action) ? { selection: selectionFor(action) } : {}),
-			...(value === undefined ? {} : { value }),
-		};
+	function finish({ action, selection }: Pending, value?: string) {
 		// An intent is the host's own work; the extension is never called.
 		if (action.intent) {
-			runIntent(action.intent, host, pathOf);
+			runIntent(action.intent, host, (blockId) =>
+				pathOf(
+					blockId,
+					selection?.blockId === blockId ? selection.itemId : undefined,
+				),
+			);
 			return;
 		}
-		onSend(event);
+		onSend({
+			actionId: action.id,
+			cancelled: false,
+			...(selection ? { selection } : {}),
+			...(value === undefined ? {} : { value }),
+		});
 	}
 
 	/** The extension hears about a dismissed dialog; an intent simply does not run. */
-	function cancel(action: Action) {
-		if (action.intent) return;
-		onSend({ actionId: action.id, cancelled: true });
+	function cancel({ action }: Pending) {
+		if (!action.intent) onSend({ actionId: action.id, cancelled: true });
 	}
 </script>
 
-{#if shown.length}
+{#if shown.length || overflow.length}
 	<div data-ui="view-actions">
 		{#each shown as action (action.id)}
+			{@const Icon = extensionIcon(action.icon)}
 			<Button
-				variant={action.tone === 'primary'
-					? 'primary'
-					: action.tone === 'danger'
-						? 'danger'
-						: 'secondary'}
-				size="sm"
+				variant={variant(action)}
+				size={iconOnly(action) ? 'icon' : 'sm'}
 				disabled={disabled(action)}
-				onclick={() => start(action)}>{action.label}</Button
+				title={iconOnly(action) ? action.label : undefined}
+				aria-label={iconOnly(action) ? action.label : undefined}
+				onclick={() => start(action)}
 			>
+				{#if hasExtensionIcon(action.icon)}<Icon
+						size={14}
+						aria-hidden="true"
+					/>{/if}
+				{#if !iconOnly(action)}{action.label}{/if}
+			</Button>
 		{/each}
+		{#if overflow.length}
+			{@const More = extensionIcon('ellipsis')}
+			<Menu items={menuItems}>
+				{#snippet trigger(props)}
+					<Button
+						{...props}
+						variant="ghost"
+						size="icon"
+						title="More actions"
+						aria-label="More actions"
+						><More size={14} aria-hidden="true" /></Button
+					>
+				{/snippet}
+			</Menu>
+		{/if}
 	</div>
 {/if}
 
-{#if confirming}
-	{@const action = confirming}
-	<ConfirmDialog
-		bind:open={
-			() => true,
-			(value) => {
-				if (!value) confirming = undefined;
-			}
-		}
-		title={action.confirm?.title ?? action.label}
-		description={action.confirm?.message}
-		confirmLabel={action.label}
-		tone={action.tone === 'danger' ? 'danger' : 'primary'}
-		onConfirm={() => {
-			confirming = undefined;
-			collect(action);
-		}}
-		onCancel={() => {
-			confirming = undefined;
-			cancel(action);
-		}}
-	/>
-{/if}
-
-{#if prompting}
-	{@const action = prompting}
-	{@const input = action.input!}
-	<!-- Dismissing the dialog is a cancelled action, not a silent no-op. -->
-	<Dialog
-		bind:open={
-			() => true,
-			(value) => {
-				if (value) return;
-				prompting = undefined;
-				cancel(action);
-			}
-		}
-		title={action.label}
-		description={input.label}
-	>
-		<div data-ui="view-input">
-			{#if input.kind === 'select'}
-				<SelectField
-					bind:value={inputValue}
-					label={input.label}
-					options={input.options}
-				/>
-			{:else if input.kind === 'multiline'}
-				<textarea
-					aria-label={input.label}
-					placeholder={input.placeholder}
-					bind:value={inputValue}
-					rows="5"
-				></textarea>
-			{:else}
-				<input
-					type="text"
-					aria-label={input.label}
-					placeholder={input.placeholder}
-					bind:value={inputValue}
-				/>
-			{/if}
-			<div data-ui="dialog-actions">
-				<Button
-					variant="secondary"
-					onclick={() => {
-						prompting = undefined;
-						cancel(action);
-					}}>Cancel</Button
-				>
-				<Button
-					variant="primary"
-					disabled={Boolean(input.required) && !inputValue}
-					onclick={() => {
-						prompting = undefined;
-						finish(action, inputValue);
-					}}>{action.label}</Button
-				>
-			</div>
-		</div>
-	</Dialog>
-{/if}
-
-<style>
-	[data-ui='view-input'] {
-		display: grid;
-		gap: var(--space-3);
-	}
-	textarea,
-	input {
-		width: 100%;
-	}
-</style>
+<ViewActionDialogs
+	confirming={confirming?.action}
+	prompting={prompting?.action}
+	onConfirm={() => {
+		const pending = confirming!;
+		confirming = undefined;
+		collect(pending);
+	}}
+	onSubmit={(value) => {
+		const pending = prompting!;
+		prompting = undefined;
+		finish(pending, value);
+	}}
+	onCancel={() => {
+		const pending = prompting ?? confirming!;
+		confirming = undefined;
+		prompting = undefined;
+		cancel(pending);
+	}}
+/>

@@ -207,10 +207,16 @@
 	overflow: hidden;
 }
 
+/*
+ * The panel hands a view its whole width and names the inset the view's
+ * blocks should take instead, so a block that reads better edge to edge —
+ * a diff — can decline it.
+ */
 [data-ui='inspector-panel'] {
+	--view-pad: var(--space-3);
 	height: 100%;
 	min-height: 0;
-	padding: 0 var(--space-3) var(--space-3);
+	padding: 0 0 var(--space-3);
 	overflow-x: hidden;
 	overflow-y: auto;
 	scrollbar-color: var(--color-border-strong) transparent;

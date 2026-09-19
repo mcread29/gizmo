@@ -107,6 +107,7 @@
 							extensionId={tab.extensionId}
 							viewId={tab.viewId}
 							sessionId={tab.sessionId}
+							tabLabel={tab.label}
 							settings={layout.extensionSettings[tab.extensionId]}
 							onViewChange={(view) => (views[tab.value] = view)}
 						/>

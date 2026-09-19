@@ -8,6 +8,7 @@
 	import TableBlock from './TableBlock.svelte';
 	import TreeNodes from './TreeNodes.svelte';
 	import ViewBlock from './ViewBlock.svelte';
+	import { compactNodes } from './tree';
 
 	let {
 		block,
@@ -76,7 +77,8 @@
 	{:else}
 		<div data-ui="view-tree" data-block={block.id}>
 			<TreeNodes
-				nodes={block.nodes}
+				blockId={block.id}
+				nodes={compactNodes(block.nodes)}
 				selectedId={selectionOf(block.id)}
 				onSelect={(itemId) => onSelect(block.id, itemId)}
 			/>
@@ -99,6 +101,20 @@
 	</figure>
 {:else if block.type === 'diff'}
 	<DiffView diff={block.diff} file={block.file} {projectPath} />
+{:else if block.type === 'split'}
+	<!-- Each pane scrolls on its own, so a long browser never pushes the
+	     detail it belongs to off the bottom of the panel. -->
+	<div data-ui="view-split" data-direction={block.direction ?? 'vertical'}>
+		{#each block.panes as pane, index (index)}
+			<div data-ui="view-split-pane" style:flex-grow={pane.grow ?? 1}>
+				<div data-ui="view-blocks">
+					{#each pane.blocks as child, childIndex (childIndex)}
+						<ViewBlock block={child} {projectPath} {selectionOf} {onSelect} />
+					{/each}
+				</div>
+			</div>
+		{/each}
+	</div>
 {:else if block.type === 'section'}
 	<details data-ui="view-section" open={!block.collapsed}>
 		<summary>{block.title}</summary>

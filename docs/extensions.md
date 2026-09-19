@@ -61,9 +61,27 @@ field but `id` and `name` is optional:
 
 A **view** is `{ title, status?, badge?, blocks, actions? }` built from
 blocks: `heading`, `text`, `markdown`, `keyValue`, `metric`, `list`,
-`table`, `tree`, `progress`, `log`, `code`, `diff`, `section`, `divider`.
-Actions may ask for confirmation, take an input, or carry a selection; a
-block may also carry a host intent (`openFile`, `openDiff`, `openThread`).
+`table`, `tree`, `progress`, `log`, `code`, `diff`, `split`, `section`,
+`divider`. A `split` divides its space into panes that scroll on their own —
+a file tree above the diff it selects — and stacks them when the panel is too
+narrow to sit side by side. A `diff` in a pane takes the pane: it spans the
+panel's full width and fills the height left to it rather than sitting in a
+box, so give it a pane of its own.
+
+Rows in a `list`, `table` or `tree` may carry an `icon` (a lucide name the
+host knows; an unknown one is dropped rather than drawn as a puzzle piece)
+and a `badge`, a short tone-tinted chip for a status letter. Actions may ask
+for confirmation, take an input, or carry a selection; a block may also carry
+a host intent (`openFile`, `openDiff`, `openThread`). An action with
+`placement: 'item'` is drawn on every row of the block its `selection` names
+and acts on that row, which is where a per-file verb belongs — a row whose
+`actions` lists ids carries only those, for the folder that can be staged
+whole but has no file to open; `group` weights
+the rest of the bar (`primary`, `secondary` — icon-only when it has an icon —
+or `overflow`, folded into a menu). A block's `onSelect` names an action the
+host runs when a row is picked, which is how a detail pane follows the
+selection; such an action is a block's behaviour, not a button, so the bar
+leaves it out.
 A view's `scope` is `workspace` or `thread` (the latter receives the open
 thread's `sessionId`), and its `placement` is `inspector` or `modal`. Views
 are size-bounded (`maxViewBytes`) and validated by the host with the same
@@ -90,10 +108,10 @@ module graph from disk; that is what makes reload-in-place possible.
 
 ## Where extensions come from
 
-| Source                | Directory                                       | Trust                                                                           |
-| --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------- |
-| Registry              | linked into `~/.gizmo/extensions/<id>`          | Trusted; the user chose to link it.                                             |
-| Global user extension | `~/.gizmo/extensions/<name>/` or `<name>.ts`    | Trusted; Gizmo owns the directory.                                              |
+| Source                | Directory                                                   | Trust                                                               |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------- |
+| Registry              | linked into `~/.gizmo/extensions/<id>`                      | Trusted; the user chose to link it.                                 |
+| Global user extension | `~/.gizmo/extensions/<name>/` or `<name>.ts`                | Trusted; Gizmo owns the directory.                                  |
 | Project-local         | explicit paths in `.gizmo/config.json` (`piExtensionPaths`) | Trusted; the user listed each path. Offered to that workspace only. |
 
 Registry and global extensions are the global catalog. Project-local

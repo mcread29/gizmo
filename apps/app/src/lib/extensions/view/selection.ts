@@ -7,20 +7,19 @@ export type SelectableBlock = Extract<
 >;
 
 function isSelectable(block: Block): block is SelectableBlock {
-	return block.type === 'list' || block.type === 'table' || block.type === 'tree';
+	return (
+		block.type === 'list' || block.type === 'table' || block.type === 'tree'
+	);
 }
 
-/** Selectable blocks, including those nested in sections. */
-export function selectableBlocks(
-	blocks: readonly Block[],
-): SelectableBlock[] {
-	return blocks.flatMap((block) =>
-		block.type === 'section'
-			? selectableBlocks(block.blocks)
-			: isSelectable(block)
-				? [block]
-				: [],
-	);
+/** Selectable blocks, including those nested in sections and split panes. */
+export function selectableBlocks(blocks: readonly Block[]): SelectableBlock[] {
+	return blocks.flatMap((block) => {
+		if (block.type === 'section') return selectableBlocks(block.blocks);
+		if (block.type === 'split')
+			return block.panes.flatMap((pane) => selectableBlocks(pane.blocks));
+		return isSelectable(block) ? [block] : [];
+	});
 }
 
 /** The extension's own initial pick per block, before the user touches one. */
@@ -43,6 +42,19 @@ function treePath(
 		const found = node.children && treePath(node.children, itemId);
 		if (found) return found;
 	}
+}
+
+/**
+ * Actions a block names as its `onSelect` handler. They run when a row is
+ * picked, so the action bar leaves them out: they are a block's behaviour,
+ * not a button the user presses.
+ */
+export function selectHandlers(
+	blocks: readonly SelectableBlock[],
+): Set<string> {
+	return new Set(
+		blocks.map(({ onSelect }) => onSelect).filter((id) => id !== undefined),
+	);
 }
 
 /** The file path an intent should act on for the item picked in `block`. */

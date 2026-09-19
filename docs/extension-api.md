@@ -34,9 +34,10 @@ One package, no runtime dependency on Svelte, Pi, or the Gizmo app:
   optional.
 - **View protocol types and schemas** — promoted from the registry's
   `orchestration/declarative-ui.ts`. Blocks: `text`, `markdown`, `keyValue`,
-  `list`, `table`, `progress`, `log`, `code`, `divider`, and the two the git
-  and Unity ports need, `tree` and `diff`. Actions with `confirm`, `input`,
-  and `selection`. Host intents: `openFile`, `openDiff`, `openThread`. A
+  `list`, `table`, `progress`, `log`, `code`, `divider`, `split`, and the two
+  the git and Unity ports need, `tree` and `diff`. Actions with `confirm`,
+  `input`, `selection`, `placement` and `group`; a row may narrow the `item`
+  actions it carries with its own `actions`. Host intents: `openFile`, `openDiff`, `openThread`. A
   `View` is `{ title, status?, blocks, actions? }`. Schemas are TypeBox, the
   same library `@gizmo/protocol` already uses, so the host validates every
   payload against the schema the extension was typed against.
@@ -95,10 +96,10 @@ command's `run` is an action id.
 
 Three places, one loader:
 
-| Source                | Directory                                                  | Trust                                                                          |
-| --------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Registry              | linked into `~/.gizmo/extensions/<id>`                     | Trusted; the user chose to link it.                                            |
-| Global user extension | `~/.gizmo/extensions/<name>/` or `<name>.ts`, written by hand | Trusted; Gizmo owns the directory.                                           |
+| Source                | Directory                                                                   | Trust                                                               |
+| --------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Registry              | linked into `~/.gizmo/extensions/<id>`                                      | Trusted; the user chose to link it.                                 |
+| Global user extension | `~/.gizmo/extensions/<name>/` or `<name>.ts`, written by hand               | Trusted; Gizmo owns the directory.                                  |
 | Project-local         | explicit paths in the workspace's `.gizmo/config.json` (`piExtensionPaths`) | Trusted; the user listed each path. Loaded only for that workspace. |
 
 Global and registry extensions are the global catalog, rescanned on reload as

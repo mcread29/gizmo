@@ -1,0 +1,216 @@
+/*
+ * Selectable rows: lists, tables and trees. All three draw the same
+ * furniture — an icon, a label that truncates rather than wraps, a detail, a
+ * status badge, and the actions that belong to that row — so it is defined
+ * once here and each block only supplies the container.
+ */
+
+[data-ui='view-row'] {
+	display: flex;
+	gap: var(--space-1);
+	align-items: center;
+	border-radius: var(--radius-sm);
+}
+[data-ui='view-row']:hover,
+[data-ui='view-row']:focus-within {
+	background: var(--color-surface-soft);
+}
+[data-ui='view-row'][data-selected] {
+	background: var(--color-surface-soft);
+	box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+
+[data-ui='view-row-icon'] {
+	flex: none;
+	color: var(--color-text-muted);
+}
+[data-ui='view-row-label'] {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+[data-ui='view-row-detail'] {
+	flex: none;
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}
+
+/* A short status chip: Git's `M`, a test's `skip`. Tabular so a column of
+   them lines up, and tinted by tone rather than spelled out in prose. */
+[data-ui='view-row-badge'] {
+	flex: none;
+	min-width: 1.25rem;
+	padding: 0 4px;
+	border-radius: var(--radius-xs);
+	background: var(--color-surface-raised);
+	color: var(--color-text-muted);
+	font-family: var(--font-mono);
+	font-size: var(--text-2xs);
+	line-height: 1.4;
+	text-align: center;
+}
+[data-ui='view-row-badge'][data-tone='info'] {
+	background: var(--color-accent-soft);
+	color: var(--color-accent);
+}
+[data-ui='view-row-badge'][data-tone='success'] {
+	background: var(--color-success-soft);
+	color: var(--color-success);
+}
+[data-ui='view-row-badge'][data-tone='warning'] {
+	background: var(--color-warning-soft);
+	color: var(--color-warning);
+}
+[data-ui='view-row-badge'][data-tone='error'] {
+	background: var(--color-danger-soft);
+	color: var(--color-danger);
+}
+
+/* Row actions stay out of the way until the row is under the pointer or
+   holds the selection, so a long list reads as a list and not as a grid of
+   buttons. Keyboard focus reveals them too. */
+[data-ui='view-item-actions'] {
+	display: flex;
+	flex: none;
+	gap: 1px;
+	padding-inline-end: 2px;
+	opacity: 0;
+}
+[data-ui='view-row']:hover [data-ui='view-item-actions'],
+[data-ui='view-row']:focus-within [data-ui='view-item-actions'],
+[data-ui='view-row'][data-selected] [data-ui='view-item-actions'] {
+	opacity: 1;
+}
+[data-ui='view-item-action'] {
+	display: grid;
+	place-items: center;
+	width: 1.375rem;
+	height: 1.375rem;
+	padding: 0;
+	border: none;
+	border-radius: var(--radius-xs);
+	background: none;
+	color: var(--color-text-muted);
+	cursor: pointer;
+}
+[data-ui='view-item-action']:hover:not(:disabled) {
+	background: var(--color-surface-raised);
+	color: var(--color-text);
+}
+[data-ui='view-item-action'][data-tone='danger']:hover:not(:disabled) {
+	color: var(--color-danger);
+}
+[data-ui='view-item-action']:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+[data-ui='view-list'] {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 1px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+[data-ui='view-list-item'] {
+	display: flex;
+	gap: var(--space-2);
+	align-items: center;
+	flex: 1;
+	min-width: 0;
+	padding: var(--space-1) var(--space-2);
+	border: none;
+	background: none;
+	text-align: start;
+	cursor: pointer;
+}
+[data-ui='view-list-item']:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+[data-ui='view-list-label'] {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+[data-ui='view-list-detail'] {
+	flex: none;
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}
+
+[data-ui='view-table'] {
+	width: 100%;
+	border-collapse: collapse;
+}
+[data-ui='view-table'] th {
+	padding: var(--space-1) var(--space-2);
+	border-bottom: 1px solid var(--color-border);
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	font-weight: 500;
+}
+[data-ui='view-table'] td {
+	padding: var(--space-1) var(--space-2);
+	border-bottom: 1px solid var(--color-border);
+	overflow-wrap: anywhere;
+}
+[data-ui='view-table'] tbody tr {
+	cursor: pointer;
+}
+[data-ui='view-table'] tbody tr[aria-disabled] {
+	opacity: 0.5;
+	cursor: default;
+}
+
+/* The indent is a guide rule rather than empty space: a narrow inspector
+   cannot afford a fresh margin per level. */
+[data-ui='view-tree-level'] {
+	display: grid;
+	/* A track of `1fr` alone still floors at the content's width, so the
+	   deepest path would widen the whole tree rather than ellipsing. */
+	grid-template-columns: minmax(0, 1fr);
+	gap: 1px;
+	margin: 0;
+	margin-inline-start: 0.5rem;
+	padding-inline-start: 0.5rem;
+	border-inline-start: 1px solid var(--color-border);
+	list-style: none;
+}
+[data-ui='view-tree'] > [data-ui='view-tree-level'] {
+	margin-inline-start: 0;
+	padding-inline-start: 0;
+	border-inline-start: none;
+}
+[data-ui='view-tree-node'] {
+	display: flex;
+	gap: var(--space-1);
+	align-items: center;
+	flex: 1;
+	min-width: 0;
+	padding: 2px var(--space-1);
+	border: none;
+	border-radius: var(--radius-sm);
+	background: none;
+	text-align: start;
+	cursor: pointer;
+}
+/* Stands where a folder's chevron would, so leaf labels line up with the
+   folders beside them. */
+[data-ui='view-tree-spacer'] {
+	flex: none;
+	width: 13px;
+}
+[data-ui='view-tree-chevron'] {
+	flex: none;
+	color: var(--color-text-faint);
+	transition: transform 120ms ease;
+}
+[data-ui='view-tree-node'][aria-expanded='true'] [data-ui='view-tree-chevron'] {
+	transform: rotate(90deg);
+}

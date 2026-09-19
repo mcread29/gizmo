@@ -77,6 +77,27 @@ export const actionSchema = Type.Object(
 				Type.Literal('danger'),
 			]),
 		),
+		/** A lucide icon name the host knows; the label stays the accessible name. */
+		icon: Type.Optional(label),
+		/**
+		 * `toolbar` actions sit in the view's action bar. An `item` action is
+		 * drawn on every row of the block named in `selection` and acts on
+		 * that row, which is where a per-file verb belongs.
+		 */
+		placement: Type.Optional(
+			Type.Union([Type.Literal('toolbar'), Type.Literal('item')]),
+		),
+		/**
+		 * Weight in the action bar. `overflow` actions are folded into a menu
+		 * so a long list of rare verbs does not crowd out the common ones.
+		 */
+		group: Type.Optional(
+			Type.Union([
+				Type.Literal('primary'),
+				Type.Literal('secondary'),
+				Type.Literal('overflow'),
+			]),
+		),
 		disabled: Type.Optional(Type.Boolean()),
 		/** Needs an item picked in the named list/table/tree block. */
 		selection: Type.Optional(
