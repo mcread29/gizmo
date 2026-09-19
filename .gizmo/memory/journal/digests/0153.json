@@ -1,0 +1,17 @@
+{
+	"segment": "0153",
+	"at": "2026-09-18T22:39:58.678Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why the context usage meter disappears in the conversation composer. Read the Composer.svelte, UsageMeter.svelte, and related store/event code, and identified that the meter is gated on `store.usage` being defined. Confirmed via grep across pi-agent-service and the event reducer that `state.usage` is explicitly set to `undefined` on session create/switch/resume and on `session.compaction` with `active: false`. No code changes were made.",
+	"decisions": [
+		"Ruled out layout/footer hiding as the cause: the meter is conditionally rendered with `{#if store.usage}<UsageMeter .../>{/if}`, so absence means `store.usage` is undefined",
+		"Identified that Gizmo does not compute or restore usage estimates itself; it only displays usage from a `session.usage` event emitted after a completed assistant response with valid provider usage metadata",
+		"Identified automatic compaction as the cause of mid-thread disappearance: receiving `session.compaction` with `active: false` sets `state.usage = undefined`, removing the meter until the next provider-reported measurement",
+		"Noted the UX gap that the meter silently disappears rather than showing an unknown/recalculating state, but did not implement a fix"
+	],
+	"files": [],
+	"errors": [
+		"grep for pattern \"context\" in path `src` returned `Path not found: C:\\Users\\mchan\\projects\\gizmo\\src`; continued using the repository-rooted paths under `apps/app/src` instead"
+	],
+	"outcome": "explored"
+}

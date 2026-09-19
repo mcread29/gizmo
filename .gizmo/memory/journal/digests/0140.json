@@ -1,0 +1,23 @@
+{
+	"segment": "0140",
+	"at": "2026-09-18T22:39:49.737Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Migrated the extension registry source directory from `~/.pi/agent/extensions-src` to `~/.gizmo/registries` by moving the existing clone and its manifest. Updated `registry-manager.ts`, `FakeAgentClient.ts`, and `docs/extensions.md` to reference the new path, fixed a non-interactive `pnpm` build issue by setting `CI` for registry builds, and rebuilt/restarted the agent server.",
+	"decisions": [
+		"Canonical registry home is now `~/.gizmo/registries`, derived from `defaultDataDir()` (GIZMO_DATA_DIR or `~/.gizmo`) rather than `piAgentDir()`, keeping registry state as Gizmo-managed and outside Pi discovery.",
+		"Registry build commands are forced into non-interactive mode by setting `CI: process.env.CI || 'true'` in the spawned exec env, so package managers behave deterministically without a TTY.",
+		"The agent server used during refresh was switched from watch mode (tsx) to a plain `pnpm exec tsx apps/agent-server/src/server.ts` process so module unlinks during install do not trigger restarts that interrupt the update."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"docs/extensions.md"
+	],
+	"errors": [
+		"Bulk edit of `FakeAgentClient.ts` failed because the old path string appeared 6 times; resolved by anchoring the replacement to the surrounding `registryStatus`/`registryAdd`/`registryLink`/`registryUnlink` blocks.",
+		"`pnpm install --frozen-lockfile && pnpm build` aborted with `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`; caused by running package-manager install without a TTY, fixed by injecting `CI=true`.",
+		"WebSocket `registry.update` request timed out (180s) because the watch-mode tsx server restarted itself when the installer removed `node_modules` files; mitigated by killing it and starting a non-watch server.",
+		"After restarting the non-watch server, `Get-NetTCPConnection -LocalPort 8787` reported no listener yet (server still starting)."
+	],
+	"outcome": "explored"
+}

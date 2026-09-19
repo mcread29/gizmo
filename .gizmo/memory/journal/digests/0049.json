@@ -1,0 +1,41 @@
+{
+	"segment": "0049",
+	"at": "2026-09-18T22:38:19.311Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Snapshot of an uncommitted, partial implementation that removes extension detection and routes new workspaces through manual, profile-driven extension selection. The segment enumerates what currently works, identifies seven significant gaps (e.g., manual enablement does not gate default tools or extension-host providers; revert actions can mutate canonical extension profiles; temporary overrides are a client-only convention; canonical defaults are frozen snapshots; the protocol still models detection; nested roots cannot be configured; tools/prompt modes are not honored by session creation), and proposes minimal protocol, storage, activation, and UI fixes plus a list of tests to add. Verification observed: pnpm check passed, project-catalog/extension-registry tests 12 passed, new profile-overrides tests 2 passed, app suite 157 passed, with unrelated agent-server failures and one stray blank line in registry.ts.",
+	"decisions": [
+		"Remove detect/detectRoots from the extension contract and implementations; new workspaces start with no enabled integrations.",
+		"Treat all loaded extensions as globally installed (registry.ts returns every loaded extension with root \".\"); do not inspect workspace contents for detection.",
+		"Use `.gizmo/profiles.json` as the authoritative profile store per project; `project.profiles.save` rewrites the file atomically with full WorkspaceProfiles.",
+		"Editing a built-in/default profile creates a `workspace:temporary` derived profile, and returning values to the base removes that override.",
+		"Active session activation sends only the active profile's `integrations` and re-resolves current active integrations on thread resume rather than restoring a per-thread snapshot.",
+		"Validation on save covers only active-profile existence, known extension IDs, and roots; base references, duplicate IDs, temporary-profile invariants, and inheritance are not validated.",
+		"Svelte/Git/Activity client extensions remain statically installed in the app registry independent of the server catalog.",
+		"Recommended (proposed, not yet implemented): rename `project.detect` to an installed-extension catalog RPC, remove `detected`, make `add.integrations` optional, and bump protocolVersion.",
+		"Recommended: keep storage v1 with full profiles but add server-side normalization that rejects duplicate IDs, requires active/base IDs to resolve, allows at most one temporary override per canonical base, prunes overrides equal to their base (restoring base as active), and leaves ordinary user profiles unchanged.",
+		"Recommended: route all profile mutations (including revertTools/revertPrompt/revertToBase) through `editableProfile()` so canonical extension profiles cannot be mutated.",
+		"Recommended: reuse an existing temporary override for a canonical base instead of creating multiple override files.",
+		"Recommended: add a root input/folder chooser for enabled extensions to support monorepo nested roots.",
+		"Recommended: keep historical tool-result renderers loaded globally so old transcripts remain readable when an extension is disabled.",
+		"Recommended: gate extension-host providers, CompositeProjectService providers, project-specific web contributions, defaultTools, and prompt fragments by the active profile, with tools.mode and prompt.mode actually affecting session construction.",
+		"Recommended: either exclude non-activatable/global-only packages from profile checkbox lists or gate their behavior by the active profile."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/load-extensions.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/src/extensions/registry.ts",
+		"apps/app/src/lib/features/sessions/CommandPalette.svelte",
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/agent-server/src/pi-agent/pi-agent-service.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"apps/app/src/lib/features/workspace/WorkspaceInspector.svelte",
+		"apps/app/src/lib/features/workspace/Titlebar.svelte"
+	],
+	"errors": [
+		"`git diff --check` reports an extra blank line at EOF in `apps/agent-server/src/extensions/registry.ts`.",
+		"Full agent-server test suite had 18 Windows/path/permission failures in unrelated existing resource, script, config, and repository tests."
+	],
+	"outcome": "explored"
+}

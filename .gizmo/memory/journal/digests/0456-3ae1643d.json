@@ -1,0 +1,14 @@
+{
+	"segment": "0456-3ae1643d",
+	"at": "2026-09-18T22:44:38.280Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why the git extension stopped generating commit messages. Reproduced the failure over the agent WebSocket and traced the error 'Extension is not installed: git' to the server returning 0 extensions, then discovered the new genge-services supervisor launched this morning builds the child process PATH from the registry and had dropped 'C:\\Program Files\\Git\\cmd', which broke the git extension.",
+	"decisions": [],
+	"files": [],
+	"errors": [
+		"Commit-message request returned 'Extension is not installed: git' for both the gizmo and Unity workspaces via WebSocket probe.",
+		"Direct call to GitService.status failed with a TransformError because git was not on the spawned child's PATH.",
+		"PATH inherited by the supervised gizmo server was missing 'C:\\Program Files\\Git\\cmd', which the supervisor README explicitly identifies as the cause of the silent extension load failure."
+	],
+	"outcome": "explored"
+}

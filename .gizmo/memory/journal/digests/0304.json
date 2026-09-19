@@ -1,0 +1,26 @@
+{
+	"segment": "0304",
+	"at": "2026-09-18T22:42:19.559Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added an interrupted-run notice in Conversation.svelte (detects persisted tools stuck at 'running' while idle) plus CSS, then verified the full app with svelte-check, prettier, and vitest. During verification, a stale `ConversationPlaceholder` import in MessageList.svelte had to be removed, and a vitest failure was traced to the new notice and a project-dot sharing `role=\"status\"` with toasts; both were switched to non-conflicting roles. Final state: 0 type errors, 37 files / 174 tests passing, detector 14→4 findings, with `pnpm check:loc` failures shown to be pre-existing.",
+	"decisions": [
+		"Interrupted-run notice is rendered as a plain div with `data-ui=\"interrupted-notice\"` (not `role=\"status\"`) to avoid colliding with toast live regions used in tests and UI.",
+		"Project-dot indicator in Titlebar.svelte uses `role=\"img\"` with `aria-label` (instead of `role=\"status\"`) so it doesn't compete with toast live regions.",
+		"Failed tool-call collapsed cards surface the error text inline (2 clamped lines, clickable to expand) instead of relying on a red X alone.",
+		"Dead `ConversationPlaceholder.svelte` component and its unreachable `conversation-empty` CSS are deleted; `thread-empty` is now workspace-aware ('Ask about {workspace} to start.').",
+		"Pre-existing `pnpm check:loc` violations (7 files over 300 lines, including SessionSidebar.svelte) are left as-is, verified against the committed tree to not be a regression of these changes."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/Conversation.svelte",
+		"apps/app/src/lib/features/conversation/MessageList.svelte",
+		"apps/app/src/lib/features/conversation/ConversationPlaceholder.svelte",
+		"apps/app/src/lib/features/shell/Titlebar.svelte",
+		"apps/app/src/styles/conversation.css"
+	],
+	"errors": [
+		"svelte-check failed with 'Cannot find module ./ConversationPlaceholder.svelte' because the import in MessageList.svelte was not actually removed by an earlier edit batch despite a success message; fixed by reapplying the import removal.",
+		"Vitest integration test 'confirms thread deletion with a cancel path and reports the result' failed because the new `data-ui=\"interrupted-notice\"` carried `role=\"status\"` and was matched by findByRole('status') before the toast; fixed by dropping that role on the notice.",
+		"Follow-on vitest failure traced to Titlebar's project-dot also using `role=\"status\"`; fixed by changing it to `role=\"img\"` with an aria-label."
+	],
+	"outcome": "shipped"
+}

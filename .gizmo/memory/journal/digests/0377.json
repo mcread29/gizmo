@@ -1,0 +1,23 @@
+{
+	"segment": "0377",
+	"at": "2026-09-18T22:43:22.975Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed why two live sessions appeared broken: neither had auto-compacted, but the real culprit was stuck 'Starting' tool calls in the transcript view because tool calls with no matching toolResult stayed in `running` state forever when turns aborted. Added orphan-tool resolution in `sessionTranscript()` that settles any unfinished call not on the newest assistant turn, marks calls `error`/`Interrupted` when the newest turn aborted, and verified the fix against both real stuck sessions (1 reclassified in cronkis, none in Slapdash).",
+	"decisions": [
+		"Settle any tool call that has no matching toolResult when it is not on the newest assistant message — these can never still be in flight because the assistant turn is closed.",
+		"Even on the newest assistant turn, mark the call `error`/`Interrupted` if the provider's stopReason is `aborted` or `error`.",
+		"Do NOT touch calls on the newest assistant turn that lack a toolResult but also lack an aborted/error stopReason — tools execute after their message is written, so a tool on the live turn may genuinely be running.",
+		"Do NOT mark sibling tool calls in the same batch as settled just because one returned — parallel tool execution is supported and they stay running until their own result arrives.",
+		"Slapdash's broken-UI symptom is a separate bug (submitted prompt with no assistant response and no stopReason to key off) and is left unfixed in this change because it requires a client-side tracking decision.",
+		"Recommended the user reload their tab to pick up the live fix, and flagged that the dev server was restarted twice by edits to its import graph as further motivation for a stable/dev split."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/session-transcript.ts",
+		"apps/agent-server/tests/sessions/session-transcript.test.ts"
+	],
+	"errors": [
+		"Tool calls whose assistant turn aborted before the toolResult was written stayed `status: 'running'` / 'Starting' forever because `sessionTranscript()` is rebuilt from the JSONL on every load and had no logic to settle them — fixed by adding `settleOrphanedTools()`.",
+		"Editing `session-transcript.ts` triggered a `tsx watch` restart of the agent server, briefly taking port 8787 down; the server came back up on pid 38800 by itself. (Same hazard pattern as the earlier `backfill.ts` edit.)"
+	],
+	"outcome": "shipped"
+}

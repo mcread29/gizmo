@@ -1,0 +1,17 @@
+{
+	"segment": "0226",
+	"at": "2026-09-18T22:41:03.555Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Inspected the globally installed pi extensions to identify which are solely TUI-related, and answered follow-up questions about gizmo integration and what ui-customization does.",
+	"decisions": [
+		"ui-customization is the only pure TUI renderer; model-info and git-info are supporting data extensions for its dashboard",
+		"activity is web-UI-only with a no-op pi extension",
+		"model-info and git-info have no dedicated gizmo .web.js extensions, but are not inert in gizmo because they feed ui-customization's combined status and git-info can expose its changed-files view via generic declarative-UI support",
+		"In gizmo/RPC mode, ui-customization publishes a combined semantic status (model, provider, thinking level, context usage, session cost, git branch, changed-file count) and sets the session title, rather than installing the custom header/footer"
+	],
+	"files": [],
+	"errors": [
+		"rg: C:\\Users\\mchan\\.pi\\agent\\NUL: Incorrect function. (os error 1) when running a grep that matched a NUL device"
+	],
+	"outcome": "explored"
+}

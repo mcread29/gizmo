@@ -1,0 +1,27 @@
+{
+	"segment": "0425",
+	"at": "2026-09-18T22:44:04.257Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Verified the scheduled-task web server boots cleanly end-to-end, then refactored: split process-spawn helpers out of `scripts/lib/managed-daemon.ts` into a new `scripts/lib/daemon-process.ts` to bring the file under the repo's 300-line limit, reformatted with Prettier, and re-verified the refactored daemon via task launch, HTTP probes, and a real WebSocket upgrade through the proxy with a Tailscale origin.",
+	"decisions": [
+		"Process-spawn/logging helpers moved to `scripts/lib/daemon-process.ts` so `scripts/lib/managed-daemon.ts` no longer trips the 300-line file-length check.",
+		"Agent server stays bound to 127.0.0.1; only Vite preview exposes the tailnet and proxies `/agent` — chosen so there is a single exposed listener.",
+		"`.gizmo-web/startup.cmd` is machine-local and gitignored; scheduled task \"Gizmo Web\" with a 5-minute repeat is the canonical launcher (repeat acts as keep-alive because `start` is idempotent).",
+		"`scripts/dev-server.ts` left untouched (not folded onto the shared module) because it had a live state file for an already-running server."
+	],
+	"files": [
+		"scripts/lib/daemon-process.ts",
+		"scripts/lib/managed-daemon.ts",
+		"scripts/web-server.ts",
+		"apps/app/vite.config.ts",
+		"package.json",
+		".gitignore"
+	],
+	"errors": [
+		"`scripts/lib/managed-daemon.ts` was 318 lines, exceeding the repo's 300-line limit, caused by the process helpers introduced in this work; fixed by extracting them to `scripts/lib/daemon-process.ts`.",
+		"Earlier MagicDNS request returned 403 until `vite.config.ts` gained an env-driven `allowedHosts`.",
+		"Scheduled task initially failed because it skips the user shell profile and resolved `node` to a stale system v22.9.0 that pnpm rejects; fixed by putting mise's shims first on PATH in the launcher.",
+		"A direct re-run of the launcher while the task-launched instance was still up produced garbled `'m' is not recognized` output; diagnosed as two instances contending on the log file (mitigated by the task's `IgnoreNew` policy) rather than a PATH quoting problem."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,22 @@
+{
+	"segment": "0018",
+	"at": "2026-09-18T22:37:47.547Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed and fixed two layout regressions in the Gizmo web app: unstyled buttons (Vite dropped the second nested CSS import from the design package, so components kept native browser styling) and a missing composer/non-scrollable chat (the app shell used percentage heights against a wrapper without a fixed height, letting the transcript overflow the viewport). The fix explicitly imports `packages/design/src/components.css` from the app entry and constrains the shell to `100dvh` with overflow hidden.",
+	"decisions": [
+		"Load shared component CSS via a relative import from `apps/app/src/main.ts` (`import '../../../packages/design/src/components.css'`) instead of an `@gizmo/design/component-styles` package export, because Vite was dropping the second nested `@import` in `@gizmo/design/index.css`.",
+		"Reverted the attempted `./component-styles` export in `packages/design/package.json` after discovering it caused Vite to return HTTP 500 for `/src/main.ts`.",
+		"Constrained `[data-ui='app-shell']` to `width: 100%; height: 100dvh; max-height: 100dvh; overflow: hidden;` so the inner transcript area scrolls and the composer stays anchored."
+	],
+	"files": [
+		"packages/design/package.json",
+		"apps/app/src/main.ts",
+		"apps/app/src/styles/shell.css"
+	],
+	"errors": [
+		"Headless Chrome (`chrome.exe`) crashed with exit code 3221225794; switched to headless Microsoft Edge which succeeded.",
+		"Edge `--remote-debugging-port` probe returned `undefined` on the first attempt (process killed before WebSocket connected), and a second attempt with a fresh user-data-dir produced `ECONNREFUSED 127.0.0.1:9223` because the previous debug process was still exiting.",
+		"Vite returned HTTP 500 for `/src/main.ts` with `\"./component-styles\" is not...` after adding the new subpath export, even after `pnpm install`; resolved by removing the export and using a direct relative CSS import."
+	],
+	"outcome": "shipped"
+}

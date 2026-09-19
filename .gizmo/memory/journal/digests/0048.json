@@ -1,0 +1,16 @@
+{
+	"segment": "0048",
+	"at": "2026-09-18T22:38:09.905Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran targeted tests for @gizmo/agent-server and @gizmo/protocol and a workspace check, which surfaced 18 failing tests across run-script, extension-resources, pi-runtime-config, session-repository, and discover-resources suites. The assistant then ran a series of ripgrep searches across protocol schemas, project-catalog internals, extension activation wiring, and workspace profile UI logic to investigate the failures against the in-progress refactor shown in `git diff --stat`.",
+	"decisions": [],
+	"files": [],
+	"errors": [
+		"run-script.test.ts: 9 failures — runScript throws 'Script must be inside the workspace' before reaching each test's intended branch (bun invocation, arg passing, shell-script rejection, missing-script rejection, non-zero exit reporting, timeout, missing bun binary, large output truncation, maxBuffer kill). Root cause appears to be workspacePath resolution rejecting the test's script paths.",
+		"extension-resources.test.ts: 5 failures — packageResourceRoots/extensionResourceRoots return empty {skills:[], prompts:[]} instead of expected directories, both for the conventional fallback and for paths declared by a pi manifest (array or bare string).",
+		"pi-runtime-config.test.ts: 2 failures — auth.json file mode is 438 instead of expected 384 (i.e., umask/group bits differ from the assertion).",
+		"session-repository.test.ts: 1 failure — 'restores durable transcripts and keeps projects isolated' failing.",
+		"discover-resources.test.ts: 1 failure — 'reads skills, prompts, and AGENTS.md from Gizmo-owned folders' failing."
+	],
+	"outcome": "blocked"
+}

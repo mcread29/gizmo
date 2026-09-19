@@ -1,0 +1,23 @@
+{
+	"segment": "0225",
+	"at": "2026-09-18T22:40:59.769Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Unified the Agent, Skills, and Extensions settings into a single 'Agent resources' area with internal tabs (Instructions & tools, Skills, Extensions). The Instructions & tools tab now provides a shared workbench for the system prompt and AGENTS.md, with a file selector on the left and a full-height Markdown editor on the right, mirroring the skills editor. Removed the standalone Extensions section from Instructions & tools and consolidated all extension management (Gizmo/Pi installed extensions plus registries) under the Extensions tab.",
+	"decisions": [
+		"Consolidated Agent, Skills, and Extensions under one sidebar destination ('Agent resources') with three local tabs instead of separate routes, while preserving existing route names for deep links.",
+		"Built a shared 'instructions workbench' pattern: left-side file selector and full-height Markdown editor, so System Prompt and AGENTS.md editing use the same large-editor experience as Skills.",
+		"Moved all extension enable/disable and registry management into the Extensions tab so there is exactly one place to manage extensions, removing the extensions block from the Instructions & tools tab."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/SettingsScreen.svelte",
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/app/src/lib/features/settings/InstructionsEditor.svelte",
+		"apps/app/src/lib/features/settings/ExtensionsSettings.svelte",
+		"apps/app/src/styles/settings-parts/layout.css",
+		"apps/app/src/styles/settings-parts/instructions-editor.css"
+	],
+	"errors": [
+		"pnpm --filter @gizmo/app test timed out after 120 seconds; test verification was not completed in this segment."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,28 @@
+{
+	"segment": "0168",
+	"at": "2026-09-18T22:40:13.213Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Inspected several long Svelte components (Composer, MessageList, PiExtensionUiStore, SessionTreeScreen, AgentSettings) and ran three parallel refactor-audit subagents (frontend, backend, test/config), then synthesized their outputs into a detailed multi-phase refactor plan targeting 300 LOC cap and 200–250 LOC target across source, tests, Svelte, and CSS files.",
+	"decisions": [
+		"Adopt a 300 LOC hard limit and 250 LOC target for all production, test, Svelte, and CSS files (excluding generated files and lockfiles).",
+		"Establish baseline first: fix 17 Windows-sensitive backend test failures by reusing `apps/agent-server/src/path-utils.ts` and replacing hard-coded POSIX paths and permission assertions; add Windows CI alongside Ubuntu.",
+		"Add CI tooling: a root `extensions:build` script fix, `check` scripts for `packages/ui` and `packages/design`, aligned Vitest versions across workspaces, and a LOC check that warns then fails.",
+		"Reorganize tests under workspace-level `tests/` directories using a mirrored `unit/`, `integration/`, `fixtures/`, `setup.ts` structure; configure Vitest with `include: ['tests/**/*.test.ts']` to prevent regression into `src/`.",
+		"Decompose `packages/protocol/src/index.ts` (1,817 LOC) by domain (core, sessions, projects, resources, extensions, extension-ui, providers, git, tools, transport) while keeping `index.ts` as a compatibility barrel, preserving TypeBox narrowing, `additionalProperties: false`, and not bumping `protocolVersion` unless the wire format changes.",
+		"Break `AgentClient.ts` into capability contracts (connection, session, workspace, resource, extension, git) plus extract `WebSocketTransport` from domain API files; decompose `AgentStore` into capability stores (Connection, Session, Workspace, Resource, ToolPolicy, Registry, Extension, Git) with `AgentStore` retained as a façade.",
+		"Split the fake client by capability (`FakeSessionRuntime`, `scripted-response`, `projects`, `resources`, `registry`, `fixtures`) and convert mutable module-level fixtures into per-instance factories to prevent test leakage.",
+		"Decompose frontend screens: `App.svelte` becomes a composition root with `AppServices.svelte.ts`; `WorkspaceConfigurePanel` splits into override/skill/policy/configurator files sharing primitives with `AgentSettings`; command palette, composer, message list, session tree, settings, and PiExtensionUiStore are each split by cohesive responsibility.",
+		"Refactor backend by extracting shared utilities (`async-mutex`, `data-paths`, `atomic-file`); split `project-catalog`, `websocket-server` (with `RequestDependencies` injection and per-connection handlers), `pi-agent-service` (with characterization tests covering event ordering, snapshot hydration, in-flight messages, eviction, and extension UI registration), and `registry-manager`.",
+		"Consolidate UI/CSS: move reusable components (Menu, ScrollPanel, Tabs, possibly SelectField) to `packages/ui`; export `@gizmo/ui/styles`; remove orphaned `packages/design` duplicates (`Button`, `ConfirmDialog`, `SelectField`, `components.ts`); split `settings.css` (1,113 LOC) by component/domain and classify apparently unused selectors carefully because some may be extension-host styling contracts.",
+		"Delivery order: baseline fixes and LOC tooling → test migration → protocol decomposition → shared backend utilities → frontend transport/fake-client → `AgentStore` capability stores → screen decomposition → project/resource/registry backend → WebSocket routing → Pi session runtime → UI/design/CSS consolidation.",
+		"Completion criteria: no file exceeds 300 LOC; all tests live under `tests/`; no test-only components remain in `src/`; checks/tests/builds pass on Windows and Linux; `@gizmo/protocol` and `@gizmo/extensions` root exports remain compatible; `App.svelte`, `AgentStore`, `PiAgentService`, and WebSocket server act as composition façades."
+	],
+	"files": [],
+	"errors": [
+		"17 Windows-sensitive backend tests failing (e.g. `src/scripts/run-script.test.ts`, `src/resources/extension-resources.test.ts`, `tests/config/pi-runtime-config.test.ts`, `tests/sessions/session-repository.test.ts`) due to Windows path-separator and POSIX permission assumptions; not caught by Ubuntu-only CI.",
+		"Root `build` script references a missing `extensions:build` script.",
+		"`packages/ui` and `packages/design` lack `check` scripts.",
+		"Vitest versions are misaligned across workspaces."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,14 @@
+{
+	"segment": "0442",
+	"at": "2026-09-18T22:44:20.965Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran a memory backfill CLI on the gizmo repo (90 sessions, 67 segments written across claude-code and pi-archive) and the full app test suite passed (227/227 tests). After the user questioned why the memory journal was being ignored, removed the `.gizmo/memory/journal/` rule from `.gitignore` so the journal would be included in commits.",
+	"decisions": [
+		"Remove the existing `.gizmo/memory/journal/` ignore rule in `.gitignore` (with its explanatory comment) so the conversation transcript journal is committed as shared team knowledge, per the user's explicit request."
+	],
+	"files": [
+		".gitignore"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

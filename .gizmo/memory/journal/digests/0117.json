@@ -1,0 +1,14 @@
+{
+	"segment": "0117",
+	"at": "2026-09-18T22:39:24.417Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Discussion concluded that the current approach of using the Gizmo app repo itself as the extension registry is wrong, because other users would have to clone the entire application just to install extensions. The assistant proposed a separate lightweight registry repo at ~/.pi/agent/extensions-src/gizmo-registry/ containing gizmo.registry.json, package.json, pnpm-lock.yaml, a build script, and an extensions/ directory, and noted the existing registry code already supports this layout.",
+	"decisions": [
+		"Move the first extension registry out of the Gizmo app repo into a dedicated, lightweight registry repository (e.g. gizmo-extension-registry) that contains gizmo.registry.json, package.json, pnpm-lock.yaml, a build script, and an extensions/ directory.",
+		"Point Gizmo's default registry URL at the new lightweight registry repo, and keep the URL configurable so users can supply their own or third-party registries.",
+		"Move ask-user and the registry build tooling into the new dedicated registry repo, and remove gizmo.registry.json and extension source code from the Gizmo app repo."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

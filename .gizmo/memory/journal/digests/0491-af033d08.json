@@ -1,0 +1,18 @@
+{
+	"segment": "0491-af033d08",
+	"at": "2026-09-18T22:45:18.663Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Audited the journal's id/filename handling against the real 450-segment journal, verified all legacy segments remain readable with no id collisions, and added a regression test that seeds a legacy bare-ordinal segment alongside a new suffixed one to lock in the mixed-format contract. Then proposed three next improvements: retire the orphaned .agent-journal/ directory, fix segment boundaries, and build a digest layer.",
+	"decisions": [
+		"No migration is performed for legacy bare-ordinal ids like '0310'; ids are only ever string-compared and concatenated into filenames, so legacy and new formats coexist without rewriting.",
+		"Bare ordinal ids and suffixed ids are distinct index keys and distinct filenames, so they cannot collide and shadowing is impossible.",
+		"A new regression test in journal-store.test.ts seeds a legacy segment directly on disk (old filename + old index line) and asserts reads, appends, and list behavior over the mixed set, instead of relying on the read-only assertion that nothing parses ids numerically."
+	],
+	"files": [
+		"apps/agent-server/tests/memory/journal-store.test.ts"
+	],
+	"errors": [
+		"First verification script /tmp/verify.ts failed under tsx because top-level await is not supported with the 'cjs' output format; resolved by renaming to .mts and rerunning as ESM."
+	],
+	"outcome": "explored"
+}

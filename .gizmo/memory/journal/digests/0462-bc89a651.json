@@ -1,0 +1,31 @@
+{
+	"segment": "0462-bc89a651",
+	"at": "2026-09-18T22:44:48.191Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Reapplied the interrupted Pi package patch and finished the Gizmo-side edits to fix a compaction crash and a cross-thread compacting UI bug. The server now serializes compactions, re-announces in-flight compactions to attaching clients, and the client tracks compacting per session. Tests, type checks, and the web bundle all pass, and the supervised server tree was restarted on the patched build.",
+	"decisions": [
+		"Pi's `compact()` is patched to keep its abort controller on a local variable, refuse a concurrent call with 'Compaction is already in progress', and only clear its own controller — chosen because the root cause was overlapping compactions wiping each other's controller via the shared field.",
+		"Server-side `session-operations.ts` rejects a manual compact when Pi reports `isCompacting`, and the post-run overdue compaction in `session-runtime-pool.ts`/`compaction-fallback.ts` skips when one is already running — chosen because the original guard only checked for streaming.",
+		"Failed overdue compactions now log their full stack to `server.log` so the next occurrence is diagnosable.",
+		"Client tracks `compactingSessions` keyed by session id and derives the selected thread's flag on session switch; the manual compact's flag reset is scoped to the originating session — chosen to stop one thread's compaction showing in the UI of every thread.",
+		"Server re-announces an in-flight compaction (with reason) when a client attaches, so a reload mid-compaction reflects the current state.",
+		"All changes are kept in the working tree on branch `pi-web`; nothing was committed in this segment."
+	],
+	"files": [
+		"patches/@earendil-works__pi-coding-agent@0.84.4.patch",
+		"pnpm-lock.yaml",
+		"apps/agent-server/src/sessions/pi-agent-types.ts",
+		"apps/agent-server/src/sessions/session-operations.ts",
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/agent-server/src/sessions/compaction-fallback.ts",
+		"apps/agent-server/src/sessions/pi-event-translator.ts",
+		"apps/agent-server/tests/sessions/support/pi-agent-service-fixtures.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service-events.test.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service-commands.test.ts",
+		"apps/agent-server/tests/sessions/compaction-fallback.test.ts"
+	],
+	"errors": [
+		"PowerShell `taskkill` for the supervised Gizmo tree returned exit 128 with 'ERROR: The process \"24428\" not found.' — this was a benign race after the tree had already been torn down, as subsequent log output showed the supervisor relaunched successfully 13 seconds later."
+	],
+	"outcome": "shipped"
+}

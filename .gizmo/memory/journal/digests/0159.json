@@ -1,0 +1,21 @@
+{
+	"segment": "0159",
+	"at": "2026-09-18T22:40:04.718Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Modified the git extension's ChangesPanel.svelte so that when commit-message generation throws, the commit dialog still opens with an empty message and a danger toast prompts the user to write one manually, instead of blocking entirely. Added a regression test covering this fallback, then ran tsc (clean), pnpm test (15/15 pass), prettier on the test file (clean), and rebuilt the git.web.js bundle via the registry's pnpm build.",
+	"decisions": [
+		"On generateCommitMessage failure: clear commitMessage, show a danger toast 'Could not generate a commit message (<reason>); write one manually.', and still open the commit dialog with an empty message — chosen so the user is never blocked from committing when the model provider errors (e.g., Console Go 503).",
+		"The agent-server reads each extension's web bundle from disk per request, so a page reload in the app is sufficient to pick up the rebuilt git.web.js — no server restart needed."
+	],
+	"files": [
+		"packages/git/src/web/ChangesPanel.svelte",
+		"packages/git/src/web/ChangesPanel.test.ts",
+		"extensions/git.web.js"
+	],
+	"errors": [
+		"Edit on ChangesPanel.test.ts initially failed with 'Could not find the exact text' due to indentation mismatch; recovered by re-reading the file's tail and matching 2-space indent.",
+		"After adding the new test, `pnpm test` and `pnpm check` failed because GitHostStore now requires an invokeProjectExtension method (registry HEAD gained it via commit 5f6401c 'Add per-file Git staging controls' during the session). Resolved by adding invokeProjectExtension to the new test's store object.",
+		"`npx prettier --check` on the Svelte file reports 'No parser could be inferred' — confirmed pre-existing on the untouched file via git stash (registry checkout quirk, not caused by this change)."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,19 @@
+{
+	"segment": "0393",
+	"at": "2026-09-18T22:43:33.257Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Started the full dev stack via `pnpm dev:server:start`, verified agent server (8787) and Vite (5173, bound to IPv6 ::1) are reachable, then investigated why closing a browser tab aborts streaming sessions — traced to `attachAgentConnection` creating a fresh `PiAgentService`, `ProjectServiceRegistry`, and `ExtensionHostService` per WebSocket, all disposed on disconnect.",
+	"decisions": [
+		"Use the existing `scripts/dev-server.ts` (via `pnpm dev:server:start/status/stop`) as the canonical way to run the dev stack in the background, rather than ad-hoc pnpm scripts.",
+		"Diagnosed that sessions-per-connection is the wrong ownership model for a single-user local app: closing a tab aborts streaming runs, two tabs can't share session events, and N extension hosts run for one user.",
+		"Proposed target model: one server-lifetime `PiAgentService` + `ProjectServiceRegistry` + `ExtensionHostService` created in `server.ts`, with connections as subscribers (attach/detach) to the shared `AgentEventHub`; per-connection factories retained only as test seams. Implementation not yet performed."
+	],
+	"files": [
+		"scripts/dev-server.ts"
+	],
+	"errors": [
+		"Initial port check via git-bash `/dev/tcp/127.0.0.1/5173` reported DOWN even after Vite logged 'ready'; root cause was Vite binding to IPv6 ::1 only, so 127.0.0.1 refused while ::1 accepted. Confirmed with a Node net check against `::1`.",
+		"`pnpm dev:server:status` exited non-zero with 'Gizmo Pi Web is not running' on the first call before the server was started (expected — server had not been launched yet)."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,32 @@
+{
+	"segment": "0247",
+	"at": "2026-09-18T22:41:24.638Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Built web UI components for three extensions in the gizmo registry. For search-and-scrape, wrote SearchToolResult.svelte and ScrapeToolResult.svelte cards. For subagents, created a state bridge (state.ts) between Pi and agent-server, plus the runtime, panel, tool result card, and index/export files. For workflows, created the server index reading run artifacts, plus types, runtime, panel, and tool result card.",
+	"decisions": [
+		"Search and scrape cards reuse app-level data-ui generic styles (tool-parameters, tool-metrics, tool-empty, etc.) plus scoped <style> blocks for extension-specific bits",
+		"Subagent state bridge writes a bounded snapshot per session under `<agentDir>/subagents/state/` since SubagentManager only exists in Pi; agent-server reads the JSON files",
+		"State writes are debounced (~250ms) and the file is deleted on session_shutdown",
+		"Workflows server half reads artifacts (workflow.json, transcripts.json, result.json) under `<agentDir>/workflows/<runId>/` rather than importing the live RunController, keeping it Pi-runtime-free",
+		"runId validation uses a safe character set to prevent path traversal when reading workflow artifacts"
+	],
+	"files": [
+		"extensions/search-and-scrape/src/web/SearchToolResult.svelte",
+		"extensions/search-and-scrape/src/web/ScrapeToolResult.svelte",
+		"extensions/subagents/src/state.ts",
+		"extensions/subagents/src/web/subagents-runtime.svelte.ts",
+		"extensions/subagents/src/web/SubagentsPanel.svelte",
+		"extensions/subagents/src/web/SubagentToolResult.svelte",
+		"extensions/subagents/src/web/index.ts",
+		"extensions/subagents/index.ts",
+		"extensions/workflows/src/server/index.ts",
+		"extensions/workflows/src/web/types.ts",
+		"extensions/workflows/src/web/workflows-runtime.svelte.ts",
+		"extensions/workflows/src/web/WorkflowsPanel.svelte",
+		"extensions/workflows/src/web/WorkflowToolResult.svelte"
+	],
+	"errors": [
+		"Edit to subagents/src/state.ts failed because oldText used tabs but the written file used 2-space indentation; resolved by rewriting the whole file with tabs"
+	],
+	"outcome": "shipped"
+}

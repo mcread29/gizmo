@@ -1,0 +1,19 @@
+{
+	"segment": "0372",
+	"at": "2026-09-18T22:43:15.352Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Removed three unused CSS data-ui hooks (native-folder-picker, window-controls, window-control) left over from the Tauri removal, then began designing an included Gizmo tool that uses the json-render package to render formatted content inline in chat, spawning backend and frontend subagents to implement it.",
+	"decisions": [
+		"Chose to delete the dead CSS hooks rather than reintroduce matching markup, because the corresponding components (NativeWorkspacePicker, WindowControls) were intentionally removed when Tauri was dropped (commit c071310).",
+		"Constrained the new `display` tool's catalog to a fixed set of safe renderable elements (text, headings, cards, tables, lists, metrics) and explicitly excluded arbitrary HTML or executable actions.",
+		"Split implementation across two parallel subagents: one owning the backend Pi tool, protocol types, and tool-result transport integration; the other owning the Svelte chat-side renderer that integrates with ToolResult/ToolCall."
+	],
+	"files": [
+		"apps/app/src/styles/dialogs-parts/command-palette.css",
+		"apps/app/src/styles/shell-parts/resize-and-navigation.css"
+	],
+	"errors": [
+		"A bash command combining a multi-line pipe with `git log` exited with code 1 during exploration, but did not block progress since the prior `pnpm check:hooks` already exposed the dead hooks."
+	],
+	"outcome": "explored"
+}

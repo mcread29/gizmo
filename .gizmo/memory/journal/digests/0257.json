@@ -1,0 +1,21 @@
+{
+	"segment": "0257",
+	"at": "2026-09-18T22:41:33.854Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed a UI bug where the Subagent and Workflow inspector tabs from non-Unity extensions were appearing under the Unity tab. The root cause was that the workspace inspector was combining inspector tabs from every activated extension without scoping them to the owning domain. The fix splits extension runtimes by owner in WorkspaceInspector.svelte, returns objects tagged with their extensionId from activateProjectExtensions in registry.svelte.ts, and adds a test case to verify domain-scoped tabs. svelte-check, vitest, prettier, and the UI detector all pass clean.",
+	"decisions": [
+		"WorkspaceInspector.svelte filters extension runtimes so a domain panel only sees tabs from the extension whose id matches view.domainId (other extensions' tabs fall through to the workspace inspector tabs).",
+		"activateProjectExtensions now returns tagged `{ extensionId, runtime }` entries (rather than bare WebExtensionRuntime) so callers can attribute tabs to their owning extension; the explicit return type annotation was removed in favor of inference.",
+		"Added a WorkspaceInspector test asserting that a non-Unity extension's inspector tab does not appear under the Unity domain view.",
+		"Updated the docstring on activateProjectExtensions to state that each runtime's owner must be preserved so domain panels only receive tabs contributed by their own extension."
+	],
+	"files": [
+		"apps/app/src/lib/extensions/WorkspaceInspector.svelte",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/app/tests/lib/extensions/WorkspaceInspector.test.ts"
+	],
+	"errors": [
+		"Initial svelte-check run after the registry change reported 6 errors in registry.svelte.ts and WorkspaceInspector.svelte because activateProjectExtensions' return type was still annotated as WebExtensionRuntime[] but was now returning tagged `{ extensionId, runtime }` objects; resolved by dropping the explicit return annotation so TypeScript infers the new shape, after which svelte-check reported 0 errors/0 warnings."
+	],
+	"outcome": "shipped"
+}

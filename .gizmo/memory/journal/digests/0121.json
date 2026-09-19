@@ -1,0 +1,27 @@
+{
+	"segment": "0121",
+	"at": "2026-09-18T22:39:33.556Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed a Pi extension loading error where `ask-user.web.js` (a browser bundle) was placed in `~/.pi/agent/extensions/` and Pi tried to execute it as a backend extension. Refactored the registry layout so web bundles live in a dedicated `extensionWebDir()` outside Pi's auto-discovery, updated `registry-manager.ts`, `websocket-server.ts`, and `web-bundles.ts` accordingly, and migrated existing artifacts. Also added `inspectorTabs` to the runtime field validator and registered `activity`, `git`, `svelte`, and `unity` artifacts in `gizmo.registry.json`.",
+	"decisions": [
+		"Web bundles for Pi extensions must live in a separate directory (`extensionWebDir()`), not in `~/.pi/agent/extensions/`, because Pi scans that directory for backend extensions and would try to execute Svelte browser imports — this is what caused the original `Cannot read properties of undefined (reading 'svelte/internal/client')` error.",
+		"`piExtensionWebBundles` now reads only from `extensionWebDir()` rather than `join(piAgentDir(), 'extensions')`.",
+		"Added `inspectorTabs` to the generic field validator in `load-web-extension.ts` so runtime type checking accepts it.",
+		"Registry manifest entries added for `activity`, `git`, `svelte`, and `unity` so their `.web.js` artifacts are recognized.",
+		"Renamed activity's default export to `function activity(_pi)` (was `gizmoExtension`) to match naming conventions."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/extensions/web-bundles.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/app/src/lib/extensions/runtime/load-web-extension.ts",
+		"C:/Users/mchan/projects/gizmo-registry/extensions/activity/pi-extension.ts",
+		"C:/Users/mchan/projects/gizmo-registry/gizmo.registry.json"
+	],
+	"errors": [
+		"Initial `extensions.web` case edit attempt against `websocket-server.ts` failed because the old text did not match exactly; resolved by reading the current block and re-editing.",
+		"`gizmo.registry.json` edit failed on whitespace mismatch, resolved by rewriting the file via `write`."
+	],
+	"outcome": "shipped"
+}

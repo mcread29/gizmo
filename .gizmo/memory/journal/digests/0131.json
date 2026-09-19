@@ -1,0 +1,24 @@
+{
+	"segment": "0131",
+	"at": "2026-09-18T22:39:44.824Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Committed test cleanup in the gizmo repo removing migrated Unity/Git UI assumptions and updating legacy extension docs. In the gizmo-registry repo, fixed a pnpm frozen-lockfile mismatch by pinning @lucide/svelte to the policy-overridden exact version, then successfully re-ran the registry update via the agent-server.",
+	"decisions": [
+		"Pin @lucide/svelte in gizmo-registry to exact version 1.31.0 with --save-exact so it matches the lockfile override and frozen-lockfile install succeeds."
+	],
+	"files": [
+		"apps/app/src/App.test.ts",
+		"apps/app/src/lib/extensions/WorkspaceInspector.test.ts",
+		"apps/app/src/lib/features/conversation/ToolCallCard.test.ts",
+		"apps/app/src/lib/features/conversation/streaming.test.ts",
+		"apps/app/src/lib/features/shell/Titlebar.test.ts",
+		"docs/extensions.md",
+		"docs/project-configuration.md",
+		"gizmo-registry/package.json",
+		"gizmo-registry/pnpm-lock.yaml"
+	],
+	"errors": [
+		"registry.update via agent-server failed with ERR_PNPM_OUTDATED_LOCKFILE because @lucide/svelte was specified as ^1.31.0 in package.json while the lockfile pinned 1.31.0 (from an overrides policy)."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,32 @@
+{
+	"segment": "0133",
+	"at": "2026-09-18T22:39:50.432Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Folded the Unity documentation tools from the NCP project's local extension into the gizmo-registry Unity package, copied the source into packages/unity/src/server/docs, renamed the default export to registerUnityDocs, wired it into the Unity Pi extension, added dependencies, and wrote a vitest covering the registered tools and commands. Fixed TS2741 errors by adding details: undefined to onUpdate payloads so pnpm check/build/test all passed (35 files, 107 tests), then committed and re-published the registry. Deleted the old .pi/extensions/unity-docs directory from the NCP project (deletions pending) and verified unity_docs_status ran against Unity 6000.3.10f1.",
+	"decisions": [
+		"Moved Unity docs tooling from a standalone extension into the @gizmo/unity package under packages/unity/src/server/docs, so it ships as part of the Unity extension rather than a separate one.",
+		"Renamed the default export to registerUnityDocs and invoked it from extensions/unity/pi-extension.ts instead of letting it self-register.",
+		"Added @earendil-works/pi-coding-agent, @earendil-works/pi-ai, and typebox to packages/unity/package.json as runtime dependencies.",
+		"Fixed onUpdate payload type errors by including details: undefined to satisfy the AgentToolResult type.",
+		"Committed registry changes as 229a0ce 'feat: fold Unity documentation tools into Unity extension' plus a docs follow-up commit, then re-issued a registry.update over the WebSocket so the agent-server picks up the new build."
+	],
+	"files": [
+		"C:/Users/mchan/projects/gizmo-registry/extensions/unity/pi-extension.ts",
+		"C:/Users/mchan/projects/gizmo-registry/packages/unity/package.json",
+		"C:/Users/mchan/projects/gizmo-registry/packages/unity/src/server/docs/core-corpus.ts",
+		"C:/Users/mchan/projects/gizmo-registry/packages/unity/src/server/docs/core-manifest.ts",
+		"C:/Users/mchan/projects/gizmo-registry/packages/unity/src/server/docs/core.ts",
+		"C:/Users/mchan/projects/gizmo-registry/packages/unity/src/server/docs/index.ts",
+		"C:/Users/mchan/projects/gizmo-registry/packages/unity/src/server/docs/index.test.ts",
+		"C:/Users/mchan/projects/gizmo-registry/pnpm-lock.yaml",
+		"C:/Users/mchan/projects/gizmo-registry/README.md",
+		"C:/Users/mchan/UnityProjects/ncp/.pi/extensions/unity-docs/core-corpus.ts",
+		"C:/Users/mchan/UnityProjects/ncp/.pi/extensions/unity-docs/core-manifest.ts",
+		"C:/Users/mchan/UnityProjects/ncp/.pi/extensions/unity-docs/core.ts",
+		"C:/Users/mchan/UnityProjects/ncp/.pi/extensions/unity-docs/index.ts"
+	],
+	"errors": [
+		"pnpm check failed with TS2741 'Property details is missing' at three onUpdate call sites in packages/unity/src/server/docs/index.ts; resolved by adding details: undefined to each onUpdate payload, after which check/test/build all passed."
+	],
+	"outcome": "shipped"
+}

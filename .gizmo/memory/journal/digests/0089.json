@@ -1,0 +1,28 @@
+{
+	"segment": "0089",
+	"at": "2026-09-18T22:38:54.085Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed svelte-check errors in the apps/app, then rewrote CommandPalette.svelte to drop the unused integrations parameter and full-rewrote WorkspaceConfigurePanel.svelte around a new per-workspace extensions/skills overrides model. Ran the agent-server test suite, confirmed 17 failures pre-exist via stash, and fixed the 6 failures caused by the changes by updating project-catalog, resource-catalog, and registry tests and by sharing GlobalResourceStore's dataDir with ProjectCatalog.",
+	"decisions": [
+		"CommandPalette.onSelectWorkspace signature simplified to (projectPath: string) => void; the workspace no longer returns integrations from store.addProject, and the second arg was removed to match the new model.",
+		"store.addProject is now called with a single argument (selectedPath); the empty-arrays second argument and project.integrations lookup were removed.",
+		"ProjectCatalog now constructs its default GlobalResourceStore with the same dataDir as the catalog, so the global disabled set and the catalog see the same resources.json on disk.",
+		"Legacy ProjectCatalog.list() entries are expected to inherit global extension state rather than carry empty integrations; the legacy test was rewritten to assert [{ id: 'svelte', root: '.' }].",
+		"17 agent-server test failures (run-script, session-repository, pi-runtime-config, extension-resources) were verified to pre-exist on the unmodified tree via git stash and treated as out of scope.",
+		"WorkspaceConfigurePanel was rebuilt from scratch (13,348 bytes) around ProjectConfig/ProjectDomains with skill override toggles, an explicit 'Not installed' section, a remove-workspace confirmation, and per-extension Switch controls reading store.globalGizmoExtensions / store.globalPiExtensions."
+	],
+	"files": [
+		"apps/app/src/lib/features/sessions/CommandPalette.svelte",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/tests/projects/project-catalog.test.ts"
+	],
+	"errors": [
+		"svelte-check reported 36 errors across 3 files, including missing exports WorkspaceProfile/WorkspaceProfiles from @gizmo/protocol, missing './profile-overrides' module, and a CommandPalette.svelte call passing two arguments to store.addProject.",
+		"WorkspaceConfigurePanel.svelte rewrite initially had invalid syntax: typo 'untrack$', invalid `function piExtensions = $derived(...)` (should be `let`), unused ProjectSkill/SkillResource imports, and `activeSkills` referencing the removed `skills` variable instead of `installedSkills`.",
+		"project-catalog.test.ts: 'resolves overrides against the global disabled set' and 'registers legacy projects without deriving extensions from them' failed because GlobalResourceStore defaulted to defaultDataDir() rather than the test data dir; fixed by passing dataDir to GlobalResourceStore and updating the legacy expectations to include the globally-registered svelte integration.",
+		"registry.test.ts: 'lists every globally installed extension without inspecting the workspace' failed with `installedExtensionCatalog is not a function` (test referenced a renamed export).",
+		"resource-catalog.test.ts: 'installs discovered skills globally but leaves them disabled' failed because the skill ended up installed=false instead of true."
+	],
+	"outcome": "explored"
+}

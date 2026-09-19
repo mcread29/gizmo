@@ -1,0 +1,19 @@
+{
+	"segment": "0135",
+	"at": "2026-09-18T22:39:44.753Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added a non-disruptive reload path that re-fetches browser-extension bundles and workspace activation state without reconnecting or restarting any running Pi session. Exposed the action via a new `/reload` slash command in the Composer and a 'Reload extensions' entry in the command palette.",
+	"decisions": [
+		"Implement reload as a client-side re-installation of web extensions and project activation state rather than a full reconnect, so running Pi agents stay intact.",
+		"Expose the reload action both as a Composer slash command (`/reload`) and as a 'Reload extensions' command-palette item.",
+		"Cover reload behaviour with a new AgentStore test verifying that `reloadExtensions()` preserves `sessionId` and connection state."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/lib/features/conversation/Composer.svelte",
+		"apps/app/src/lib/features/sessions/CommandPalette.svelte"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

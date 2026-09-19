@@ -1,0 +1,20 @@
+{
+	"segment": "0118",
+	"at": "2026-09-18T22:39:26.582Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated migrating the gizmo registry into a new sibling repo at C:\\Users\\mchan\\projects\\gizmo-registry, then identified and began fixing bugs in apps/agent-server/src/extensions/registry-manager.ts: the add flow never ran the registry's declared build, link still copied files instead of symlinking, and runBuild swallowed stderr. Edits switched link to use file symlinks, made registryAdd invoke runBuild after clone, captured stderr in runBuild, and wrapped the clone+build in try/catch with cleanup on failure.",
+	"decisions": [
+		"Create the new registry as a sibling local repo at C:\\Users\\mchan\\projects\\gizmo-registry (chosen over GitHub-now or different local path).",
+		"Replace the existing copyFile-based link step in registry-manager.ts with symlink of the .web.js file so link re-runs pick up rebuilt bundles without recopying.",
+		"Make registryAdd execute the manifest's build command (pnpm install --frozen-lockfile && pnpm build) after a successful git clone, before persisting the registry record.",
+		"Have runBuild include stderr in its rejection Error so registryAdd failures surface the underlying build error rather than a generic 'Command failed'."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/registry-manager.ts"
+	],
+	"errors": [
+		"End-to-end probe failed: registryAdd reported 'Registry gizmo-registry does not exist' and link failed with 'Registry gizmo-registry does not exist', so no ask-user.ts / ask-user.web.js appeared in the Pi extensions directory.",
+		"Run-pnpm-build probe errored with 'Command failed: pnpm install --frozen-lockfile && pnpm build' whose root cause was not visible because runBuild discarded stderr; direct invocation in the clone dir succeeded, indicating the failure is in how the build is invoked through runBuild rather than the build script itself."
+	],
+	"outcome": "blocked"
+}

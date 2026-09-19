@@ -1,0 +1,26 @@
+{
+	"segment": "0477-3d899347",
+	"at": "2026-09-18T22:45:03.496Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Rebuilt @gizmo/app, restarted the supervised Gizmo web server (it had been taken down by a port conflict with the dev server on 8787), and verified the live domain serves the new bundle. Then diagnosed a missed header-rounding change, fixed a turn-timing bug where opening an old thread falsely stamped the agent as having worked since last touched, moved the thread title into the tab-strip row (replacing Overview/Configure rather than becoming a tab), and verified header edges align across thread, workspace, and inspector columns.",
+	"decisions": [
+		"Layout token: a 31px --header-shelf-h min-height on every column's tab strip governs the row the title or subtabs sit in, so all three columns land their header bottom edge at y=145 from one number.",
+		"Thread header styling: the conversation panel gets border-radius: 6px 6px 0 0 to match the folder-tab look; the inspector and workspace columns stay with border-radius: 0 — the rounding pattern was deliberately chosen (matching the tabs) rather than uniform across all three columns.",
+		"Thread title placement: the thread title renders as plain text in the tab-strip row in place of the Overview/Configure tabs, not as a tab itself.",
+		"Turn-timing fix: the turn-end stamp now only fires on a run the client actually watched go from streaming to idle, so reopening an old idle thread no longer claims it has been working since the thread was last touched.",
+		"Operational rule, reaffirmed this session: the dev server (pnpm dev:server:*) and the supervised Gizmo web server cannot run simultaneously because they both need port 8787."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/Conversation.svelte",
+		"apps/app/src/styles/conversation.css",
+		"apps/app/src/lib/agent-client/agent-event-reducer.ts",
+		"apps/app/tests/lib/agent-client/agent-event-reducer.test.ts",
+		"apps/app/tests/lib/agent-client/turn-timing.test.ts"
+	],
+	"errors": [
+		"Supervised web server had been brought down because the dev server started for verification was holding port 8787, preventing the supervisor from rebinding. Resolved by stopping the dev server (pnpm dev:server:stop) and letting the supervisor relaunch the agent server.",
+		"Earlier header-radius change was applied to the wrong surface: conversation got the 6px tab-like radius but the inspector stayed at 0px, so the two diverged rather than matching. Acknowledged and left for user direction on which is the target.",
+		"Turn-end stamping bug: idle-session events stamped the duration on any thread viewed, so a 23-day-old thread displayed 'Worked for 33038m 12s' (and produced the earlier 1m57s vs 5m52s disagreement). Fixed by only stamping runs the client watched transition streaming → idle."
+	],
+	"outcome": "shipped"
+}

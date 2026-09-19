@@ -1,0 +1,32 @@
+{
+	"segment": "0010",
+	"at": "2026-09-18T22:37:39.175Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Finished and verified the composer command-discovery feature: typing `/` opens an autocomplete menu with keyboard/mouse navigation, descriptions, and source labels; covered Pi extension commands, prompt templates, and skills via `/skill:name` syntax. Ran formatting, type checks, and 83 tests across app, agent-server, and protocol packages, plus a live smoke test that returned 13 commands, then committed docs, the feature, and a protocol version bump.",
+	"decisions": [
+		"Bumped protocolVersion from 18 to 19 in packages/protocol/src/index.ts to introduce command discovery over the WebSocket transport.",
+		"Split documentation into apps/app/PRODUCT.md and apps/app/DESIGN.md (with apps/app/.impeccable/design.json) as a separate commit ahead of the feature commit.",
+		"Skills are inserted into the composer using Pi's `/skill:name` syntax rather than a separate UI affordance.",
+		"Treat CLI-only built-ins like /model, /settings, and /resume as out of scope for this round — they will need dedicated web actions later rather than being sent as prompts."
+	],
+	"files": [
+		"README.md",
+		"apps/app/PRODUCT.md",
+		"apps/app/DESIGN.md",
+		"apps/app/.impeckable/design.json",
+		"apps/app/src/lib/features/conversation/Composer.svelte",
+		"apps/app/src/lib/features/conversation/ComposerCommandMenu.svelte",
+		"apps/app/src/styles/composer.css",
+		"apps/app/src/App.test.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [
+		"Playwright screenshot script failed with `Cannot find module 'playwright'` (MODULE_NOT_FOUND) when invoked from a piped node stdin in the project root, so no screenshot was captured."
+	],
+	"outcome": "shipped"
+}

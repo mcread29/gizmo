@@ -1,0 +1,37 @@
+{
+	"segment": "0055",
+	"at": "2026-09-18T22:38:18.952Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Wired up global Pi extension management and a skill markdown editor end-to-end: added a pi-global-resources module, bumped the protocol to v22 with new resources.extension.global/skill.read/skill.write message types, surfaced extensions in the resource catalog, implemented setGlobalExtension/readSkill/writeSkill on the agent service and websocket transport, updated client interfaces (AgentClient, WebSocketAgentClient, FakeAgentClient) and tests, added a SkillEditor dialog with menu integration in AgentSettings, and trimmed unused imports while making adoptPiResources a no-op now that Pi's own dirs are canonical. A failing pnpm check surfaced missing test stubs which were then added.",
+	"decisions": [
+		"Global resources now stay canonical in Pi's own directories, so adoptPiResources() returns false and no longer copies files between dirs",
+		"adoptPiResources accepts optional _dataDir and _piAgentDir parameters (prefixed underscore) to preserve call-site signature without using them",
+		"setGlobalExtension is async and returns a refreshed ResourceCatalog rather than just a success signal",
+		"Protocol bumped from v21 to v22 to carry the new resources.extension.global, resources.skill.read, and resources.skill.write message types",
+		"ResourceCatalog.extensions is now optional (Type.Optional) rather than required",
+		"SkillEditor is added as a separate Svelte component mounted alongside AgentSettings, with SkillList exposing an onEdit callback that opens it",
+		"ResourceCatalog schemas/types are exported from the protocol package and re-used in both server and client (e.g., AgentClient uses SkillFile)"
+	],
+	"files": [
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/src/resources/resource-paths.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/lib/features/settings/SkillEditor.svelte",
+		"apps/app/src/lib/features/settings/SkillList.svelte",
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/app/src/styles/settings.css",
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [
+		"FakeAgentClient.ts edit failed with 'Could not find the exact text' on the setProjectSkill block; recovered by reading the file at a different offset before continuing",
+		"pnpm check failed in apps/agent-server with TS2554 'Expected 0 arguments, but got 2' in tests/resources/discover-resources.test.ts lines 107 and 109; fixed by restoring _dataDir and _piAgentDir parameters on adoptPiResources",
+		"pnpm check then failed in apps/app because InvalidEventClient in AgentStore.test.ts was missing readSkill, writeSkill, setGlobalExtension methods on the AgentClient interface; fixed by adding those stub methods to the test client"
+	],
+	"outcome": "shipped"
+}

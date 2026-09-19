@@ -1,0 +1,26 @@
+{
+	"segment": "0012",
+	"at": "2026-09-18T22:37:46.762Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Drafted a stable implementation plan for bridging Pi extension UI into Gizmo, outlining how `AgentSession.bindExtensions` would be used with a browser-backed `ExtensionUIContext`, a session-scoped protocol, native dialogs/notifications/widgets, a `@gizmo/extension-ui` web-native component SDK, and a tiered approach to terminal TUI components. The plan was written to `docs/pi-extension-ui-bridge-plan.md` and referenced from `docs/extensions.md`, then formatted with Prettier and committed.",
+	"decisions": [
+		"Do 'Generic Pi UI bridge' first, before redesigning Gizmo's extension backend, to maximize immediate usefulness of existing Pi extensions.",
+		"Keep `AgentSession` in-process rather than switching Gizmo to Pi's RPC runtime; use `\"rpc\"` mode only for extension binding so `ctx.hasUI === true` and `ctx.mode === 'rpc'`.",
+		"Each `ctx.ui` call becomes a session-scoped WebSocket protocol event (`session.extensionUi.request` / `.respond`) with a unique UI request id.",
+		"Implement full-parity Svelte dialogs for select, confirm, input, and editor, including timeout countdowns, AbortSignal cancellation, Escape dismissal, keyboard navigation, and focus trapping.",
+		"Map notifications, statuses, widgets, editor text, working state, themes, and tool-expansion directly to Gizmo primitives rather than treating them as no-ops.",
+		"Handle TUI widgets in three tiers: text arrays render natively; simple Pi TUI components use a compatibility renderer to formatted/preformatted web content; interactive/custom TUI components fall back to unsupported with optional browser companions, rather than embedding a terminal emulator in the browser.",
+		"Add a separate `ExtensionUIStore` (not in `AgentStore`) with `$state` fields for dialogs, notifications, statuses, widgets, and working state, scoped by `{sessionId, extensionId, key}` to prevent collisions.",
+		"Attribute every UI request with `extensionPath` / `sourceInfo`, ideally by changing Pi to expose a scoped `uiContext.forExtension(...)`, so ownership, cleanup, trust display, and reload behavior are correct.",
+		"On session reload, switch, fork, disconnect, or deletion: cancel unresolved dialogs, clear statuses/widgets, abort pending UI promises, ignore late responses, dispose web components, and rebuild UI state.",
+		"Use Gizmo semantic design tokens for the web-native component SDK; do not let extensions depend directly on application CSS.",
+		"Provide an optional, parallel web-native `gizmo.ui.custom({component, props, presentation})` mechanism later; existing `ctx.ui.custom()` initially returns `undefined` matching current RPC behavior.",
+		"Recommended phased order: (1) attributed `ExtensionUIContext`, (2) bind in `\"rpc\"` mode, (3) protocol types, (4) confirm/select/input/editor, (5) notifications/statuses/text widgets, (6) editor text, paste, working, tool expansion, (7) themes, (8) `@gizmo/extension-ui` component library, (9) optional browser replacements for terminal-only `custom()`, (10) migrate individual Gizmo extensions onto Pi backends."
+	],
+	"files": [
+		"docs/pi-extension-ui-bridge-plan.md",
+		"docs/extensions.md"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

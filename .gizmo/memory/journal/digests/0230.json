@@ -1,0 +1,24 @@
+{
+	"segment": "0230",
+	"at": "2026-09-18T22:41:06.513Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed slow dev-server startup (Vite ready before agent server listening) caused by extension loading taking ~5s, especially the Git extension. Fixed by filtering out extension entry points that don't declare `gizmoExtension`, switching parallel integration imports to sequential, and reordering scripts/dev-server.ts to start the WebSocket backend before Vite. Cut integration load time from ~5s to ~2.5s. Then committed all gizmo workspace changes as d20cb90.",
+	"decisions": [
+		"scripts/dev-server.ts: start the agent-server (importing src/server.ts) before spawning Vite, so the WebSocket backend is listening on 8787 by the time the browser connects.",
+		"apps/agent-server/src/extensions/load-extensions.ts: skip linked extensions whose source does not declare the `gizmoExtension` identifier, read via a regex over file contents before import — avoids importing Pi extensions that do not contribute a Gizmo integration.",
+		"apps/agent-server/src/extensions/load-extensions.ts: load linked integrations sequentially via a for-loop instead of Promise.all — measured to be faster and more predictable on Windows (5034ms → 2480ms in profile runs).",
+		"Honored a separate repo at C:/Users/mchan/.pi/agent: those changes were left out of the gizmo commit and not staged."
+	],
+	"files": [
+		"scripts/dev-server.ts",
+		"apps/agent-server/src/extensions/load-extensions.ts",
+		"apps/agent-server/tests/extensions/load-extensions.test.ts",
+		"apps/agent-server/tests/resources/extension-resources.test.ts",
+		"apps/agent-server/src/resources/extension-resources.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts"
+	],
+	"errors": [
+		"Prettier --check initially failed on apps/agent-server/src/resources/extension-resources.ts; resolved by running prettier --write on it."
+	],
+	"outcome": "shipped"
+}

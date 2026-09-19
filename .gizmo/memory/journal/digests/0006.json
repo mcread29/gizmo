@@ -1,0 +1,16 @@
+{
+	"segment": "0006",
+	"at": "2026-09-18T22:57:08.774Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Verified the agent-client/agent-server changes by running type checks, svelte-check, and focused tests (AgentStore, WebSocketAgentClient, websocket-server, pi-agent-service, protocol package) — all green. Then ran a live reload smoke test over the WebSocket, which surfaced an unhandled rejection in a user-installed Pi extension (git-info) crashing the server in Pi Web mode, and softened the unhandledRejection handler so it no longer terminates the process in that mode.",
+	"decisions": [
+		"In Pi Web mode (`piWebMode`), `process.on('unhandledRejection')` in the agent server should log and continue rather than call `close()` and `process.exit(1)`, because Pi Web intentionally hosts user-installed Pi extensions whose stray rejections must not tear down every thread."
+	],
+	"files": [
+		"apps/agent-server/src/server.ts"
+	],
+	"errors": [
+		"Live reload smoke test via WebSocket succeeded but a stale-extension unhandled rejection from the user-installed `git-info` Pi extension (captured `ctx` after session replacement/reload) crashed the agent server — fixed by making the unhandledRejection handler non-fatal in Pi Web mode."
+	],
+	"outcome": "shipped"
+}

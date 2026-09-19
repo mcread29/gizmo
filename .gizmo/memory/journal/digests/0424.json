@@ -1,0 +1,27 @@
+{
+	"segment": "0424",
+	"at": "2026-09-18T22:44:07.769Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Switched from the desktop path to an always-on web build of Gizmo: extracted a shared managed-daemon core from scripts/dev-server.ts into scripts/lib/managed-daemon.ts, added a scripts/web-server.ts that produces a production build and runs vite preview on port 4173 (proxying /agent to the agent server on 8787), added `web:server` scripts to package.json, registered a Windows scheduled task \"Gizmo Web\" that runs at logon and every 5 minutes via a hidden VBS shim calling .gizmo-web/startup.cmd, configured origin allowlist via GIZMO_WEB_HOSTS to include the Tailscale hostname (100.105.88.93 / genge.angler-musical.ts.net), and verified the launcher revives the daemon and serves HTTP 200 on both 127.0.0.1 and the Tailscale address.",
+	"decisions": [
+		"Serve the web UI via a production build plus `vite preview` on port 4173, rather than a static file server, so the same-origin `/agent` websocket proxy to the agent server on 8787 keeps working.",
+		"Auto-start with a Windows Task Scheduler logon trigger that repeats every 5 minutes, launched through a hidden .vbs shim (.gizmo-web/startup.vbs) rather than the .cmd directly, so the repeating trigger does not flash a console window.",
+		"Extract a shared managed-daemon core (scripts/lib/managed-daemon.ts) and reuse it from both the dev web server and the new production web server, instead of duplicating the ~350-line spawn/state logic of scripts/dev-server.ts.",
+		"Configure allowed origins for the agent websocket via the new GIZMO_WEB_HOSTS env var (defaulted in startup.cmd to localhost,127.0.0.1,100.105.88.93,genge.angler-musical.ts.net), so the Tailscale hostname/IP can reach the server.",
+		"In startup.cmd prepend the mise shims directory to PATH before invoking pnpm; a scheduled task's non-interactive environment otherwise resolves node to the stale system v22.9.0 and pnpm refuses to run.",
+		"The launcher is idempotent (the daemon's start path checks for an existing running PID and returns without spawning a duplicate), so the 5-minute repeat trigger safely re-runs startup.cmd without stacking processes."
+	],
+	"files": [
+		".gitignore",
+		"apps/app/vite.config.ts",
+		"package.json",
+		"scripts/lib/managed-daemon.ts",
+		"scripts/web-server.ts",
+		".gizmo-web/startup.cmd",
+		".gizmo-web/startup.vbs"
+	],
+	"errors": [
+		"Scheduled task initially exited with code 1 even though .gizmo-web/startup.cmd worked in an interactive shell. Root cause: the scheduled task's non-interactive environment resolved node to C:\\Program Files\\nodejs\\node.exe (v22.9.0) instead of mise's v24.20.0, and pnpm 10.34.5 requires Node >= 22.13. Fixed by prepending %LOCALAPPDATA%\\mise\\shims to PATH in startup.cmd; after the fix LastTaskResult=0 and HTTP 200 was confirmed on both 127.0.0.1:4173 and 100.105.88.93:4173."
+	],
+	"outcome": "shipped"
+}

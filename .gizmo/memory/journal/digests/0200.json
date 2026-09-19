@@ -1,0 +1,18 @@
+{
+	"segment": "0200",
+	"at": "2026-09-18T22:40:37.471Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored apps/app/src/App.svelte from 363 to 225 LOC by extracting AppWorkspaceShell.svelte (196 LOC) and AppScreens.svelte (45 LOC) into apps/app/src/lib/features/shell/, preserving routing, async guards, settings persistence, titlebar, navigation, layout, and session/workspace behavior. Tests, agent-client files, and WorkspaceConfigurePanel were not modified.",
+	"decisions": [
+		"Extracted workspace composition (titlebar, navigation, conversation, inspector, resizing, context menu, dialogs) into AppWorkspaceShell.svelte in apps/app/src/lib/features/shell/ to keep App.svelte as a thin product composition shell under 300 LOC.",
+		"Extracted settings and session-tree screen composition into AppScreens.svelte in apps/app/src/lib/features/shell/, exposing bind:settingsDirty and onShowWorkspaceSettings callbacks so App.svelte retains control of workspace launching.",
+		"Avoided modifying apps/app/tests/App.test.ts (999 LOC) and any agent-client implementation files or WorkspaceConfigurePanel, per the user's constraints."
+	],
+	"files": [
+		"apps/app/src/App.svelte",
+		"apps/app/src/lib/features/shell/AppWorkspaceShell.svelte",
+		"apps/app/src/lib/features/shell/AppScreens.svelte"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

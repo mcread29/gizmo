@@ -1,0 +1,23 @@
+{
+	"segment": "0091",
+	"at": "2026-09-18T22:39:00.399Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Updated docs/resources.md to describe the new project configuration model, bumped the protocol version constant from 23 to 24, and added a 2026-08-28 WORKLOG entry documenting the retirement of workspace profiles. Ran `pnpm check` and repaired several leftover test issues from the profile migration (dropped redundant `add` arguments, added a missing `label` field to a tool definition). Then attempted to restore ~180 files that prettier had reformatted as collateral damage; attempts were thwarted by git warning lines embedding in piped output, and the restore never completed cleanly — `git status --porcelain` still shows 585 modified files with 35 files actually changed (1171 insertions, 1804 deletions).",
+	"decisions": [
+		"Bumped protocolVersion from 23 to 24 in packages/protocol/src/index.ts to reflect the profile-removal/protocol change.",
+		"Classified the `toolCallId` TypeScript error in pi-agent-service.test.ts as pre-existing and left it unfixed in this pass.",
+		"Decided the working tree's 180 prettier-only diffs (LF/CRLF and formatting churn) are collateral damage to be reverted via `git checkout` so the final change set stays focused.",
+		"Decided to exclude `.gizmo/*` and `.herenow/*` from the restore list because they were already modified before this work."
+	],
+	"files": [
+		"docs/resources.md",
+		"packages/protocol/src/index.ts",
+		"WORKLOG.md"
+	],
+	"errors": [
+		"`pnpm check` failed in apps/agent-server due to three leftover test issues from the profile migration: project-catalog.test.ts and resource-catalog.test.ts still passing a second `add()` argument, and pi-agent-service.test.ts missing a `label` on a tool definition — all three were fixed via sed/python rewrites.",
+		"A pre-existing `toolCallId` type error remained in apps/agent-server/tests/sessions/pi-agent-service.test.ts(507,27); left untouched.",
+		"Multiple attempts to bulk-restore prettier-touched files via `git checkout --` were broken because git warning lines (LF/CRLF notices) were captured into the file list, causing xargs to receive bogus pathspecs and abort each batch; the restore did not complete and the working tree still shows 585 modified files, 35 with substantive changes."
+	],
+	"outcome": "blocked"
+}

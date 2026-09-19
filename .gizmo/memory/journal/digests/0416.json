@@ -1,0 +1,19 @@
+{
+	"segment": "0416",
+	"at": "2026-09-18T22:43:55.896Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why linking a Gizmo extension doesn't take effect without restart, tracing the reload paths and identifying that `session.reload` only refreshes Pi's per-thread runtime while the agent-server's `registerExtensions` catalog runs once at boot. Authored a self-contained handoff prompt for a follow-up agent covering server-side rescan/re-register after registry mutations, client-side `reloadExtensions()` after successful actions, and known hazards (ESM module cache for updates, boot-time ProjectServiceRegistry limitation).",
+	"decisions": [
+		"Frame the bug as two distinct extension layers: Pi's per-thread runtime (covered by `session.reload`) vs. the agent-server's boot-time `registerExtensions` catalog (not refreshed by anything).",
+		"Fix design: extract the boot-time merge of configured + linked extensions into a reusable helper in `registry-manager.ts` so rescan and boot share one code path; `registerExtensions` replaces the array, which propagates to `ProjectIntegrationResolver` and `listProjectExtensions` with no further wiring.",
+		"Flag `registryUpdate` as a cache hazard: `loadLinkedIntegration` uses plain dynamic `import()`, so a rescan after update may hit ESM module cache for unchanged URLs. Instruct the next agent to investigate (cache-busting, jiti) or document staleness — do not silently fix.",
+		"Scope out the `ProjectServiceRegistry` boot-once limitation (a newly linked extension with `createProjectService` gets no service until restart); leave a code comment instead of fixing.",
+		"On the client, have `#registryAction` call `store.reloadExtensions()` after successful link/unlink/update/remove; failure handling left as a deliberate choice for the next agent, but must not mask the registry action's own error.",
+		"Use the uncommitted linked `codex` extension in the user's dev registry as the manual end-to-end test vehicle for the fix."
+	],
+	"files": [],
+	"errors": [
+		"Bash command listing `apps/agent-server/src/extensions/*.test.ts` exited with code 2; the file path had no matches, so `ls` returned non-zero — used as confirmation that there are no extension-specific tests to extend, rather than as a blocker."
+	],
+	"outcome": "explored"
+}

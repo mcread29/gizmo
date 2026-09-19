@@ -1,0 +1,34 @@
+{
+	"segment": "0076",
+	"at": "2026-09-18T22:38:43.276Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Stripped the legacy `unity-agent` migration shims in favor of a clean rename to `gizmo` identifiers across the Tauri shell, web app storage keys, and attachment manifest tags. Verified with `pnpm check` (clean) and `pnpm test` (17 vitest failures confirmed pre-existing via `git stash`, unrelated to the rename), then committed as `811b400 chore: purge legacy unity-agent identifiers`. Afterward, explained that Gizmo extensions and Pi extensions load through two distinct pipelines that converge at session creation in `createDefaultPiSession`: Gizmo extensions are dynamic-imported from `gizmo.extensions.json` and activated per profile; Pi extensions are curated by Gizmo via `enabledPiExtensionPaths` and passed to Pi's resource loader as `additionalExtensionPaths`.",
+	"decisions": [
+		"Drop all backwards-compatibility/migration shims since the product has no external users: remove legacy localStorage key reads/cleanup, legacy `<unity-agent-attachments>` manifest tag parsing, and `UNITY_AGENT_*` env fallbacks — do a clean rename only.",
+		"Rename desktop crate `unity-agent` → `gizmo`, lib `unity_agent_lib` → `gizmo_lib`, Tauri identifier `dev.genge.unity-agent` → `dev.genge.gizmo`, and sidecar binary `unity-agent-server` → `gizmo-server`.",
+		"Rename storage keys to `gizmo.settings.v1`, `gizmo.drafts.v1`, `gizmo.pinned-directories.v1` and attachment manifest tags to `<gizmo-attachments>` (refactored to a shared `manifestSpan()` helper).",
+		"Remove the README's `UNITY_AGENT_DATA_DIR` migration claim because the code never implemented it — false documentation.",
+		"Accept that the Tauri identifier change moves the app-data dir and WebView2 profile (browser-local settings/drafts/pins start fresh), and that old session JSONLs with `<unity-agent-attachments>` will display raw in the transcript — user confirmed both consequences are acceptable.",
+		"Leave the 17 pre-existing vitest failures (Windows path-separator / `activeDomains` issues) unfixed as they are unrelated to this rename."
+	],
+	"files": [
+		"apps/agent-server/src/attachments/attachment-message.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/src/server-config.ts",
+		"apps/app/src/lib/app-settings.ts",
+		"apps/app/src/lib/features/conversation/drafts.svelte.ts",
+		"apps/app/src/lib/features/sessions/pinned-directories.svelte.ts",
+		"apps/app/src-tauri/Cargo.toml",
+		"apps/app/src-tauri/src/main.rs",
+		"apps/app/src-tauri/src/lib.rs",
+		"apps/app/src-tauri/tauri.conf.json",
+		"scripts/build-sidecar.ts",
+		"README.md",
+		"apps/app/src/App.test.ts",
+		"apps/app/src/lib/app-settings.test.ts"
+	],
+	"errors": [
+		"`pnpm test` reported 17 vitest failures in agent-server tests; `git stash` confirmed the identical failures exist on the untouched parent commit, so they are pre-existing Windows path-separator / `activeDomains` issues unrelated to this rename."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,22 @@
+{
+	"segment": "0482-81a4d7f9",
+	"at": "2026-09-18T22:45:08.811Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Hunted an intermittent header/inspector mismatch in the Gizmo web client by attaching a Playwright watcher to the user's live Chrome session over CDP. Caught two real cases: a startup window where the header sat on the previously-selected workspace until a 2,678-message thread finished resuming, and a stale-write race where the workspace context landed on whichever async response returned last regardless of which thread was actually open.",
+	"decisions": [
+		"Bug is a stale-write race in workspace selection: selectWorkspace and switchSession both write selectedProjectPath and then await, with no generation counter, so a slower earlier response can reassert a workspace after the user has navigated away.",
+		"Two prior fixes already applied and typechecked but not deployed: refreshProjects() no longer reassigns workspace to projects[0] without checking the open session; rebindSelection() now re-derives workspace from the open session on reconnect.",
+		"Fix for the race will mirror the existing #selectionVersion counter used for thread switches, extending the same guard to workspace switches.",
+		"Watcher's switch-watch.log is the source of truth for confirming the fix against the live window before deploying."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/agent-store/ProjectCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionCapability.ts",
+		"screenshots/switch-watch.log"
+	],
+	"errors": [
+		"Startup reproduce script /tmp/startup.mjs was interrupted by the user before completing.",
+		"Two prior background watcher processes (bmockiq41, bsalyc4p9) were marked stopped when the previous Claude session ended without a completion marker; the surviving switch-watch.log still shows the mismatches they were meant to catch live."
+	],
+	"outcome": "explored"
+}

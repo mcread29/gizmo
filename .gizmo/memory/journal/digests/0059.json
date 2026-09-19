@@ -1,0 +1,16 @@
+{
+	"segment": "0059",
+	"at": "2026-09-18T22:38:20.916Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Finalized documentation in docs/resources.md to describe the new global Pi resource management behavior (PI_CODING_AGENT_DIR paths, skill editing as Markdown, global extension enable/disable folders) and added corresponding protocol rows for resources.skill.read/write and resources.extension.global. Ran prettier, pnpm check, and git status to verify the docs change and surface the broader set of modified files from the global resource manager work.",
+	"decisions": [
+		"Documented that extension toggles cover auto-discovered top-level .ts/.js files and index.ts/index.js directories, while package-provided Pi extensions remain managed through Pi's package settings.",
+		"Documented the selected disk roots for managed resources: ~/.pi/agent and ~/.agents, including PI_CODING_AGENT_DIR.",
+		"Added protocol entries resources.skill.read (read editable Markdown from a catalogued skill) and resources.skill.write (validate and atomically save editable skill Markdown), plus resources.extension.global to move a global extension between enabled and disabled folders."
+	],
+	"files": [
+		"docs/resources.md"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

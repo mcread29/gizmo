@@ -1,0 +1,16 @@
+{
+	"segment": "0067",
+	"at": "2026-09-18T22:38:28.374Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Researched the public 'pstack skills' project, identifying it as Lauren Tan's Cursor plugin for rigorous AI-assisted engineering (source: cursor/plugins repo, MIT, version 0.14.3). Scraped the plugin manifest, README, setup/poteto-mode/automate-me/create-verification-skill SKILL.md files, the docs guide, and Cursor's official Skills and Plugins documentation to summarize its UX patterns (router skills, sticky modes, playbooks-as-todos, role-based model routing, project-local verification) and file conventions (per-skill directory with required SKILL.md, optional scripts/references/assets, plugin.json manifest declaring skills/agents roots). Produced a report of concise product inspiration for an AI skills manager, including interoperability caveats between pstack's host-specific frontmatter and the open Agent Skills specification. No files were edited.",
+	"decisions": [
+		"Treat cursor/plugins as the canonical source for pstack and other repositories (e.g., backnotprop/pstack) as mirrors.",
+		"Flag that pstack frontmatter (e.g., 'Poteto Mode') may diverge from the portable Agent Skills specification, which requires lowercase hyphenated names matching the directory.",
+		"Position pstack as a skill collection and workflow router, not a standalone skills manager."
+	],
+	"files": [],
+	"errors": [
+		"Searches for 'site:cursor.com/docs plugins skills SKILL.md', 'site:docs.cursor.com skills SKILL.md frontmatter disable-model-invocation', and 'Agent Skills specification SKILL.md official agentskills.io' returned zero results due to multiple unresponsive engines (brave/duckduckgo/startpage/wikipedia CAPTCHAs or rate limits)."
+	],
+	"outcome": "explored"
+}

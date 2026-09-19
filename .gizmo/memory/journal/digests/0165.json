@@ -1,0 +1,22 @@
+{
+	"segment": "0165",
+	"at": "2026-09-18T22:49:07.585Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed the pi compaction estimator bug at its source by extending gizmo's existing pnpm patch on @earendil-works/pi-coding-agent@0.84.2. The patch now computes a scaled keepBudget in estimate-space using the real usage-based token count before calling findCutPoint, so the cutter targets the correct share of the conversation when real context exceeds the chars/4 message estimate.",
+	"decisions": [
+		"Fix the estimator inside pi via the existing pnpm patch rather than working around it on the gizmo side, since the patch infrastructure was already in place and the fix targets the root cause.",
+		"In prepareCompaction, when tokensBefore (usage-based) exceeds the chars/4 estimate of contextMessages, scale keepBudget to (estimatedTotal * keepRecentTokens) / tokensBefore and pass that to findCutPoint; otherwise use the original keepRecentTokens. This preserves honest 'session too small' refusal when no usage data exists.",
+		"Remove the 16k cap previously added in configureCompaction (apps/agent-server/src/sessions/pi-agent-service.ts) so the user's real retainPercent semantics are honored again.",
+		"Keep the patch keyed to 0.84.2; require `pnpm patch` + `patch-commit` regeneration when bumping the pi dependency, ensuring the fix never silently disappears."
+	],
+	"files": [
+		"patches/@earendil-works__pi-coding-agent@0.84.2.patch",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"pnpm-lock.yaml"
+	],
+	"errors": [
+		"Initial verification scripts accidentally ran against the stale unpatched pnpm store dir (_6aa43df0414d6a258d0f7413b7b82115) after `pnpm patch-commit` created a new hash dir (_0b2098...) for the patched package; results looked unchanged until re-running against the patched dir that agent-server actually resolves to.",
+		"`require.resolve('@earendil-works/pi-coding-agent/package.json', ...)` failed with ERR_PACKAGE_PATH_NOT_EXPORTED because package.json is not listed in the package's exports map; switched to reading the file directly."
+	],
+	"outcome": "shipped"
+}

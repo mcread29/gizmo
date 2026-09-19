@@ -1,0 +1,16 @@
+{
+	"segment": "0102",
+	"at": "2026-09-18T22:39:09.239Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why the `ask_user` tool errored with 'no interactive UI is available' in a Gizmo session by probing the agent server's tool registry. Confirmed `ask_user` is present in the active tool list alongside other interactive tools (`input`, `remote_input`, `search`, etc.) loaded from the user's `~/.pi/agent/extensions` bundle, then located the registry-precedence code in `agent-session.js` and identified the user-side extension file (`ask-user.ts`) likely emitting that error message.",
+	"decisions": [
+		"Probe tool list via a Node script (`probe-tools.mjs`) placed in the repo dir with an absolute Windows path, because `/tmp` is not reliably resolved by Windows-hosted Node/Python under git-bash."
+	],
+	"files": [
+		"C:/Users/mchan/projects/gizmo/probe-tools.mjs"
+	],
+	"errors": [
+		"Earlier probe attempt failed to find `/tmp/probe-tools.mjs` because Python on Windows does not translate the git-bash `/tmp` path; resolved by writing the probe into the repo directory with a Windows-friendly absolute path."
+	],
+	"outcome": "explored"
+}

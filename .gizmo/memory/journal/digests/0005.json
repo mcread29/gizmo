@@ -1,0 +1,25 @@
+{
+	"segment": "0005",
+	"at": "2026-09-18T22:37:38.957Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Wired Pi session extension binding into the agent server (call session.bindExtensions with mode 'json' when GIZMO_PI_WEB=1), added a 'session.reload' RPC, exposed reloadSession on the AgentClient (WebSocket, Fake, and test fakes), and added a 'Reload runtime' button in AgentSettings that calls a new reloadRuntime method on AgentStore.",
+	"decisions": [
+		"Only call session.bindExtensions when process.env.GIZMO_PI_WEB === '1', passing mode 'json' and an onError logger that prints extensionPath and error.",
+		"Add a 'session.reload' RPC and surface it via reloadSession on WebSocketAgentClient, FakeAgentClient, and the InvalidEventClient test fake to satisfy the AgentClient interface.",
+		"Add a runtimeReloading boolean state on AgentStore and a reloadRuntime() method that calls client.reloadSession, handling success/error and clearing the flag in finally.",
+		"Expose a 'Reload runtime' Button in AgentSettings disabled when no session, while runtimeReloading, or while sessionState is 'streaming'."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/lib/features/settings/AgentSettings.svelte"
+	],
+	"errors": [
+		"svelte-check failed: InvalidEventClient test fake in apps/app/src/lib/agent-client/AgentStore.test.ts was missing the new reloadSession method required by the AgentClient interface; resolved by adding a no-op async reloadSession() to the fake.",
+		"Server crash observed in logs originating from a stale git-info extension timer (Timeout._onTimeout in extensions/git-info/index.ts) firing after the process restarted, triggering run() in the extension runner; investigated via .pi/agent-server.log tail but not fixed in this segment."
+	],
+	"outcome": "shipped"
+}

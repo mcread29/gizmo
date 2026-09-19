@@ -1,0 +1,27 @@
+{
+	"segment": "0190",
+	"at": "2026-09-18T22:40:29.324Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored WorkspaceConfigurePanel.svelte into cohesive Svelte 5 subcomponents under apps/app/src/lib/features/workspace/configure/, splitting out Gizmo extension overrides, Pi extension overrides, skills, tool policy, and remove-workspace sections while preserving the parent file's import path/API and reusing the existing SkillList. A shared ConfigureSectionHeading and a types.ts for the reapply callback were extracted; the parent was rewritten to compose the new sections.",
+	"decisions": [
+		"Extract one section per new component under configure/ (GizmoExtensionOverridesSection, PiExtensionOverridesSection, WorkspaceSkillsSection, WorkspaceToolPolicySection, RemoveWorkspaceSection) to keep each <=300 LOC",
+		"Reuse existing SkillList.svelte from features/settings rather than duplicating skill rendering, exposing installed-skills filtering and toggle/reset callbacks from the new section",
+		"Centralize the reapply-project-config busy callback (Promise<ProjectConfig | void>) in a shared types.ts and pass it down to extension sections so all override work funnels through one re-render trigger",
+		"Keep WorkspaceConfigurePanel.svelte at its original path so downstream imports and the public API of the panel are preserved",
+		"Add a small shared ConfigureSectionHeading.svelte component to avoid over-generalizing; only this and the types.ts are shared, the rest are co-located sections"
+	],
+	"files": [
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"apps/app/src/lib/features/workspace/configure/types.ts",
+		"apps/app/src/lib/features/workspace/configure/ConfigureSectionHeading.svelte",
+		"apps/app/src/lib/features/workspace/configure/GizmoExtensionOverridesSection.svelte",
+		"apps/app/src/lib/features/workspace/configure/PiExtensionOverridesSection.svelte",
+		"apps/app/src/lib/features/workspace/configure/WorkspaceSkillsSection.svelte",
+		"apps/app/src/lib/features/workspace/configure/WorkspaceToolPolicySection.svelte",
+		"apps/app/src/lib/features/workspace/configure/RemoveWorkspaceSection.svelte"
+	],
+	"errors": [
+		"ripgrep regex parse error on a combined alternation pattern (unclosed group) — resolved by splitting into a single literal search for getByRole('switch'"
+	],
+	"outcome": "explored"
+}

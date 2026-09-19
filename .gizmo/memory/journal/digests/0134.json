@@ -1,0 +1,18 @@
+{
+	"segment": "0134",
+	"at": "2026-09-18T22:39:41.986Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why extension tabs were missing in the Gizmo app: the global resources.json at C:\\Users\\mchan\\.gizmo\\resources.json had disabledGizmoExtensions set to [unity, svelte, skill-authoring], which filtered out those domains from activeDomains. Re-enabled the disabled extensions via the agent-server WebSocket (resources.gizmo-extension.global) and verified resources.json now has an empty disabledGizmoExtensions list and projects report activity/git/svelte/unity integrations.",
+	"decisions": [
+		"Identified the root cause as globally disabled Gizmo extensions in ~/.gizmo/resources.json suppressing activeDomains, not a bundle-loading failure",
+		"Re-enabled all three disabled extensions (unity, svelte, skill-authoring) via the running agent-server's resources.gizmo-extension.global request rather than editing resources.json directly",
+		"Concluded a full app restart (not just workspace switch) is required because browser extension bundles load at startup and activeDomains did not refresh in the running client"
+	],
+	"files": [
+		"C:\\Users\\mchan\\.gizmo\\resources.json"
+	],
+	"errors": [
+		"Read of C:\\Users\\mchan\\.gizmo\\resource-settings.json failed with ENOENT; the correct file name was resources.json, found by inspecting global-resource-settings.ts"
+	],
+	"outcome": "explored"
+}

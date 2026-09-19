@@ -1,0 +1,34 @@
+{
+	"segment": "0119",
+	"at": "2026-09-18T22:39:28.897Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Migrated the Pi extensions registry out of the main Gizmo repo into a standalone `gizmo-registry` repo with its own tooling, then updated the Gizmo registry manager to build right after cloning, clean up failed clones transactionally, and use real symlinks instead of file copies. Verified end-to-end that clone/build succeeds and `ask-user.ts`/`ask-user.web.js` are symlinks, then committed and cleaned up unrelated formatting changes.",
+	"decisions": [
+		"Created a separate `C:/Users/mchan/projects/gizmo-registry` repo holding `gizmo.registry.json`, build scripts, and `extensions/ask-user/`, with its own `pnpm-lock.yaml` and `pnpm-workspace.yaml` overrides pinning `typebox` and `@jridgewell/sourcemap-codec` and allowing `esbuild`/`@google/genai`/`esbuild` (and related) build scripts to satisfy pnpm supply-chain policy checks.",
+		"Registry manager in `apps/agent-server/src/extensions/registry-manager.ts` now builds the package immediately after cloning, transactionally cleans up failed clones, and creates symlinks into `~/.pi/agent/extensions/` rather than copying artifacts.",
+		"Removed `gizmo.registry.json`, the `pi-extensions/` directory, `scripts/build-pi-extensions.ts`, and `apps/app/src/lib/extensions/ask-user.test.ts` from the Gizmo repo; updated `docs/extensions.md` and other references accordingly.",
+		"Reverted unintended formatting changes to `.gizmo/config.json` and `apps/app/src/lib/features/settings/SettingsScreen.svelte` by checking them out from `HEAD^` and amending the move commit."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"C:/Users/mchan/projects/gizmo-registry/pnpm-workspace.yaml",
+		"C:/Users/mchan/projects/gizmo-registry/package.json",
+		"C:/Users/mchan/projects/gizmo-registry/pnpm-lock.yaml",
+		"C:/Users/mchan/projects/gizmo-registry/extensions/ask-user/",
+		"C:/Users/mchan/projects/gizmo-registry/gizmo.registry.json",
+		"C:/Users/mchan/projects/gizmo/gizmo.registry.json",
+		"C:/Users/mchan/projects/gizmo/pi-extensions/",
+		"C:/Users/mchan/projects/gizmo/scripts/build-pi-extensions.ts",
+		"C:/Users/mchan/projects/gizmo/apps/app/src/lib/extensions/ask-user.test.ts",
+		"C:/Users/mchan/projects/gizmo/docs/extensions.md",
+		"C:/Users/mchan/projects/gizmo/package.json"
+	],
+	"errors": [
+		"Initial `registry.add` probe failed with `Command failed: pnpm install --frozen-lockfile && pnpm build` — pnpm lockfile failed supply-chain policy check (`MINIMUM_RELEASE_AGE_VIOLATION` on `@jridgewell/sourcemap-codec`).",
+		"First attempt at pinning via `pnpm.overrides` in `package.json` did nothing because modern pnpm ignores the `pnpm` field; fixed by moving overrides into `pnpm-workspace.yaml`.",
+		"Lockfile still failed policy checks after pinning `typebox` because `allowBuilds` was incomplete (missing `@google/genai` and friends); resolved by extending `allowBuilds` in `pnpm-workspace.yaml`.",
+		"Final probe failed with `ENOENT` lstat on `C:\\Users\\mchan\\.pi\\agent\\extensions\\ask-user.ts` — the symlinked `.ts` source was not present because only the built `.web.js` artifact was symlinked; subsequent verification confirmed both `ask-user.ts` and `ask-user.web.js` exist as symlinks after transactional cleanup fix.",
+		"Running full test suite surfaced 17 unrelated failures in `runScript`, `pi-runtime-config`, and `session-repository` tests (path-normalization, file-mode bit, and arrayContaining shape issues) — treated as pre-existing and not addressed in this segment."
+	],
+	"outcome": "shipped"
+}

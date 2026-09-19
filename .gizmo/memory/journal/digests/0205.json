@@ -1,0 +1,26 @@
+{
+	"segment": "0205",
+	"at": "2026-09-18T22:40:44.964Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored PiExtensionUiStore.svelte.ts into a ≤300 LOC reactive facade by extracting state, events, types, and collections into cohesive modules. Resolved svelte-check errors caused by Array.findLast (target lib) and implicit any by introducing a findLatest helper in a new collections module. Ran svelte-autofixer, prettier, svelte-check (clean), and the extension-ui test files (8/8 passed); the only failing test is an unrelated flaky App.test.ts composer-attachments case.",
+	"decisions": [
+		"Split PiExtensionUiStore into PiExtensionUiStore.svelte.ts (facade), PiExtensionUiState.svelte.ts (state), PiExtensionUiEvents.ts (event handling), PiExtensionUiTypes.ts (types), and PiExtensionUiCollections.ts (upsertByKey, ReadonlySet helpers, findLatest).",
+		"Replaced Array.prototype.findLast with a manual reverse-iteration findLatest helper in PiExtensionUiCollections.ts to avoid the es2023 lib requirement and implicit any errors.",
+		"Used ReadonlySet<T> for working tracking via addToReadonlySet/removeFromReadonlySet helpers to preserve immutability across reactive boundaries.",
+		"Preserved the public API and Svelte 5 reactivity (per-runtime UI request behavior, notifications, dialogs, cleanup) so existing consumers like Titlebar.svelte and PiExtensionWidgets.svelte keep working without modification.",
+		"Avoided touching AgentStore/App as instructed; cleanup logic stays scoped to the facade."
+	],
+	"files": [
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiStore.svelte.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiState.svelte.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiEvents.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiTypes.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiCollections.ts"
+	],
+	"errors": [
+		"svelte-check initially failed with 4 errors in PiExtensionUiState.svelte.ts: Array.findLast not available (needs es2023 lib) and implicit any on callback parameters. Fixed by introducing findLatest helper in PiExtensionUiCollections.ts; svelte-check subsequently reported 0 errors/0 warnings.",
+		"svelte-autofixer on PiExtensionUiStore.svelte.ts returned 'Cannot read properties of undefined (reading text)' (tool-internal failure), but the file passed svelte-check and tests.",
+		"tests/App.test.ts > 'attaches files from the composer and sends them with the prompt' failed (Remove reference.png button not found) in both full and focused runs — appears flaky and unrelated to the extension-ui refactor."
+	],
+	"outcome": "shipped"
+}

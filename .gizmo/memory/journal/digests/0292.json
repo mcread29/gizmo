@@ -1,0 +1,14 @@
+{
+	"segment": "0292",
+	"at": "2026-09-18T22:42:03.650Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Restarted the Gizmo Pi Web dev server via pnpm dev:server:restart (old PID 3904 stopped, new PID 30672 started) and verified Vite came up at http://localhost:5173. Live-probed the agent WebSocket at ws://127.0.0.1:8787/agent: extensions.web returned protocolVersion 26 with 8 bundles and no diagnostics, and project.list returned a valid v26 response (no projects stored yet, so no project.status target).",
+	"decisions": [
+		"Old pre-restart 'Could not load web extensions: Invalid agent protocol response' warnings are attributed to the previous v25 server process still running while the browser client was already v26, and are expected to be gone after restart — confirmed clean post-restart log."
+	],
+	"files": [],
+	"errors": [
+		"Pre-restart log showed repeated vite client warnings 'Could not load web extensions: Invalid agent protocol response'; root cause identified as protocol-version mismatch between the still-running v25 server and the v26 browser client, resolved by the restart."
+	],
+	"outcome": "shipped"
+}

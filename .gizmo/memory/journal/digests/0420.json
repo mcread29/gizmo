@@ -1,0 +1,18 @@
+{
+	"segment": "0420",
+	"at": "2026-09-18T22:43:56.694Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Rebuilt the gizmo-registry extensions and verified in the browser that the Subagents inspector tab no longer throws the `each_key_duplicate` Svelte error. Confirmed the agent server hot-restarted from the registry edits, ran the app type check (0 errors), and recorded a memory note about registry extensions being live-edited from `~/.gizmo/registries`.",
+	"decisions": [
+		"Record a memory entry stating that Gizmo extensions live in `~/.gizmo/registries` (a clone of gizmo-registry) and that editing them restarts the dev agent-server, so future sessions know where to look and warn the user when edits could interrupt running threads."
+	],
+	"files": [
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\registry-extensions-live-edit.md",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\MEMORY.md",
+		"~/.gizmo/registries/gizmo-registry/extensions/subagents.web.js"
+	],
+	"errors": [
+		"Browser console initially showed `each_key_duplicate` Svelte runtime exception in the Subagents panel after the rebuild; resolved after a follow-up click on the Subagents tab."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,27 @@
+{
+	"segment": "0232",
+	"at": "2026-09-18T22:41:07.727Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the Skills settings page so only the skill list scrolls, not the whole page. Restructured the layout into a fixed tab header, skills toolbar, and two-column workbench with an independently scrollable list on the left and a text editor on the right.",
+	"decisions": [
+		"Removed the editor footer from SkillEditor.svelte; errors are now rendered as a floating element inside the editor rather than in a footer row.",
+		"Dropped the unused lineCount derived value from SkillEditor.svelte along with the footer removal.",
+		"Replaced fixed viewport-height calculation (calc(100vh - titlebar - 172px), min-height 520px) on the skills library with height: 100% / min-height: 0 to fill available space.",
+		"Set the scroll area wrapping the Skills page to overflow: hidden so only the inner list scrolls, not the page itself.",
+		"Made [data-ui='skills-library-toolbar'] sticky to the top so it stays visible while the list scrolls.",
+		"Made [data-ui='settings-page-body'] for the skills page a flex column with overflow hidden to constrain children.",
+		"Reworked [data-ui='skill-editor'] to be position: relative (not a fixed grid row track) so its textarea can scroll independently.",
+		"Rendered the skill editor error as an absolutely positioned overlay using --color-danger-soft background."
+	],
+	"files": [
+		"apps/app/src/styles/settings-parts/layout.css",
+		"apps/app/src/styles/settings-parts/skills-library.css",
+		"apps/app/src/styles/settings-parts/skill-editor.css",
+		"apps/app/src/lib/features/settings/SkillEditor.svelte"
+	],
+	"errors": [
+		"An edit to layout.css failed because the oldText didn't match the actual whitespace (single-line multi-selector vs. multi-line), requiring a re-read and re-edit with corrected formatting.",
+		"An edit to skill-editor.css failed with 'Could not find edits[0]' because the oldText for the skill-editor block had stale content; re-reading and retrying with the actual file content succeeded."
+	],
+	"outcome": "explored"
+}

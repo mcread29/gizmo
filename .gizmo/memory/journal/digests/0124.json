@@ -1,0 +1,26 @@
+{
+	"segment": "0124",
+	"at": "2026-09-18T22:39:33.248Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added tests for the agent-server linked extension loader and fixed it to support directory-based Pi extensions (with `index.ts` entry points) alongside legacy flat `.ts` files. Verified end-to-end by restarting the dev server, re-installing extensions via the registry protocol, and confirming project domain detection, web bundle emission, and pi symlink layout.",
+	"decisions": [
+		"Linked Pi extensions can now be either a single `<id>.ts` file or a `<id>/` directory whose `index.ts` is loaded; symbolic links to directories are followed.",
+		"Test fixtures for linked directory extensions place the real source files in a separate temp dir and symlink the directory into the test root, so symlink-resolution paths remain distinct from real ones.",
+		"Each registry Pi extension exports a named `gizmoExtension = { id, name }` descriptor (added to activity and svelte) in addition to its default function, so the loader can pick up the metadata regardless of which entry shape is used.",
+		"`registry-manager` now directory-links the extension into `~/.pi/agent/extensions/<id>` (instead of copying a single `.ts`), and continues to manage the host-only web bundle as part of the same unit.",
+		"`docs/extensions.md` was updated to describe extensions as directory-linked into Pi, with `index.ts` entry points and sibling `<id>.web.js` bundles."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/agent-server/src/extensions/load-extensions.test.ts",
+		"apps/agent-server/src/extensions/load-extensions.ts",
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"C:/Users/mchan/projects/gizmo-registry/extensions/activity/pi-extension.ts",
+		"C:/Users/mchan/projects/gizmo-registry/extensions/svelte/pi-extension.ts",
+		"docs/extensions.md"
+	],
+	"errors": [
+		"First run of the new `loadLinkedExtensionIntegrations` test failed because the symlinked `source.ts` lived inside the same temp root, causing the loader to walk both the symlink and the real file and produce duplicate integration entries; fixed by moving the real source into a separate `sourceRoot` temp dir so only the directory symlink is seen by the loader."
+	],
+	"outcome": "shipped"
+}

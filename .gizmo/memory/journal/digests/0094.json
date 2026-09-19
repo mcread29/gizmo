@@ -1,0 +1,21 @@
+{
+	"segment": "0094",
+	"at": "2026-09-18T22:39:00.608Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed and fixed two regressions in the workspace Configure extension toggles: a full-screen flash caused by the inspector remounting when shared store state changed, and row resizing caused by a conditional negative-margin highlight. The store now leaves projects/activeDomains untouched on toggle, the panel mutates config in place instead of swapping the setup object, and the data-changed highlight uses a constant bleed margin.",
+	"decisions": [
+		"Store's per-workspace extension override handler no longer rewrites `this.projects` or `this.activeDomains`; only the affected workspace's integrations are patched in place, so the inspector's `{#key inspectorKey}` does not remount.",
+		"WorkspaceConfigurePanel merges returned config via `setup.config = config` (in-place mutation on the deep $state) instead of reassigning `setup`, so `$effect` and keyed `{#each}` blocks do not tear down.",
+		"Make the `data-changed` highlight bleed margin constant under `[data-layout='workspace-setup']` so only background/inset change visually; the row geometry stays put.",
+		"Accept that the workspace Overview and inspector reflect the prior session's extension set until a new thread is started or refresh runs (the server resolves effective extensions at session start, so existing threads keep their setup)."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"apps/app/src/styles/settings.css"
+	],
+	"errors": [
+		"First edit attempt against AgentStore.svelte.ts failed with 'Could not find edits[1] ... oldText must match exactly including all whitespace and newlines' because the surrounding context drifted; retried with re-read lines and succeeded."
+	],
+	"outcome": "shipped"
+}

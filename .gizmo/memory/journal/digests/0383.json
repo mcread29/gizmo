@@ -1,0 +1,18 @@
+{
+	"segment": "0383",
+	"at": "2026-09-18T22:43:25.277Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Moved the danger 'Stop response' button out of the composer's right-pinned send cluster to the far left, so the prominent send button always performs the steer action during streaming. Updated the integration test to structurally assert Stop is not inside the send container, then committed two local changes (a prior backfill lazy-import fix and a protocol-v27 commit covering queue recovery, interrupted-turn display, the toolbar move, and file-length extractions).",
+	"decisions": [
+		"The send button in the composer must always be the steer action; the Stop button is relocated to the far left of the toolbar to remove proximity as a hazard, while still appearing during streaming.",
+		"The integration test now asserts structural placement (steerButton inside composer-send, stopButton outside it) instead of merely checking both buttons exist, so future refactors that drift Stop back into the send position fail the suite.",
+		"Protocol bumped to v27 as a hard break: v26 clients cannot reconnect until rebuilt, deliberately to avoid unparseable session.unsent events on stale clients.",
+		"Untracked registry commits in gizmo-skills-registry were intentionally left unpushed."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/ComposerToolbar.svelte",
+		"apps/app/tests/app/conversation.integration.test.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

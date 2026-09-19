@@ -1,0 +1,21 @@
+{
+	"segment": "0093",
+	"at": "2026-09-18T22:38:58.733Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed a full-screen flash on every extension toggle in the Workspace Configure panel, traced it to redundant full store refreshes (refreshProjects ran twice per click, plus a needless detectProject + refreshResources) that churned the shell's projects array. Patched the panel's reapply to only patch setup.config in place, and reworked AgentStore.setProjectGizmoExtension/setProjectPiExtension to apply the server-returned ProjectConfig to just the affected workspace's integrations instead of replacing the whole projects array.",
+	"decisions": [
+		"Store mutators setProjectGizmoExtension and setProjectPiExtension now return ProjectConfig and patch only the affected workspace's integrations/activeDomains in place, instead of triggering a full refreshProjects() that replaces the projects array and re-renders the shell.",
+		"WorkspaceConfigurePanel.reapply no longer calls detectProject/refreshResources/refreshProjects; it only patches setup.config from the returned ProjectConfig so only the toggled row re-renders.",
+		"Committed the fix as bdf103b 'fix: stop the Configure screen flashing on extension toggles' (initially then amended after a prettier --write)."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		".gizmo/profiles.json",
+		".gizmo/config.json"
+	],
+	"errors": [
+		"First edit to WorkspaceConfigurePanel.svelte failed with 'Could not find the exact text' due to whitespace mismatch; retried after re-reading the file with sed and succeeded."
+	],
+	"outcome": "shipped"
+}

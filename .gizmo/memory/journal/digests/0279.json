@@ -1,0 +1,21 @@
+{
+	"segment": "0279",
+	"at": "2026-09-18T22:41:52.986Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "This segment is a design analysis and planning document that audits the current single-owner, Unity-shaped project service architecture and proposes a bounded refactor to an extension-keyed project-service registry with opaque status payloads, a new agent-server-owned project file service (decoupling revertFile), and protocol version bump 25→26. No files were edited.",
+	"decisions": [
+		"Replace CompositeProjectService with an extension-ID-keyed registry: route by exact requested ID with no probe/fallback, reject duplicate IDs, verify workspace enablement server-side, lazily instantiate per connection, isolate disposal failures, and support per-instance stop/discard on watch removal.",
+		"Keep status payloads opaque (`unknown`) instead of typing them as Unity-specific; introduce a per-extension `projectService: true` capability in place of `hasProjectStatus`.",
+		"Status and watch results are batched arrays of `{ extensionId, status }` or `{ extensionId, error }` per service, so one failure does not block other snapshots; `project.status.changed` events include `extensionId`.",
+		"Project-watch coordinator must atomically reconcile the full enabled extension set per session/watch, and re-watching the same path with a new session must update event session attribution rather than reusing the prior callback's sessionId.",
+		"Remove `revertFile` from `ProjectService` (it is a workspace file operation, not editor-runtime); move path containment, file IO, and `revertPatch` into a new agent-server-owned `project-file-service.ts` so Git revert works in non-Unity workspaces.",
+		"`project.open` returns no extension payload and rejects with an owner-generated error message; Unity throws on its own CLI failure before crossing the host boundary.",
+		"Replace singular app state fields (`projectStatus`, `projectOpening`, `projectError`, `statusLoading`) with immutable keyed `projectServices: Record<extensionId, { status?, loading, opening, error? }>` using `$state.raw` and immutable replacement, plus methods `refreshProjectServices`, `refreshProjectService(id)`, `openProjectService(id)`.",
+		"Build on the in-progress `enabledExtensionIds` rename rather than reintroducing `activeDomains`.",
+		"Bump protocol version 25 → 26; keep deprecated Unity parsers/exported types for one release but stop using them in live transport, and do not retain an optional 'if no extension ID, choose the only service' fallback.",
+		"Core/server and the installed Unity registry bundle must be updated together because `packages/unity/src/server/contracts.ts` duplicates the server contract locally and will not be caught by workspace type-checking alone."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

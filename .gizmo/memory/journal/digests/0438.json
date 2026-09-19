@@ -1,0 +1,14 @@
+{
+	"segment": "0438",
+	"at": "2026-09-18T22:44:17.428Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added a regression test for round-tripping a near-limit display spec with a full-length input response, then ran the full validation pipeline (prettier write+check, protocol vitest with 24 tests passing, type checks for protocol and agent-server) to verify the display implementation.",
+	"decisions": [
+		"Round-trip test for a near-limit spec with a full-length input response was added before the existing 'returns a detached validated spec' test, to guard against large-envelope regressions."
+	],
+	"files": [
+		"packages/protocol/tests/display.test.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

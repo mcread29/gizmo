@@ -1,0 +1,34 @@
+{
+	"segment": "0085",
+	"at": "2026-09-18T22:38:52.456Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Initial exploration for a refactor that replaces the workspace 'profiles' system with per-project enable/disable overrides for Gizmo and Pi extensions, skills, and tools. The user confirmed the direction, and the assistant gathered context across protocol types, server (ProjectCatalog, resources, pi-agent-service), the Configure panel UI, and global settings before settling on storing all project overrides in a new workspace `.gizmo/config.json`.",
+	"decisions": [
+		"Replace the profiles system entirely: each workspace gets a flat ProjectConfig of overrides only (Gizmo extension on/off, Pi extension on/off, skill overrides); defaults match global settings.",
+		"Global Gizmo extension enablement will live in Settings → Agent alongside skills (mirroring how skills already have a global on/off list).",
+		"Tool overrides remain in the workspace's existing `.pi/settings.json` and are out of scope for the new config file.",
+		"Storage location for project overrides: workspace-owned `.gizmo/config.json`, replacing `.gizmo/profiles.json` (with migration that derives overrides from the old profile and ignores/removes the old file).",
+		"Extension-contributed canonical profiles are dropped; an enabled extension always contributes its tools and guidance without needing a profile.",
+		"Per-project Pi extension enablement cannot reuse the global folder-move mechanism (`extensions/` ↔ `extensions-disabled/`); it must be enforced via Gizmo-side project state consumed at session creation."
+	],
+	"files": [
+		".gizmo/profiles.json",
+		"docs/workspace-profiles.md",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/src/config/pi-runtime-config.ts",
+		"apps/agent-server/src/resources/global-resource-settings.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/extensions/registry.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/src/settings/tool-policy.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [
+		"Initial `cat package.json | head -50; ls src` command exited with code 2 (ls of nonexistent `src/` in repo root failed); the assistant continued with subsequent exploration commands without diagnosing it.",
+		"`grep -rn \"extensionTools\\|extensionPrompt\" packages --include=\"*.ts\" -l` returned no output, indicating those identifiers do not exist in the `packages/*` source — the resolution path for contributed extension tools/prompts had to be traced through `apps/agent-server` instead."
+	],
+	"outcome": "explored"
+}

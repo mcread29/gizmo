@@ -1,0 +1,30 @@
+{
+	"segment": "0062",
+	"at": "2026-09-18T22:38:25.758Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Promoted the skills editor from a modal opened from Settings → Agent into its own full settings page (#settings/skills) with a split workbench: a searchable skill library on the left and the selected skill's Markdown editor on the right. Added a 'skills' entry to settingsPages/router, updated AgentSettings/SettingsScreen/SkillList/SkillEditor and related CSS, refined styling (softened accent border, switched to design-system success color), fixed mobile layout wrap and surfaced resource errors on the Agent page, then ran svelte-check, vitest, and headless screenshots for review.",
+	"decisions": [
+		"Skills editor is a standalone settings page at hash #settings/skills, not a modal; 'skills' was added to settingsPages and router types/tests.",
+		"Skills page uses a split workbench layout: SkillList on the left, SkillEditor (inline, non-dialog) on the right, chosen over a list-only or fullscreen-editor alternative.",
+		"SettingsScreen now also passes the `layout` prop through to AgentSettings so resource errors and other store-backed UI can be surfaced there.",
+		"Reduced the changed-state accent border from 3px to 1px and replaced the literal #4ade80 with the design-system --color-success token to avoid slop/anti-pattern findings from the impeccable detector.",
+		"On the Skills page, the settings header and action rows are allowed to wrap so mobile widths don't overflow."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/SkillEditor.svelte",
+		"apps/app/src/lib/features/settings/SkillList.svelte",
+		"apps/app/src/lib/features/settings/SkillsSettings.svelte",
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/app/src/lib/features/settings/SettingsScreen.svelte",
+		"apps/app/src/lib/router.svelte.ts",
+		"apps/app/src/lib/router.test.ts",
+		"apps/app/src/styles/settings.css",
+		"docs/resources.md",
+		".impeccable/review/desktop.png",
+		".impeccable/review/mobile.png"
+	],
+	"errors": [
+		"Impeccable detect flagged a 'side-tab accent border' (3px inset stripe) on the changed-state rows in settings.css and a literal #4ade80 color outside DESIGN.md; both were resolved by softening the stripe to 1px and switching to var(--color-success)."
+	],
+	"outcome": "shipped"
+}

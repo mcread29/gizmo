@@ -1,0 +1,17 @@
+{
+	"segment": "0449",
+	"at": "2026-09-18T22:44:30.217Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Surveyed journal files across gizmo, ncp, and cronkis projects (file counts/sizes/recency) and attempted to apply the TypeSafe AI \"Jev\" evaluation skill to score transcripts on specificity, context completeness, model-tier fit, missed skills, gap type, verification discipline, and iteration quality. Designed 7 parallel Q1–Q7 judgment shapes, then attempted a live `POST /v1/systemone` call which returned `authentication_error` (no `TYPESAFE_API_KEY`), so shippable results are local fallback judgments rather than calibrated live scores.",
+	"decisions": [
+		"Use TypeSafe/Jev as the eval framework with 7 parallel questions over the same state (Q1 specificity L1→L4, Q2 context completeness L1→L4, Q3 model-tier fit Choice, Q4 missed-skill Noul, Q5 gap-type Choice, Q6 verification Noul, Q7 iteration quality L1→L4).",
+		"Treat live `docs.typesafe.ai` (llms.txt, sdk/javascript.md, api.md) as source of truth per the skill's SKILL.md rather than cached knowledge.",
+		"Without `TYPESAFE_API_KEY` and `@typesafe-ai/sdk` installed, fall back to local judgments in the exact Jev shapes; flag them as non-calibrated and offer to re-run live once key is provided.",
+		"Proposed follow-ups (not executed): (1) install typesafe-ai globally + JS SDK, (2) re-run Q1–Q7 live on `0128`, `0131`, ncp `0115`, cronkis `0080` once key is available, (3) draft gizmo vs Unity prompt templates."
+	],
+	"files": [],
+	"errors": [
+		"Live TypeSafe API call to `POST https://api.typesafe.ai/v1/systemone` returned `{\"error_type\":\"authentication_error\",\"message\":\"Must supply an API key!\"}` — no `TYPESAFE_API_KEY` in environment and `@typesafe-ai/sdk` not installed, so Q1–Q7 could not be run as live calibrated Jev judgments and only local fallback scoring was produced."
+	],
+	"outcome": "explored"
+}

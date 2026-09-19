@@ -1,0 +1,21 @@
+{
+	"segment": "0298",
+	"at": "2026-09-18T22:42:11.536Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Modified the dev server runner in scripts/dev-server.ts to spawn the agent as a `tsx watch` child instead of importing it in-process, enabling automatic restarts on agent-server source edits. The runner still waits for the agent's WebSocket port to accept connections before starting Vite, and stops both processes if either dies. Verified by editing apps/agent-server/src/server.ts multiple times and observing restarts plus automatic browser reconnection.",
+	"decisions": [
+		"Run the agent as a `tsx watch` child process rather than importing it in-process, so edits under apps/agent-server restart the agent without a manual restart command.",
+		"Set the agent child's stdin to 'ignore' because `tsx watch` silently fails to boot when its stdin is a piped stream that nothing writes to (discovered by isolating the failure with manual spawn tests).",
+		"Keep Vite waiting on the agent's WebSocket port before starting, preserving the 'connect after agent is ready' startup ordering.",
+		"If either the agent or Vite process exits, stop the other as well (linked lifecycle in the runner)."
+	],
+	"files": [
+		"scripts/dev-server.ts",
+		"README.md"
+	],
+	"errors": [
+		"Initial `tsx watch` startup timed out and the agent never reported 'server listening' when spawned from the runner; root cause turned out to be a piped stdin causing `tsx watch` to never execute the program, fixed by setting stdio to ['ignore', logDescriptor, logDescriptor].",
+		"An ad-hoc `tsc --noEmit` invocation produced false-positive errors about 'node:net' not being typed because @types/node wasn't picked up; treated as noise rather than a real issue."
+	],
+	"outcome": "shipped"
+}

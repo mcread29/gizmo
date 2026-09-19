@@ -1,0 +1,17 @@
+{
+	"segment": "0143",
+	"at": "2026-09-18T22:39:52.565Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read-only inventory of current Gizmo extensions (Unity, Git, Svelte, Activity, Ask User) to assess migration to a separate gizmo-registry project. Examined package paths, server/web entry points, the GizmoServerExtension contract, gizmo.extensions.json registration, workspace dependencies, and Pi extension locations under ~/.pi/agent/extensions. Did not modify any files.",
+	"decisions": [
+		"The 'Ask User' extension is not part of the Gizmo workspace; it lives externally at ~/.pi/agent/extensions/ask-user.ts and is therefore outside the gizmo-registry migration scope.",
+		"Activity is a web-only extension exposed via a stub GizmoServerExtension purely so it can be listed in gizmo.extensions.json alongside first-party packages.",
+		"Unity, Git, Svelte, and Activity all conform to the same GizmoServerExtension contract from @gizmo/extensions (id/name/systemPrompt/createTools/list/invoke/createProjectService), but Unity uses a separate UnityExtensionProvider adapting Unity Pipeline commands to that contract.",
+		"Extensions are registered workspace-wide via the root gizmo.extensions.json listing @gizmo/unity, @gizmo/svelte, @gizmo/git, @gizmo/activity, and @gizmo/skill-authoring; the app and agent-server import their @gizmo/* workspace packages directly rather than reading that registry at runtime."
+	],
+	"files": [],
+	"errors": [
+		"fd search for '.pi' directory failed because the search path is not a directory in this workspace."
+	],
+	"outcome": "explored"
+}

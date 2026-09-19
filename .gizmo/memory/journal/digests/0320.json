@@ -1,0 +1,21 @@
+{
+	"segment": "0320",
+	"at": "2026-09-18T22:42:32.674Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added test coverage for the memory journal subsystem: new test files for chunking, search/tokenize, multi-chunk store, and extension tool/prompt exposure. Fixed an unterminated-string SyntaxError in tests/pi-extensions/memory-journal.test.ts caused by bash quoting eating a newline escape; all 59 tests then passed under tsc + vitest.",
+	"decisions": [
+		"Used the Edit tool (not Bash node-patch) for the final newline-escape fix in memory-journal.test.ts because bash quoting kept unescaping `\\n`",
+		"Wiped .gizmo/memory/journal and re-ran `pnpm --filter @gizmo/agent-server backfill` to verify idempotence and file size distribution"
+	],
+	"files": [
+		"apps/agent-server/tests/memory/journal-chunk.test.ts",
+		"apps/agent-server/tests/memory/journal-search.test.ts",
+		"apps/agent-server/tests/memory/journal-store.test.ts",
+		"apps/agent-server/tests/pi-extensions/memory-journal-exposure.test.ts",
+		"apps/agent-server/tests/pi-extensions/memory-journal.test.ts"
+	],
+	"errors": [
+		"SyntaxError: Unterminated string literal at tests/pi-extensions/memory-journal.test.ts:147 — a Bash node-patch and a second Bash attempt both lost the `\\n` escape, leaving a real newline inside a single-quoted systemPrompt literal; resolved by editing the file directly to use `\\n`"
+	],
+	"outcome": "shipped"
+}

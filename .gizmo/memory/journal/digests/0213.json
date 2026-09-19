@@ -1,0 +1,30 @@
+{
+	"segment": "0213",
+	"at": "2026-09-18T22:40:52.195Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Wired instruction-file support through the agent session factory and client stack. Added `userSystemPrompt` to the server's pi session bootstrap (with active extension prompt taking precedence), updated the agent-client protocol/parsers/transport/fake/store layers with `readInstructions`/`writeInstructions` against an `InstructionTarget` enum, and dispatched the new `resources.instructions.read`/`write` cases in the server request router.",
+	"decisions": [
+		"User system prompt is now resolved during pi session creation via `userSystemPrompt()` and merged with the active extension prompt: extension's system prompt wins when present, otherwise the user's saved override is used.",
+		"Instruction file transport uses three targets (`system-prompt`, `global-agents`, `project-agents`) with optional `workspacePath`, parsed through a new `parseInstructionFile` that validates `exists` is a boolean and validates the `target` against the enum.",
+		"Fake client maps the three targets to deterministic filesystem paths (`~/.gizmo/system-prompt.md`, `~/.pi/agent/AGENTS.md`, `<workspace>/AGENTS.md`).",
+		"`resources.instructions.read` and `resources.instructions.write` are routed through the dedicated resource request handler (using `handleInstructionsRead`/`handleInstructionsWrite`), not the generic project request handler."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/transport/request-router.ts",
+		"apps/agent-server/src/transport/resource-request-handler.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/websocket/response-parsers.ts",
+		"apps/app/src/lib/agent-client/websocket/resource-requests.ts",
+		"apps/app/src/lib/agent-client/fake-client/resources.ts",
+		"apps/app/src/lib/agent-client/agent-store/ResourceCapability.ts",
+		"apps/app/tests/lib/agent-client/agent-store-invalid-client.ts"
+	],
+	"errors": [
+		"`pnpm check` first failed at `apps/agent-server/src/transport/request-router.ts` because the new `resources.instructions.read`/`write` cases weren't in the switch, causing the `request satisfies never` exhaustiveness check to fail. Fixed by adding both cases to the switch alongside `resources.skill.write`.",
+		"Subsequent `pnpm check` run surfaced 4 svelte-check errors in test fakes (`InvalidEventClient`, `GatedResumeClient` via inheritance) that were missing the new `readInstructions`/`writeInstructions` methods. Implemented them on `InvalidEventClient` so the extending test client resolves as well."
+	],
+	"outcome": "shipped"
+}

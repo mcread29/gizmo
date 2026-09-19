@@ -1,0 +1,20 @@
+{
+	"segment": "0148",
+	"at": "2026-09-18T22:39:54.413Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed a race condition in AgentStore where switching threads during streaming could let stale resumeSession responses or event streams overwrite the newly selected thread. Introduced a private #selectionVersion counter incremented on switchSession, and gated sessionId mismatches/version checks in resumeSession and message-loading cleanup so older requests are ignored.",
+	"decisions": [
+		"Added #selectionVersion counter on AgentStore incremented in switchSession to detect stale async responses.",
+		"resumeSession rejects its result when sessionId or selectionVersion no longer matches the captured values, preventing stale thread loads from overwriting the active thread.",
+		"messagesLoading cleanup is only cleared when both sessionId and selectionVersion still match, so stale requests can't flip loading state on the current thread.",
+		"Existing event filter `if (this.sessionId && event.sessionId !== this.sessionId) return;` already guards stream events against cross-session application."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts"
+	],
+	"errors": [
+		"Initial grep with path `C:\\Users\\mchan\\projects\\gizmo\\src` failed with Path not found; re-run with `apps/app/src` succeeded.",
+		"First vitest run with `pnpm --filter app test -- --run ...` timed out after 120s; re-running as `pnpm --filter @gizmo/app test src/lib/agent-client/AgentStore.test.ts` passed 16/16 in 4.18s."
+	],
+	"outcome": "shipped"
+}

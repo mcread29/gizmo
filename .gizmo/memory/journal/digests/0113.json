@@ -1,0 +1,32 @@
+{
+	"segment": "0113",
+	"at": "2026-09-18T22:39:25.604Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented a registry-based extension system: bumped protocol to v25 with new registry messages and schemas, built server-side registry-manager handling clone/build/sync/manifest operations, added client/AgentStore methods and FakeAgentClient stubs, created an ExtensionsSettings UI page, and removed the old seeding/generator pipeline. All checks (svelte-check) and tests (62 passed) succeeded but the app svelte-check reported 4 errors that need follow-up.",
+	"decisions": [
+		"Registry layout: a registry repo contains extensions/<name>/ with pi-extension.ts and optional src/web/index.ts, plus an optional gizmo.registry.json manifest declaring build commands.",
+		"Protocol bumped to version 25 to accommodate registry.* messages.",
+		"Installed extensions are tracked in a manifest (gizmo.registry.json) inside the clone home with each record storing name, url, commit, installedAt, and the list of synced extensions (entry + optional web path), making registryStatus a pure read.",
+		"Pre-sync ask-user extension pair lives in the user's agent dir (not seeded by the build), available immediately at startup.",
+		"Old seeding code (seed.ts, ask-user-source/web-source, generate-pi-extension-source script, related wiring) was removed in favor of the registry flow.",
+		"Settings navigation gains an 'Extensions' page using a Puzzle icon, listing installed registry extensions with install/update/remove actions."
+	],
+	"files": [
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"apps/agent-server/package.json",
+		"package.json",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/router.svelte.ts",
+		"apps/app/src/lib/features/settings/SettingsScreen.svelte",
+		"apps/app/src/lib/features/settings/ExtensionsSettings.svelte"
+	],
+	"errors": [
+		"registry-manager.ts initially had a type mismatch where registryStatus returned InstalledRecord[] but RegistryStatus expected RegistryExtensionStatus[] with nested extensions arrays; fixed by storing extensions in the manifest at sync time.",
+		"readRegistryManifest was accidentally omitted from the rewrite causing TS2304 'Cannot find name' errors; re-added the helper.",
+		"An early Python edit on AgentStore.svelte.ts failed because the anchor comment ('Per-workspace extension overrides') didn't match due to whitespace; reran with corrected anchor and the refreshRegistry/registryInstall/registryUpdate methods landed.",
+		"svelte-check ended with 'svelte-check found 4 errors and 0 warnings in 2 files' in apps/app — remaining errors were not enumerated in the transcript and remain unresolved at the end of this segment."
+	],
+	"outcome": "explored"
+}

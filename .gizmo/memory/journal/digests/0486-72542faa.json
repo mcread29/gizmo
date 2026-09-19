@@ -1,0 +1,33 @@
+{
+	"segment": "0486-72542faa",
+	"at": "2026-09-18T22:45:13.204Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Surveyed C:/Users/mchan/UnityProjects/ for agent transcripts/journals across ncp and its siblings, collecting file counts and sizes for .agent-journal, .gizmo/memory/journal, .pi, .claude, Claude outputs, and AGENTS.md locations. Sampled ~7 recent non-empty transcripts from ncp and cronkis gizmo journals plus an older ncp agent-journal entry, analyzing prompting quality, model mentions, skill usage, and recurring failures, and condensed the ncp AGENTS.md conventions.",
+	"decisions": [
+		"Sample set limited to 7 files: ncp gizmo 0109–0115 (current session 01a0b007), cronkis gizmo 0080, and ncp agent-journal 0027 — chosen to span active Unity session, cross-project comparison, and an older prompt-quality baseline.",
+		"Characterized ncp recent prompting as strong (terse directives, specific Unity MCP commands like `unity command build --dry_run`, `editor_status`, `get_console_logs`, `list_build_profiles`) and cronkis sample as weak (\"commit everything now\"), per sampled content.",
+		"Reported that .pi/skills/unity-docs and writing-for-agents exist on disk but are not referenced in sampled tool calls; work uses raw bash/powershell/write/edit plus `unity command *`.",
+		"Reported that sampled transcripts show almost no in-transcript model discussion (grep of all ncp gizmo journals: `codex`×8, `gpt-5`×2; no opus/sonnet/gemini hits), so sessions are tool-execution logs rather than model comparisons.",
+		"Categorized recurring ncp gizmo failures as: (1) Unity headless build blocked by modal confirm dialog, (2) shader-variant explosion / CPU meltdown with non-Unity culprits (CymaticsHub, MsMpEng, syncthing), (3) hallucinated tools `unity_wait_for_compile`, `unity_test` recovered via `editor_status`/`run_tests`, (4) `git status --cached` invalid flag and `git_status maxBuffer exceeded` on large repos, (5) missing `Builds/Demo/` and `run_tests --filter` invalid arg."
+	],
+	"files": [
+		"C:/Users/mchan/UnityProjects/ncp/AGENTS.md",
+		"C:/Users/mchan/UnityProjects/ncp/CLAUDE.md",
+		"C:/Users/mchan/UnityProjects/ncp/Claude outputs/issue-92984-comment.md",
+		"C:/Users/mchan/UnityProjects/ncp/.gizmo/memory/journal/0109-01a0b007-46cc-7bd7-aead-e90de89c90df.md",
+		"C:/Users/mchan/UnityProjects/ncp/.gizmo/memory/journal/0110-01a0b007-46cc-7bd7-aead-e90de89c90df.md",
+		"C:/Users/mchan/UnityProjects/ncp/.gizmo/memory/journal/0111-01a0b007-46cc-7bd7-aead-e90de89c90df.md",
+		"C:/Users/mchan/UnityProjects/ncp/.gizmo/memory/journal/0112-01a0b007-46cc-7bd7-aead-e90de89c90df.md",
+		"C:/Users/mchan/UnityProjects/ncp/.gizmo/memory/journal/0113-01a0b007-46cc-7bd7-aead-e90de89c90df.md",
+		"C:/Users/mchan/UnityProjects/ncp/.gizmo/memory/journal/0114-01a0b007-46cc-7bd7-aead-e90de89c90df.md",
+		"C:/Users/mchan/UnityProjects/ncp/.gizmo/memory/journal/0115-01a0b007-46cc-7bd7-aead-e90de89c90df.md",
+		"C:/Users/mchan/UnityProjects/ncp/.agent-journal/0027",
+		"C:/Users/mchan/UnityProjects/cronkis/.gizmo/memory/journal/0080-01a0acc9-f567-7ea0-af91-0778517690f2.md"
+	],
+	"errors": [
+		"`ls` failures for missing ncp subpaths: .agent, output, outputs (none exist on disk).",
+		"`ls Builds`, `ls -d build* Build*` in ncp returned 'No such file or directory' — no build output directory exists.",
+		"Transcript-recorded tool failures (per sampled content): `unity_wait_for_compile` and `unity_test` returned 'not found'; `git status --cached` rejected as invalid flag; `git_status maxBuffer exceeded` on large untracked-asset repos; `run_tests --filter` rejected as 'Invalid arg'."
+	],
+	"outcome": "explored"
+}

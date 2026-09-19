@@ -1,0 +1,17 @@
+{
+	"segment": "0409",
+	"at": "2026-09-18T22:43:44.259Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Verified that unlinking and relinking the Codex extension from the in-app registry updates the Slog UI live without restarting the agent server. Across a clean unlink/relink cycle on the Slapdash workspace with the agent-server PID unchanged, the Codex status-bar item and inspector tab disappeared on unlink and returned on relink.",
+	"decisions": [
+		"A successful registry action now calls `reloadExtensions` on the client; a failure there is logged and does not mask the action's own result (covered by tests both ways).",
+		"ESM cache decision: `registryUpdate` stays stale until server restart. Busting only the entry would run new code against cached dependencies, so the limitation is commented at the call site.",
+		"The once-per-boot project service registry limitation is commented in `server.ts`.",
+		"Reconnect must call the same rebind step a thread switch uses after its snapshot arrives, otherwise a reconnect to a new server process never re-arms the project watch, model catalog, or commands."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/agent-store/SessionCapability.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

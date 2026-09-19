@@ -1,0 +1,29 @@
+{
+	"segment": "0075",
+	"at": "2026-09-18T22:38:42.337Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Replaced remaining `unity-agent` identifiers across the codebase: renamed localStorage keys (with legacy fallback reads), attachment manifest tags (with legacy tag parsing), Tauri crate name and binary, app identifier, and removed `UNITY_AGENT_HOST/PORT/ORIGINS` env fallbacks plus a stale README claim about `UNITY_AGENT_DATA_DIR`. Updated related test strings.",
+	"decisions": [
+		"Renamed attachment manifest tags to `<gizmo-attachments>` but kept `<unity-agent-attachments>` parsable via a legacy span matcher so historical stored content still reads correctly.",
+		"Removed `UNITY_AGENT_HOST`, `UNITY_AGENT_PORT`, and `UNITY_AGENT_ORIGINS` env-var fallbacks rather than preserving them — these were half-dead (e.g. README claimed `UNITY_AGENT_DATA_DIR` support that didn't exist in code), so dropping them aligns documentation with behavior.",
+		"Removed the README sentence claiming `UNITY_AGENT_DATA_DIR` was still supported, since no such fallback existed in `defaultDataDir`.",
+		"For `apps/app/src-tauri`, renamed the Rust crate from `unity-agent` to `gizmo` and updated the Tauri identifier to `dev.genge.gizmo` (note: this changes the built binary name and app-data directory, so user data will not auto-migrate).",
+		"For localStorage keys (`app-settings`, drafts, pinned-directories), used a new `gizmo.*.v1` key with a one-time legacy `unity-agent.*.v1` read on load, rather than silent rename."
+	],
+	"files": [
+		"apps/agent-server/src/attachments/attachment-message.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/src/server-config.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service.test.ts",
+		"apps/agent-server/tests/sessions/session-repository.test.ts",
+		"apps/agent-server/tests/transport/websocket-server.test.ts",
+		"apps/app/src/lib/app-settings.ts",
+		"apps/app/src/lib/app-settings.test.ts",
+		"apps/app/src/lib/features/conversation/drafts.svelte.ts",
+		"apps/app/src/lib/features/sessions/pinned-directories.svelte.ts",
+		"apps/app/src/App.test.ts",
+		"README.md"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

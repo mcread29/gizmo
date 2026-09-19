@@ -1,0 +1,25 @@
+{
+	"segment": "0371",
+	"at": "2026-09-18T22:43:15.297Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Finalized web-extension build integration with shared json-render dependencies: added and pinned @json-render/core, @json-render/svelte to 0.20.0 and zod to 4.4.3, made the web-extension builder proxy the host's shared default export (falling back to `host.default ?? host`), documented usage and custom-registry build requirements in docs/extensions.md, and verified 213 app tests, svelte-check, production build, and prettier all pass.",
+	"decisions": [
+		"Pin @json-render/core and @json-render/svelte to version 0.20.0 and zod to 4.4.3 as explicit dependencies so the web-extension builder can reuse the host's copies instead of bundling its own.",
+		"Web-extension build emits an entry whose default export is `host.default ?? host`, ensuring it re-exports whatever the actual package module exports when Node-loadable.",
+		"Reinstall with `--frozen-lockfile --config.optimistic-repeat-install=false` was used to keep dependencies at their original pinned versions rather than letting pnpm upgrade them to `latest`.",
+		"Repository-wide `pnpm check` is deliberately not fixed in this segment; the three dead data-ui CSS hooks in shell-parts/resize-and-navigation.css are noted as pre-existing and unrelated."
+	],
+	"files": [
+		"apps/app/package.json",
+		"apps/app/scripts/build-web-extension.ts",
+		"apps/app/scripts/json-render-exports.ts",
+		"apps/app/src/lib/extensions/runtime/host-modules.ts",
+		"apps/app/tests/scripts/build-web-extension.test.ts",
+		"docs/extensions.md",
+		"pnpm-lock.yaml"
+	],
+	"errors": [
+		"Repository-wide `pnpm check` failed with exit code 1 because three data-ui hooks (`window-control`, `window-controls`, and one other) are styled in apps/app/src/styles/shell-parts/resize-and-navigation.css but have no markup use; treated as unrelated to this change."
+	],
+	"outcome": "shipped"
+}

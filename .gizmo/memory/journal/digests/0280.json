@@ -1,0 +1,12 @@
+{
+	"segment": "0280",
+	"at": "2026-09-18T22:41:53.396Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Inspected the codebase to analyze moving Unity-specific `compilePlayModePolicy` and Unity/Git/Activity-specific core CSS out of the app into installed extension bundles at `C:/Users/mchan/.gizmo/registries/gizmo-registry`. Examined the generic settings contract, persistence, app CSS selectors, and registry extension CSS imports without making any edits, in order to recommend bounded changes and tests while preserving settings migration.",
+	"decisions": [
+		"Investigation only — no edits made; recommendation phase pending."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

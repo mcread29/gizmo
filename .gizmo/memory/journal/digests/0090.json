@@ -1,0 +1,29 @@
+{
+	"segment": "0090",
+	"at": "2026-09-18T22:39:02.525Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed a regression in ResourceCatalogService where #register returned stale settings, then rewrote two test files (pi-agent-service, App) to match new extension/skill override behavior and renamed/rewrote the workspace-profiles doc to project-configuration.md, updating README and docs/extensions.md and docs/resources.md references.",
+	"decisions": [
+		"Reverted #register in apps/agent-server/src/resources/resource-catalog.ts to return the updated settings object (with installedSkills) rather than the pre-write settings, so list() sees the newly registered skill as installed.",
+		"Renamed docs/workspace-profiles.md to docs/project-configuration.md and rewrote its contents to describe global settings plus per-workspace overrides under .gizmo/config.json instead of per-workspace profiles.",
+		"Updated README.md, docs/extensions.md, and docs/resources.md to remove workspace-profile language and reference the new project-configuration model."
+	],
+	"files": [
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/tests/extensions/registry.test.ts",
+		"apps/agent-server/tests/resources/resource-catalog.test.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service.test.ts",
+		"apps/app/src/App.test.ts",
+		"docs/project-configuration.md",
+		"docs/workspace-profiles.md",
+		"README.md",
+		"docs/extensions.md",
+		"docs/resources.md"
+	],
+	"errors": [
+		"resource-catalog test 'installs discovered skills globally but leaves them disabled' failed because #register returned the pre-write settings object; fixed by returning the updated object.",
+		"Python script to rewrite pi-agent-service.test.ts threw 'substring not found' due to incorrect indentation in the search string; rerun with correct tabs succeeded.",
+		"App test 'overrides a Gizmo extension for the workspace and reverts it' failed because querySelector('button') inside the row selected the Switch.Root (a <button>) instead of the 'Use global' button; fixed by using getByRole('button', { name: 'Use global' })."
+	],
+	"outcome": "shipped"
+}

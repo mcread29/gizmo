@@ -1,0 +1,10 @@
+{
+	"segment": "0251",
+	"at": "2026-09-18T22:41:26.635Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The user reported not seeing newly linked extensions in the Gizmo UI. Investigation traced the web extension loading path (agent-server `extensions.web` request → `installWebExtensions` in `ConnectionCapability.connect()`), verified via a direct WebSocket probe that the running dev server is serving all three new bundles (activity, ask-user, git, search-and-scrape, subagents, svelte, unity, workflows) with no diagnostics, and concluded the server side is fine — the user just needs to refresh the browser page (or restart the Tauri desktop app if it's pointing at its own server). Followed up on why the search extension isn't visible: it deliberately contributes no inspector tab/status bar item — it only renames tools, trims parameters, and renders native cards for search/scrape results, so it only manifests when the agent calls those tools.",
+	"decisions": [],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

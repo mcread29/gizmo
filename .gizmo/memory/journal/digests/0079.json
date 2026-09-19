@@ -1,0 +1,28 @@
+{
+	"segment": "0079",
+	"at": "2026-09-18T22:38:46.328Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Wired a generic `parseToolPolicy` into the protocol package, added an agent-server `settings/tool-policy.ts` module with `readToolPolicy`/`writeGlobalToolPolicy`/`writeProjectToolPolicy` (including a fix to keep the project override delete path in one function), and exposed three new methods on `PiAgentService` (`getToolPolicy`/`setGlobalToolPolicy`/`setProjectToolPolicy`) backed by new WebSocket request cases. Updated `AgentClient`, `WebSocketAgentClient`, `FakeAgentClient`, and the `InvalidEventClient` in `AgentStore.test.ts` to implement the new methods, and added a 11-test suite for the server module.",
+	"decisions": [
+		"Responses stay generic (`response.success` + `result: Type.Optional(Type.Unknown())`); per-type client-side parsers handle validation, so only `parseToolPolicy` was added next to `parseResourceCatalog`.",
+		"`writeProjectToolPolicy` clears the override in a single pass (read → delete key → rm file if empty / write back the rest) instead of issuing a fire-and-forget `rm` from inside `updateSettings`, avoiding a non-awaited promise and a race with rename.",
+		"The `tools:` allowlist in `PiAgentService`'s normal branch is removed in favor of the new effective tool policy; the now-unused `piExtensionToolNames` is dropped.",
+		"`normalizeTools` silently filters unknown names from the policy (documented as forgiving for UI-sourced sets) rather than throwing in the service setter.",
+		"Tool-policy types and `parseToolPolicy` are imported into the app client and FakeAgentClient; seeded tool policy defaults are exported and reused by the test fake."
+	],
+	"files": [
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/settings/tool-policy.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/agent-server/tests/settings/tool-policy.test.ts"
+	],
+	"errors": [
+		"Initial `writeProjectToolPolicy` clear path called `rm` fire-and-forget inside `updateSettings`; refactored into a single read/update flow so the file removal is awaited and stays in one function."
+	],
+	"outcome": "shipped"
+}

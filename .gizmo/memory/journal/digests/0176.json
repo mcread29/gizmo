@@ -1,0 +1,22 @@
+{
+	"segment": "0176",
+	"at": "2026-09-18T22:40:15.828Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Summarized Pi SDK changes between 0.84.2 and 0.84.4, then upgraded the @earendil-works/pi-coding-agent dependency from 0.84.2 to 0.84.4 in apps/agent-server and packages/extensions, rebased the custom fullTurnBoundaries compaction patch onto 0.84.4, deleted the obsolete 0.84.2 patch, and verified the upgrade with pnpm install, format:check, check, test (64 files / 308 tests passing), and build.",
+	"decisions": [
+		"Upgrade @earendil-works/pi-coding-agent from 0.84.2 to 0.84.4 rather than skipping to a later version, to capture PowerShell tool, compaction, session-integrity, and Windows fixes discussed in the changelog review.",
+		"Rebase the existing pnpm patch (adding fullTurnBoundaries and custom compaction budgeting) onto the 0.84.4 dist files instead of dropping it, preserving Gizmo's compaction behavior.",
+		"Delete patches/@earendil-works__pi-coding-agent@0.84.2.patch since pnpm-workspace.yaml no longer references 0.84.2.",
+		"Treat GoogleThinkingLevel → GoogleApiThinkingLevel as a non-issue after grepping the codebase (no matches) and proceed with the upgrade."
+	],
+	"files": [
+		"apps/agent-server/package.json",
+		"packages/extensions/package.json",
+		"pnpm-lock.yaml",
+		"pnpm-workspace.yaml",
+		"patches/@earendil-works__pi-coding-agent@0.84.2.patch",
+		"patches/@earendil-works__pi-coding-agent@0.84.4.patch"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

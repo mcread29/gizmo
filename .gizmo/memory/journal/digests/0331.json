@@ -1,0 +1,16 @@
+{
+	"segment": "0331",
+	"at": "2026-09-18T22:42:42.910Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why deleting a thread doesn't journal its tail: traced the UI delete path (right-click and menu both go through shared SessionActions), then traced the server flow through session-operations.ts → session-runtime-pool.ts #evict → session.dispose(). Confirmed that the pool stores raw AgentSession objects (from pi-session-factory's createAgentSessionFromServices), not AgentSessionRuntime, so AgentSession.dispose() is called — which only disconnects listeners and never emits session_shutdown. The session_shutdown event is only emitted by AgentSessionRuntime.dispose() (reason 'quit') or teardownCurrent, so the journal extension's session_shutdown handler never fires on delete, idle eviction, or server shutdown, leaving the un-compacted tail unwritten. Examined eviction call sites and journal-store resume semantics in preparation for a fix.",
+	"decisions": [
+		"Identified root cause: AgentSession.dispose() does NOT emit session_shutdown; only AgentSessionRuntime.dispose() does. Gizmo's pool calls the former, so the journal tail is lost on every eviction path (delete, idle sweep, server dispose).",
+		"Identified the cleanest fix location: emit session_shutdown via session.extensionRunner inside session-runtime-pool.ts #evict before dispose, with reason 'quit' (closest match; reasons allowed are 'quit' | 'reload' | 'new' | 'resume' | 'fork'). This covers all three eviction paths uniformly.",
+		"Noted that making #evict async ripples to callers: pool.remove() is sync but deleteSession awaits it; #evictIdle runs from setInterval (can void); service.dispose() is sync (can void). Websocket server already wraps shutdown in an async shutdown().",
+		"Confirmed delete is fully shared across surfaces (AppContextMenu.svelte onDeleteThread → sessions.beginDelete → SessionActions → ThreadDialogs confirm → store.deleteSession), so fixing the server-side eviction fixes all UI entry points.",
+		"Considered but rejected the alternative of fixing only the delete path: idle eviction and server shutdown have the same journal-tail loss, and fixing in #evict keeps behavior consistent across all three paths."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

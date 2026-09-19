@@ -1,0 +1,23 @@
+{
+	"segment": "0026",
+	"at": "2026-09-18T22:38:14.560Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Adds domain-aware guards so that AgentStore skips Git and project status refreshes when the corresponding extension is not active for the current workspace. The behavior change surfaced in the 'switches the whole shell to a workspace' App test, which was updated to expect the loading indicator to be absent when the workspace has no Git domain.",
+	"decisions": [
+		"refreshGitStatus clears gitStatus and skips the request when 'git' is not in activeDomains",
+		"refreshProjectStatus clears projectStatus and skips the request when no active domain exposes hasProjectStatus",
+		"Test 'switches the whole shell to a workspace before its data lands' now asserts the 'Loading source control' element is null instead of present, matching the new behavior for non-Git workspaces",
+		"WorkspaceConfigurePanel empty state copy changed to 'No Gizmo extensions are installed globally' and the profile header note now reads 'Installed globally and enabled here only when you choose them.'"
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/App.test.ts",
+		"apps/agent-server/tests/extensions/registry.test.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte"
+	],
+	"errors": [
+		"First edit attempt on AgentStore.svelte.ts failed because the oldText matched two locations; resolved by adding more surrounding context",
+		"App.test.ts 'switches the whole shell to a workspace before its data lands' initially failed after the refresh guards were added because it still expected the loading indicator; fixed by changing the assertion to expect null"
+	],
+	"outcome": "shipped"
+}

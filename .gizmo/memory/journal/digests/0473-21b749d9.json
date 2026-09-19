@@ -1,0 +1,19 @@
+{
+	"segment": "0473-21b749d9",
+	"at": "2026-09-18T22:44:57.486Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added three fake inspector web-extension panels (Console, Changes, Docs) under apps/app/src/lib/agent-client/fake-client/inspector/ and wired them into the dev-only `?fake` branch of main.ts so the right-rail is no longer empty. Verified in the browser via Playwright screenshots and via svelte-check, the UI-hooks check, and the app test suite (235 passed).",
+	"decisions": [
+		"Fake inspector panels register directly into the web-extension registry instead of going through listWebExtensionBundles → blob-URL loader, because the loader exists to evaluate untrusted source strings and stubs would have to be hand-written as source to use it; registration stays inside the dev-only `?fake` branch so it never reaches production.",
+		"Panel ids match seeded project integration ids (unity.console, git.changes, svelte.docs) so the tab set tracks Configure toggles live, with Console showing a red `1` badge to exercise badge styling."
+	],
+	"files": [
+		"apps/app/src/main.ts",
+		"apps/app/src/lib/agent-client/fake-client/inspector/index.ts",
+		"apps/app/src/lib/agent-client/fake-client/inspector/FakeConsolePanel.svelte",
+		"apps/app/src/lib/agent-client/fake-client/inspector/FakeChangesPanel.svelte",
+		"apps/app/src/lib/agent-client/fake-client/inspector/FakeDocsPanel.svelte"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

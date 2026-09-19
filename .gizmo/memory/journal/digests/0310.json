@@ -1,0 +1,20 @@
+{
+	"segment": "0310",
+	"at": "2026-09-18T22:42:22.037Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "A sub-agent mapped how Gizmo uses the @earendil-works/pi-coding-agent SDK (session construction, context assembly, tool registration, available hooks), then the user redirected the memory design from a facts-only store to a two-layer journal + derived-knowledge architecture. The assistant designed a per-project journal at .gizmo/memory/journal/ (append-only segments from session_compact and session_shutdown hooks, plus opportunistic turn_end flushing) reconciled against a derived facts/ layer with citations, and proposed building the journal layer first.",
+	"decisions": [
+		"Memory architecture is a two-layer journal + derived facts, not a facts-only bag; the journal is authoritative and append-only, facts cite journal segments.",
+		"Journal spans come from Pi's session_compact hook using firstKeptEntryId for the exact cut, with session_shutdown as a backup and opportunistic turn_end flushing (~25k token threshold) so crashes lose at most one span.",
+		"Reconciliation is a diff operation (create/update/supersede/merge), not extract-and-append; superseded facts stay on disk with status flipped, never deleted, for audit.",
+		"KNOWLEDGE.md is derived/regenerated from frontmatter, never hand-authored; only current facts go into the system prompt via before_agent_start.",
+		"Reconciliation runs async after compaction returns on a cheap model, with failure-independence from the journal write so a failed reconcile can be retried.",
+		"PiSessionRepository.delete() unlinks the JSONL, confirming the journal must be a separate copy rather than a pointer into session storage.",
+		"Workspace-tier memory lives under <project>/.gizmo/memory/ (next to .gizmo/config.json), git-tracked with a commented .gitignore opt-out; global tier never git-tracked and rejects obvious secret shapes.",
+		"Storage is one-fact-per-file with per-path AsyncMutex plus tmp+rename, reusing apps/agent-server/src/projects/async-mutex.ts; slug validated against /^[a-z0-9][a-z0-9-]*$/ as the path-traversal boundary since names come from LLM tool args.",
+		"No per-session memory tier — session-scoped facts stay in the JSONL via appendCustomEntry, anything worth surviving goes to project or global."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

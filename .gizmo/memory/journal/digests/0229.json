@@ -1,0 +1,23 @@
+{
+	"segment": "0229",
+	"at": "2026-09-18T22:41:05.786Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented two features: (1) the registry Update button is now conditionally rendered only when `registryUpdateAvailable` (a new git-based HEAD comparison) is true, and (2) resource discovery was extended so linked Gizmo extension package roots are enumerated, making skills from newly linked packages visible in the catalog.",
+	"decisions": [
+		"Compute update availability via a non-mutating `git ls-remote origin HEAD` comparison against the local clone in `registry-git-build.ts`; a failing source returns false rather than throwing, so the catalog stays usable.",
+		"Add an optional `updateAvailable: boolean` field to the `RegistryInfo` protocol schema in `packages/protocol/src/registry.ts`, only emitted when the check returns true.",
+		"Render the registry Update button in `ExtensionRegistrySection.svelte` inside an `{#if registry.updateAvailable}` guard.",
+		"Discover resources from linked Gizmo extension packages by stat-checking each `linked` directory on disk and falling back to declared `pi.skills` / `pi.prompts` package.json entries plus conventional `skills/` and `prompts/` dirs, via a new `linkedExtensionResourceRoots` exported from `extension-resources.ts`."
+	],
+	"files": [
+		"packages/protocol/src/registry.ts",
+		"apps/agent-server/src/extensions/registry-git-build.ts",
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"apps/agent-server/tests/extensions/registry-git-build.test.ts",
+		"apps/app/src/lib/features/settings/ExtensionRegistrySection.svelte",
+		"apps/agent-server/src/resources/extension-resources.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

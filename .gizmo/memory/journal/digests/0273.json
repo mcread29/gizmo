@@ -1,0 +1,10 @@
+{
+	"segment": "0273",
+	"at": "2026-09-18T22:41:47.447Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read and inspected multiple agent-client, protocol, and extension files to scope a renaming of `activeDomains`/`ProjectDomains` to an `enabledExtensionIds` concept. Surveyed git status, grepped for `activeDomains`/`domainId`/`ProjectDomains` across docs, packages, and apps, and reviewed protocol core/envelopes, package manifests, and deprecation patterns.",
+	"decisions": [],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

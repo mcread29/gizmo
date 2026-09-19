@@ -1,0 +1,20 @@
+{
+	"segment": "0137",
+	"at": "2026-09-18T22:39:46.673Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why switching threads didn't update the right sidebar, traced the issue to extension enablement not reloading runtime UI or recalculating active integrations, and fixed it so that toggling Gizmo extensions reloads web extensions, refreshes projects/resources, and recomputes active domains while preserving the running session. Added regression tests, verified pnpm check and AgentStore tests pass, and committed the change as a03e3c4. Then restarted the dev server (PID 41316).",
+	"decisions": [
+		"Use reloadExtensions() after toggling global Gizmo extensions so runtime UI refreshes (replacing the previous refreshProjects() path).",
+		"Drive the right sidebar from activeDomains derived from the selected workspace's integrations via WorkspaceInspector/createWorkspaceView.",
+		"Set regression assertions to check membership transitions (e.g., toContain/not.toContain 'svelte') rather than fixed full domain lists, because globally active extensions (activity, skill-authoring) remain present in the fake test environment."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts"
+	],
+	"errors": [
+		"Two AgentStore tests initially failed because activeDomains still contained globally active extensions ('activity', 'skill-authoring'); resolved by changing assertions to membership checks rather than full equality.",
+		"Git reported CRLF/LF warnings on the edited files when staging."
+	],
+	"outcome": "shipped"
+}

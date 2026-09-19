@@ -1,0 +1,16 @@
+{
+	"segment": "0216",
+	"at": "2026-09-18T22:40:54.205Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Wired the agent-server to auto-populate the System prompt editor with Pi SDK's actual default system prompt. A new `recordDefaultSystemPrompt` cache in `instruction-files.ts` captures `session.systemPrompt` during session creation when no override is set, and `pi-session-factory.ts` calls it. The editor's `readInstructionFile` returns that cached default when the file is missing, while still treating it as non-existent so Save creates the override file normally.",
+	"decisions": [
+		"Capture the default system prompt by reading `session.systemPrompt` after session construction (instead of replicating Pi's prompt-building logic), because Pi's default depends on cwd, active tools, and skills and isn't exported as a standalone builder.",
+		"Return the captured default from `readInstructionFile` only when the file is missing, with `exists: false`, so the UI prefill doesn't suppress the normal 'save creates the override file' behavior."
+	],
+	"files": [
+		"apps/agent-server/src/resources/instruction-files.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

@@ -1,0 +1,24 @@
+{
+	"segment": "0214",
+	"at": "2026-09-18T22:40:51.064Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran the repo's typecheck/lint (`pnpm check`), test suite (`pnpm test`), and formatter (`pnpm format`) to verify the changes, then started the dev server at http://localhost:5173 (PID 41964). All checks passed: 0 errors/0 warnings, 293 tests passing across workspaces, and the changed files were listed via git status.",
+	"decisions": [],
+	"files": [
+		"apps/agent-server/src/resources/instruction-files.ts",
+		"apps/app/src/lib/features/settings/InstructionsEditor.svelte",
+		"apps/app/src/styles/settings-parts/instructions-editor.css",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/transport/request-router.ts",
+		"apps/agent-server/src/transport/resource-request-handler.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/features/settings/WorkspaceConfigurePanel.svelte",
+		"apps/app/src/styles/settings.css",
+		"apps/app/tests/lib/agent-client/agent-store-invalid-client.ts",
+		"packages/protocol/src/requests/resources.ts",
+		"packages/protocol/src/resources.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

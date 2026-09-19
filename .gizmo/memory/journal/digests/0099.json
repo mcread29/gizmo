@@ -1,0 +1,27 @@
+{
+	"segment": "0099",
+	"at": "2026-09-18T22:39:08.280Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented an ask_user tool that renders inline in the chat as a question card. The tool appends a 'Write my own answer…' sentinel option to select requests that triggers a free-text input request, while pure input requests get a free-text field directly. Backend and frontend tests were added, prettier/svelte-check/typecheck pass, and the work was committed as 50b7e67.",
+	"decisions": [
+		"Select answers are validated server-side against offered options, so free text for selects goes through the tool's sentinel option + follow-up input request rather than bypassing validation.",
+		"Confirmations (ctx.ui.confirm) and editors stay modal dialogs; only select/input requests render inline in chat.",
+		"ask_user is a Gizmo-provided tool (not a Pi extension) since it's a shell UI capability like the bridge itself.",
+		"Question card renders in Conversation between message list and composer, not globally via AppDialogs — acceptable since users are watching the thread during streaming.",
+		"Removed the inline 'Write my own answer…' free-text form from the select path in the card because the tool already appends the sentinel option to the options list."
+	],
+	"files": [
+		"apps/app/src/lib/features/extension-ui/PiExtensionQuestion.svelte",
+		"apps/app/src/lib/features/extension-ui/PiExtensionQuestion.test.ts",
+		"apps/app/src/lib/features/conversation/Conversation.svelte",
+		"apps/app/src/lib/features/conversation/tool-labels.ts",
+		"apps/app/src/styles/composer.css",
+		"apps/agent-server/tests/tools/ask-user-tool.test.ts",
+		"apps/agent-server/src/tools/ask-user-tool.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts"
+	],
+	"errors": [
+		"TypeScript TS2352 error on tool.execute cast in ask-user-tool.test.ts: the direct cast to a 3-arg signature failed because Pi's execute overload signature doesn't sufficiently overlap. Fixed by changing the cast to `as unknown as (...)`."
+	],
+	"outcome": "shipped"
+}

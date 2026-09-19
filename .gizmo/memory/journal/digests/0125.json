@@ -1,0 +1,16 @@
+{
+	"segment": "0125",
+	"at": "2026-09-18T22:39:35.453Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigation phase using grep to survey git, unity, svelte, and activity references across the agent-server and app lib, followed by git status/log inspection across the gizmo and gizmo-registry repos. The agent then summarized that the registry now owns all extensions (Activity, Ask User, Git, Skill Authoring, Svelte, Unity) with Gizmo's built-in web extensions removed, an NCP issue resolved by splitting Pi extension dirs from web bundles, and full check/build passing in both repos.",
+	"decisions": [
+		"All extensions (Activity, Ask User, Git, Skill Authoring, Svelte, Unity) live in gizmo-registry as Pi extensions with optional paired Gizmo web integration, rather than in the Gizmo repo",
+		"Gizmo's gizmo.extensions.json is empty; the app starts with no built-in web extensions and discovers Pi extension factories, gizmoExtension host capabilities, and gizmoWebExtension browser bundles from linked registry directories",
+		"Browser bundles are placed in ~/.pi/agent/extension-web/ rather than ~/.pi/agent/extensions/, keeping Pi backend directories separate so relative imports and registry dependencies resolve correctly via directory links"
+	],
+	"files": [],
+	"errors": [
+		"NCP issue where browser bundles were placed inside Pi's extension directory; resolved by relocating web bundles to ~/.pi/agent/extension-web/"
+	],
+	"outcome": "shipped"
+}

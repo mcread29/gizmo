@@ -1,0 +1,24 @@
+{
+	"segment": "0467-18de3e96",
+	"at": "2026-09-18T22:44:51.819Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented Phase 1 of a plan to support live reloading of linked extensions in the agent-server: added tsx watch exclusions for Pi agent dir and registry clones, swapped the linked-extension loader from native import to a fresh jiti instance per rescan, added dispose hooks to extensions and a rebuildable project-service registry, and created an extension catalog module. Added a `jiti` dependency to agent-server and verified the loader's existing tests still pass under the new loader.",
+	"decisions": [
+		"Use jiti instead of native `import()` for loading linked extensions so each rescan gets a fresh module graph (tsx/jiti compilation is CPU-bound; sequential imports are required).",
+		"Add tsx watch exclusions covering the Pi agent directory (which contains junctions into registry clones) and the registry clones themselves; paths are forward-slashed for tsx's glob matcher on every platform.",
+		"Each extension exposes an optional `dispose()` hook called when the extension is replaced or unregistered; a dispose failure must not block the reload.",
+		"Project services are tracked in a rebuildable registry keyed by extension id, with diffing to determine which services were replaced vs removed across rescans.",
+		"Protocol version remains 28 in this segment; the loader refactor was validated via the existing `load-extensions.test.ts` (2 tests pass)."
+	],
+	"files": [
+		"scripts/dev/dev-process.ts",
+		"apps/agent-server/src/extensions/load-extensions.ts",
+		"apps/agent-server/src/extensions/extension-catalog.ts",
+		"packages/extensions/src/extension.ts",
+		"apps/agent-server/package.json"
+	],
+	"errors": [
+		"A bash heredoc appended to dev-process.ts munged backslash escapes in the watch-exclusion helper; fixed by rewriting the block with the Edit tool."
+	],
+	"outcome": "explored"
+}

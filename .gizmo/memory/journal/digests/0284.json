@@ -1,0 +1,21 @@
+{
+	"segment": "0284",
+	"at": "2026-09-18T22:42:01.160Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Assistant produced an assessment (no code changes) of the in-progress move of `compilePlayModePolicy` into Unity's extension settings. It identified a runtime blocker where `WorkspaceLayout.settings` calls `structuredClone` on a deep `$state` proxy of `extensionSettings`, causing a `DataCloneError` that breaks 34 app tests, and recommended `$state.snapshot` or `$state.raw` plus recursive JSON sanitization. It also proposed a scoped `ExtensionSettingsContext` contract so extensions stop receiving the full `WorkspaceLayout`, and laid out a bounded CSS migration plus a bundle-lifecycle fix so `/reload` and removal clean up `data-gizmo-extension-style` elements.",
+	"decisions": [
+		"Persist extension preferences inside the existing device-level `gizmo.settings.v1` envelope rather than direct extension `localStorage`, project config, or server storage; do not bump the storage key and migrate legacy `compilePlayModePolicy` into `extensionSettings.unity.compilePlayModePolicy` on the next save.",
+		"Stop exposing `WorkspaceLayout` to extensions: replace `settings`/`dialog` contribution props with a scoped `ExtensionSettingsContext { get, set }` carrying JSON-compatible values, and have `WorkspaceLayout.settingsFor(extensionId)` return a stable scoped accessor so extensions cannot pick arbitrary namespaces.",
+		"Fix the `DataCloneError` in `workspace.svelte.ts` by using `$state.snapshot(this.extensionSettings)` or making the map `$state.raw` with immutable updates, and constrain stored values to JSON-compatible types rather than `unknown`.",
+		"Retain migration precedence (nested setting wins over legacy), sanitize recursively to JSON values, and keep invalid legacy values absent so Unity defaults to `\"ask\"`.",
+		"Move only Unity-specific blocks (`tool-metrics`, `editor-result`, `tool-command-list`, `script-section`, `script-diagnostics`, `script-logs`, `script-error`) into `packages/unity/src/web/unity/unity.css`; keep generic `structured-result`, diff, `tool-empty`, tool errors, and tool-call shell styles app-owned.",
+		"Scope Unity's `inspector-card`, `card-label`, `inspector-message`, and `pending-paths` selectors under `[data-ui='unity-status-panel']`, and rename or scope Git's unqualified `.spinning` selector to avoid global collisions.",
+		"Make `build-web-extension.ts` upsert and always replace the marked `data-gizmo-extension-style` style element (removing the previous one when a rebuilt extension emits no CSS), and have `extensions/runtime/install.ts` clean up style entries whose extension IDs are not in the successfully loaded set so `/reload` and removal actually update/clear CSS.",
+		"Run registry `pnpm build` again because current `activity.web.js` and `git.web.js` are stale and lack style preludes while `unity.web.js` only contains earlier console CSS."
+	],
+	"files": [],
+	"errors": [
+		"`WorkspaceLayout.settings` calls `structuredClone(this.extensionSettings)`, which throws `DataCloneError` because `extensionSettings` is a deep `$state` proxy; this currently breaks `App.svelte` initialization and is the cause of 34 failing app tests."
+	],
+	"outcome": "explored"
+}

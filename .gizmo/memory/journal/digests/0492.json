@@ -1,0 +1,19 @@
+{
+	"segment": "0492",
+	"at": "2026-09-18T22:45:17.890Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Removed per-project .env copies in ncp and cronkis that had been duplicated instead of using a single shared file, and established ~/.env as the single shared source alongside the existing Windows user environment variable.",
+	"decisions": [
+		"Single canonical .env lives at ~/.env (copied from gizmo/.env), not duplicated into each project's directory — per user request for one shared source rather than per-project copies.",
+		"Windows user environment variable TYPESAFE_API_KEY remains as the single shared runtime source of the secret across shells, verified via GetEnvironmentVariable."
+	],
+	"files": [
+		"~/UnityProjects/ncp/.env",
+		"~/UnityProjects/cronkis/.env",
+		"~/.env"
+	],
+	"errors": [
+		"Assistant had previously copied gizmo/.env into ncp/.env and cronkis/.env instead of using a single shared file — corrected by deleting both copies and creating ~/.env instead."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,15 @@
+{
+	"segment": "0286",
+	"at": "2026-09-18T22:41:57.936Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Exploratory investigation of how project status and open flows are wired across the gizmo app, the registry unity/git packages, and the duplicated protocol packages, in preparation for designing protocol v26 with per-extension routing.",
+	"decisions": [
+		"Protocol v26 must carry an extensionId on project.status and project.open requests so the server can route to the correct extension's project service; v25 requests without extensionId are temporarily accepted and routed to the first-available service for compatibility.",
+		"ProjectCapability will request project.status per enabled extension that declares hasProjectStatus and store results per extension ID, keeping hasProjectStatus as the gate for whether to fetch/watch at all.",
+		"The registry repo's packages/protocol is a separate v25 copy containing Unity-shaped schemas (unityStatusSchema, unityOpenProjectResultSchema, parseProjectStatus, parseProjectOpenResult) that will need to be versioned alongside the gizmo repo's protocol as part of the v26 migration.",
+		"file.revert will also gain an optional extensionId in v26; the app's git UI continues to omit it, falling back to the v25 compatibility path since no dedicated git ProjectService exists."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

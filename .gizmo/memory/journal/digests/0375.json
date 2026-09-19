@@ -1,0 +1,27 @@
+{
+	"segment": "0375",
+	"at": "2026-09-18T22:43:21.195Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Reverted a previous misplacement of the agent-journal skill into the gizmo repo's workspace packages, then rebuilt it correctly as a linked extension in the gizmo-skills-registry following the pstack convention (index.ts + pi-extension.ts + skills/). Scaffolded the extension directory, wrote a zero-dependency Node script (backfill-journal.mjs) and SKILL.md, registered it in gizmo.registry.json, and added it to the registry's linked list in installed.json so symlinks are preserved on refresh.",
+	"decisions": [
+		"Skills ship via gizmo-skills-registry, not as workspace packages in the gizmo monorepo — the registry is the distribution mechanism and was already the convention (pstack, matt-pocock-skills).",
+		"Extension layout matches pstack: extensions/<id>/{index.ts, pi-extension.ts, skills/<skill>/...} with index.ts re-exporting from pi-extension.ts and a no-op Pi factory exposing only {id, name}.",
+		"The skill is shipped disabled (installed but not enabled globally) so it must be turned on per project — silently enabling a shipped skill would be wrong.",
+		"Skills registry sync-upstreams.mjs only touches entries listed in upstream-lock.json, so adding an unlisted extension there is safe from automated pruning.",
+		"Committed the registry change directly to main (not a branch) because this clone is live infrastructure with installed.json pinning to a commit on main, and a side branch wouldn't reproduce on a fresh clone.",
+		"Stopped at commit on user instruction — did not push to mcread29/gizmo-skills-registry, so the change remains local-only."
+	],
+	"files": [
+		"gizmo.extensions.json",
+		"apps/agent-server/package.json",
+		"packages/memory-extension",
+		"~/.gizmo/registries/gizmo-skills-registry/gizmo.registry.json",
+		"~/.gizmo/registries/gizmo-skills-registry/extensions/agent-journal/index.ts",
+		"~/.gizmo/registries/gizmo-skills-registry/extensions/agent-journal/pi-extension.ts",
+		"~/.gizmo/registries/gizmo-skills-registry/extensions/agent-journal/skills/backfill-agent-journal/SKILL.md",
+		"~/.gizmo/registries/gizmo-skills-registry/extensions/agent-journal/skills/backfill-agent-journal/scripts/backfill-journal.mjs",
+		"~/.gizmo/registries/installed.json"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

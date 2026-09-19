@@ -1,0 +1,17 @@
+{
+	"segment": "0378",
+	"at": "2026-09-18T22:43:19.933Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why a Slapdash session message appeared unsent. Determined the user's correction 'path' was steered into a run that the provider (glm-5.3-flash via opencode-go) had aborted 53 seconds after a similar abort in another session, so the steered message was persisted into the transcript of the dying run but never reached the model. Identified that gizmo never calls Pi's clearQueue() primitive to recover pending steering/follow-up messages on run termination.",
+	"decisions": [
+		"Root cause diagnosed as a provider-side connection drop on glm-5.3-flash/opencode-go, not a user-initiated abort, because two independent sessions aborted within 53 seconds with zero token usage.",
+		"Proposed fix part 1: on run settlement (not just user abort), if pendingMessageCount > 0, call clearQueue() and restore the text to the composer as a draft, following the existing rejected-send pattern in Composer.svelte.",
+		"Proposed fix part 2: render aborted assistant turns (stopReason: 'aborted') as 'response interrupted' rather than blank, noting it parallels a recently-fixed stuck tool call issue."
+	],
+	"files": [],
+	"errors": [
+		"Slapdash session run aborted mid-thinking with 'Request was aborted' and zero token usage, attributed to the glm-5.3-flash/opencode-go provider dropping the connection.",
+		"Steered message 'path' was persisted into the transcript of the aborted run via Pi's _queueSteer (agent-session.js:1046) but never delivered to the model because the run ended before its next LLM call."
+	],
+	"outcome": "explored"
+}

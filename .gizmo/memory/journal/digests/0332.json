@@ -1,0 +1,26 @@
+{
+	"segment": "0332",
+	"at": "2026-09-18T22:42:42.713Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Wired the agent server's session lifecycle to emit pi's `session_shutdown` event before disposing, so the memory-journal extension can flush its unrecorded tail with `trigger: 'session-end'` and dedupe-safely re-record on next activation. Added an optional `shutdown()` to `PiSessionLike`, implemented it in the factory (gated on `hasHandlers('session_shutdown')`, reason `'quit'`), made `SessionRuntimePool.#evict` and `remove` async, fired-and-forget `#evictIdle`, awaited `pool.remove` from `deleteSession`, and added a stub `shutdown` plus ordering assertion in the FakePiSession test fixture.",
+	"decisions": [
+		"Emit `session_shutdown` from the agent server via `session.extensionRunner.emit({ type: 'session_shutdown', reason: 'quit' })` (gated on `hasHandlers`) rather than rolling our own journal-tail flush — mirrors pi's own `AgentSessionRuntime.dispose` and lets other extensions hook in too.",
+		"Use `reason: 'quit'` for both delete and idle eviction; idle evictions will now journal a `session-end` segment, which is dedupe-safe by trigger.",
+		"Make `SessionRuntimePool.#evict` delete the map entry synchronously before awaiting `session.shutdown()`, so a concurrent sweep or re-activation cannot touch the dying runtime mid-flush.",
+		"Make `#evictIdle` async and wrap its internal evict calls in `void`; wrap the `setInterval` and `activate`-site call sites in `void this.#evictIdle()` to satisfy no-floating-promises without blocking callers.",
+		"Add `shutdown?(): Promise<void>` to `PiSessionLike` as optional, so existing fakes/tests keep compiling without modification (only the shared `FakePiSession` fixture was updated)."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-agent-types.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/agent-server/src/sessions/session-operations.ts",
+		"apps/agent-server/tests/sessions/support/pi-agent-service-fixtures.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service-commands.test.ts"
+	],
+	"errors": [
+		"An edit to `session-operations.ts` accidentally dropped the `this.#pool.cancelConfirmations(sessionId)` call; it was restored in the very next edit.",
+		"A `read` against the `tests/sessions/support` directory failed with `EISDIR: illegal operation, read`; resolved by switching to `ls`."
+	],
+	"outcome": "shipped"
+}

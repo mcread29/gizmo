@@ -1,0 +1,16 @@
+{
+	"segment": "0136",
+	"at": "2026-09-18T22:39:48.262Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated a `process is not defined` runtime error in browser-loaded extension bundles and traced it to TanStack Virtual's dev-mode `process.env.NODE_ENV` guards surviving the web bundle build. Updated the registry's `build-web-extension` script to define `process.env.NODE_ENV` as `\"production\"` so the guard compiles away, rebuilt all web bundles, published the new commit into the local registry, and verified the installed Unity bundle is process-free.",
+	"decisions": [
+		"Compile `process.env.NODE_ENV` to `\"production\"` in the browser extension bundler via esbuild `define`, rather than relying on a host-injected `process` shim, because the extension modules execute directly inside the webview."
+	],
+	"files": [
+		"scripts/build-web-extension.ts"
+	],
+	"errors": [
+		"Browser extension bundle threw `ReferenceError: process is not defined` due to uncompiled `process.env.NODE_ENV` checks from a browser-targeted dependency (TanStack Virtual's dev-mode code)."
+	],
+	"outcome": "shipped"
+}

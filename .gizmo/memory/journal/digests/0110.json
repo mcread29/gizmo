@@ -1,0 +1,15 @@
+{
+	"segment": "0110",
+	"at": "2026-09-18T22:39:16.206Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated how pi's subagents extension currently renders in the Gizmo desktop app via the bridge. Confirmed that tool calls land as generic chat cards, setStatus drives the titlebar, and ui.notify produces toasts, while the /subagents takeover dashboard and ctx.ui.custom picker are explicitly unavailable because supportsDeclarativeUi() returns false in Gizmo (mode != 'rpc' and FORKER_UI_PROTOCOL capability missing), and child subagent sessions stay invisible since they run in-process.",
+	"decisions": [
+		"Identified that /subagents takeover would light up once Gizmo implements the declarative-UI events contract (rendering createDeclarativeView state as web components and routing onAction back), because the extension already models it via pi-declarative-ui",
+		"Noted a subagents.web.js paired bundle as the near-term upgrade: would add native tool labels, resultFor rendering, and an inspector tab without any protocol change"
+	],
+	"files": [],
+	"errors": [
+		"Initial grep for pi-declarative-ui at ~/.pi/packages returned nothing because the package lives at ~/.pi/agent/packages/pi-declarative-ui instead"
+	],
+	"outcome": "explored"
+}

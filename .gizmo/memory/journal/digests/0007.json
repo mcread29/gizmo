@@ -1,0 +1,29 @@
+{
+	"segment": "0007",
+	"at": "2026-09-18T22:37:39.358Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Verified the agent-server bound to port 8787 with active connections after restart, then ran prettier, tsc, svelte-check, git diff, and git status. Staged and committed all modified files plus .pi artifacts (later removed) as 'b753f45 feat: bind and reload Pi extension runtimes', producing the third in a series of three commits on pi-web (ahead 3 of origin).",
+	"decisions": [
+		"Ran prettier --write on apps/agent-server/src/server.ts to format code before checks",
+		"Created a single commit ('b753f45 feat: bind and reload Pi extension runtimes') covering Pi extension binding, runtime reload, Windows pi-web:dev fix, and README/docs updates",
+		"Removed the .pi/ directory (containing agent-server logs and pid file) that had been tracked in the commit, leaving a clean working tree"
+	],
+	"files": [
+		"README.md",
+		"docs/extensions.md",
+		"docs/resources.md",
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/app/src/lib/features/settings/ProvidersSettings.svelte"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

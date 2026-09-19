@@ -1,0 +1,19 @@
+{
+	"segment": "0363",
+	"at": "2026-09-18T22:43:08.570Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added project-root `reload` (sh) and `reload.cmd` (Windows) launchers that cd to the repo root and exec `pnpm web:update`, which rebuilds the app and restarts the deployed Web instance.",
+	"decisions": [
+		"Root launcher shells out to the existing `pnpm web:update` script rather than duplicating rebuild/deploy logic.",
+		"Provided both POSIX (`reload`) and Windows (`reload.cmd`) entry points so the one-command update works on either shell."
+	],
+	"files": [
+		"reload",
+		"reload.cmd"
+	],
+	"errors": [
+		"Initial `write` of `reload`/`reload.cmd` failed to land on disk under PowerShell (the file could not be found afterward); the assistant recreated both files via `Set-Content` from PowerShell and stripped the BOM from `reload`.",
+		"`pnpm check` surfaced pre-existing unused UI hook warnings in three files (AgentStore.svelte.ts, pi-event-translator.ts, SessionCapability.ts, MessageList, and others), unrelated to this change."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,27 @@
+{
+	"segment": "0405",
+	"at": "2026-09-18T22:43:43.011Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why a page refresh appeared to mangle the conversation UI. Confirmed via DOM probes that rows 51–54 were positioned by the virtualizer in an order their measured heights could not justify, traced the gap to the TanStack Svelte virtualizer adapter not re-emitting on size-only changes (the comment in MessageList.svelte already flagged the same risk), and separately identified that the final assistant message is a whitespace-only reasoning block that the ReasoningBlock renders as an empty \"Reasoning\" panel because the truthiness check does not trim whitespace.",
+	"decisions": [
+		"Treat whitespace-only reasoning as absent in src/lib/features/conversation/ReasoningBlock.svelte (trim before the truthiness check) so an empty block never mounts.",
+		"Optionally drop leading whitespace-only thinking deltas in the agent server's Pi event translator so the client never stores a reasoning string made of only newlines."
+	],
+	"files": [
+		"src/lib/features/conversation/MessageList.svelte",
+		"src/lib/features/conversation/message-rows.ts",
+		"src/lib/features/conversation/streaming.ts",
+		"src/lib/agent-client/agent-event-reducer.ts",
+		"src/lib/agent-client/fake-client/fixtures.ts",
+		"src/lib/features/extension-ui/PiExtensionUiState.svelte.ts",
+		"src/lib/features/extension-ui/PiExtensionUiStore.svelte.ts",
+		"../agent-server/src/sessions/pi-event-translator.ts",
+		"../agent-server/src/sessions/session-runtime-pool.ts",
+		"src/styles/message-parts/messages.css"
+	],
+	"errors": [
+		"After reload, virtual-message rows 51–54 had transforms whose offsets did not match the sum of preceding measured heights; nudging scrollTop did not fix them, indicating a missed virtualizer re-emit rather than a CSS or measurement glitch.",
+		"The reducer appends every reasoning delta, so a delta of just a newline or space still mounts a ReasoningBlock with an empty body."
+	],
+	"outcome": "explored"
+}

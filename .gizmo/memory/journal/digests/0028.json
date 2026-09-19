@@ -1,0 +1,17 @@
+{
+	"segment": "0028",
+	"at": "2026-09-18T22:37:53.463Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Extended the App.test.ts timeout to 5 seconds and ran a single test successfully, then inspected the working tree with git status/diff. Made several edits to apps/agent-server/tests/sessions/pi-agent-service.test.ts to add an isolated test setup, a temporary override profile, and cleanup of the extension registry between tests.",
+	"decisions": [
+		"Increase findByText timeout in apps/app/src/App.test.ts to 5_000 ms to accommodate the slower test environment",
+		"In pi-agent-service.test.ts, create a temporary override profile (base: active.id, tools/prompt modes 'default'/'pi-default') instead of mutating the active profile directly",
+		"Call registerExtensions([]) in the test cleanup to reset the global extension registry between tests"
+	],
+	"files": [
+		"apps/app/src/App.test.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service.test.ts"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

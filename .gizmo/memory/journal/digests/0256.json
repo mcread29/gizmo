@@ -1,0 +1,24 @@
+{
+	"segment": "0256",
+	"at": "2026-09-18T22:41:33.590Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Bundled the Unity web extension's CSS into the standalone `.web.js` output by emitting a style-install bootstrap, then updated Button, ConfirmDialog, SelectField, and console.css to use proper design tokens and components instead of inline/unstyled markup, and verified the rebuilt extensions/unity.web.js installs its CSS at runtime.",
+	"decisions": [
+		"scripts/build-web-extension.ts now prepends a runtime CSS-install snippet that creates a <style data-gizmo-extension-style=\"unity\"> tag and injects the collected CSS into document.head when the extension loads in the webview.",
+		"Replaced the native <select> in SelectField.svelte with the bits-ui Select primitive using Check + ChevronDown icons and a data-ui=\"select-indicator\".",
+		"Replaced the inline confirmation UI in ConfirmDialog.svelte with the bits-ui Dialog primitive plus the local Button component, using onConfirm/onCancel callbacks and a void confirm() flow.",
+		"Refactored console.css to use semantic tokens (--space-*, --color-surface-soft, --text-2xs, --font-mono, --color-border, --radius-sm) and added a [data-ui=\"sr-only\"] utility for screen-reader-only labels."
+	],
+	"files": [
+		"packages/unity/src/web/design/Button.svelte",
+		"packages/unity/src/web/design/SelectField.svelte",
+		"packages/unity/src/web/design/ConfirmDialog.svelte",
+		"packages/unity/src/web/design/format.ts",
+		"packages/unity/src/web/console/console.css",
+		"scripts/build-web-extension.ts"
+	],
+	"errors": [
+		"Initial smoke test for the bundled CSS failed with 'console CSS missing' because the inline `node -e` check searched for the literal selector `[data-ui=\"console-toolbar\"]` while the bundled output contained an unquoted attribute selector form; rewriting the assertion to look for `[data-ui=console-toolbar]` passed and the bundle was confirmed to install its CSS."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,22 @@
+{
+	"segment": "0354",
+	"at": "2026-09-18T22:43:00.571Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Updated SessionTreeScreen.svelte to use sessionState for tree revision tracking and add a fallback for the selected entry, restyled the tree trigger button in Conversation.svelte as ghost with a tooltip, added muted/hover styling for it in conversation.css, and extended FakeAgentClient and integration tests to cover branching/alternate-path behavior.",
+	"decisions": [
+		"SessionTreeScreen.svelte `treeRevision` now derives from `store.sessionState` (with a fallback to sessionId+messageCount) so the tree refreshes on state changes.",
+		"SessionTreeScreen.svelte `selected` falls back to the last active row when `selectedId` does not match any entry, improving selection resilience.",
+		"Conversation.svelte tree trigger Button changed to ghost variant with `title=\"Browse alternate paths\"` and `data-ui=\"tree-trigger\"` for accessibility and consistent styling."
+	],
+	"files": [
+		"apps/app/src/lib/features/tree/SessionTreeScreen.svelte",
+		"apps/app/src/lib/features/conversation/Conversation.svelte",
+		"apps/app/src/styles/conversation.css",
+		"apps/app/tests/lib/agent-client/FakeAgentClient.test.ts",
+		"apps/app/tests/app/workspace-configuration-and-threads.integration.test.ts"
+	],
+	"errors": [
+		"Prettier --check failed on 4 files (SessionTreeScreen.svelte, SessionTreeActions.svelte, fake-client/sessions.ts, sessions/session-operations.ts); resolved by running prettier --write on the affected files."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,17 @@
+{
+	"segment": "0050",
+	"at": "2026-09-18T22:38:11.691Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read-only analysis of Gizmo's Svelte UI for workspace profiles, settings, and extension selection. Inventoried relevant components (WorkspaceConfigurePanel, WorkspaceScreen, WorkspaceHome, ExtensionSettings, SettingsScreen/Nav, CommandPalette, AppDialogs, App.svelte), stores (AgentStore, router, sessions, registry.svelte), protocol surface in packages/protocol/src/index.ts, design tokens, and docs (workspace-profiles.md, extensions.md), then produced a UI implementation plan covering no-auto-detection, per-project global extension toggles, and editable default profiles modeled as temporary overrides.",
+	"decisions": [
+		"Workspace type must not be auto-detected: removing any detection logic in CommandPalette/workspace onboarding and requiring explicit user choice.",
+		"Globally installed Gizmo extensions (per gizmo.extensions.json) must be enabled manually per-project rather than inherited; default state for a new workspace is disabled.",
+		"Editable default profiles are implemented as a transient override layer that reverts to the canonical extension-provided default when the user clears edits, rather than mutating the source definition.",
+		"New user-created profiles remain a separate normal path alongside editable defaults, not conflated with them.",
+		"Settings surface for these controls lives in WorkspaceConfigurePanel (per-workspace) with read-only view in ExtensionSettings and command palette actions; routing via router.svelte settingsPages and workspace tabs.",
+		"Tests planned: per-project extension enable/disable round-trip via AgentStore, default-profile override lifecycle (edited → canonical revert), no-auto-detection (no implicit profile set on workspace add), and CommandPalette mode handling."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

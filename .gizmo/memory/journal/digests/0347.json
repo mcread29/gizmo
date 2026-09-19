@@ -1,0 +1,10 @@
+{
+	"segment": "0347",
+	"at": "2026-09-18T22:42:57.871Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read-only investigation of the titlebar tree button, Conversation component search/loading UI, session lifecycle code on the agent server, and the agent client's store, client, and websocket request layer to understand how the session tree is opened from the conversation header.",
+	"decisions": [],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

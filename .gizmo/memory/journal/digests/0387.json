@@ -1,0 +1,18 @@
+{
+	"segment": "0387",
+	"at": "2026-09-18T22:43:28.642Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Audited Gizmo's Svelte frontend across 76 components and ~5,400 lines of CSS, then published an HTML report listing 4 defects, 12 friction points, 8 refactors, and a sequenced order of work. Found one critical rendering bug (blank transcript for the 424-message `cronkis` thread due to overshoot in `MessageList.svelte`'s estimateSize), plus missing focus traps on Settings/SessionTree modals, stripped focus outlines, and per-tick re-highlighting of streaming messages.",
+	"decisions": [
+		"Treated the audit as editorial work — pulled design tokens from Gizmo's existing `vesper-dark` theme (#101010 canvas, #ffc799 accent) and authored the report in that palette rather than introducing a new one.",
+		"Distinguished defects from judgment calls: kept the 5,400-line global CSS tree and prop-drilled store as observations, not recommendations, because both appear intentional.",
+		"Sequenced remediation with the highest leverage per line first: focus rings (ten-line fix removing a WCAG failure) before the blank transcript bug."
+	],
+	"files": [
+		"scratchpad/gizmo-frontend-audit.html"
+	],
+	"errors": [
+		"Blank transcript on the `cronkis` thread: measured `scrollTop 36833 / scrollHeight 38132 / clientHeight 1299` with \"Jump to latest\" visible at the same time, indicating `followOutput=false` while `isAtBottom()=true`. Root cause is `estimateSize` returning a flat 220px against real row heights of 800–1500px, with `measure()` and `scrollToEnd()` firing on the same tick (`MessageList.svelte` ~60–72)."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,23 @@
+{
+	"segment": "0202",
+	"at": "2026-09-18T22:40:40.759Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored Composer.svelte and MessageList.svelte by extracting ComposerToolbar.svelte and ConversationPlaceholder.svelte, adding message-rows.ts for row flattening, and modernizing Svelte 5 patterns (shorthand props, {@attach}-friendly action return, on:→on directive cleanup). All affected files are now under 300 LOC (Composer 250, MessageList 227, ComposerToolbar 125, ConversationPlaceholder 27, message-rows 66, composer-actions 34).",
+	"decisions": [
+		"Extract the Composer's attachment/send/stop toolbar into ComposerToolbar.svelte, receiving store + props from Composer, to keep Composer.svelte under 300 LOC.",
+		"Reuse existing ComposerCommandMenu, ComposerAttachments, and ComposerModelControls subcomponents rather than further splitting them.",
+		"Introduce ConversationPlaceholder.svelte to own the loading-skeleton and empty-state markup previously inline in MessageList.svelte.",
+		"Add message-rows.ts to flatten grouped messages into virtualized MessageRow items (group, assistant text, tool), keeping MessageList.svelte focused on virtualization/scroll concerns.",
+		"Update composer-actions.ts autoGrow to return an arrow destroy function for consistency with Svelte 5 attachment-style actions (no behavior change)."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/Composer.svelte",
+		"apps/app/src/lib/features/conversation/MessageList.svelte",
+		"apps/app/src/lib/features/conversation/ComposerToolbar.svelte",
+		"apps/app/src/lib/features/conversation/ConversationPlaceholder.svelte",
+		"apps/app/src/lib/features/conversation/message-rows.ts",
+		"apps/app/src/lib/features/conversation/composer-actions.ts"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

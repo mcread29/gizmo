@@ -1,0 +1,24 @@
+{
+	"segment": "0419",
+	"at": "2026-09-18T22:43:57.030Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed a blank Subagents panel caused by per-session id collisions (e.g. `sa-1`) that tripped Svelte duplicate-key checks, then rewrote `src/state.ts` to key state by session, scope reads to the active workspace, and evict stale entries from dead processes. Patched callers, runtime, and panel accordingly; added `state.test.ts`. `pnpm check` and the 11 subagent tests pass; web bundle rebuild and app reload are pending verification.",
+	"decisions": [
+		"Key subagent state files by `sessionId` instead of `subagentId` so per-session ids like `sa-1` cannot collide across sessions and trigger Svelte duplicate-key warnings.",
+		"Scope `readMergedSubagentState` to the active workspace path so entries from other workspaces are filtered out before reaching the panel.",
+		"Evict subagent state files whose owning process is no longer alive (via `isProcessAlive` callback) to prevent dead-process entries from leaking into the snapshot.",
+		"Forward `sessionContext.cwd` into the subagent `toSubagentEntry` payload so each entry knows its originating workspace for filtering."
+	],
+	"files": [
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\extensions\\subagents\\src\\state.ts",
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\extensions\\subagents\\src\\state.test.ts",
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\extensions\\subagents\\src\\pi-extension.ts",
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\extensions\\subagents\\src\\web\\subagents-runtime.svelte.ts",
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\extensions\\subagents\\src\\web\\SubagentsPanel.svelte"
+	],
+	"errors": [
+		"Bash heredoc with a stray unescaped newline broke parsing when chaining `grep` after a here-doc; recovered by splitting into a separate command.",
+		"`Write` rejected overwriting `state.ts` until it was `Read` first; subsequent `Write` succeeded."
+	],
+	"outcome": "explored"
+}

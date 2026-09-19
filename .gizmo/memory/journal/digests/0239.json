@@ -1,0 +1,21 @@
+{
+	"segment": "0239",
+	"at": "2026-09-18T22:41:18.800Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Inspected @tanstack/virtual-core scroll/anchor behavior, refined the MessageList virtualizer to gate scroll-follow with `anchorTo: shouldFollow ? 'end' : 'start'` plus `followOnAppend: shouldFollow`, updated follow helpers and CSS, added assertions that the virtual canvas height grows and no scroll-anchor sentinel is rendered, and verified the change with prettier, svelte-check, build, and passing tests.",
+	"decisions": [
+		"Use `anchorTo: shouldFollow ? 'end' : 'start'` together with `followOnAppend: shouldFollow` so end-anchoring (and its competing scroll command) only activates while the user is following output, avoiding fights with user scrolling.",
+		"Add MessageList test assertions that the virtual canvas height reflects total content (e.g., '22000px') and that no `[data-ui=\"scroll-anchor\"]` element is rendered, guarding the virtualization behavior."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/MessageList.svelte",
+		"apps/app/src/lib/features/conversation/follow.ts",
+		"apps/app/src/styles/conversation.css",
+		"apps/app/tests/lib/features/conversation/MessageList.test.ts"
+	],
+	"errors": [
+		"pnpm `check:loc` failed because three unrelated files (settings-parts/skills-library.css, resource-catalog.ts, settings-parts/layout.css) exceed the 300-line limit; unrelated to this change.",
+		"Vitest invocation `pnpm --filter @gizmo/app test --run <paths>` failed with 'No test files found'; resolved by running `pnpm --filter @gizmo/app exec vitest run <paths>` instead, after which both test files passed (4/4)."
+	],
+	"outcome": "shipped"
+}

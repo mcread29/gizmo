@@ -1,0 +1,30 @@
+{
+	"segment": "0105",
+	"at": "2026-09-18T22:39:17.336Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Vendored the exact `ask_user` Pi extension into the repo as a first-party capability that ships with every Gizmo install. Canonical source lives at `pi-extensions/ask-user.ts`, embedded into the compiled sidecar via a generated source module, and seeded to the data dir at startup so Pi loads it like any other extension; precedence puts shipped copies after the user's agent-dir extensions.",
+	"decisions": [
+		"Vendor the exact `ask_user` extension (TUI popup + bridge path + tool-call renderers) as a plain Pi extension with no Gizmo-specific code — matches the 'UI ships with the extension' model.",
+		"Embed extension source as a string in the agent-server build (since the compiled bun sidecar has no repo files on disk) and seed to the data dir at startup, overwriting only when stale; works in both dev (tsx) and compiled binary modes.",
+		"Load shipped Pi extensions *after* the user's agent-dir extensions so a same-named extension in `~/.pi/agent/extensions/` takes precedence.",
+		"Use a `pi-extensions/` directory at the repo root as the canonical home for capabilities that ship with every Gizmo install, regenerated via `pnpm extensions:generate`.",
+		"Pi aliases `@earendil-works/pi-coding-agent`, `@earendil-works/pi-tui`, and `typebox` itself in its loader, so the seeded extension file requires no node_modules of its own — confirming the embed+seed approach is viable."
+	],
+	"files": [
+		"pi-extensions/ask-user.ts",
+		"scripts/generate-pi-extension-source.ts",
+		"apps/agent-server/src/pi-extensions/ask-user-source.ts",
+		"apps/agent-server/src/pi-extensions/seed.ts",
+		"apps/agent-server/tests/pi-extensions/seed.test.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionQuestion.svelte",
+		"docs/extensions.md",
+		"package.json"
+	],
+	"errors": [
+		"`tsx scripts/generate-pi-extension-source.ts` failed with esbuild error: 'Top-level await is currently not supported with the cjs output format' — script uses top-level await and tsx defaulted to CJS.",
+		"svelte-check failed in `apps/app` after changes: `Property 'options' does not exist` on the union of select/confirm/editor in `PiExtensionQuestion.svelte` — TS didn't narrow the union across `||`; fixed by computing `acceptsText` with explicit `method === 'select'` branch and adding an early-return guard in `submitText` before accessing `request.options`.",
+		"Seed test failed with ENOENT when trying to write a stale seeded file — `pi-extensions/` subdir didn't exist under the temp data dir; fixed by adding `mkdir(join(dataDir, 'pi-extensions'), { recursive: true })` before writing."
+	],
+	"outcome": "shipped"
+}

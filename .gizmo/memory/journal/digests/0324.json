@@ -1,0 +1,15 @@
+{
+	"segment": "0324",
+	"at": "2026-09-18T22:42:38.005Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated the Gizmo codebase and existing extension registry to plan a new local-Ollama model management extension. Surveyed how extensions are structured (pi-extension + optional gizmoExtension server exports + paired gizmoWebExtension browser bundle), where the local installed registry lives (~/.gizmo/registries/gizmo-registry), how providers/models are exposed via pi-model-runtime and ProviderStatus, and how Pi supports custom providers via ~/.pi/agent/models.json (Ollama is natively supported). No code was written yet — this is exploratory scoping only.",
+	"decisions": [
+		"An Ollama extension can register models by writing to Pi's custom providers file (~/.pi/agent/models.json) using the Ollama API base URL, since Pi already supports Ollama natively.",
+		"Extension shape should follow the existing pattern: a pi-extension.ts plus an optional gizmoExtension server export and a paired gizmoWebExtension browser bundle, packaged like other entries in gizmo-registry/extensions (e.g., activity, unity).",
+		"Model management operations (list/pull/delete/show) should call Ollama's HTTP API directly (http://localhost:11434/api/tags, /api/pull, /api/show, /api/delete) from the server side; long-running pulls may need to stream progress via the existing status/watch channels used by other extensions.",
+		"After mutating models.json the session must reload via modelRuntime.refresh({ allowNetwork: false }) so new local models become selectable in the Gizmo UI."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

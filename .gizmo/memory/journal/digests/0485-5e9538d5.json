@@ -1,0 +1,24 @@
+{
+	"segment": "0485-5e9538d5",
+	"at": "2026-09-18T22:45:11.481Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Installed the typesafe-ai skill globally, then copied it into gizmo's skill path since gizmo doesn't read from the standard agents location. Added .env ignore rules to two Unity projects' .gitignore files and copied the TYPESAFE_API_KEY .env into both, with key also set as a Windows user env var and shell export.",
+	"decisions": [
+		"Copy typesafe-ai skill from ~/.agents/skills/typesafe-ai to ~/.gizmo/skills/typesafe-ai because gizmo does not load from the standard agents skill directory.",
+		"Mirror .env into ~/UnityProjects/ncp/.env and ~/UnityProjects/cronkis/.env and chmod 600, because these are the projects with active journals and neither had env ignore rules previously.",
+		"Add `.env`, `.env.*`, and `!.env.example` rules to both Unity .gitignore files; git check-ignore confirms they are now ignored.",
+		"Set TYPESAFE_API_KEY as a Windows user-level environment variable via setx and export it in the current shell so future projects inherit it without another file copy.",
+		"Accept 'Eve does not support global skill installation' as an Eve-only limitation and proceed with the install for other agents."
+	],
+	"files": [
+		"C:/Users/mchan/UnityProjects/ncp/.gitignore",
+		"C:/Users/mchan/UnityProjects/cronkis/.gitignore",
+		"~/UnityProjects/ncp/.env (created via copy)",
+		"~/UnityProjects/cronkis/.env (created via copy)",
+		"~/.gizmo/skills/typesafe-ai (populated via copy from ~/.agents/skills/typesafe-ai)"
+	],
+	"errors": [
+		"Global install of typesafe-ai reported 'Eve does not support global skill installation' — this is described as an Eve-only limitation and the install succeeded for all other agents; not a blocker."
+	],
+	"outcome": "shipped"
+}

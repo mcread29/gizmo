@@ -1,0 +1,34 @@
+{
+	"segment": "0267",
+	"at": "2026-09-18T22:41:40.129Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Committed staged changes in the gizmo repository as 'refactor extension-owned workspace UI' (55 files, 445 insertions, 1255 deletions) and discussed the rationale and required protocol change to move from a singular project-service model to extension-keyed services. Two revised prompts for a new agent were drafted, the final one applying the writing-for-agents skill with additional context about current state, target architecture, compatibility constraints, and verification requirements.",
+	"decisions": [
+		"Replace singular project APIs with extension-keyed operations in protocol v26: requests carry extensionId alongside workspacePath, status responses return opaque extension-owned payloads instead of core ProjectStatus, and open/launch operations route to the selected extension's service.",
+		"App state will store project statuses keyed by extension ID rather than a single global projectStatus.",
+		"Server replaces CompositeProjectService.#first() with an extension-keyed service registry.",
+		"Temporarily keep v25 request parsing for migration, but server emits only v26 fields and must avoid extra properties rejected by strict schemas.",
+		"Move Unity-specific status/open payload types, validation, parsing, and errors into the Unity extension; keep workspace identity and the inspector shell app-owned, with extension tabs as peers.",
+		"Preserve unrelated uncommitted changes in both C:/Users/mchan/projects/gizmo and C:/Users/mchan/.gizmo/registries/gizmo-registry during implementation.",
+		"The separate registry repository had no staged changes and was not committed.",
+		"Final prompt for the implementing agent follows the writing-for-agents skill, with concise current-state and target-architecture context plus compatibility and verification requirements."
+	],
+	"files": [
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/sessions/pi-agent-types.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/app/src/app.css",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/agent-event-reducer.ts",
+		"apps/app/src/lib/extensions/workspace-label.ts (created)",
+		"apps/app/src/lib/extensions/workspace-view.ts (deleted)",
+		"apps/app/src/styles/changes-parts/summary.css (deleted)",
+		"apps/app/src/styles/changes-parts/tree.css (deleted)",
+		"apps/app/src/styles/changes.css (deleted)",
+		"apps/app/src/styles/diagnostics.css (deleted)",
+		"apps/app/src/styles/inspector-parts/activity.css (deleted)"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

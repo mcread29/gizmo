@@ -1,0 +1,24 @@
+{
+	"segment": "0352",
+	"at": "2026-09-18T22:43:01.007Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the fake agent client to support session branching by adding a tree-based session model (treeEntries, messageById, leafId) with a branch() method that rebuilds message history along a chosen path. Updated the tree UI components (SessionTreeActions, SessionTreeScreen) to expose a \"start alternate path\" action replacing \"continue from here\" and added branching busy state with a Fork action when editing.",
+	"decisions": [
+		"Replaced 'Continue from here' (CornerUpLeft icon) with 'Start alternate path' (GitFork icon) as the primary tree action, signaling a shift from resuming to forking the session.",
+		"Modeled fake session state with explicit treeEntries array plus messageById and leafId fields rather than only a linear messages array, enabling branch navigation.",
+		"Added a `branch(sessionId, entryId)` method that walks parent links from the chosen entry to rebuild the messages list before setting it as the new leaf.",
+		"Introduced a `branching` busy flag passed to SessionTreeActions to disable actions while a fork is in progress, and changed the edit-overlay primary button label from 'Run' to 'Fork' to reflect the new semantics."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/fake-client/sessions.ts",
+		"apps/app/src/lib/agent-client/fake-client/prompt-stream.ts",
+		"apps/app/src/lib/features/tree/SessionTreeActions.svelte",
+		"apps/app/src/lib/features/tree/SessionTreeScreen.svelte"
+	],
+	"errors": [
+		"Multi-edit to SessionTreeActions.svelte failed to find one edit block due to whitespace/exact-match mismatch; resolved by re-reading the file and applying edits in two separate successful calls.",
+		"Atomic multi-edit to SessionTreeScreen.svelte failed to find one block for the Action list props; worked around by re-reading the file to confirm exact text and applying subsequent edits in smaller batches.",
+		"Another atomic edit to SessionTreeScreen.svelte for the row click handler text also failed to match exactly, requiring a further re-read of the file before retrying."
+	],
+	"outcome": "shipped"
+}

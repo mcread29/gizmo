@@ -1,0 +1,12 @@
+{
+	"segment": "0033",
+	"at": "2026-09-18T22:57:10.874Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigation of the @earendil-works/pi-coding-agent package's internal APIs (package-manager, agent-session-runtime, project trust, tools, session disposal) and surrounding agent-server and app code. Reads confirmed that resolveProjectTrusted and emitProjectTrustEvent are exported, that agent sessions expose async dispose, and that the existing patch targets @earendil-works/pi-coding-agent@0.84.2.",
+	"decisions": [],
+	"files": [],
+	"errors": [
+		"Read of apps/agent-server/src/transport/websocket-server.ts at offset 501 failed because the file only has 491 lines."
+	],
+	"outcome": "explored"
+}

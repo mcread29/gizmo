@@ -1,0 +1,35 @@
+{
+	"segment": "0407",
+	"at": "2026-09-18T22:43:44.260Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented three non-disruptive connection changes: server-snapshot now carries runtime state (Pi's isStreaming flag) so resume reflects the live run, event ids are globally unique across project and agent hubs so clients can detect gaps and the server broadcasts project events through the agent hub, and the server emits a heartbeat every 15s carrying its newest event id while the client only arms a silence watch after receiving one. A skipped id or a heartbeat ahead of the client triggers an in-place resync that preserves scroll and focus.",
+	"decisions": [
+		"Snapshot includes a `state` field derived from Pi's `isStreaming` at resume time, applied on every switch and resync so Stop/Steer mode reflects the live runtime rather than the last heard event.",
+		"Event ids are no longer renumbered per socket and project events now flow through the shared agent hub, giving every connection one contiguous sequence so gaps can be detected.",
+		"Resync is in-place: re-read the thread, swap messages, replay deltas past the snapshot cutoff; no loading state, scroll, or focus is disturbed.",
+		"Reconnect to the same thread reuses the resume/resync path instead of clearing the transcript.",
+		"Heartbeat is a plain message (not an event) sent every 15s on each socket carrying the server's newest event id; it renders nothing.",
+		"Silence watch is armed only after the first heartbeat, so servers/fakes that send none are never timed out; three missed heartbeats close the socket and trigger the normal backoff reconnect + in-place resync.",
+		"Snapshot field and heartbeat are additive protocol changes so older clients remain compatible.",
+		"Replaced the stub PiAgentService in the project-service-routing test with a real event hub because project events now go through it.",
+		"Adjusted the new websocket-server tests to await `createSession` responses before teardown to avoid a Windows temp-dir cleanup race (ENOTEMPTY)."
+	],
+	"files": [
+		"packages/protocol/src/heartbeat.ts",
+		"packages/protocol/src/sessions.ts",
+		"packages/protocol/src/events.ts",
+		"packages/protocol/src/parsers.ts",
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/sessions/session-catalog-service.ts",
+		"apps/agent-server/src/transport/websocket-connection.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/app/src/lib/agent-client/agent-store/ConnectionCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionCapability.ts",
+		"apps/agent-server/tests/transport/websocket-server.test.ts"
+	],
+	"errors": [
+		"One new websocket-server test initially failed on Windows with ENOTEMPTY during temp-dir cleanup; the teardown was racing the createSession response, fixed by awaiting the create responses before afterEach ran."
+	],
+	"outcome": "shipped"
+}

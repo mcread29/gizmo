@@ -1,0 +1,28 @@
+{
+	"segment": "0009",
+	"at": "2026-09-18T22:37:40.406Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added a `session.commands` RPC that returns composer commands (slash commands from the active session's extension runner, prompts, and skills). Wired it through the protocol schema, server service, websocket transport, AgentClient interface, FakeAgentClient and a new InvalidEventClient test stub, and added a UI test verifying the composer's command menu includes extension, prompt, and skill entries.",
+	"decisions": [
+		"The composer command list combines three sources — extension commands via the session's ExtensionCommandContext, session prompt templates, and resource-loader skills — exposed through a new `service.getCommands()` method and `session.commands` websocket RPC.",
+		"Skill commands are captured lazily through a `getSkillCommands` closure rather than a plain array so they reflect any reload after the session is constructed.",
+		"`ExtensionCommandContext` is used (rather than `ExtensionRunner.createContext().getCommands()`) since `getCommands` is not on the extension context's interface.",
+		"Removed an invalid `aria-expanded` attribute on the composer textarea to satisfy svelte-check a11y rules."
+	],
+	"files": [
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/App.test.ts",
+		"apps/app/src/lib/features/conversation/Composer.svelte"
+	],
+	"errors": [
+		"Initial `createCommandContext()` call had no matching method on `ExtensionCommandContext`; resolved by switching to `ExtensionCommandContext` and typing the destructured fields so binding elements aren't implicit `any`.",
+		"An edit to `pi-agent-service.ts` failed to match because the intended anchor text hadn't been written yet; reissued after introducing the `getSkillCommands` closure and matched successfully.",
+		"svelte-check initially flagged `InvalidEventClient` for missing `listCommands` and the composer textarea for an invalid `aria-expanded`; both fixed by adding the method to the test stub and removing the attribute."
+	],
+	"outcome": "shipped"
+}

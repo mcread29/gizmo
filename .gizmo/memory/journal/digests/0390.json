@@ -1,0 +1,27 @@
+{
+	"segment": "0390",
+	"at": "2026-09-18T22:43:32.081Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added two test files (skill-groups and sidebar-reorder), fixed an integration-test assertion, migrated 30 remaining empty/error call sites to a new ResourceNote component, removed the redundant settings title band, then extended MessageList's pin-to-end settle loop so a 424-message thread no longer shows blank space when switched to.",
+	"decisions": [
+		"Replaced <p data-ui=\"resource-empty\"|\"resource-error\"> markup with a shared <ResourceNote> component in WorkspaceScreen.svelte and SkillsSettings.svelte, so tone/role/live behavior lives in one place.",
+		"Removed the settings-screen header band but kept an sr-only <h1 id=\"settings-screen-title\">Settings</h1> so the screen still has an accessible name, and collapsed the [data-ui='settings-screen'] grid to a single track.",
+		"MessageList pinToEnd now waits for `settleFrames` (8) consecutive unchanged frames or `settleTimeout` (4000 ms) before releasing auto-follow, and cancels the settle immediately on wheel/touchstart so manual scroll still wins."
+	],
+	"files": [
+		"apps/app/tests/lib/features/settings/skill-groups.test.ts",
+		"apps/app/tests/lib/features/sessions/sidebar-reorder.test.ts",
+		"apps/app/tests/app/workspace-navigation.integration.test.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceScreen.svelte",
+		"apps/app/src/lib/features/settings/SkillsSettings.svelte",
+		"apps/app/src/lib/features/settings/SettingsScreen.svelte",
+		"apps/app/src/styles/shell-parts/resize-and-navigation.css",
+		"scripts/check-ui-hooks.mjs",
+		"apps/app/src/lib/features/conversation/MessageList.svelte"
+	],
+	"errors": [
+		"Initial test run failed: workspace-navigation.integration.test.ts expected 1 thread row but got 2; fixed by re-querying the thread list from `threads?.querySelectorAll(...)` instead of the parent list.",
+		"check-ui-hooks.mjs flagged [data-ui='resource-empty'|'resource-error'] as dead hooks even though ResourceNote now sets `data-ui` dynamically; flagged [data-ui='settings-screen-header'] h1/span rules whose ancestor markup was just removed."
+	],
+	"outcome": "shipped"
+}

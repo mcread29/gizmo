@@ -1,0 +1,21 @@
+{
+	"segment": "0061",
+	"at": "2026-09-18T22:38:21.565Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Replaced the detached pnpm-based Windows launcher with a hidden wscript.exe/.cmd runner so no console window appears, and folded the agent-server boot into the managed runner to avoid a second child process. After fixing a Vite binary path resolution error and tightening TypeScript import syntax, both ports 5173 and 8787 listen and HTTP 200 was returned from localhost:5173.",
+	"decisions": [
+		"Windows detached launcher now uses wscript.exe + a generated .cmd file with windowsHide instead of a detached pnpm process, because pnpm trees were attaching a conhost console window.",
+		"The agent server is imported in-process by the runner instead of being spawned as a separate child process, to simplify the Windows process tree and keep it fully detached.",
+		"Use join(dirname(requireFromApp.resolve('vite/package.json')), 'bin', 'vite.js') to locate the Vite CLI, instead of relying on requireFromApp.resolve('vite/bin/vite.js')."
+	],
+	"files": [
+		"scripts/dev-server.ts"
+	],
+	"errors": [
+		"Dev server failed to start: an initial edit attempt did not match the file (whitespace mismatch); retried successfully.",
+		"TypeScript compile failed with TS2835 because the new import of the agent server omitted the .ts extension; fixed by writing the explicit .ts extension and passing --allowImportingTsExtensions.",
+		"Server still exited during startup because the runner attempted to resolve 'vite/bin/vite.js' directly, which failed package-exports resolution; fixed by resolving 'vite/package.json' and joining bin/vite.js.",
+		"Earlier curl checks returned HTTP 000 / exit 7 because no listener was up while iterating on the launcher; the final run returned HTTP 200."
+	],
+	"outcome": "shipped"
+}

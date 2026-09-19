@@ -1,0 +1,17 @@
+{
+	"segment": "0359",
+	"at": "2026-09-18T22:43:04.993Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Redesigned the session tree UI by consolidating label, branch, and 'here' badges under a single `tree-meta` element in SessionTreeList.svelte, then updated the matching mobile CSS selectors in session-tree.css. Verified the changes with prettier formatting, svelte-check (0 errors/0 warnings), the full vitest suite (42 files, 210 tests passing), and git diff --check.",
+	"decisions": [
+		"Consolidated tree-entry badges (label, branch, here) into one `data-ui='tree-meta'` flex container rather than separate grid columns, so mobile layout can wrap and align them as a group."
+	],
+	"files": [
+		"apps/app/src/lib/features/tree/SessionTreeList.svelte",
+		"apps/app/src/styles/shell-parts/session-tree.css"
+	],
+	"errors": [
+		"pnpm check:hooks reported 3 pre-existing dead data-ui hooks (`native-folder-picker`, `window-control`, `window-controls`) styled in CSS but unused in markup; root `pnpm check` remains blocked by these unrelated issues."
+	],
+	"outcome": "shipped"
+}

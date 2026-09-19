@@ -1,0 +1,19 @@
+{
+	"segment": "0294",
+	"at": "2026-09-18T22:42:06.307Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Audited the Gizmo monorepo (excluding on-disk extensions) by mapping layout, fanning out three read-only Sonnet subagents for bugs, refactoring, and UI/UX, and spot-verifying their top claims against source. Delivered a prioritized three-group report (bugs/refactoring/UI/UX) shaped to the 'i have adhd' skill.",
+	"decisions": [
+		"Use non-Fable general-purpose subagents for breadth/summarization, not for edits; do manual verification of subagent claims before reporting.",
+		"Scope the audit to apps/agent-server, apps/app, packages/protocol, packages/extensions, packages/ui; exclude on-disk extensions, skills-ref, and resources/sessions.",
+		"Group findings into Bugs / Refactoring / UI/UX, each split into 'Do now' (with time estimates) and 'Later'.",
+		"Run full test suite as a baseline check; report 321 tests passing across 5 packages before listing findings.",
+		"Recommend fixing SessionCapability.newSession selectionVersion guard first (~20 min) as the entry step.",
+		"Decline to audit apps/agent-server/src/sessions/** and resources/** in this pass; offer a separate sweep."
+	],
+	"files": [],
+	"errors": [
+		"Initial 'cd apps/agent-server/src' failed because the path resolved relative to the wrong CWD; recovered by re-running with an absolute Windows path."
+	],
+	"outcome": "explored"
+}

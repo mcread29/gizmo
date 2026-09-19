@@ -1,0 +1,36 @@
+{
+	"segment": "0035",
+	"at": "2026-09-18T22:57:12.486Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read-only architectural analysis of the Gizmo extension system, mapping how extensions are discovered (via gizmo.extensions.json), loaded and registered on the agent-server (load-extensions, registry, extension-host-service, web-bundles), exposed over the WebSocket transport, and consumed by the Svelte app (registry.svelte, runtime/install, runtime/load-web-extension, runtime/host-modules, dialogs/settings/panel Svelte components) with the shared protocol schemas. The work produced a report on current flow, coupling points, proposed Pi-as-source-of-truth refactor with a manifest/lifecycle, and migration path; no files were modified.",
+	"decisions": [
+		"Treat Pi extensions as the backend source of truth, with Gizmo frontend web extensions demoted to optional, custom browser UIs bound to a Pi extension id rather than first-class integrations",
+		"Introduce a manifest describing each extension's capabilities (tools, system prompt, project service, web UI bundles) so the core can discover them without hardcoding per-extension types",
+		"Define a lifecycle around discovery → registration → web-bundle shipping → activation in the Svelte app, mirroring Pi's `pi` package.json key concept (documented as worth adding once a third-party ecosystem exists)",
+		"Couple web UI bundles to their owning extension id on the protocol/event layer so the existing extensions-changed WebSocket event can drive frontend install/activation via the existing runtime/install + registry.svelte path"
+	],
+	"files": [
+		"gizmo.extensions.json",
+		"docs/extensions.md",
+		"packages/extensions/src/extension.ts",
+		"packages/extensions/src/project-service.ts",
+		"apps/agent-server/src/extensions/load-extensions.ts",
+		"apps/agent-server/src/extensions/registry.ts",
+		"apps/agent-server/src/extensions/extension-host-service.ts",
+		"apps/agent-server/src/extensions/web-bundles.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/app/src/lib/extensions/types.ts",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/app/src/lib/extensions/runtime/install.ts",
+		"apps/app/src/lib/extensions/runtime/load-web-extension.ts",
+		"apps/app/src/lib/extensions/runtime/host-modules.ts",
+		"apps/app/src/lib/extensions/workspace-view.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/agent-event-reducer.ts",
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

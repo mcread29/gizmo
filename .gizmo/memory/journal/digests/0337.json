@@ -1,0 +1,27 @@
+{
+	"segment": "0337",
+	"at": "2026-09-18T22:42:48.229Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added a re-export shim in resource-catalog.ts to keep existing test imports working, then split scripts/dev-server.ts into three files (dev-state.ts, dev-process.ts, dev-server.ts) using a relative root path that accounts for the new scripts/dev/ subdirectory. Finally split two over-length settings CSS files — extracting shared resource primitives from skills-library.css into resource-shared.css and the segmented control / connection-state styles from layout.css into segmented.css — wiring both into settings.css.",
+	"decisions": [
+		"Re-export discoverResources and Discovery from resource-catalog.ts with a compat comment rather than updating test files, to keep existing importers compiling unchanged.",
+		"Split scripts/dev-server.ts into scripts/dev/dev-state.ts (paths, state I/O, delay) and scripts/dev/dev-process.ts (process management) plus a slimmer scripts/dev-server.ts (CLI entry), instead of further chunking.",
+		"Compute root as join(__dirname, '..', '..') inside scripts/dev/dev-state.ts because __dirname is now scripts/dev, not scripts.",
+		"Create settings-parts/resource-shared.css housing search-field, resource-scope/detail/list/row/empty/error primitives shared by skills/agent/extensions pages, instead of duplicating them per page.",
+		"Create settings-parts/segmented.css holding the segmented control and connection-state pill (used across multiple settings pages) rather than tucking them into the existing controls.css which would push it over the 250-line warning threshold.",
+		"Drop the orphaned trailing '/* Skills */' comment in layout.css since it pointed to nothing."
+	],
+	"files": [
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"scripts/dev/dev-state.ts",
+		"scripts/dev/dev-process.ts",
+		"scripts/dev-server.ts",
+		"apps/app/src/styles/settings.css",
+		"apps/app/src/styles/settings-parts/skills-library.css",
+		"apps/app/src/styles/settings-parts/layout.css",
+		"apps/app/src/styles/settings-parts/resource-shared.css",
+		"apps/app/src/styles/settings-parts/segmented.css"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

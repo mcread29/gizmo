@@ -1,0 +1,24 @@
+{
+	"segment": "0264",
+	"at": "2026-09-18T22:41:39.067Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The assistant executed a cleanup pass that renamed internal `activeDomains`/`domainId` terminology to `enabledExtensionIds`/`activeExtensions` across the app, agent-server, and tests via PowerShell bulk replace plus targeted edits to ProjectCapability, SessionCapability, pi-session-factory, and app-settings. It also relocated Unity-specific core CSS by writing a new activity.css inside the activity extension package, importing it from ActivityPanel.svelte, and removing the equivalent activity blocks from apps/app/src/styles/inspector-parts/panels.css.",
+	"decisions": [
+		"Renamed internal field `activeDomains` to `enabledExtensionIds` and `domainId` parameter to `enabledExtensionIds` across apps/app via PowerShell text replace (transcript shows the command and successful write)",
+		"Renamed agent-server local `activeDomains` to `activeExtensions` in pi-session-factory.ts while keeping the wire/protocol field `domains` unchanged for compatibility",
+		"Updated GitCapability error message from 'No Unity project is selected' to 'No workspace is selected' to remove Unity-specific copy",
+		"Moved activity panel styling out of core apps/app styles into the activity extension package by creating packages/activity/src/web/activity.css and importing it from ActivityPanel.svelte, then deleting the equivalent rules from panels.css"
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/agent-store/ProjectCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/GitCapability.ts",
+		"apps/app/tests/lib/app-settings.test.ts",
+		"apps/app/src/styles/inspector-parts/panels.css",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/activity/src/web/activity.css",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/activity/src/web/ActivityPanel.svelte"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

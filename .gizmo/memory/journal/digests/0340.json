@@ -1,0 +1,21 @@
+{
+	"segment": "0340",
+	"at": "2026-09-18T22:42:53.386Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed that the previous `pnpm web:update` had restarted the Gizmo web daemon from a plain shell, stripping the GIZMO_WEB_HOSTS env that .gizmo-web/startup.cmd normally supplies (covering localhost, 127.0.0.1, the Tailscale IP, and genge.angler-musical.ts.net). The stripped env caused Vite to 403 requests by MagicDNS hostname and the agent server to reject WebSocket origins from tailnet names, breaking Tailscale access.",
+	"decisions": [
+		"Make `pnpm web:update` rebuild, stop, then start through `.gizmo-web/startup.cmd` on Windows when the gitignored launcher exists, so the machine-local GIZMO_WEB_HOSTS and mise PATH survive every update; fall back to plain `pnpm web:server start` elsewhere.",
+		"A failed build must short-circuit `web:update` with a nonzero exit and leave the currently running instance untouched, so updates cannot replace a working daemon with a broken build.",
+		"Documented in the README that `pnpm web:update` is the proper way to rebuild the always-on web server, since it preserves the configured hostnames."
+	],
+	"files": [
+		"scripts/web-update.ts",
+		"package.json",
+		"README.md"
+	],
+	"errors": [
+		"Tailscale hostname `genge.angler-musical.ts.net:4173` returned 403 from Vite's `allowedHosts` because the recent `pnpm web:update` daemon restart lost the machine-local GIZMO_WEB_HOSTS env, leaving only `localhost,127.0.0.1` allowed.",
+		"Agent server WebSocket origins from tailnet names/IPs would be rejected for the same reason: GIZMO_ORIGINS derives from GIZMO_WEB_HOSTS (default localhost,127.0.0.1) once that env is missing."
+	],
+	"outcome": "shipped"
+}

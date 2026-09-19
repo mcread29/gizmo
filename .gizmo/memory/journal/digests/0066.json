@@ -1,0 +1,19 @@
+{
+	"segment": "0066",
+	"at": "2026-09-18T22:38:33.725Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Research-only task that surveyed Matt Pocock's public agent-skills repository (mattpocock/skills) via web search and scraping GitHub raw files, AI Hero docs site, and API endpoints. Produced a report covering the current setup (25 MIT-licensed skills shipped as a Claude Code plugin and via `npx skills add`), notable UX features (router skill, grilling interview format, human-vs-model invocation split, progressive disclosure, per-repo setup, persistent vocabulary, HTML report artifacts), and file conventions (bucket layout, SKILL.md frontmatter, agents/openai.yaml, mirrored human docs, AGENTS.md-as-symlink-to-CLAUDE.md). No files were edited.",
+	"decisions": [
+		"Sourced authoritative material from github.com/mattpocock/skills (README, CLAUDE.md, CONTEXT.md, plugin.json, package.json), individual SKILL.md files, .agents/invocation.md, and aihero.dev/skills rather than secondary write-ups.",
+		"Framed the catalog as organized around user journeys (Getting Started → Main Flow → Shaping → Upkeep → Productivity → Reference) rather than alphabetically, and highlighted a visible idea-to-ship spine (grill-with-docs → to-spec → to-tickets → implement → code-review).",
+		"Distinguished human-invoked skills (disable-model-invocation: true; policy.allow_implicit_invocation: false in agents/openai.yaml) from model-invoked reusable disciplines as a primary UX axis.",
+		"Reported the dual install path (Claude Code plugin via `claude plugins install mattpocock-skills`; editable files via `npx skills@latest add mattpocock/skills`) and the one-time `/setup-matt-pocock-skills` per-repo configuration step.",
+		"Flagged a public drift between README's mention of Linear and the actual setup skill's implementations (GitHub, GitLab, local Markdown, free-form 'other').",
+		"Recommended eight concrete borrowable patterns: journey-based catalog, router skill, one-time setup skill, invocation split, recommended answers + dependency-aware questioning rounds, external domain vocabulary, artifact-quality UX (e.g., self-contained HTML reports), and mirrored human docs with automated sync checks."
+	],
+	"files": [],
+	"errors": [
+		"Search engines reported unavailable: Brave ('too many requests'), DuckDuckGo (CAPTCHA), Startpage (Suspended: CAPTCHA), Wikipedia ('too many requests' or 'HTTP error'). These did not block the work because GitHub and aihero.dev scrapes succeeded."
+	],
+	"outcome": "explored"
+}

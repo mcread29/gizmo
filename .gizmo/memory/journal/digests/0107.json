@@ -1,0 +1,15 @@
+{
+	"segment": "0107",
+	"at": "2026-09-18T22:39:13.952Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Discussed how to extend web UI for the globally installed subagents and workflows Pi extensions. Settled on a rule that UI must never ship without its extension, leading to a 'sibling web bundle' design: each Pi extension in the agent dir can carry a sibling .web.js file discovered and served by Gizmo via extensions.web, keyed by the extension file's stem.",
+	"decisions": [
+		"UI must never ship without its Pi extension — globally installed Pi extensions must be able to carry their own web UI alongside the .ts file in the agent directory, rather than living in a separate Gizmo package.",
+		"Pairing key for a Pi extension's web bundle is the extension file's stem (e.g., ask-user.ts ↔ ask-user.web.js), and Gizmo must discover sibling .web.js files alongside Pi extension paths (agent-dir + seeded) and serve them via extensions.web, deduped against Gizmo extensions and builtins.",
+		"ask_user's web UI moves out of the app's static builtins and becomes a seeded ask-user.web.js beside ask-user.ts, re-joining the pair per the rule; the chat question card itself remains a shell-generic bridge renderer.",
+		"Web bundles reuse the existing GizmoWebExtension contract (id, labels, resultFor, inspectorTabs, etc.), so subagents/workflows UI can be authored against the same shape without forking Gizmo."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

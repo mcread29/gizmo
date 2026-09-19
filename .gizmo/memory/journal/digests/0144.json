@@ -1,0 +1,10 @@
+{
+	"segment": "0144",
+	"at": "2026-09-18T22:39:51.953Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read-only exploration of the Gizmo web extension contract across the app, agent-server, and a separate gizmo-registry: inspected bundled extension definitions (unity, git, svelte, activity, ask-user), extension loading/registration code, the web extension build script, and test files. No files were created or modified.",
+	"decisions": [],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

@@ -1,0 +1,21 @@
+{
+	"segment": "0082",
+	"at": "2026-09-18T22:38:49.052Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed and fixed a bug where leaving a thread mid-stream caused the in-flight assistant message to be lost on return. Added an `activeAssistantMessageId` getter on `PiEventTranslator`, an `inFlightAssistantView` helper in `session-transcript.ts`, and updated `pi-agent-service.resumeSession` so the active branch splices the live in-flight view into the snapshot when one exists, alongside a loosened `PiSessionLike.messages` content typing for `BashExecutionMessage`.",
+	"decisions": [
+		"Reuse the existing JSONL file as the snapshot source for active sessions rather than rebuilding from the live manager — `snapshot()` already reads the file, so keep that and only splice the in-flight view on top.",
+		"Represent the in-flight view via `inFlightAssistantView(activeAssistantId, partial)` using the translator's id so subsequent `message.update` events continue to update the same message rather than appending a new one.",
+		"Guard the splice with `if (inFlight)` and rely on the translator clearing `#activeMessageIds` at `message_end` so the completed message is not duplicated when `agent_settled` lags the persistence.",
+		"Make `PiSessionLike.messages[].content` optional because pi's `AgentMessage` union includes `BashExecutionMessage` without a `content` field."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-event-translator.ts",
+		"apps/agent-server/src/sessions/session-transcript.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts"
+	],
+	"errors": [
+		"TypeScript check failed: `PiSessionLike.messages[].content` was typed as required but `BashExecutionMessage` lacks `content`. Fixed by making `content` optional on the interface."
+	],
+	"outcome": "explored"
+}

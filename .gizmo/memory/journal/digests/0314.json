@@ -1,0 +1,19 @@
+{
+	"segment": "0314",
+	"at": "2026-09-18T22:42:26.467Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran the memory backfill CLI against 64 real sessions (60 pi-archive, 4 claude-code), writing 64 segments (6,408 messages, 9.0 MB) into .gizmo/memory/journal/. Verified idempotency by re-running (63 skipped, 1 new segment from this conversation's incremental growth), then confirmed typecheck, 168 passing tests, and clean formatting.",
+	"decisions": [
+		"Switched Pi session reading from getEntries() to getBranch() so backfill reads the same source as live journaling, avoiding duplicated prose from retry/abandoned sibling entries",
+		"Recursive directory scan needed because Pi and Claude Code nest sessions in per-project subdirectories rather than a flat layout",
+		"Filtered Claude Code mechanical noise (<command-name>, <local-command-stdout>, caveat banners, <system-reminder> blocks) — they had been 7% of user sections, the most repeated text in the corpus; reduced to 2 of 344",
+		"Skip empty ## assistant sections that contain only a stop reason in the normalizer (also fixes live journaling)",
+		"Left genuine Pi duplicates (~1%, 2 of 344, where Pi records a re-sent prompt as two distinct entries) uncollapsed rather than editorializing source data",
+		"Imported segments tagged with source and trigger: backfill in frontmatter so the knowledge layer can distinguish imported history from live capture"
+	],
+	"files": [],
+	"errors": [
+		"`pnpm --filter @gizmo/agent-server backfill` sets cwd to the package directory, so it scanned the wrong workspace and found 0 sessions; running from the repo root via `npx tsx apps/agent-server/src/memory/backfill-cli.ts` found 64"
+	],
+	"outcome": "shipped"
+}

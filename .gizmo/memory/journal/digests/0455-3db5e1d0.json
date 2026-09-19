@@ -1,0 +1,30 @@
+{
+	"segment": "0455-3db5e1d0",
+	"at": "2026-09-18T22:44:40.003Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Split the over-length fake-client prompt-stream.ts by extracting addUserMessage/addAssistantMessage into a separate module, then ran the full verification suite (svelte-check, tsc, length check, app/agent-server/protocol tests) all clean. Rebuilt the app and relaunched the web server through the proper .gizmo-web/startup.cmd launcher, then smoke-tested the production build over the tunnel domain and accepted the origin. Added two memory notes (gizmo-web-server-startup, gizmo-headless-verification), updated MEMORY.md to index them, and restored the .gizmo-web/server.json state file so web:server:status tracks the running daemon. The assistant also confirmed eight earlier fixes shipped and are live.",
+	"decisions": [
+		"Split addUserMessage/addAssistantMessage out of prompt-stream.ts into its own module to satisfy the 300-line file limit; this brought prompt-stream.ts down to 251 lines.",
+		"Relaunch the web server via .gizmo-web/startup.cmd rather than bare web:server:start, because the bare start drops the tunnel domain from the agent server's WebSocket origin allowlist.",
+		"Restore .gizmo-web/server.json by walking up the parent-process chain until the web-server.ts run process is found, so pnpm web:server:status/stop track the actual daemon.",
+		"Capture the always-on web server and headless verification workflows as durable memory notes (gizmo-web-server-startup.md, gizmo-headless-verification.md) indexed from MEMORY.md, including the note that the dev server on 5173 and the production launcher on 4173 cannot run concurrently because both want port 8787.",
+		"Use playwright-core loaded from nw_wrld's node_modules as the headless verification path when no preview MCP host is available, with `?fake` on Vite 5173 for dev and the tunnel domain for production."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/fake-client/prompt-stream.ts",
+		"apps/app/src/lib/agent-client/fake-client/thread-extras.ts",
+		"apps/app/src/lib/features/conversation/MessageList.svelte",
+		"WORKLOG.md",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\gizmo-web-server-startup.md",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\gizmo-headless-verification.md",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\MEMORY.md",
+		".gizmo-dev/smoke.mjs"
+	],
+	"errors": [
+		"pnpm check:loc reported apps/app/src/lib/agent-client/fake-client/prompt-stream.ts had 309 lines and exceeded the 300-line limit; resolved by extracting the fake message-append methods into a sibling module.",
+		"Bare web:server:start dropped the tunnel domain from the agent server's WebSocket origin allowlist, causing the assistant's own connection error; fixed by relaunching through .gizmo-web/startup.cmd and confirming the domain origin is accepted again.",
+		"First Start-Process attempt for the launcher failed with 'The system cannot find the file specified' due to a path quoting issue; the subsequent invocation succeeded and the server came up listening on 4173 and 8787.",
+		"cat .gizmo-web/server.json returned 'No such file or directory' after the relaunch; resolved by walking the parent process tree to find the web-server.ts run process and rewriting server.json with its PID."
+	],
+	"outcome": "shipped"
+}

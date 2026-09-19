@@ -1,0 +1,23 @@
+{
+	"segment": "0097",
+	"at": "2026-09-18T22:39:04.330Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed a blank-screen issue caused by Vite failing to broadcast an HMR update, leaving the user's tab on stale broken code; touching the panel file forced a fresh module load and the existing fix rendered correctly. Then read the existing pi-extension-ui-bridge-plan doc, web-bundles loader, and extension types to ground a plan for letting Pi extensions deliver Gizmo web UI alongside Pi backends, gated by the same workspace overrides that already control Pi extension loading.",
+	"decisions": [
+		"Remove the temporary console.debug instrumentation from WorkspaceConfigurePanel.svelte — the file matched its already-committed state after the edits were stripped, so no new commit was needed.",
+		"Plan for Pi extensions to contribute Gizmo UI by reporting effective Pi extension activation per session/workspace (e.g. a `piIntegrations` field resolved next to `integrationsFor()`) so the browser gates UI on the same state the session loaded, instead of today’s `activeDomains` which only covers Gizmo extensions.",
+		"Plan to extend `webExtensionBundles()` to also read a `dist/web.js` bundle from each enabled Pi extension’s own directory (same 8 MB size cap and diagnostics), shipped over the existing `extensions.web` message and loaded by the existing browser loader — no new loader machinery.",
+		"Plan UI gating semantics for a paired extension: show tabs/panels/settings/status when globally enabled AND not workspace-disabled AND the active session actually loaded it — per-project disable already filters session loading via `disabledPiExtensionsFor`, so step 1 closes the loop.",
+		"Plan to unify the Configure screen into a single per-extension row once Pi extensions report UI, collapsing the current Gizmo/Pi sections, with the two catalogs literally merging as `GizmoServerExtension` capabilities (`createTools`, `systemPrompt`, `list`/`invoke`) retire.",
+		"Plan paired web bundles to call their Pi backends via the bridge plan’s anticipated `extension.invoke` protocol message (or events channel) routed to the session’s extension runtime, replacing `invoke`/`ExtensionContext.invoke` for migrated backends, with `createProjectService` moving inside the owning Pi extension module."
+	],
+	"files": [
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte"
+	],
+	"errors": [
+		"Vite dev server silently failed to broadcast an HMR update for the earlier blank-screen fix, leaving the user's tab on the old broken untracked-lookup version — confirmed by the absence of an `hmr update /src/lib/features/workspace/WorkspaceConfigurePanel.svelte` line until the file was touched at 13:49:38, after which the screen rendered correctly.",
+		"Recurring `[console.warn] Could not load web extensions: Agent client is not connected` bursts (3–5 in ~9 seconds at 1:48) suggest a stale tab stuck in a reconnect loop; root cause not confirmed, recommended closing extra Gizmo tabs.",
+		"git commit exited with code 1 because removing the temporary instrumentation produced no diff — the file already matched the committed state, so there was nothing to add."
+	],
+	"outcome": "shipped"
+}

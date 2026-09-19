@@ -1,0 +1,19 @@
+{
+	"segment": "0112",
+	"at": "2026-09-18T22:39:21.491Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Designed and converged on a new extensions model for Gizmo: Gizmo ships with zero bundled extensions; a single registry git repo (curated by the user) is cloned once into a source home, built locally, and individual extensions are linked (symlinks on macOS/Linux, junctions on Windows) into the global pi extensions directory as paired .ts + .web.js files. Existing sibling-bundle UI serving and per-extension build isolation carry over unchanged.",
+	"decisions": [
+		"Gizmo ships zero extensions at install time — no static web builtins, no seeded pi-extensions. All extensions arrive via the registry mechanism.",
+		"The registry is user-curated, not npm or any third-party index. The user owns the registry repo and the hosting.",
+		"The registry is structured as a single git repo (monorepo of extensions) cloned into ~/.pi/agent/extensions-src/registry/, not per-extension repos.",
+		"Install = link (symlink on macOS/Linux, directory junction on Windows so no admin rights needed); uninstall = remove link. Clone stays.",
+		"Update = git pull + rebuild; links need no touch since they point into the registry's build output.",
+		"Build output layout: build/<name>.ts + build/<name>.web.js, produced by a per-extension loop so one failed extension doesn't block the others.",
+		"The existing pi-extensions/ workspace in this repo becomes the dev home / source for publishing the registry (this repo can itself be the registry, cloned directly).",
+		"Gizmo's server role stays generic: manage clone home, invoke the registry's declared build, create/remove links, list status. No extension-specific knowledge."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

@@ -1,0 +1,10 @@
+{
+	"segment": "0277",
+	"at": "2026-09-18T22:41:50.534Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read-only investigation across the agent-store, agent-server, extensions package, and the external gizmo-registry to map out where session-aware project watching, server-side `ProjectService`/`CompositeProjectService` implementations, and Unity registry installation points live. No files were modified; the assistant reviewed tests, package manifests, and registry wiring to plan a Unity registry server installation.",
+	"decisions": [],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

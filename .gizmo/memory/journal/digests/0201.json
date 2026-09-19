@@ -1,0 +1,21 @@
+{
+	"segment": "0201",
+	"at": "2026-09-18T22:40:37.375Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored apps/agent-server/src/extensions/registry-manager.ts into five cohesive modules (manager facade, storage, git-build, catalog, links), each under 300 LOC, while preserving all existing exported API and import paths and maintaining Windows/POSIX behavior. Sessions and transport were not modified.",
+	"decisions": [
+		"Split the single registry-manager.ts into registry-manager.ts (facade), registry-storage.ts (manifests and registry paths), registry-git-build.ts (git and build execution), registry-catalog.ts (extension catalog generation), and registry-links.ts (cross-platform symlink/copy link and unlink).",
+		"Preserve all existing export names and import paths (e.g., extensionWebDir, registryAdd/Update/Remove/Link/Unlink/Status) so callers in transport and elsewhere continue to work without change.",
+		"Use defaultDataDir from ../sessions/session-repository and piAgentDir from ../resources/pi-global-resources for path constants, keeping existing semantics on both Windows and POSIX.",
+		"Changed removeRegistryClone to take a clone path argument instead of a name so it can be invoked with the already-resolved registry clone directory."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"apps/agent-server/src/extensions/registry-storage.ts",
+		"apps/agent-server/src/extensions/registry-git-build.ts",
+		"apps/agent-server/src/extensions/registry-catalog.ts",
+		"apps/agent-server/src/extensions/registry-links.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

@@ -1,0 +1,20 @@
+{
+	"segment": "0141",
+	"at": "2026-09-18T22:39:49.132Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Migrated the active registry from ~/.pi/agent/extensions-src/ to ~/.gizmo/registries/, verified the agent-server WebSocket endpoint (ws://127.0.0.1:8787/agent) returns the expected registry status and extensions.web bundles with no diagnostics, and confirmed non-interactive registry builds work without a terminal.",
+	"decisions": [
+		"Switched the registry home from ~/.pi/agent/extensions-src/ to ~/.gizmo/registries/, with the new manifest at ~/.gizmo/registries/installed.json.",
+		"Repointed Pi backend junctions (~/.pi/agent/extensions/*) and refreshed browser-bundle symlinks (~/.pi/agent/extension-web/*.web.js) to the new registry location.",
+		"Made registry builds non-interactive/CI-safe so they no longer require a terminal."
+	],
+	"files": [
+		"C:/Users/mchan/projects/gizmo/.gizmo/config.json",
+		"C:/Users/mchan/projects/gizmo/.gizmo-dev/agent-server.out.log",
+		"C:/Users/mchan/projects/gizmo/.gizmo-dev/agent-server.err.log"
+	],
+	"errors": [
+		"Initial Get-NetTCPConnection on LocalPort 8787 returned no MSFT_NetTCPConnection objects (server hadn't bound yet), but a subsequent restart via Start-Process with --filter @gizmo/agent-server exec tsx src/server.ts succeeded and the server logged 'Pi Web server listening on ws://127.0.0.1:8787/agent'."
+	],
+	"outcome": "shipped"
+}

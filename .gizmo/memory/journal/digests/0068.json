@@ -1,0 +1,19 @@
+{
+	"segment": "0068",
+	"at": "2026-09-18T22:38:42.453Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Performed a review-only audit of the in-progress Pi global skills/extensions manager implementation in Gizmo: inspected the git diff, ran Svelte autofixer and impeccable anti-pattern detection on AgentSettings/SkillEditor/SkillList, cross-referenced Pi's extensions.md/packages.md docs, and ran `pnpm check` (which passed: 0 errors, 0 warnings). No files were edited.",
+	"decisions": [
+		"Verified that `discoverResources` correctly calls Pi with `noExtensions: true` (pi-agent-service.ts:892) so Pi's loader does not re-scan canonical folders in parallel with Gizmo's manager.",
+		"Confirmed that canonical folders (skills in `~/.pi/agent/skills/`, extensions in `~/.pi/agent/extensions/` and `extensions-disabled/`) align with Pi's documented placement, preserving Pi's own semantics.",
+		"Validated protocol schemas (`SkillResource`/`PiExtensionResource`) parse cleanly via `parseResourceCatalog` round-trip tests; per-project skill `override` flag is preserved in the catalog.",
+		"Determined the `pnpm check` workspace (TypeScript + svelte-check) passes with 0 errors and 0 warnings across all 12 projects.",
+		"Decided to flag but not modify: a TOCTOU-style write path in skill/extension atomic-rename helpers (uses non-locked rename on a temp file), a CSS side-tab accent border and one undocumented color in settings.css (line 810, line 217), and a `$effect` that calls a function inside it in AgentSettings.svelte."
+	],
+	"files": [],
+	"errors": [
+		"`node impeccable/scripts/detect.mjs` exited with code 2 after emitting JSON findings; treated as a non-fatal design audit output (side-tab accent border at settings.css:810, undocumented color #4ade80 at settings.css:217) rather than a script failure.",
+		"`npx @sveltejs/mcp svelte-autofixer` on AgentSettings.svelte returned a suggestion (function call inside `$effect`) but no actual issues; SkillEditor and SkillList returned clean."
+	],
+	"outcome": "explored"
+}

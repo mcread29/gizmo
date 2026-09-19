@@ -1,0 +1,31 @@
+{
+	"segment": "0228",
+	"at": "2026-09-18T22:41:07.125Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Created a new local skills registry at C:/Users/mchan/projects/gizmo-skills-registry containing two extension collections (pstack and Matt Pocock skills) cloned from upstream Git repos, then registered it with Gizmo via registryAdd so a managed copy appears under ~/.gizmo/registries/. After the user reported an Update failure on gizmo-registry, restored the missing source repo at C:/Users/mchan/projects/gizmo-registry by cloning from its managed copy, so git pull --ff-only works again.",
+	"decisions": [
+		"Sourced skills from two upstream repos: cursor/plugins (pstack, commit b9ddc83c) and mattpocock/skills (commit 6654f6b6), placed under extensions/pstack and extensions/matt-pocock-skills respectively.",
+		"Saved upstream LICENSE and README.md alongside each extension as LICENSE.upstream / README.upstream.md for provenance preservation.",
+		"Used the gizmo app's registryAdd API (run via a temporary .mts script through tsx) to register the local path, rather than hand-editing installed.json; this is what produced managed clone ~/.gizmo/registries/gizmo-skills-registry.",
+		"Noted to the user that both collections provide a tdd skill under the same name, so only one should be linked to avoid collision.",
+		"When the gizmo-registry source directory was missing, restored it by cloning from its existing managed copy at ~/.gizmo/registries/gizmo-registry rather than re-adding the registry, preserving the original commit history and registry metadata."
+	],
+	"files": [
+		"C:/Users/mchan/projects/gizmo-skills-registry/extensions/pstack/skills (copied from upstream)",
+		"C:/Users/mchan/projects/gizmo-skills-registry/extensions/pstack/LICENSE.upstream",
+		"C:/Users/mchan/projects/gizmo-skills-registry/extensions/pstack/README.upstream.md",
+		"C:/Users/mchan/projects/gizmo-skills-registry/extensions/matt-pocock-skills/skills (copied from upstream)",
+		"C:/Users/mchan/projects/gizmo-skills-registry/extensions/matt-pocock-skills/LICENSE.upstream",
+		"C:/Users/mchan/projects/gizmo-skills-registry/extensions/matt-pocock-skills/README.upstream.md",
+		"C:/Users/mchan/projects/gizmo-skills-registry (new registry source repo, commit d5e50b5)",
+		"C:/Users/mchan/.gizmo/registries/gizmo-skills-registry (managed clone created by Gizmo)",
+		"C:/Users/mchan/.gizmo/registries/installed.json (gizmo-skills-registry entry added)",
+		"C:/Users/mchan/projects/gizmo-registry (restored from managed clone, commit d707c88)"
+	],
+	"errors": [
+		"Initial sparse-checkout command failed with 'pstack/LICENSE is not a directory' because LICENSE is a file and the cone-mode sparse-checkout path treated it as a directory; recovered by running sparse-checkout set pstack separately before the mattpocock clone.",
+		"First attempt to invoke registryAdd via grep context with tsx failed with ERR_PACKAGE_PATH_NOT_EXPORTED from @earendil-works/pi-coding-agent; recovered by writing a standalone .mts script and running it through pnpm exec tsx, which succeeded.",
+		"User-reported Update failure: 'fatal: C:/Users/mchan/projects/gizmo-registry does not appear to be a git repository' — caused by the source directory having been deleted, so the managed clone's origin remote pointed at a missing path; resolved by cloning the managed copy back to the source location."
+	],
+	"outcome": "shipped"
+}

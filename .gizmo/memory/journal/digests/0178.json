@@ -1,0 +1,33 @@
+{
+	"segment": "0178",
+	"at": "2026-09-18T22:40:20.645Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Inspected app and shared-ui components to audit duplication and then searched for dead or dynamically-set data-ui selectors across CSS and Svelte sources. The session also ran a Python script to cross-check CSS data-ui names against markup usage and invoked the Svelte autofixer on App.svelte, which produced suggestions but no required fixes.",
+	"decisions": [
+		"apps/app/src/lib/components/index.ts re-exports workbench primitives (Button, Dialog, DiffView, Toast, Tooltip, toasts, ToastQueue) from @gizmo/ui so existing app imports keep working",
+		"ConfirmDialog.svelte puts the Cancel button before the confirm action and makes Cancel the default focus target to avoid a single-button destructive modal"
+	],
+	"files": [
+		"apps/app/src/lib/components/index.ts",
+		"apps/app/src/lib/components/ConfirmDialog.svelte",
+		"apps/app/src/lib/components/SelectField.svelte",
+		"apps/app/src/lib/components/Menu.svelte",
+		"apps/app/src/lib/components/ScrollPanel.svelte",
+		"apps/app/src/lib/components/SwitchField.svelte",
+		"apps/app/src/lib/components/Tabs.svelte",
+		"packages/ui/src/Button.svelte",
+		"packages/ui/src/Dialog.svelte",
+		"packages/ui/src/Toast.svelte",
+		"packages/ui/src/Tooltip.svelte",
+		"packages/ui/src/toasts.svelte.ts",
+		"apps/app/src/lib/toasts.svelte.ts",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/app/src/lib/extensions/workspace-view.ts",
+		"apps/app/src/lib/extensions/WorkspaceInspector.svelte",
+		"apps/app/src/App.svelte"
+	],
+	"errors": [
+		"One grep command exited with code 1 due to a PowerShell parser error: 'Missing ')' in method call' — cause not identified in the transcript"
+	],
+	"outcome": "explored"
+}

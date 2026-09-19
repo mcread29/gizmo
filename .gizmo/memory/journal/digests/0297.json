@@ -1,0 +1,19 @@
+{
+	"segment": "0297",
+	"at": "2026-09-18T22:42:10.482Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented drag-and-drop reordering for sidebar workspaces and workbench inspector tabs. Workspace order persists server-side via a new `project.reorder` protocol request handled by ProjectCatalog; inspector tab order persists client-side in app settings. Verified in the browser that both lists reorder and survive reload, then restored the original order.",
+	"decisions": [
+		"Workspace reorder persists server-side via a new `project.reorder` request handled in ProjectCatalog, rather than client-only, because projects already round-trip through the agent.",
+		"Inspector tab reorder persists client-side in AppSettings (localStorage), since tabs are a UI concern not known to the agent.",
+		"Drag-and-drop uses native HTML5 drag events with a DataTransfer object on `[data-ui=\"workspace-row\"]` and `[data-ui=\"tabs-trigger\"]` elements.",
+		"The dev server hosts the agent in-process without watching server-side files, so protocol/schema changes require an explicit `pnpm dev:server:restart` to take effect."
+	],
+	"files": [],
+	"errors": [
+		"The dev server kept rejecting the new `project.reorder` request with `Invalid agent protocol request` from `websocket/transport.ts` because the in-process agent was still running the old protocol schema; the optimistic client update reverted, making the drag appear to do nothing.",
+		"A JavaScript test script errored with `Cannot read properties of undefined (reading 'getBoundingClientRect')` when a row element was not yet rendered.",
+		"Chrome tab showed an error page mid-reload after the dev server restart, requiring a fresh navigation before re-running the drag verification."
+	],
+	"outcome": "shipped"
+}

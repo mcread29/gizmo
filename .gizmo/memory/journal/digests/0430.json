@@ -1,0 +1,22 @@
+{
+	"segment": "0430",
+	"at": "2026-09-18T22:44:13.512Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read-only inspection of the gizmo session tree feature: SessionTreeScreen.svelte, session-tree.ts, SessionTreeActions.svelte, session-tree.css, AgentStore/sessions wiring, fake-client/sessions, session-transcript.ts tree assembly, and existing tests. Catalogued concrete bugs and produced a proposal for a better forking interaction model, without editing any files.",
+	"decisions": [
+		"Inspect only — no files were modified and existing uncommitted changes (resource-paths, discover-resources test, docs/resources.md, plus new attack_clock/pose_missing_blob test files and synty_inspect.py) were left untouched",
+		"Scope of the audit covers SessionTreeScreen.svelte, session-tree.ts, related CSS, AgentStore/session operations, fake tests, and session-transcript.ts tree assembly in agent-server",
+		"Bug class identified in SessionTreeScreen.svelte: tree row 'fold'/'branchIndex'/'branchCount' rely on `kids.length > 0`/depth rules in treeRows that mis-attribute branch depth to folding state rather than actual fork points, causing branch chips to disappear or mis-rank when folds change",
+		"Bug class identified in session-tree.ts: filter semantics (hidden entries keep descendants re-attached to nearest visible ancestor) but `treeRows` walk uses unfiltered sibling counts for `branchCount`, so filtered views over-count or under-count branches and the `branchIndex` can point at wrong siblings",
+		"Bug class identified in session-tree.ts: `default` filter is treated as 'show everything' but still iterates all entries with no distinction from 'all', so `no-tools`/`user-only`/`labeled-only` predicates are not unit-tested for empty-result paths and the `labeled-only` predicate likely crashes on entries without a label slot",
+		"Bug class identified in SessionTreeScreen.svelte: the inline label editor is gated by a single `labelling` variable with no AbortController/cancel-on-unmount, so a slow label save can race with the user closing the tree screen and leave the dialog open or write to a stale entry",
+		"Bug class identified in SessionTreeActions.svelte: the 'Edit and re-run' button is disabled by `streaming` but has no guard that the selected entry is on the active leaf path; editing a branch entry would mutate a non-leaf and silently fork without confirmation",
+		"Bug class identified in agent-server session-transcript.ts: `sessionTree()` includes `branch_summary` and `model_change` entries but the UI's `treeRows` walker keys sibling grouping off `parentId`, so branch-summaries inserted as siblings of the messages they summarize are rendered as their own branch rather than as part of the fork they describe",
+		"Proposed interaction model: replace the flat 'Continue from here' / 'Edit and re-run' pair with an explicit fork action that (a) is only offered on non-leaf entries, (b) shows a fork-point preview highlighting the entry and its descendants-to-be-discarded, (c) names the new branch inline before commit, (d) surfaces the fork in `treeRows` via a new `forkedFrom` chip and a distinct `branchIndex` of 0 in the new subtree, and (e) adds a 'Compare branches' toggle that pins two leaves side-by-side in the transcript area",
+		"Proposed test additions: unit tests in session-tree.test.ts for filtered branch-count/branch-index correctness and for label-editor cancellation; integration coverage in workspace-configuration-and-threads.integration.test.ts for the explicit fork flow and for selecting a branch entry while streaming is disabled",
+		"Out of scope for this audit: rewriting SessionTreeScreen, fixing the filter bugs in treeRows, or implementing the fork UX — only findings and a proposal were delivered"
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

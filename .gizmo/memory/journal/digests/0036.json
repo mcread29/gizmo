@@ -1,0 +1,10 @@
+{
+	"segment": "0036",
+	"at": "2026-09-18T22:57:11.423Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Explored the existing extension integration architecture across the Gizmo codebase and the bundled `@earendil-works/pi-coding-agent` package. Reviewed AgentStore extension loading, the unity/git/activity extension entry points, the extension host interfaces, and Pi's extension runner/resource-loader type definitions to understand how server and web extensions are wired together.",
+	"decisions": [],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

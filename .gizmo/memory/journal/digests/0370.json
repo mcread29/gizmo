@@ -1,0 +1,23 @@
+{
+	"segment": "0370",
+	"at": "2026-09-18T22:43:14.393Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Wired @json-render packages into the web extension build pipeline by hand-maintaining a hardcoded export list for @json-render/svelte, registering json-render and zod as host modules, updating the bundle test to assert the new externals, and documenting the upgrade procedure.",
+	"decisions": [
+		"Maintain a manual export list for @json-render/svelte in apps/app/scripts/json-render-exports.ts instead of dynamically importing it, because the package ships .svelte source that Node cannot import to enumerate exports",
+		"Add @json-render/core, @json-render/svelte, @json-render/svelte/schema, and zod as external host modules in apps/app/src/lib/extensions/runtime/host-modules.ts so they resolve from the host rather than being bundled",
+		"Document in docs/extensions.md that json-render pins must be kept in sync with the export list, and that the extension builder tests verify the list matches the installed version"
+	],
+	"files": [
+		"apps/app/scripts/json-render-exports.ts",
+		"apps/app/scripts/build-web-extension.ts",
+		"apps/app/src/lib/extensions/runtime/host-modules.ts",
+		"apps/app/tests/scripts/build-web-extension.test.ts",
+		"docs/extensions.md"
+	],
+	"errors": [
+		"Initial edit to apps/app/scripts/build-web-extension.ts failed with ENOENT because the new json-render-exports.ts had been written to apps/agent-server/apps/app/scripts/; resolved by moving the file into apps/app/scripts/ and cleaning up the stray agent-server/apps directory",
+		"First pnpm test run failed because Titlebar.test.ts could not resolve bits-ui (vitest-pool issue with jsdom); the build-web-extension test passed cleanly when run directly via pnpm exec vitest"
+	],
+	"outcome": "shipped"
+}

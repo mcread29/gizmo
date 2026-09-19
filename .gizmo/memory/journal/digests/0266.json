@@ -1,0 +1,25 @@
+{
+	"segment": "0266",
+	"at": "2026-09-18T22:41:48.108Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Removed the duplicate domainId→integrations fallback in pi-session-factory, renamed the internal PiSessionLike.domains field to enabledExtensionIds (keeping `domains` only on the protocol wire), and consolidated scattered Unity/tool-result CSS into the unity extension bundle while stripping the corresponding blocks from app stylesheets.",
+	"decisions": [
+		"PiSessionLike.domains was renamed to enabledExtensionIds because `domains` collides with the protocol's legacy wire name and is misleading when carrying active extension IDs.",
+		"session-runtime-pool.ts keeps emitting `domains` on the protocol event because `domains` is the protocol-v25 wire name for enabled extension IDs, while the internal session object now uses enabledExtensionIds.",
+		"pi-session-factory.ts no longer derives `integrations` from `options.domainId`; callers must pass integrations explicitly (defaults to []).",
+		"Tool-result and editor-result CSS for the unity extension now lives in packages/unity/src/web/unity/tool-results.css and is imported by UnityToolResult.svelte, rather than being inherited from app/tool-call-parts stylesheets."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/sessions/pi-agent-types.ts",
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/app/src/styles/tool-call-parts/container.css",
+		"apps/app/src/styles/tool-call-parts/output.css",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/unity/tool-results.css",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/unity/UnityToolResult.svelte"
+	],
+	"errors": [
+		"vitest run for @gizmo/agent-server reported one failing test, tests/extensions/registry-git-build.test.ts > 'only reports an update when the source HEAD changes', with a 5000ms timeout followed by EBUSY on rmdir of a temp clone directory. Re-running that single file with --testTimeout=15000 passed, indicating a flaky filesystem/timing issue rather than a real regression."
+	],
+	"outcome": "shipped"
+}

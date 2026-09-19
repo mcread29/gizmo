@@ -1,0 +1,17 @@
+{
+	"segment": "0083",
+	"at": "2026-09-18T22:38:48.637Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added four regression tests to pi-agent-service.test.ts covering the in-flight splice in resumeSession (text+reasoning, running tool calls, between-messages gap, and settled-stream cases) by extending FakePiSession with a messages array. Then updated WORKLOG.md with a dated entry explaining the fix, ran pnpm check and full test suites (no new failures beyond the 19 pre-existing ones), committed everything as eb06209, restarted the dev server, and verified both app:5173 and agent:8787 are healthy.",
+	"decisions": [
+		"Regression tests are added to FakePiSession by giving it a plain mutable `messages` field (assignable to PiSessionLike's readonly property) instead of mocking; tests live inside the existing `describe('PiAgentService')` block rather than a new describe. The commit is a single fix commit 'fix: render the in-flight reply when returning to a streaming thread' covering the earlier splice fix plus its tests and worklog entry. The dev server (not under tsx watch) is restarted manually via pnpm dev:server:restart to pick up the fix, then verified via curl on :5173 (200) and :8787 (426, i.e. listening)."
+	],
+	"files": [
+		"apps/agent-server/tests/sessions/pi-agent-service.test.ts",
+		"WORKLOG.md"
+	],
+	"errors": [
+		"None in this segment. The full test runs showed the same 17 pre-existing agent-server and 2 pre-existing app failures as before, with no new regressions."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,30 @@
+{
+	"segment": "0481-978f75f5",
+	"at": "2026-09-18T22:45:09.869Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed a chain of three breaks where project-level extension overrides were overruled by global state: resolver now lets a project override decide in both directions; enabled-set is threaded through session create/resume/reload and into enabledPiExtensionPaths; extensions.web now ships any bundle some workspace enables instead of hiding globally-disabled ones. All 555 tests pass and live verification shows cronkis honoring its unity/svelte overrides (11→13).",
+	"decisions": [
+		"A project's per-extension override decides whether an extension is enabled or disabled; the global flag becomes the default rather than a gate.",
+		"enabledPiExtensionPaths accepts both an enabled set and a disabled set, threaded through pi-agent-types, pi-session-factory, pi-agent-service (resume), and refreshExtensionPaths.",
+		"The extensions.web bundle list is global, so it ships any bundle at least one workspace enables and relies on the client to gate tabs per project (disable set becomes only those neither any-project-enables nor globally-enabled).",
+		"Replaced the deliberate opposite assertion in extension-enablement.test.ts with one for the new rule; this reversal needs confirmation because the prior rule was intentional.",
+		"Did not touch the registry repo: unity's bundle fails to load because it exports unityWebExtension while the loader expects gizmoWebExtension, but that fix lives outside this repo."
+	],
+	"files": [
+		"apps/agent-server/src/projects/project-integration-resolver.ts",
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/sessions/pi-agent-types.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/sessions/extension-reload-paths.ts",
+		"apps/agent-server/src/transport/project-request-handler.ts",
+		"apps/agent-server/tests/projects/extension-enablement.test.ts",
+		"apps/agent-server/tests/sessions/extension-reload-paths.test.ts"
+	],
+	"errors": [
+		"Initial code edits produced TypeScript errors tests/projects/extension-enablement.test.ts: Property 'disabledPiExtensionsFor' does not exist on type 'ProjectCatalog' — resolved by renaming the resolver method and updating both production code and tests.",
+		"After wiring refreshExtensionPaths with the new enabled set, tests/sessions/extension-reload-paths.test.ts failed because it mocked the old (disabled-only) signature; fixed by updating the test mocks to pass both disabled and enabled sets.",
+		"Unity's web bundle still fails to load live with 'bundle does not export a gizmoWebExtension object' — extension exports unityWebExtension instead; left for the registry repo to address."
+	],
+	"outcome": "shipped"
+}

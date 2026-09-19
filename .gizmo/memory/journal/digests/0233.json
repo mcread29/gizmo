@@ -1,0 +1,20 @@
+{
+	"segment": "0233",
+	"at": "2026-09-18T22:41:11.355Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why registry-installed skills could not be viewed or edited, found they were classified as non-editable because they live in a junction-linked Git clone outside managed skill roots, which also blocked selection in the UI. Implemented read-only viewing of registry skills via a new server handler with symlink rejection, refactored the Skills settings UI to add a sort control (Name / Status / Source) with a flat list, replacing the earlier two-group split.",
+	"decisions": [
+		"Registry skills are intentionally not editable because they are junction-linked from a Git clone and editing would conflict with updates; the UI was also blocking selection, which is unnecessarily restrictive.",
+		"All skills should be viewable; registry skills stay read-only, and editing requires forking the skill into a managed skills directory.",
+		"Server writes must reject symlinked/junction-backed skill files to avoid modifying the registry checkout.",
+		"Replaced the two-group ('Your skills' / 'Extension skills') split with a single flat list plus an explicit sort selector (Name, Status, Source) after the group buckets proved too uneven (4 vs 80 skills)."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/SkillsSettings.svelte",
+		"apps/app/src/styles/settings-parts/skills-library.css"
+	],
+	"errors": [
+		"svelte-check failed after introducing .toSorted because the target lib was older than ES2023; resolved by switching back to Array.prototype.sort with an explicit comparator and typing the comparator parameters."
+	],
+	"outcome": "shipped"
+}

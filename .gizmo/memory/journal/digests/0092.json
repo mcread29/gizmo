@@ -1,0 +1,39 @@
+{
+	"segment": "0092",
+	"at": "2026-09-18T22:38:59.537Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Split the previous working tree into two commits: a repo-wide prettier pass as its own commit, and the workspace-profiles refactor as a separate feature commit. After landing, restarted the long-running pi-web dev server so the agent-server on port 8787 picks up protocol 24.",
+	"decisions": [
+		"Commit prettier formatting churn separately from the refactor, rather than trying to surgically untangle the formatting hunks from feature hunks.",
+		"Exclude .gizmo/profiles.json and .herenow/state.json from both commits, treating them as dev-server runtime churn left dirty in the working tree.",
+		"Restart the background pi-web dev server (via pnpm dev:server:restart) after the refactor commit so the running agent-server reloads with the new protocol; tell the user to reload the browser tab to match."
+	],
+	"files": [
+		"README.md",
+		"WORKLOG.md",
+		"docs/extensions.md",
+		"docs/resources.md",
+		"docs/project-configuration.md",
+		"docs/workspace-profiles.md",
+		"packages/protocol/src/index.ts",
+		"packages/extensions/src/extension.ts",
+		"packages/svelte/src/server/svelte-extension.ts",
+		"packages/unity/src/server/index.ts",
+		"packages/unity/src/server/domain/unity-domain.ts",
+		"apps/agent-server/src/extensions/registry.ts",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/src/resources/global-resource-settings.ts",
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"apps/app/src/lib/features/workspace/profile-overrides.ts",
+		"apps/app/src/lib/features/workspace/profile-overrides.test.ts"
+	],
+	"errors": [
+		"After committing the refactor the user saw 'invalid agent protocol response' because the agent-server process had been running since before the refactor and was still on protocol 23; fixed by restarting the dev server (agent-server now listening on 8787) and asking the user to reload the browser."
+	],
+	"outcome": "shipped"
+}

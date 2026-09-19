@@ -1,0 +1,21 @@
+{
+	"segment": "0154",
+	"at": "2026-09-18T22:39:59.585Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added an in-thread notice that appears after automatic (threshold or overflow) compaction finishes, while ignoring manual compactions. Disabled the composer during active compaction, blocked submission while it runs, and switched the placeholder to \"Compacting context…\".",
+	"decisions": [
+		"Track `lastAutomaticCompactionReason` ('threshold' | 'overflow') on AgentEventState, set from non-active `session.compaction` events only when reason !== 'manual'; cleared on session-switch in AgentStore.",
+		"The compaction notice text differentiates overflow ('after reaching the model limit') from threshold ('to keep this thread within the model limit').",
+		"Composer is disabled and shows 'Compacting context…' placeholder while `store.compacting` is true; send is blocked via `canSend` derivation."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/agent-event-reducer.ts",
+		"apps/app/src/lib/agent-client/agent-event-reducer.test.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/features/conversation/Composer.svelte",
+		"apps/app/src/lib/features/conversation/Conversation.svelte",
+		"apps/app/src/styles/composer.css"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

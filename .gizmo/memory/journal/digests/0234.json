@@ -1,0 +1,23 @@
+{
+	"segment": "0234",
+	"at": "2026-09-18T22:41:11.497Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added directory-based sorting and collapsible grouping to the skills settings UI by introducing a SkillDirectoryTree component, a 'directory' sort mode, and a sourceRoot resolver in resource-catalog.ts that maps canonical skill paths back to their extension skill source. The user then stopped the work, clarifying that only collection/category directories should be collapsible—individual skill directories (each holding a SKILL.md) must remain flat rows, not collapsible groups.",
+	"decisions": [
+		"Add a 'directory' sort mode to SkillsSettings.svelte replacing the old 'source' option, grouping skills by their source extension path rather than source identity.",
+		"Resolve skill source roots via realpath/canonical mapping in resource-catalog.ts so symlinked or junction-linked extension skill directories (e.g. ~/.pi/agent/extensions/matt-pocock-skills/skills) are grouped under their original extension path.",
+		"Render grouped skills as nested collapsible <details> elements in a new SkillDirectoryTree.svelte component with depth-based indentation via --directory-depth CSS variable.",
+		"STOP: per user correction, only collection/category directories (the parent folders above individual skill folders) may be collapsible; each individual skill folder is a flat row representing its SKILL.md and must never be wrapped in a collapsible group."
+	],
+	"files": [
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/app/src/lib/features/settings/SkillsSettings.svelte",
+		"apps/app/src/lib/features/settings/SkillDirectoryTree.svelte",
+		"apps/app/src/styles/settings-parts/skills-library.css"
+	],
+	"errors": [
+		"ERR_PACKAGE_PATH_NOT_EXPORTED when running `tsx -e ...` to invoke discoverResources, because the @earendil-works/pi-coding-agent package has no main exports field; resolved by switching to `node --import tsx --input-type=module -e`.",
+		"First grep against node_modules/.pnpm/@earendil-works+pi-coding-agent* failed with 'Path not found' because the glob expansion in the tool did not include the version suffix."
+	],
+	"outcome": "blocked"
+}

@@ -1,0 +1,17 @@
+{
+	"segment": "0282",
+	"at": "2026-09-18T22:41:56.037Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Inspected extension settings APIs across the app and registry, reviewed Unity web extension files including host types, settings dialog, and compile confirmation dialog, then ran Svelte autofixers and type checks. The app's svelte-check passed cleanly while the workspace pnpm check failed on file-length limits in unrelated files (skills-library.css, resource-catalog.ts, layout.css).",
+	"decisions": [
+		"Confirmed `extensionSetting(id, key)` and `setExtensionSetting(id, key, value)` on the layout object are the canonical accessors used by web extensions (e.g., UnityDomainSettings, CompileConfirmationDialog), and that settings persist via `extensionSettings[extensionId]` on the workspace store.",
+		"Verified `installWebExtensions` is the startup hook that fetches bundles and registers them before mount, and `ExtensionCapability.reloadExtensions` is the runtime reload path; no automatic CSS injection/reload exists yet (no matches for `buildWebExtension`/`style.textContent` in tests).",
+		"Ran `pnpm --filter @gizmo/app check` (svelte-check) and `pnpm check` in the registry (tsc --noEmit) — both passed with no errors or warnings."
+	],
+	"files": [],
+	"errors": [
+		"`pnpm check` in the main workspace failed with exit code 1 due to a file-length check (`scripts/check-file-lengths.mjs`): skills-library.css 334 lines, resource-catalog.ts 333 lines, layout.css 312 lines, plus warnings on files near 300 lines. Unrelated to the extension work in this segment.",
+		"Svelte autofixer for `ActivityPanel.svelte` initially returned 'File not found' until `cd` into the registry directory was added; after that it returned suggestions (not applied)."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,52 @@
+{
+	"segment": "0262",
+	"at": "2026-09-18T22:41:37.222Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored workspace inspector to drop WorkspaceView/WorkspacePanel and the legacy createView contract, making the app render all static and runtime inspector tabs as peers with a default-first selection and app-owned empty state. Migrated Unity to contribute its own Unity inspector tab alongside Console/Subagents/Workflows, removed Unity-specific editor context menu items and nested navigation, and rebuilt the registry bundles. Renamed showUnityInspector to showInspector with migration, and tightened CSS tokens (border-radius, font-size) flagged by the design-system detector.",
+	"decisions": [
+		"Removed WorkspaceView, WorkspacePanel, and createView() in favor of peer inspector tabs contributed by each extension, with default selection being the first available extension tab.",
+		"Added an app-owned empty state for when no inspector UI is enabled.",
+		"Unity now contributes a normal 'Unity' inspector tab; Console, Subagents, and Workflows are sibling tabs; Unity's nested Status/Console navigation was removed.",
+		"Removed Unity-specific editor actions from the global context menu; they remain available via Unity's panel and command contributions.",
+		"Renamed showUnityInspector to showInspector with a migration for existing settings.",
+		"Titlebar identity is now app-owned and shows project + enabled extension count.",
+		"Replaced literal CSS values flagged by the design-system detector with documented tokens: border-radius calc(...-3px) -> var(--radius-sm), border-radius 2px -> var(--radius-xs), font-size 9px -> var(--text-2xs)."
+	],
+	"files": [
+		"apps/app/src/lib/extensions/types.ts",
+		"apps/app/src/lib/extensions/WorkspaceInspector.svelte",
+		"apps/app/src/lib/extensions/workspace-label.ts",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/app/src/lib/extensions/runtime/load-web-extension.ts",
+		"apps/app/src/lib/extensions/workspace-view.ts",
+		"apps/app/src/lib/app-settings.ts",
+		"apps/app/src/lib/features/shell/Titlebar.svelte",
+		"apps/app/src/lib/features/shell/AppContextMenu.svelte",
+		"apps/app/src/styles/inspector-parts/layout.css",
+		"apps/app/tests/lib/features/shell/Titlebar.test.ts",
+		"apps/app/tests/lib/features/shell/PanelResizeHandle.test.ts",
+		"apps/app/tests/lib/extensions/runtime/load-web-extension.test.ts",
+		"apps/app/tests/lib/app-settings.test.ts",
+		"apps/app/tests/app/shell.integration.test.ts",
+		"apps/app/tests/lib/extensions/fixtures/TestExtensionPanel.svelte",
+		"apps/app/src/lib/extensions/__tests__/registry.svelte.test.ts",
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"docs/extensions.md",
+		"packages/unity/src/web/domain-plugin.ts",
+		"packages/unity/src/web/domain-plugin.test.ts",
+		"packages/unity/src/web/gizmo-extension.ts",
+		"packages/unity/src/web/unity/UnityPanel.svelte",
+		"packages/unity/src/web/design/Button.svelte",
+		"packages/unity/src/web/design/ConfirmDialog.svelte",
+		"packages/unity/src/web/design/SelectField.svelte",
+		"packages/unity/src/web/design/format.ts",
+		"packages/unity/src/web/console/console.css",
+		"scripts/build-web-extension.ts"
+	],
+	"errors": [
+		"CSS edit failed because font-size: 9px had two occurrences; retried with surrounding context to make each match unique, then succeeded.",
+		"pnpm check failed due to three pre-existing files exceeding the 300-line limit (skills-library.css 334, resource-catalog.ts 333, settings-parts/layout.css 312); flagged as unrelated to this refactor.",
+		"design-system antipattern detector flagged literal border-radius values (calc(...-3px), 2px) and font-size 9px in inspector-parts/layout.css as outside DESIGN.md tokens; resolved by switching to --radius-sm, --radius-xs, and --text-2xs."
+	],
+	"outcome": "shipped"
+}

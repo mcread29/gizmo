@@ -1,0 +1,17 @@
+{
+	"segment": "0163",
+	"at": "2026-09-18T22:40:05.696Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigation across the gizmo codebase traced why the usage meter/percentage sometimes disappears and why /compact reports 'session too small': UsageMeter hides the bar when contextWindow is missing; the server only attaches contextWindow on session.usage events and only when session.model.contextWindow is truthy; pi's keepRecentTokens is mapped from gizmo's retainPercent (default 5%) of contextWindow, producing a 50k-token floor on a 1M-context model. Begin implementation: export readUsage from pi-event-translator.ts and start adding an optional contextWindow field to agentModelOptionSchema in the protocol package.",
+	"decisions": [
+		"Design the fix around three pillars: (1) server emits an initial session.usage snapshot on session attach/resume so the meter has data immediately, (2) UI always renders UsageMeter with a fallback ('—'/empty) when no data, (3) cap keepRecentTokens in configureCompaction so /compact works on small sessions even with a huge context window."
+	],
+	"files": [
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/sessions/pi-event-translator.ts"
+	],
+	"errors": [
+		"First protocol edit failed with 'Could not find edits[1]' because the oldText didn't match exactly (whitespace mismatch); an inspection of the file with `cat -A` confirmed tabs are used."
+	],
+	"outcome": "explored"
+}

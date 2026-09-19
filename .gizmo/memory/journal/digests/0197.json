@@ -1,0 +1,26 @@
+{
+	"segment": "0197",
+	"at": "2026-09-18T22:40:35.996Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored FakeAgentClient.ts into a thin facade that delegates to new cohesive fake-client capability/state modules (state, sessions, prompt-stream, projects, resources, tool-policy, extensions, fixtures), preserving the public import path/class, dev ?fake wiring, deterministic semantics, events, and fake sessions/resources/projects/git behavior. Verified with prettier, app svelte-check (0 errors/warnings), and the full app vitest suite (28 files, 165 tests passing); no commit created.",
+	"decisions": [
+		"Split FakeAgentClient into a thin facade plus capability/state modules under apps/app/src/lib/agent-client/fake-client/ (state.ts, sessions.ts, prompt-stream.ts, projects.ts, resources.ts, tool-policy.ts, extensions.ts, fixtures.ts) to keep each file <=300 LOC.",
+		"Preserved the public FakeAgentClient export and class name from the original import path so consumers (apps/app/src/main.ts, lib/agent-client/index.ts) require no changes.",
+		"Kept mutable fake state per client instance rather than module-level, to preserve deterministic instance semantics the existing tests rely on.",
+		"Did not split or modify the existing FakeAgentClient.test.ts (57 LOC, well under 300) since it remained valid against the facade.",
+		"AgentStore, WebSocketAgentClient, App.svelte, and agent-server files were left untouched even though they appeared as concurrent working-tree changes."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/fake-client/state.ts",
+		"apps/app/src/lib/agent-client/fake-client/sessions.ts",
+		"apps/app/src/lib/agent-client/fake-client/prompt-stream.ts",
+		"apps/app/src/lib/agent-client/fake-client/projects.ts",
+		"apps/app/src/lib/agent-client/fake-client/resources.ts",
+		"apps/app/src/lib/agent-client/fake-client/tool-policy.ts",
+		"apps/app/src/lib/agent-client/fake-client/extensions.ts",
+		"apps/app/src/lib/agent-client/fake-client/fixtures.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

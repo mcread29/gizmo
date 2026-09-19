@@ -1,0 +1,16 @@
+{
+	"segment": "0423",
+	"at": "2026-09-18T22:44:00.880Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated how to move gizmo from dev server to an installed application that runs at startup. Inspected the Tauri-based desktop app layout, confirmed the bun/rust/cargo/pnpm toolchain, and kicked off `pnpm desktop:build` to produce an installer. The Rust app compiled cleanly in 2m16s but MSI bundling failed because no `.ico` icon exists. Decided on a per-user Startup-folder shortcut to the installed Gizmo.exe over `tauri-plugin-autostart` (avoids a code change and second Rust build).",
+	"decisions": [
+		"Install gizmo via its Tauri desktop installer rather than running it as a dev server.",
+		"Use a per-user Startup-folder shortcut to the installed Gizmo.exe for autostart instead of adding `tauri-plugin-autostart`, because the shortcut needs no code change or second Rust build and is easy to undo without admin rights."
+	],
+	"files": [],
+	"errors": [
+		"`pnpm desktop:build` (run in background as bky2ncq2m) compiled gizmo.exe successfully in 2m16s but failed at MSI bundling with `failed to bundle project: Couldn't find a .ico icon`; the Rust toolchain produced the binary, only the Wix-packaged MSI step failed.",
+		"A `sleep 120 && tail` polling attempt was blocked by the tool environment."
+	],
+	"outcome": "blocked"
+}

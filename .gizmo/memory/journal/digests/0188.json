@@ -1,0 +1,26 @@
+{
+	"segment": "0188",
+	"at": "2026-09-18T22:40:25.729Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored packages/protocol from a single large index.ts into a 13-line compatibility barrel backed by cohesive schema modules (core, envelopes, errors, events, extensions, git, parsers, projects, providers, sessions) and grouped request variants under src/requests/. Tests were split into protocol.test.ts and project-resources.test.ts. Verification: pnpm check and prettier --write/--check passed, 2 test files / 15 tests passed, and all 135 original barrel exports match with identical serialized schema hashes (protocolVersion stays 25).",
+	"decisions": [],
+	"files": [
+		"packages/protocol/src/index.ts",
+		"packages/protocol/src/core.ts",
+		"packages/protocol/src/envelopes.ts",
+		"packages/protocol/src/errors.ts",
+		"packages/protocol/src/events.ts",
+		"packages/protocol/src/extensions.ts",
+		"packages/protocol/src/git.ts",
+		"packages/protocol/src/parsers.ts",
+		"packages/protocol/src/projects.ts",
+		"packages/protocol/src/providers.ts",
+		"packages/protocol/src/sessions.ts",
+		"packages/protocol/src/requests/",
+		"packages/protocol/tests/index.test.ts",
+		"packages/protocol/tests/protocol.test.ts",
+		"packages/protocol/tests/project-resources.test.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

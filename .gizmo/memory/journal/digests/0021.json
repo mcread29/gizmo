@@ -1,0 +1,24 @@
+{
+	"segment": "0021",
+	"at": "2026-09-18T22:37:51.022Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Removed the `detect` and `detectRoots` methods from the `GizmoServerExtension` contract and migrated Unity and Svelte extensions to a config-only shape. Rewrote the Svelte extension to use `id`, `name`, `profile`, `systemPrompt`, and `createTools`, and adjusted `FakeAgentClient.detectProject` accordingly. App tests revealed a Select-based \"Profile being edited\" menu that requires pointerDown to open, prompting a switch from click to pointerDown in the new test.",
+	"decisions": [
+		"`detect` and `detectRoots` are no longer part of the extension contract; detection is no longer provided by extensions (reasons not stated in this segment).",
+		"Svelte extension is rewritten as a minimal `GizmoServerExtension` with an empty `createTools` array and a system prompt that respects the project's Svelte version/conventions and does not assume SvelteKit unless its packages/config are present.",
+		"Unity's `detect` (ProjectSettings check) and helper `exists` are removed; `unityDomain` no longer implements a detect function.",
+		"Tests must use `fireEvent.pointerDown` (button 0) rather than `click` to open the Select-based \"Profile being edited\" menu."
+	],
+	"files": [
+		"packages/extensions/src/extension.ts",
+		"packages/svelte/src/server/svelte-extension.ts",
+		"packages/unity/src/server/index.ts",
+		"packages/unity/src/server/domain/unity-domain.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/App.test.ts"
+	],
+	"errors": [
+		"App test failed at App.test.ts:738 because `fireEvent.click` on the \"Profile being edited\" button did not open the Select menu; resolved by switching the interaction to `fireEvent.pointerDown` with button 0."
+	],
+	"outcome": "shipped"
+}

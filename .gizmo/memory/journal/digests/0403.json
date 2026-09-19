@@ -1,0 +1,25 @@
+{
+	"segment": "0403",
+	"at": "2026-09-18T22:43:40.550Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Applied a batch of composer UI edits (readonly-while-compacting textarea, usage meter markup, select-field pill styling) and ran svelte-check plus the app test suite, which passed cleanly. Also recorded a memory note after the user stopped a browser-window resize attempt.",
+	"decisions": [
+		"Composer textarea, model select pill, and usage meter should be read-only / inert while a compaction is in progress (the meter cannot be clicked during compaction).",
+		"Saved a persistent memory entry instructing future sessions not to resize the user's Chrome window, since the narrow size it ships at (~271px) is the size the user actually runs Gizmo at and is treated as a valid test width.",
+		"Refactored the four-file composer edit into a scratchpad Python script after an inline heredoc broke the shell, then ran prettier + svelte-check + vitest from that script."
+	],
+	"files": [
+		"src/lib/features/conversation/Composer.svelte",
+		"src/lib/features/conversation/UsageMeter.svelte",
+		"src/lib/features/conversation/ComposerToolbar.svelte",
+		"src/lib/features/conversation/usage.ts",
+		"src/styles/composer-parts/model-controls.css",
+		"src/styles/composer-parts/editor.css",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\dont-resize-browser.md",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\MEMORY.md"
+	],
+	"errors": [
+		"Initial Bash invocation with a long Python heredoc failed with \"unexpected EOF while looking for matching `''`\" (exit 2). Recovered by writing the script to the scratchpad and invoking it as a file."
+	],
+	"outcome": "shipped"
+}

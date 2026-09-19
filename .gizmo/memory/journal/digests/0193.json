@@ -1,0 +1,29 @@
+{
+	"segment": "0193",
+	"at": "2026-09-18T22:40:31.944Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored apps/app/src/lib/agent-client/WebSocketAgentClient.ts into a thin facade backed by cohesive modules under apps/app/src/lib/agent-client/websocket/ (transport, request-client, response-parsers, plus session/project/resource/git request helpers), keeping the public WebSocketAgentClient import path and AgentClient behavior stable. The companion test file was streamlined using a shared createConnectedClient helper and split just under the 300 LOC ceiling; full app check, vitest (165 tests across 28 files), and prettier --check all pass on the touched files.",
+	"decisions": [
+		"Decomposed WebSocketAgentClient into transport.ts (socket lifecycle, pending request tracking, defaultAgentUrl), request-client.ts (request/response correlation), response-parsers.ts (typed parsers without unchecked casts), and per-domain files session-requests.ts, project-requests.ts, resource-requests.ts, git-requests.ts, each <=300 LOC.",
+		"Preserved the public WebSocketAgentClient symbol and import path, and the AgentClient interface behavior, so existing callers (index.ts re-exports consumers, FakeAgentClient, AgentStore) remain unchanged.",
+		"Standardized the WebSocketAgentClient test on a shared createConnectedClient helper in place of repeated new TestSocket()/open()/await boilerplate while keeping the file at 291 LOC.",
+		"Typed TestSocket.readyState as WebSocket['readyState'] so the createSocket: () => socket signature satisfies the WebSocketAgentClientOptions contract without casts.",
+		"Did not commit; final verification was check (0 errors), full vitest run (165/165 passing), and prettier --check (clean) on the touched files only."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/websocket/transport.ts",
+		"apps/app/src/lib/agent-client/websocket/request-client.ts",
+		"apps/app/src/lib/agent-client/websocket/response-parsers.ts",
+		"apps/app/src/lib/agent-client/websocket/session-requests.ts",
+		"apps/app/src/lib/agent-client/websocket/project-requests.ts",
+		"apps/app/src/lib/agent-client/websocket/resource-requests.ts",
+		"apps/app/src/lib/agent-client/websocket/git-requests.ts",
+		"apps/app/tests/lib/agent-client/WebSocketAgentClient.test.ts"
+	],
+	"errors": [
+		"Initial svelte-check run failed with two diagnostics in WebSocketAgentClient.test.ts: TestSocket.readyState was typed as number and the createSocket factory returned a TestSocket incompatible with WebSocket. Fix was to type readyState as WebSocket['readyState']; subsequent check passed with 0 errors.",
+		"Several read/ls calls targeted protocol/ paths under a non-existent root (e.g., protocol/src/...); grep/find located the actual location at packages/protocol/src/... and reads succeeded there."
+	],
+	"outcome": "shipped"
+}

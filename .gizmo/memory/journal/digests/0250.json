@@ -1,0 +1,18 @@
+{
+	"segment": "0250",
+	"at": "2026-09-18T22:41:31.078Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Verified the three new registry extensions (search-and-scrape, subagents, workflows) by running a smoke test through tsx that exercises the exact agent-server load path: importing the default exports, calling list() and invoke() against real artifacts. Created the missing `subagents` and `workflows` directory junctions under `~/.pi/agent/extensions/` (the original junction-creation loop had bailed early after a privilege error on `search-and-scrape`, leaving the other two unlinked). Restarted the Gizmo Pi Web dev server and confirmed a clean startup with no extension-load errors in the log.",
+	"decisions": [
+		"Created the missing `subagents` and `workflows` NTFS junctions under `~/.pi/agent/extensions/` pointing into `~/.gizmo/registries/gizmo-registry/extensions/`, using PowerShell `New-Item -ItemType Junction`, because the prior junction-creation loop had stopped early on an admin-privilege error and never linked the other two extensions.",
+		"Verified workflows `transcript` operation against a real past run (`wf_d70b20b813f2`) and accepted `agent:0` returning empty as correct — transcripts.json is keyed by agent index starting at 1, which matches how the UI calls openAgent(index) with run-record indices.",
+		"Treated ResizeObserver and earlier-timestamped Pre-transform/Failed-to-reload log entries as historical noise rather than new failures, and used the `--- Gizmo Pi Web started 2026-09-01T03:48:35.168Z ---` marker to scope log inspection to the fresh server startup."
+	],
+	"files": [],
+	"errors": [
+		"First smoke-test invocation: `FileNotFoundError` on `/tmp/smoke.ts` because the home is on Windows (C:/Users/mchan); resolved by switching the smoke-test path to `C:\\Users\\mchan\\AppData\\Local\\Temp\\smoke.ts`.",
+		"After path fix, initial run hit esbuild `Top-level await is currently not supported with the \"cjs\" output format` errors at the smoke-script's top-level awaits; resolved by rewriting the smoke script to wrap the body in an `async function main()` and calling `main().catch(...)`.",
+		"After that fix, run failed with `ENOENT: ... C:\\Users\\mchan\\.pi\\agent\\extensions\\subagents\\index.ts` because the `subagents` (and `workflows`) junctions didn't exist; resolved by creating the two missing junctions, after which list/invoke succeeded for all three extensions."
+	],
+	"outcome": "shipped"
+}

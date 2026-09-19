@@ -1,0 +1,16 @@
+{
+	"segment": "0132",
+	"at": "2026-09-18T22:39:44.154Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Removed the obsolete tracked `.pi/extensions/unity.ts` from the NCP repo to eliminate tool-name conflicts with the registry Unity extension, then scanned `C:\\Users\\mchan` for other project-local `.pi/extensions` and confirmed no duplicates exist. Discussed folding the NCP `unity-docs` extension into the registry's existing Unity (Gizmo) extension as a clean integration approach.",
+	"decisions": [
+		"Delete `ncp/.pi/extensions/unity.ts` because it duplicates the globally linked registry Unity extension and caused `unity_status`/`unity_console` tool conflicts at Pi startup (verified by `pi --mode json` running without errors after removal)."
+	],
+	"files": [
+		".pi/extensions/unity.ts"
+	],
+	"errors": [
+		"Pi startup failure: 'Failed to load extension \"C:\\Users\\mchan\\.pi\\agent\\extensions\\unity\\index.ts\"' with 'Tool \"unity_status\" conflicts' and 'Tool \"unity_console\" conflicts' against `ncp/.pi/extensions/unity.ts` — resolved by deleting the project-local duplicate."
+	],
+	"outcome": "explored"
+}

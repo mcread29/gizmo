@@ -1,0 +1,19 @@
+{
+	"segment": "0034",
+	"at": "2026-09-18T22:37:58.052Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The assistant ran typecheck and tests for the @gizmo/agent-server package. Typecheck passed; 18 of 90 tests failed, all attributed by the assistant to pre-existing Windows path and POSIX permission assumptions rather than the Pi Web integration work under discussion. No files were edited.",
+	"decisions": [
+		"Diagnose the 18 test failures as Windows-specific path/permission issues in existing tests (slash-prefix containment checks, `/projects/...` paths, chmod expectations) rather than as problems with focused Pi Web coverage."
+	],
+	"files": [],
+	"errors": [
+		"9 tests in src/scripts/run-script.test.ts failed, most throwing 'Script must be inside the workspace' (e.g. build.ts, run.ts, fail.ts, slow.ts, loud.ts, flood.ts) because the workspace-containment check rejected script paths the tests expected to run.",
+		"2 tests in src/scripts/run-script.test.ts failed by throwing 'Script must be inside the workspace' instead of the expected /Shell scripts are not supported/ or /Bun is required/ messages.",
+		"5 tests in src/resources/extension-resources.test.ts (packageResourceRoots / extensionResourceRoots) failed: returned { skills: [], prompts: [] } where skills/prompts directory paths were expected.",
+		"1 test in tests/sessions/session-repository.test.ts failed: 'restores durable transcripts and keeps projects isolated'.",
+		"2 tests in tests/config/pi-runtime-config.test.ts failed because stat(...).mode & 0o777 was 438 (Windows permissions) instead of the expected 384 (POSIX 0o600).",
+		"1 test in tests/resources/discover-resources.test.ts failed: 'reads skills, prompts, and AGENTS.md from Gizmo-owned folders'."
+	],
+	"outcome": "explored"
+}

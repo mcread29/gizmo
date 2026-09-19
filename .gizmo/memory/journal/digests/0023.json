@@ -1,0 +1,24 @@
+{
+	"segment": "0023",
+	"at": "2026-09-18T22:37:51.932Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Modified ExtensionHostService to accept a per-workspace integration resolver, wired it through server.ts to consult ProjectCatalog for enabled integrations, and updated the host-service test to cover descriptor id matching and provider filtering.",
+	"decisions": [
+		"ExtensionHostService constructor now accepts an `integrationIdsFor` resolver used to filter providers to only those whose integration id is enabled for the workspace, passed from server.ts via ProjectCatalog.integrationsFor.",
+		"Server configures the host with a 5_000ms poll and async resolver returning integration ids per workspace path: `new ExtensionHostService(extensions, 5_000, async (workspacePath) => (await projects.integrationsFor(workspacePath)).map(({ id }) => id))`.",
+		"Test for ExtensionHostService now imports `vi`, adds a case asserting `host.list` does not call the provider when no ids match, and `new ExtensionHostService([provider], 5_000, async () => [])`.",
+		"ProjectCatalog now normalizes stored profile overrides against detected/default templates on save and read: `reconcileProfiles(stored, templates)` drops overrides whose values match canonical defaults, keeping only deltas."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/extension-host-service.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/tests/extensions/extension-host-service.test.ts",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/tests/projects/project-catalog.test.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte"
+	],
+	"errors": [
+		"`rg` against `apps/app/src/lib/features/workspace/WorkspaceInspector.svelte` failed with ENOENT (os error 2); the file actually lives at `apps/app/src/lib/extensions/WorkspaceInspector.svelte`, which `find` later located."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,27 @@
+{
+	"segment": "0327",
+	"at": "2026-09-18T22:42:37.923Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added the Ollama extension foundation: a typed REST client, a small long-running-job registry with cancellation, and a host-lifecycle module that detects the binary, checks versions, and drives install/update per platform (Windows silent Inno Setup, macOS .app expansion, Linux user-owned tarball + managed serve). Shared types, a model-listing service that enriches /api/tags with /api/show at bounded concurrency, and tests were added, and the work was committed as checkpoint 1.",
+	"decisions": [
+		"Job registry enforces one active job per kind; the last finished job stays visible until the next one starts so the UI can render its outcome.",
+		"Job lifecycle exposes stage and percent plus start/finish timestamps, with cancellation via AbortController and a JobActiveError on duplicate starts.",
+		"On Linux, the extension manages its own copy under ~/.local/share/ollama-gizmo (user-owned tarball) and writes a pid file for stop; managed-update is indicated via a HostStatus note when the resolved binary isn't already the managed copy.",
+		"startDetachedServe is async, opens the log file once via fsPromises.open, and reuses the fd for both stdout and stderr to avoid leaking open handles; pid is captured and written to the pid file in the linux flow (no pgrep recovery).",
+		"Shared types (JobKind/JobStatus/JobSnapshot and Ollama-related shapes) live in shared/types.ts and are imported into server/jobs.ts which re-exports them, so the web bundle can use them without importing server code.",
+		"Model listing lives in shared/models.ts so both the server extension's models.list operation and the Pi provider's refreshModels can use the same tags + bounded-concurrency show enrichment."
+	],
+	"files": [
+		"extensions/ollama/src/server/jobs.ts",
+		"extensions/ollama/src/server/jobs.test.ts",
+		"extensions/ollama/src/server/host.ts",
+		"extensions/ollama/src/server/host.test.ts",
+		"extensions/ollama/src/shared/types.ts",
+		"extensions/ollama/src/shared/models.ts"
+	],
+	"errors": [
+		"jobs.test.ts 'tracks a job through success' failed because the run callback referenced the still-undefined `snapshot` returned by registry.start synchronously inside the callback, throwing and failing the job. Fixed by dropping that assertion and only asserting signal.aborted inside the callback.",
+		"host.test.ts 'includes the managed Linux install' failed on Windows because the expectation used a literal '/bin/ollama' suffix while host.ts joins via path.sep. Fixed by using node:path join in the expectation."
+	],
+	"outcome": "shipped"
+}

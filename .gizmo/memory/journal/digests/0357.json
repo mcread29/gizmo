@@ -1,0 +1,18 @@
+{
+	"segment": "0357",
+	"at": "2026-09-18T22:43:03.827Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added a `navigateTree` mock to the agent-server eviction test fixture, then renamed the `settings-back` data-ui attribute to `tree-back` across a Svelte component and its CSS, and improved an aria-label on the session tree list to include the entry summary. All checks (tsc, svelte-check, prettier, vite build, vitest on both packages) passed.",
+	"decisions": [
+		"Rename `data-ui=\"settings-back\"` to `data-ui=\"tree-back\"` in `SessionTreeScreen.svelte` and the corresponding `[data-ui='settings-back']` selectors in `resize-and-navigation.css`, aligning the attribute name with the tree component it belongs to.",
+		"Change the session tree row aria-label from `Select ${kind} entry` to `Select ${kind}: ${summary}` so screen readers announce the entry summary, improving accessibility."
+	],
+	"files": [
+		"apps/agent-server/tests/sessions/pi-agent-service.eviction.test.ts",
+		"apps/app/src/lib/features/tree/SessionTreeScreen.svelte",
+		"apps/app/src/styles/shell-parts/resize-and-navigation.css",
+		"apps/app/src/lib/features/tree/SessionTreeList.svelte"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

@@ -1,0 +1,17 @@
+{
+	"segment": "0396",
+	"at": "2026-09-18T22:43:36.229Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated user-reported styling regressions and sidebar overflow at min/max sizes after the accessibility/sidebar refactor commit (4a33224). Found one concrete CSS regression — the `[data-screen-open='true'] > :is(...)` direct-child rule no longer matches because panels are wrapped in a `display: contents` div — and one likely geometry bug where the shell's `minmax(0, var(--left-column))` tracks can render narrower than the inline `--sidebar-width` the resize handle and panel content assume, causing detachment at extremes. Stopped short of fixes because the broader 'very off' report is too vague to address blind.",
+	"decisions": [
+		"Treated the direct-child `[data-screen-open='true'] > :is([data-ui='sidebar'], [data-ui='conversation'], [data-ui='inspector'], [data-ui='panel-resize-handle'], [data-ui='drawer-scrim'])` selector in shell-parts/layout.css as broken by the new display:contents wrapper — workspace panels are no longer hidden when a modal screen opens (likely visually masked by the fixed overlay but dead-wrong).",
+		"Identified `minmax(0, var(--left-column))` / `minmax(0, var(--right-column))` in the app-shell grid as the suspect for overflow at sidebar min/max: the track can shrink below --sidebar-width under viewport pressure while resize handles and panel content still reference the unscaled inline width.",
+		"Chose to ask the user for screenshots (normal view, sidebar at min, sidebar at max) plus a hard reload to rule out stale HMR state in their long-lived incognito window, rather than patching blind.",
+		"Verified removed hooks `[data-ui='session-list']`, `[data-ui='section-label']`, `[data-ui='card-label']` no longer appear in markup, so their CSS removal is not the source of styling issues."
+	],
+	"files": [],
+	"errors": [
+		"User report: app styles look 'very off' at typical viewport size in a long-lived incognito window, plus overflow issues at smallest and biggest sidebar widths. Root cause not isolated — possible stale HMR/module-graph state across dev-server restarts, plus the two code regressions noted above."
+	],
+	"outcome": "explored"
+}

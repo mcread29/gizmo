@@ -1,0 +1,20 @@
+{
+	"segment": "0013",
+	"at": "2026-09-18T22:37:42.229Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Began implementing a Pi extension UI bridge by adding new protocol schemas (bumping protocolVersion to 20), creating a new PiExtensionUiRuntime module that maps Pi's extension UI callbacks to typed wire requests and emits setStatus/setTitle/setWidget/setEditorText/notify events, and wiring the runtime into the agent service's session activation flow alongside session entry types.",
+	"decisions": [
+		"Bumped protocolVersion from 19 to 20 to introduce new extension UI request/response and event schemas (no client migration discussed).",
+		"Modeled the bridge as a per-session PiExtensionUiRuntime that owns a random runtimeId, pending request map keyed by requestId with AbortSignal + optional timeout, and dispatches select/confirm/input/editor as request envelopes while treating notify/setStatus/setWidget/setTitle/setEditorText as fire-and-forget events.",
+		"Stored the runtime on the ActiveSession record (extensionUi field) so each session has an isolated runtime that is cleared on session disposal."
+	],
+	"files": [
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/sessions/pi-extension-ui-runtime.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts"
+	],
+	"errors": [
+		"Initial introspection command attempting to resolve the impeccable scripts context module failed with ERR_MODULE_NOT_FOUND; the agent fell back to reading the reference docs directly."
+	],
+	"outcome": "explored"
+}

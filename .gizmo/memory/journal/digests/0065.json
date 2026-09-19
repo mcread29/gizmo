@@ -1,0 +1,18 @@
+{
+	"segment": "0065",
+	"at": "2026-09-18T22:38:27.451Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Researched Ben Davis's public pi coding agent setup by locating and inspecting the davis7dotsh/my-pi-setup repository, related YouTube walkthroughs, and his davis7.sh site. Documented repo structure, install flow, skill/extension/theme management, and notable UX patterns (ambient dashboard, async work, interactive control planes, structured clarification, workflow DSL). No files were edited.",
+	"decisions": [
+		"Primary reference is the my-pi-setup repo cloned to ~/.pi/agent, with auto-discovered extensions/, skills/, and themes/ directories — chosen because the harness loads those paths on next start.",
+		"Capability/policy pairing: complex extensions (background-terminals, subagents) ship alongside matching SKILL.md files, so the extension provides tools while the skill defines usage policy — a separation the report treats as a key borrowable pattern.",
+		"Runtime state and credentials (sessions/, auth.json, settings.json, models.json, trust.json, .env, extensions/summaries/config.private.json) are gitignored, so the shareable repo contains behavior only and excludes machine-specific state.",
+		"Repo has no detected license and Ben explicitly discourages wholesale copying, so the output recommends using patterns as inspiration rather than redistributing code verbatim.",
+		"Multi-harness delegation: a single subagent interface routes work to Pi, Claude Code, or Codex with shared reasoning-effort controls and a concurrency cap — identified as the unified delegation pattern."
+	],
+	"files": [],
+	"errors": [
+		"Several search engines (brave, duckduckgo, startpage, google cse, wikipedia) were unresponsive due to CAPTCHA or rate-limiting, returning no results for some queries."
+	],
+	"outcome": "explored"
+}

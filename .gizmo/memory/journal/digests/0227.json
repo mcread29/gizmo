@@ -1,0 +1,22 @@
+{
+	"segment": "0227",
+	"at": "2026-09-18T22:41:00.404Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Modified pi-global-resources.ts to add a helper that filters out Pi extensions declaring `\"runtime\": \"tui\"` in a sidecar metadata file, then added tests for the new behavior. Afterwards the conversation pivoted to scouting two upstream skill repositories (cursor/plugins pstack and mattpocock/skills) to design a Gizmo adapter registry that vendors them as no-op Pi extensions, with pinned snapshots, curated inclusion, and individual skill opt-in.",
+	"decisions": [
+		"Pi extensions that only provide TUI extensions with no other Gizmo integration are excluded from Gizmo by checking a sidecar metadata file for `\"runtime\": \"tui\"` (chosen over an empty-integration load-all approach, after user selected 'Explicit compatibility metadata' as the filter mechanism).",
+		"A new adapter registry is recommended rather than treating either upstream repository directly as a Gizmo registry, because neither follows Gizmo's gizmo.registry.json extension layout.",
+		"Upstream skill content should be vendored as pinned snapshots with recorded commits and refreshed via reviewable update PRs, not downloaded mutably at install time.",
+		"Each adapter package is a no-op Pi extension with a `gizmoExtension` id/name export and a package manifest pointing Pi to a `skills/` directory, letting Pi discover nested SKILL.md files recursively.",
+		"pstack should initially publish a curated Pi-compatible subset (general engineering principles, TypeScript/TDD/writing/architecture/review skills) rather than the whole repository, because much of pstack assumes Cursor-specific model names, subagent types, and orchestration features.",
+		"Individual skills within each package should be disabled by default so users can opt in, rather than enabling whole collections automatically."
+	],
+	"files": [
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/tests/resources/pi-global-resources.test.ts"
+	],
+	"errors": [
+		"Read of apps/agent-server/tests/resources/pi-global-resources.test.ts initially failed with ENOENT; resolved by listing the directory and creating the new test file."
+	],
+	"outcome": "shipped"
+}

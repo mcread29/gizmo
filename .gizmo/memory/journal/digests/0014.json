@@ -1,0 +1,35 @@
+{
+	"segment": "0014",
+	"at": "2026-09-18T22:37:43.363Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Wired a Pi extension UI store through the agent server, websocket transport, and frontend client interfaces, then plumbed the store into App.svelte, AppDialogs, Conversation, and Titlebar with corresponding Svelte components and CSS.",
+	"decisions": [
+		"Switched session.bindExtensions mode from 'json' to 'rpc' and passed uiContext so extensions can request UI interactions",
+		"Added an 'extension.ui.respond' websocket message and matching resolveExtensionUi method on AgentClient/WebSocketAgentClient to forward user responses back to extensions",
+		"Used a manual reverse-loop lastString helper instead of Array.prototype.findLast to keep TS target library compatibility",
+		"Made Titlebar's extensionUi prop optional and default piStatuses to an empty array so the existing Titlebar test continues to compile",
+		"dialogFor falls back to the first dialog when no sessionId is supplied, to support startup/background dialogs"
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/sessions/pi-extension-ui-runtime.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiStore.svelte.ts",
+		"apps/app/src/App.svelte",
+		"apps/app/src/lib/features/shell/AppDialogs.svelte",
+		"apps/app/src/lib/features/conversation/Conversation.svelte",
+		"apps/app/src/lib/features/shell/Titlebar.svelte",
+		"apps/app/src/styles/extension-ui.css",
+		"apps/app/src/app.css"
+	],
+	"errors": [
+		"tsc failed on pi-extension-ui-runtime.ts because findLast isn't available in the configured lib target and dialog overloads returned string|boolean instead of string; resolved by replacing findLast with a reverse-loop lastString and adding typed dialog wrappers",
+		"svelte-check failed on Titlebar.test.ts after adding a required extensionUi prop; resolved by making the prop optional and guarding the derived statuses list",
+		"Edit on App.svelte failed due to a non-unique match for the Titlebar props block; resolved by providing more surrounding context"
+	],
+	"outcome": "shipped"
+}

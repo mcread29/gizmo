@@ -1,0 +1,27 @@
+{
+	"segment": "0235",
+	"at": "2026-09-18T22:41:17.117Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refined the Skills settings UI so registry skills group strictly by their on-disk directories (matt-pocock-skills → engineering/in-progress/misc/productivity; pstack as a single flat group with no inner collapsibles), with personal skills consolidated under one collapsible. Verified via svelte-check, the agent-server test suite, and a live WebSocket round-trip after restarting the dev server, then committed as a62cde8.",
+	"decisions": [
+		"Registry grouping is derived from the actual skill file path (`extensions/<package>/skills/<dir>/.../SKILL.md`); the final directory containing `SKILL.md` is treated as the skill row and excluded from collapsibles.",
+		"Personal skills are collapsed into a single 'Personal skills' group when all members are editable, instead of being grouped per directory.",
+		"Directory labels are computed from the package's source path; the `directoryLabel` helper no longer takes a `skills` parameter.",
+		"Committed all changes on branch `pi-web` as a single commit `a62cde8` titled 'refine agent resource settings'."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/SkillsSettings.svelte",
+		"apps/app/src/lib/features/settings/SkillDirectoryTree.svelte",
+		"apps/app/src/styles/settings-parts/skills-library.css",
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/app/src/lib/features/settings/ExtensionsSettings.svelte",
+		"apps/app/src/lib/features/settings/SettingsPage.svelte"
+	],
+	"errors": [
+		"A direct WebSocket probe to `ws://localhost:8787` returned HTTP 400; root cause was that the dev server's WebSocket endpoint lives at path `/agent` (configured in `apps/agent-server/src/transport/websocket-server.ts` with `path: options.path ?? '/agent'`), so the request without that path was rejected. Retrying against `ws://localhost:8787/agent` succeeded."
+	],
+	"outcome": "shipped"
+}

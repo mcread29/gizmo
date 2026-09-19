@@ -1,0 +1,19 @@
+{
+	"segment": "0465-5a948420",
+	"at": "2026-09-18T22:44:52.186Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The assistant investigated Pi's reload semantics, the agent-server extension loading path, and the gizmo registry's extension layout, then wrote an analysis-and-plan document at docs/extension-reload-plan.md. The document explains why the agent server currently restarts on extension edits, how Pi's jiti loader and Gizmo's native import loader diverge, the state of web reload, the un-wired json-render integration, and a four-phase plan for explicit reload, owning the web build, exposing json-render, and registry hygiene.",
+	"decisions": [
+		"Document the work as 'proposed, 2026-09-17' with nothing implemented yet, framing it as analysis plus plan rather than a change.",
+		"Phase the work as: (1) explicit reload via fresh jiti per rescan with dispose hooks on server extensions and project services, (2) Gizmo owns the web build in a workspace package and drops the registry fork, (3) json-render becomes a real extension surface with catalogs and design-system sharing, (4) registry hygiene via an SDK package, per-extension manifest with API version, folding thin shims, splitting oversized extensions.",
+		"Use a fresh jiti instance per rescan so the extension graph re-evaluates, instead of trying to invalidate Node's native import cache.",
+		"Make dispose hooks a prerequisite of phase 1 (not a follow-up) because jiti re-evaluation keeps old module instances alive.",
+		"Build web bundles in a child process during the agent-server to keep Vite/Svelte out of the server's event loop.",
+		"Defer reload of streaming Pi sessions until the turn settles and broadcast an extensions change event so every client re-fetches bundles."
+	],
+	"files": [
+		"docs/extension-reload-plan.md"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

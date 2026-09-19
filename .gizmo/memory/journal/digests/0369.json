@@ -1,0 +1,16 @@
+{
+	"segment": "0369",
+	"at": "2026-09-18T22:43:11.370Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated Gizmo's extension packaging to find how shared runtime modules are exposed to extensions, then installed @json-render/core and @json-render/svelte pinned to exact version 0.20.0 (plus zod@4.4.3 as a peer) as dependencies of @gizmo/app, preparing to expose them through the existing host-modules mechanism so extensions can use them without bundling their own copies.",
+	"decisions": [
+		"Pin @json-render/core and @json-render/svelte to exact version 0.20.0 (via pnpm --save-exact) so extensions can rely on a stable API surface.",
+		"Reuse Gizmo's existing host-modules sharing mechanism (apps/app/src/lib/extensions/runtime/host-modules.ts) to expose json-render to runtime-loaded web extensions, rather than letting extensions bundle their own copies.",
+		"Add zod@4.4.3 alongside because @json-render/svelte declares zod ^4.0.0 as a peer dependency."
+	],
+	"files": [
+		"apps/app/package.json"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

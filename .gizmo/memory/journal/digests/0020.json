@@ -1,0 +1,24 @@
+{
+	"segment": "0020",
+	"at": "2026-09-18T22:37:49.109Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored Gizmo's workspace profile and extension handling to remove workspace-type auto-detection and to make the built-in Default profile editable as a temporary override that reverts when values match the canonical default. Gizmo extensions are installed globally and manually enabled per workspace; user-created and extension-provided profiles continue to work.",
+	"decisions": [
+		"Remove all workspace-type auto-detection; Gizmo extensions are installed globally and manually enabled per project.",
+		"Make the built-in Default profile editable by treating any change as a temporary override; when overridden values equal the canonical default, revert to the actual default.",
+		"User-created ('new') profiles continue to behave as persistent profiles distinct from the temporary-default override.",
+		"Removed unused helpers: the `extensionFor` function in agent-server extension registry and the `originLabel` function in WorkspaceConfigurePanel."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/registry.ts",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/tests/projects/project-catalog.test.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"apps/app/src/lib/features/workspace/profile-overrides.test.ts",
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [
+		"agent-server tests projects/project-catalog.test.ts failed: 2 cases ('stores the selected workspace integrations', 'detects a Svelte app nested in a monorepo') expected `detected: true` but received `detected: false` because auto-detection was removed; updated test expectations to `detected: false`."
+	],
+	"outcome": "shipped"
+}

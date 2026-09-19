@@ -1,0 +1,31 @@
+{
+	"segment": "0087",
+	"at": "2026-09-18T22:38:53.892Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored pi-agent-service to derive integrations and a server-computed disabledPiExtensions list per session instead of relying on per-extension WorkspaceProfile objects. Updated the createSession factory call site to pass disabledPiExtensions, guarded the workspacePath argument, dropped the profile method from GizmoServerExtension across the unity and svelte packages, added a #write helper and fixed #config reference in ProjectCatalog, and added disabledGizmoExtensions plus disabledPiExtensions fields to GlobalResourceSettings plus a setGlobalGizmoExtension RPC.",
+	"decisions": [
+		"disabledPiExtensions lives in an internal PiSessionRuntimeOptions type rather than the protocol sessionOptionsSchema, because the disabled set is computed server-side from the client request.",
+		"createSession/resumeSession no longer call activeProfileFor; they fetch integrations via options/domainId/#projects.integrationsFor(cwd) and compute disabledPiExtensions via #projects.disabledPiExtensionsFor(cwd).",
+		"Factory options for a session now use disabledPiExtensions instead of the per-profile extensionTools/extensionPrompt booleans.",
+		"GizmoServerExtension.profile(root) was removed; unity and svelte packages now rely on the server-computed disabled set and systemPrompt only.",
+		"GlobalResourceSettings gained disabledPiExtensions and disabledGizmoExtensions arrays (with emptyGlobalResourceSettings updated), and the websocket-server now handles a new resources.gizmo-extension.global RPC via service.setGlobalGizmoExtension.",
+		"ProjectCatalog's updateConfig uses this.configFor(path) and a new this.#write(projects) helper was reintroduced to replace the missing private method that callers referenced."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/resources/global-resource-settings.ts",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"packages/extensions/src/extension.ts",
+		"packages/unity/src/server/domain/unity-domain.ts",
+		"packages/unity/src/server/index.ts",
+		"packages/svelte/src/server/svelte-extension.ts"
+	],
+	"errors": [
+		"Multi-edit apply in apps/agent-server/src/sessions/pi-agent-service.ts failed with 'Could not find edits[1]' twice due to whitespace mismatches in oldText; resolved by isolating the factory-options block edit and verifying indentation with sed -n | cat -A.",
+		"tsc --noEmit reported missing #write and #config members on ProjectCatalog (calls referenced this.#write and this.#config without the method existing) — fixed by adding the #write method and switching the updateConfig call to this.configFor(path).",
+		"tsc --noEmit reported disabledPiExtensionsFor(workspacePath) being called with possibly undefined workspacePath; fixed by guarding with workspacePath ? ... : [].",
+		"tsc --noEmit reported tests in tests/sessions/pi-agent-service.test.ts and tests/projects/project-catalog.test.ts plus packages/extensions extension.ts (WorkspaceProfile import) still failing — left for later, not fixed in this segment."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,23 @@
+{
+	"segment": "0315",
+	"at": "2026-09-18T22:42:32.751Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Discussed next steps for the memory system: recommended building `journal_search` and segment chunking before extraction, then handed off a detailed prompt for the next agent to implement them. Explored converting memory into a dual-extension package (global + project-local) by verifying the only coupling to agent-server is a single AsyncMutex import. Began drafting a reusable skill for backfilling other repos' Pi/Claude sessions, but the work was interrupted.",
+	"decisions": [
+		"Build `journal_search` (lexical grep, ~100 lines, no FTS/SQLite) before the knowledge/extraction layer, because nothing currently reads the 9 MB journal.",
+		"Chunk segments at ~40 KB on turn boundaries before extraction, because facts cite segment ids permanently and the largest segment is 1.6 MB.",
+		"Convert memory into a dual-export extension package: default export as Pi extension factory, named `gizmoExtension` export as `GizmoServerExtension`, mirroring `resourceRoots()` for global (`~/.gizmo/memory/`) then project-local precedence.",
+		"Extraction cost to package memory is only the 17-line `AsyncMutex` copy; all other `src/memory/` imports are `node:*` and `@earendil-works/pi-coding-agent`.",
+		"When exposing `journal_search`, verify both default-prompt and `systemPromptOverride` paths — the override path in `pi-session-factory.ts` can silently swallow `toolSnippets`/`promptGuidelines`, requiring a `before_agent_start` handler that appends to `event.systemPrompt`.",
+		"Use `rg` to scan for key-shaped strings in the journal before pointing any model at it, since tool arguments and pasted prose are stored verbatim (gitignored, local-disk only).",
+		"Reuse the 6,400-message backfilled corpus as an offline test set for tuning the reconciliation prompt without burning live session turns."
+	],
+	"files": [],
+	"errors": [
+		"`pnpm --filter @gizmo/agent-server backfill` runs with the package directory as cwd, so it targets the wrong workspace.",
+		"`systemPromptOverride` path in `pi-session-factory.ts` discards `toolSnippets`/`promptGuidelines`, causing tool exposure to silently break when an active Gizmo extension or saved user prompt triggers an override.",
+		"Tree is currently red from in-progress chunking work: `journal-store.ts` `append()` now returns `JournalSegmentMeta[]` but `backfill.ts` and `journal-recorder.ts` callers still treat it as a single meta, causing tsc and vitest failures (noted as pre-existing, not touched).",
+		"Pre-existing tsc/loc/test failures: 7 files exceed 300-line cap (`pnpm check:loc`); `pnpm format:check` has ~26 unrelated failures."
+	],
+	"outcome": "explored"
+}

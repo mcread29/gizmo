@@ -1,0 +1,28 @@
+{
+	"segment": "0209",
+	"at": "2026-09-18T22:40:46.872Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Split the 999-line apps/app/tests/App.test.ts into five semantically named integration test files under apps/app/tests/app/, each at most 267 lines, with shared setup/cleanup and a renderApp helper in tests/support/app.ts. All 34 original test bodies were preserved byte-for-byte, prettier, svelte-check, and the full app vitest suite (37 files, 170 tests) all passed.",
+	"decisions": [
+		"Partition tests into five integration files by domain: shell, workspace-navigation, workspace-configuration-and-threads, settings-and-workspace-picker, conversation.",
+		"Centralize shared beforeEach/afterEach setup (FakeAgentClient-based render, toasts cleanup, innerWidth reset) and the renderApp() helper in apps/app/tests/support/app.ts rather than duplicating per file.",
+		"Keep each integration file ≤300 LOC (largest is 267 lines) to satisfy the file-length constraint.",
+		"Verify preservation by extracting test bodies via a deterministic split on '\\n\\tit(' and diffing against the pre-split source, treating trailing-newline differences as equivalent.",
+		"Leave package.json and the agent-server test split work untouched even though they appeared in git status, because the task scope was only the App.test.ts split.",
+		"Do not commit; leave changes staged in the working tree."
+	],
+	"files": [
+		"apps/app/tests/App.test.ts",
+		"apps/app/tests/support/app.ts",
+		"apps/app/tests/app/shell.integration.test.ts",
+		"apps/app/tests/app/workspace-navigation.integration.test.ts",
+		"apps/app/tests/app/workspace-configuration-and-threads.integration.test.ts",
+		"apps/app/tests/app/settings-and-workspace-picker.integration.test.ts",
+		"apps/app/tests/app/conversation.integration.test.ts"
+	],
+	"errors": [
+		"First Python extraction attempt failed with ValueError: substring not found because the indexing expression used a false ternary that referenced '\\tdescribe'; fixed by removing the ternary and using s.index(\"describe('application shell'\") directly.",
+		"Initial byte-equality assertion flagged test 10 as changed, but the diff showed only a trailing-newline difference per test; verification was re-run with .rstrip() and confirmed all 34 test bodies unchanged apart from EOF newlines."
+	],
+	"outcome": "shipped"
+}

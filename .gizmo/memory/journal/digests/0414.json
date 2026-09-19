@@ -1,0 +1,32 @@
+{
+	"segment": "0414",
+	"at": "2026-09-18T22:43:51.948Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Cleaned up and rewrote the codex extension's usage-service test file (including a 401 no-cache-failure test and a raw-content auth helper), registered the codex extension in gizmo.registry.json, replaced the unresolvable @gizmo/extensions import in the server index with a local mirror interface, ran prettier over codex files (including the .svelte panel via prettier-plugin-svelte), verified pnpm check/format/test pass (14 new tests, 158 total), rebuilt the web bundle, and installed the extension via directory junction + web bundle copy matching Gizmo's linking pattern.",
+	"decisions": [
+		"Added a homeWithRaw helper so the 'not valid JSON' auth test can write a literal non-JSON string instead of going through JSON.stringify via homeWith.",
+		"Mirrored GizmoServerExtension as a local interface in extensions/codex/src/server/index.ts because @gizmo/extensions is not resolvable from inside the registry repo, avoiding a TS2307 type error.",
+		"Installed the extension by creating a Windows directory junction at ~/.pi/agent/extensions/codex pointing at the registry's extensions/codex and copying codex.web.js to ~/.pi/agent/extension-web/codex.web.js, replicating Gizmo's documented linking behaviour.",
+		"Left all changes uncommitted in the gizmo-registry repo so the user can review before committing."
+	],
+	"files": [
+		"extensions/codex/src/server/usage-service.test.ts",
+		"extensions/codex/src/server/usage-service.ts",
+		"extensions/codex/src/server/index.ts",
+		"extensions/codex/src/usage.ts",
+		"extensions/codex/src/usage.test.ts",
+		"extensions/codex/src/web/codex-runtime.svelte.ts",
+		"extensions/codex/src/web/codex.css",
+		"extensions/codex/src/web/index.ts",
+		"extensions/codex/src/web/types.ts",
+		"extensions/codex/src/web/CodexPanel.svelte",
+		"gizmo.registry.json"
+	],
+	"errors": [
+		"Initial edit on usage-service.test.ts mangled indentation (the it() block lost proper tab nesting), causing a follow-up edit's oldText match to fail.",
+		"An attempted registry-catalog edit failed because the oldText didn't match the actual JSON; resolved by re-reading gizmo.registry.json and editing the correct location.",
+		"pnpm check reported TS2307 (Cannot find module '@gizmo/extensions') and several TS7006 implicit-any errors in extensions/codex/src/server/index.ts; resolved by replacing the import with a local interface and typing the parameters.",
+		"Prettier CLI couldn't infer a parser for CodexPanel.svelte via the codex/** glob; resolved by invoking prettier --plugin prettier-plugin-svelte directly on the .svelte file."
+	],
+	"outcome": "shipped"
+}

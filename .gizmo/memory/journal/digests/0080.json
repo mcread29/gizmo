@@ -1,0 +1,20 @@
+{
+	"segment": "0080",
+	"at": "2026-09-18T22:38:45.153Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Updated docs (WORKLOG, extensions.md tool-policy section, pi-extension-ui-bridge-plan.md new Decisions section) to reflect the previously-implemented Pi defaultTools-driven tool policy. Ran `pnpm format` which unexpectedly reformatted ~748 unrelated files; contained the incident by restoring everything outside the intended change set, then committed only the 15 feature files as `68e8c6f feat: govern built-in tools through Pi's defaultTools setting`.",
+	"decisions": [
+		"Recorded two direction-setting decisions in pi-extension-ui-bridge-plan.md: (1) Pi's events protocol is the UI contract, and (2) Gizmo extensions remain UI-only (no separate Gizmo server extensions).",
+		"Documented the revised Gizmo migration order: attribution → events contract + invoke → migrate ask_user/subagents/workflows UIs (backends already exist as Pi extensions) → Git/Activity/Svelte → Unity last.",
+		"Ran `pnpm format` and reverted its unrelated churn via `git restore --worktree` with path exclusions, keeping only the 15 intended files in the final commit."
+	],
+	"files": [
+		"WORKLOG.md",
+		"docs/extensions.md",
+		"docs/pi-extension-ui-bridge-plan.md"
+	],
+	"errors": [
+		"`pnpm format` reformatted ~748 unrelated repo files (prettier textual + line-ending churn); was reverted with `git restore` excluding the intended 15 files before commit."
+	],
+	"outcome": "shipped"
+}

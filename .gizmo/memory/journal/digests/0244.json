@@ -1,0 +1,16 @@
+{
+	"segment": "0244",
+	"at": "2026-09-18T22:41:21.153Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Exploration/planning phase for converting three Pi extensions (search-and-scrape, subagents, workflows) into Gizmo registry extensions with full UI, where the existing TUI UI must keep working. Mapped the gizmo-registry extension structure (index.ts + pi-extension.ts + src/web/index.ts exporting gizmoWebExtension), studied ask-user as a template, and surveyed the registries, shared deps (~7000 LOC across subagents/workflows plus pi-declarative-ui), and agent-server extension loading (registry-storage, load-extensions, extension-host-service) to understand how gizmoExtension named exports are consumed and whether module-level state shares between the Pi factory and the gizmoExtension.list/invoke process.",
+	"decisions": [
+		"Treat the existing Pi extensions' TUI behavior (renderCall/renderResult, dashboards, commands) as the ground truth for `pi-extension.ts`; the new gizmo web extension must be additive and not regress TUI.",
+		"Use gizmo-registry repo at ~/.gizmo/registries/gizmo-registry as the target location, following the ask-user layout (pi-extension.ts default export + src/web/index.ts gizmoWebExtension named export).",
+		"Pi extensions (`@earendil-works/pi-coding-agent`, `pi-declarative-ui`) and Pi-local shared helpers (`shared/child-session.ts`, etc., plus `acorn`) are external imports that will need vendoring or workspace-package plumbing into the registry repo — yet unresolved.",
+		"Open question flagged: whether the Pi factory process and the agent-server process that calls `gizmoExtension.list`/`invoke` share module state, since module-level singletons (managers, dashboards) would not survive across them — requires confirming how agent-server loads the registered extension module before implementation.",
+		"Proposed extension ids: `search-scrape` (or `search-and-scrape`), `subagents`, `workflows` — not yet finalized."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

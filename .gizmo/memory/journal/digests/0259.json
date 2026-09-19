@@ -1,0 +1,15 @@
+{
+	"segment": "0259",
+	"at": "2026-09-18T22:41:34.701Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Explained why Unity appears to 'own' the workspace panel: `workspace-view.ts` selects the first active extension implementing `createView()`, and that extension's returned `panel` is treated as the primary inspector tab by `WorkspaceInspector.svelte`. The ownership is accidental, conflating workspace context with inspector UI, and is order-dependent on extension registration.",
+	"decisions": [
+		"WorkspaceView ownership should belong to the app, not to whichever extension happens to implement `createView()` first; extensions should contribute peer-level tabs instead.",
+		"`panel` should be removed from `WorkspaceView` so it stops being a single-extension-owned inspector surface; Unity would then contribute Status and Console as peer tabs like other extensions."
+	],
+	"files": [
+		"apps/app/src/lib/extensions/workspace-view.ts"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

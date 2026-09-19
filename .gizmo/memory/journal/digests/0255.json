@@ -1,0 +1,22 @@
+{
+	"segment": "0255",
+	"at": "2026-09-18T22:41:28.349Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Rewrote the Unity extension's local design components (Button, SelectField, ConfirmDialog) to use bits-ui primitives with consistent styling, and updated the web extension build script to inline the shared design CSS into a standalone <style> tag injected at runtime. Tests passed (139/139) and tsc clean; Prettier formatted the three Svelte components after explicit plugin invocation.",
+	"decisions": [
+		"Button, SelectField, and ConfirmDialog in packages/unity/src/web/design/ are now Svelte wrappers over bits-ui (Button.Root, Select.Root/Trigger/Content/Viewport/Item, Dialog.Root/Portal/Content) instead of bare HTML elements, exposing variant/size/onOpenChange-style callbacks.",
+		"scripts/build-web-extension.ts prepends a generated runtime stylesheet to web.js that creates and appends a <style> element to document.head so the shared @gizmo/design CSS loads when the extension is dynamically imported."
+	],
+	"files": [
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/design/Button.svelte",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/design/SelectField.svelte",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/design/ConfirmDialog.svelte",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/scripts/build-web-extension.ts"
+	],
+	"errors": [
+		"Prettier could not infer a parser for the .svelte files until --plugin=prettier-plugin-svelte was passed explicitly; running with the plugin reported style issues that --write then fixed.",
+		"svelte-autofixer flagged a possible malpractice for invoking onCancel inside an $effect in ConfirmDialog.svelte; left as a suggestion rather than a blocking issue.",
+		"Earlier reads of apps/app/src/lib/design/Button.svelte, apps/app/src/lib/components/ConfirmDialog.svelte and Button.svelte failed with ENOENT because those paths do not exist in the active project."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,18 @@
+{
+	"segment": "0263",
+	"at": "2026-09-18T22:41:36.160Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Performed a sweeping audit for residual Unity/extension coupling across the app, server, packages, and docs. Reported six remaining leak categories: stale `activeDomains`/`domainId` terminology, single global project-service model, Unity-specific settings in core, extension-specific CSS selectors in core, Unity-shaped generic APIs, and minor stale strings.",
+	"decisions": [
+		"Rename `activeDomains`/`domainId` toward `enabledExtensionIds` while retaining protocol migration compatibility.",
+		"Scope project `open`/`status` operations by extension rather than the current single-owner design (e.g., replace `CompositeProjectService.#first()`, `hasProjectStatus`, `store.projectStatus`).",
+		"Move `compilePlayModePolicy` out of core app settings and `WorkspaceLayout` into extension-owned persisted settings.",
+		"Relocate extension-specific CSS (panel IDs like `unity`/`git`/`activity` and Unity diagnostic selectors) from core stylesheets into extension bundles; core retains only generic panel primitives.",
+		"Generalize Unity-shaped APIs (`UnityStatus`, `UnityOpenProjectResult`, Unity parsers, related client errors) into generic project/workspace contracts, keeping Unity types inside the Unity extension.",
+		"Fix `GitCapability`'s stale 'No Unity project is selected.' string.",
+		"Treat the retained `showUnityInspector` references as intentional migration-only compatibility shims."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

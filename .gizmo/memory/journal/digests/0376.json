@@ -1,0 +1,37 @@
+{
+	"segment": "0376",
+	"at": "2026-09-18T22:43:19.797Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran the agent-journal backfill script against three repos (Slapdash, cronkis, ncp) after fixing a case-sensitive workspace path-matching bug on Windows in the backfill script. Added `.agent-journal/` gitignore rules to the two repos that lacked them. Then discussed whether gizmo's dev-server agents could be used to develop the product and how to test the memory journal in real projects, noting the write path is already firing (threshold trigger) but compaction/branch/session-end triggers have never run live, and that backfilled history lands in `.agent-journal/` while live journal writes to `.gizmo/memory/journal/` — so `journal_search` can't see backfilled history unless the backfill is re-pointed.",
+	"decisions": [
+		"Patch backfill-journal.mjs to compare --workspace paths case-insensitively on Windows, because transcripts already normalize cwd capitalization but user-supplied args don't, causing silent zero-match failures; committed to the registry as 671aed0.",
+		"Append `.agent-journal/` to `.gitignore` in Slapdash and ncp matching cronkis's existing rule, with a comment that removing the line would commit transcripts as shared knowledge; left uncommitted per the original request scope.",
+		"Recommend re-running the backfill with `--out <repo>/.gizmo/memory/journal` so backfilled history becomes readable by `journal_search`, since `resumeAfter` matches on entry ids and will skip already-journaled Pi sessions without duplication.",
+		"Recommend adding a `GIZMO_MEMORY_JOURNAL_THRESHOLD` env override to make the 96KB turn_end threshold tunable without editing source, to make quality evaluation practical.",
+		"Recommend cronkis as the primary read-path test target (14 live + 77 backfilled segments, ~6.6k messages, already gitignored) and ncp as a clean-slate control."
+	],
+	"files": [
+		"extensions/agent-journal/skills/backfill-agent-journal/scripts/backfill-journal.mjs",
+		"projects/Slapdash/.gitignore",
+		"UnityProjects/cronkis/.gitignore (referenced, already had the rule)",
+		"UnityProjects/ncp/.gitignore",
+		"scripts/dev-server.ts (read only)",
+		"apps/agent-server/src/server-config.ts (read only)",
+		"apps/agent-server/src/server.ts (read only)",
+		"apps/agent-server/src/memory/journal-tools.ts (read only)",
+		"apps/agent-server/src/memory/journal-store.ts (read only)",
+		"apps/agent-server/src/pi-extensions/memory-journal.ts (read only)",
+		"projects/Slapdash/.agent-journal/ (created by backfill, 17 segments)",
+		"projects/Slapdash/.gizmo/memory/journal/ (already had 7 live segments)",
+		"UnityProjects/cronkis/.agent-journal/ (created by backfill, 77 segments)",
+		"UnityProjects/cronkis/.gizmo/memory/journal/ (already had 14 live segments)",
+		"UnityProjects/ncp/.agent-journal/ (created by backfill, 27 segments)"
+	],
+	"errors": [
+		"Initial concern: --workspace ~/projects/slapdash (lowercase) would silently match zero sessions against a directory named Slapdash on Windows; confirmed the script's path comparison was case-sensitive and patched it.",
+		"Backfill for collection-script initial check hit truncated output, but the runs themselves succeeded.",
+		"Python script to summarize index.jsonl failed with FileNotFoundError because the live journals have index.jsonl as a separate path; resolved by inspecting the file directly with grep.",
+		"Owned flake discovered in own prior work: `collectPiSessions` awaited the pi-coding-agent import unconditionally, taking ~7s and blowing a 5s default test timeout under the full parallel suite (passed in isolation, ~430ms after fix vs 11.4s before); uncommitted in working tree."
+	],
+	"outcome": "shipped"
+}

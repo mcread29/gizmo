@@ -1,0 +1,32 @@
+{
+	"segment": "0381",
+	"at": "2026-09-18T22:43:23.991Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added a `message-interrupted` quiet-state style, fixed a missing `unsent` field in test state, added queued-message tracking to the FakePiSession fixture, wrote tests for undelivered-queue and interrupted-transcript behavior, created a `queue-recovery.ts` module exporting `strandedMessages`, refactored `Composer.svelte` and `composer-actions.ts` to bring them under the line-length cap, and bumped the protocol version from 26 to 27.",
+	"decisions": [
+		"Quiet interrupted turns are styled with `[data-ui='message-interrupted']` as italic muted text rather than an error banner — a stopped turn is a fact about the response, not an error.",
+		"`FakePiSession` exposes `queued: string[]`, `pendingMessageCount`, and `clearQueue` so tests can simulate steered messages that were never delivered.",
+		"Whitespace-only queued messages are dropped (no `session.unsent` event) rather than restoring an empty composer.",
+		"A new `queue-recovery.ts` module owns the `strandedMessages` helper used by `pi-extension-ui-runtime` for recovering undelivered steered text.",
+		"Composer responsibilities were moved out into `composer-actions.ts` and `Composer.svelte` was shrunk (294 lines) to satisfy the file-length cap.",
+		"Protocol version was bumped from 26 to 27 (commit referenced `protocol v26` changes including per-extension project services)."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/MessageGroup.svelte",
+		"apps/app/src/styles/message-parts/messages.css",
+		"apps/app/tests/lib/agent-client/agent-event-reducer.test.ts",
+		"apps/agent-server/tests/sessions/support/pi-agent-service-fixtures.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service-events.test.ts",
+		"apps/agent-server/tests/sessions/session-transcript.test.ts",
+		"apps/agent-server/src/sessions/queue-recovery.ts",
+		"apps/agent-server/src/sessions/pi-extension-ui-runtime.ts",
+		"apps/app/src/lib/features/conversation/Composer.svelte",
+		"apps/app/src/lib/features/conversation/composer-actions.ts",
+		"packages/protocol/src/core.ts"
+	],
+	"errors": [
+		"`pnpm -r check` failed in `@gizmo/app` because `AgentEventState` now requires an `unsent` field that the test's `state()` factory didn't set; resolved by adding `unsent: []` to the factory.",
+		"After bumping protocol to 27, `apps/app` tests failed (3 tests) in `PiExtensionUiStore.questions.test.ts` because the fixture hard-codes `protocolVersion: 26`; this was the last action taken and was not yet resolved in the transcript."
+	],
+	"outcome": "blocked"
+}

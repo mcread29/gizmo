@@ -1,0 +1,26 @@
+{
+	"segment": "0290",
+	"at": "2026-09-18T22:42:04.267Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Created Unity-owned wire schemas/parsers (unity-wire.ts) in packages/unity, re-exported UnityStatus from types.ts, rewrote the Unity web domain-plugin to use per-extension store shapes via parseUnityStatus/parseUnityOpenProjectResult, and updated UnityHost plus EditorPanel.svelte to read projectOpening[unity]/projectServiceErrors[unity].",
+	"decisions": [
+		"Per-extension project-opening state is exposed as projectOpening: Record<string, boolean>; UnityPanel reads store.projectOpening.unity",
+		"Per-extension project-service errors are exposed as projectServiceErrors: Record<string, string>; EditorPanel falls back to store.projectServiceErrors.unity",
+		"UnityStatus is now owned by the Unity extension (unity-wire.ts) using TypeBox schemas with a local UnityProtocolValidationError; core treats the wire payload as opaque per protocol v26",
+		"The UnityStatus type is re-exported from types.ts rather than duplicated, so existing consumers (unity-view.test.ts) keep working",
+		"Project-service coexistence/routing tests added in the lifecycle file were extracted into their own test file to avoid pushing websocket-server.lifecycle.test.ts over the 300-line check:loc limit (pre-existing over-limit files were confirmed unchanged at HEAD)"
+	],
+	"files": [
+		"packages/unity/src/web/unity-wire.ts",
+		"packages/unity/src/web/types.ts",
+		"packages/unity/src/web/domain-plugin.ts",
+		"packages/unity/src/web/host.ts",
+		"packages/unity/src/web/unity/EditorPanel.svelte",
+		"apps/agent-server/tests/transport/websocket-server.lifecycle.test.ts"
+	],
+	"errors": [
+		"pnpm check failed because websocket-server.lifecycle.test.ts grew to 451 lines (>300). Four other over-limit files (skills-library.css, layout.css, resource-catalog.ts, session-runtime-pool.ts) were verified to be pre-existing at HEAD, not introduced by this work.",
+		"An accidental `git stash` captured the user's working tree; it was immediately restored via `git stash pop` with no loss."
+	],
+	"outcome": "explored"
+}

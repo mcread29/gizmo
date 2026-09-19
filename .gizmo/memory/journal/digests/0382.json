@@ -1,0 +1,23 @@
+{
+	"segment": "0382",
+	"at": "2026-09-18T22:43:23.873Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Shipped two fixes: a server-side queue drain in SessionRuntimePool.activate that emits session.unsent on agent_settled when items remain queued (extracted to queue-recovery.ts), and a client-side restoreUnsent that prepends the unsent text to the composer draft with a warning toast. Added an 'interrupted' flag on ConversationMessage and message.completed sourced from stopReason aborted/error, surfaced in MessageGroup.svelte as a muted italic line. Bumped protocol version 26 → 27 and updated two test files to import protocolVersion as a constant.",
+	"decisions": [
+		"Hook agent_settled rather than abort() to detect stranded queue items, because the Slapdash message was stranded by the provider dropping the run, not by a user abort.",
+		"Render interruption as a muted italic 'Response interrupted' line in MessageGroup.svelte rather than an error banner, since a stopped turn is a fact about the response, not a failure of the app.",
+		"Bump protocol version 26 → 27 because a new event type is a breaking change for strict-parsing clients; the handshake should refuse an old version rather than throw on an unparseable event.",
+		"Tests with hardcoded protocolVersion: 26 now import the protocolVersion constant so the next bump doesn't break them.",
+		"Extract queue-recovery.ts, transcript-settling.ts, unsent.ts, and composer-actions.ts to reduce line counts; session-runtime-pool.ts grew from 303 to 311 lines as the one file where this work made it worse.",
+		"Did not separate Stop and Steer in ComposerToolbar.svelte — not a bug, deferred as a design call."
+	],
+	"files": [
+		"apps/app/tests/lib/features/extension-ui/PiExtensionUiStore.questions.test.ts",
+		"apps/app/tests/lib/features/extension-ui/PiExtensionQuestion.test.ts",
+		"apps/agent-server/src/sessions/queue-recovery.ts"
+	],
+	"errors": [
+		"pnpm -r check initially reported 2 errors: a conversion mismatch in PiExtensionQuestion.test.ts because hardcoded protocolVersion: 26 was incompatible with PiExtensionDialog's protocolVersion: 27. Fixed by importing protocolVersion from @gizmo/protocol and replacing the literal occurrences."
+	],
+	"outcome": "shipped"
+}

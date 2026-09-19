@@ -1,0 +1,28 @@
+{
+	"segment": "0319",
+	"at": "2026-09-18T22:42:32.286Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Began implementing the journal_search tool and segment chunking for Gizmo's memory journal. Added a journal-chunk module and refactored JournalStore.append/JournalRecorder.record to return arrays of segments (one source session may now produce several ~40 KB chunks), created journal-search.ts (lexical search with ranked excerpts and byte caps) and journal-tools.ts (defineTool wrappers for journal_search and journal_read), wired both into memory-journal.ts with promptSnippet/promptGuidelines plus a before_agent_start fallback for the systemPromptOverride path, fixed backfill-cli to use INIT_CWD/cwd as default workspace, and patched existing recorder/store tests for the new array return shape. tsc passes; tests and real-journal verification still pending.",
+	"decisions": [
+		"Split large segments at ~40 KB on turn boundaries (a user message starts a turn, never break a tool call from its result), with the last chunk's lastEntryId remaining the resume point so resumeAfter and idempotent re-backfill keep working.",
+		"Changed JournalStore.append and JournalRecorder.record to return arrays of JournalSegmentMeta (previously single meta | undefined), because one source session can now produce several chunks; updated callers and tests accordingly.",
+		"Implemented lexical line-based search rather than embeddings/SQLite — the ~9 MB corpus greps in milliseconds and the journal is the authoritative layer the knowledge layer will later cite.",
+		"Search returns ranked excerpts with surrounding context lines and a total byte cap so broad queries can't blow up the model's context, and journal_read is added as a companion to fetch a full segment by id after a hit.",
+		"Tool exposure uses promptSnippet + promptGuidelines (the guidelines name journal_search explicitly) and adds a before_agent_start handler that appends a tool-availability line to event.systemPrompt, because pi-session-factory's systemPromptOverride discards toolSnippets/promptGuidelines when active.",
+		"backfill-cli now defaults workspacePath to process.argv[2] ?? process.env.INIT_CWD ?? process.cwd(), so `pnpm --filter @gizmo/agent-server backfill` resolves to the repo root instead of the package directory.",
+		"Tests go under apps/agent-server/tests/memory/ and tests/pi-extensions/ (mirroring src/), since vitest.config.ts only includes tests/**/*.test.ts and colocated tests silently never run."
+	],
+	"files": [
+		"apps/agent-server/src/memory/journal-chunk.ts",
+		"apps/agent-server/src/memory/journal-search.ts",
+		"apps/agent-server/src/memory/journal-tools.ts",
+		"apps/agent-server/src/memory/journal-store.ts",
+		"apps/agent-server/src/memory/journal-recorder.ts",
+		"apps/agent-server/src/memory/backfill.ts",
+		"apps/agent-server/src/memory/backfill-cli.ts",
+		"apps/agent-server/src/pi-extensions/memory-journal.ts",
+		"apps/agent-server/tests/memory/journal-recorder.test.ts"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

@@ -1,0 +1,28 @@
+{
+	"segment": "0413",
+	"at": "2026-09-18T22:43:53.429Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Scaffolded a new `codex` registry extension showing OpenAI Codex usage in Gizmo: created the Pi factory stub (`pi-extension.ts`, `index.ts`), a server-side gizmoExtension stub, web-side types/runtime/panel/CSS/entry (`src/web/*`), pure parsing/formatting tests, and a usage-service test file. The work is still mid-edit — several test-helper edits failed on whitespace matching and were left in an inconsistent state.",
+	"decisions": [
+		"Polling uses the extension's own server invoke via `store.invokeProjectExtension(selectedProjectPath, 'codex', 'usage')`, mirroring the git tab pattern, rather than a global invoke path.",
+		"Status bar is driven by a module-level `$state` registry of runtimes keyed by id, populated in `activate`, so `statusBar` reads reactive state and updates.",
+		"UI updates poll at 60s (`POLL_MS = 60_000`); server-side usage fetch uses a 30s cache to coalesce requests within a poll cycle.",
+		"Web bundle mirrors `ExtensionContext`, `WebExtensionRuntime`, `InspectorTabContribution`, and `StatusBarContribution` in a local `types.ts` instead of importing from the app, matching the subagents convention.",
+		"`gizmoExtension` server side stubs a `usage` operation; the actual fetching (ChatGPT `/backend-api/wham/usage` using `~/.codex/auth.json`, handling `auth_mode: chatgpt` vs API key, 401 → friendly error) is implemented in `src/server/usage-service.ts` and exercised in tests."
+	],
+	"files": [
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/codex/pi-extension.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/codex/index.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/codex/src/web/types.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/codex/src/web/codex-runtime.svelte.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/codex/src/web/CodexPanel.svelte",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/codex/src/web/codex.css",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/codex/src/web/index.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/codex/src/usage.test.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/codex/src/server/usage-service.test.ts"
+	],
+	"errors": [
+		"Initial multi-edit to usage-service.test.ts left three effectively no-op edits applied, still containing the leftover `withHome` helper that calls itself and a stray `status = 200;` variable in the 401 test. Subsequent attempts to clean up failed with \"Could not find edits[N]\" because the supplied `oldText` did not match exactly (whitespace/newline mismatch); the file remained inconsistent at end of segment."
+	],
+	"outcome": "explored"
+}

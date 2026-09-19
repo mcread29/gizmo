@@ -1,0 +1,27 @@
+{
+	"segment": "0088",
+	"at": "2026-09-18T22:38:57.194Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the agent-client layer to replace workspace profiles/integrations with per-project gizmo/pi/skill toggles. Updated AgentClient interface, WebSocketAgentClient and FakeAgentClient implementations, AgentStore, and added a parseProjectConfig helper plus new fake state for gizmo/pi overrides and disabled-globally gizmo set. Deleted profile-overrides files and began cleaning up downstream call sites (session-actions, WorkspaceConfigurePanel/AgentSettings pending).",
+	"decisions": [
+		"AgentClient.addProject now takes only projectPath; integrations are managed via setProjectGizmoExtension/setProjectPiExtension instead of constructor arg.",
+		"setProjectGizmoExtension and setProjectPiExtension return Promise<ProjectConfig>; setProjectSkill and setGlobalExtension return Promise<ResourceCatalog> (matching server protocol).",
+		"Removed WorkspaceProfile/WorkspaceProfiles from the client protocol surface; FakeAgentClient no longer maintains profiles or fakeProfiles helper.",
+		"Added parseProjectConfig helper in packages/protocol alongside parseProjectDomains to validate server responses for the new config.",
+		"FakeAgentClient tracks per-project gizmo and pi extension enable/disable via Maps and a global disabled-gizmo Set, with #projectConfig(projectPath) building the effective config."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/features/sessions/session-actions.svelte.ts",
+		"apps/app/src/lib/features/workspace/profile-overrides.ts",
+		"apps/app/src/lib/features/workspace/profile-overrides.test.ts",
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [
+		"svelte-check reported 41 errors after edits, including undefined 'selectedIntegrations' in AgentStore (fixed by deriving integrations from the selected project), missing WorkspaceProfile/activeProfileId/profiles references in profile-overrides files (deleted), Implicit any on bindings/parameters across remaining callers, and an AgentClient base-property mismatch — remaining errors not yet resolved."
+	],
+	"outcome": "explored"
+}

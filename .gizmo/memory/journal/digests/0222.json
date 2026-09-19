@@ -1,0 +1,22 @@
+{
+	"segment": "0222",
+	"at": "2026-09-18T22:40:58.655Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Restored the consolidated settings workbench that had been over-reverted, including the two-pane Instructions & tools editor with System prompt / Global AGENTS.md switching and the wider Extensions layout (1180px shared with Agent/Skills). Reworked the workbench sizing so it tracks library content height instead of near-viewport height, and restyled the library heading as a muted caps label so it no longer reads like a third clickable row. Verified with `pnpm check`, the impeccable detector, and the full vitest suite (308 tests passing) before closing the browser tab.",
+	"decisions": [
+		"Restore the consolidated workbench view (two-pane library + editor with System prompt / Global AGENTS.md toggle) rather than regressing to stacked cards.",
+		"Size the workbench to its library content (~440px) instead of near-viewport height, to avoid a large empty gray column.",
+		"Render the instructions library label as a small muted caps category label matching the sidebar group-label convention, not a bold title/description pair.",
+		"Share the 1180px settings-content width across `agent`, `skills`, and `extensions` pages so tab switching does not resize the page."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/app/src/lib/features/settings/InstructionsEditor.svelte",
+		"apps/app/src/styles/settings-parts/instructions-editor.css",
+		"apps/app/src/styles/settings-parts/layout.css"
+	],
+	"errors": [
+		"Screenshot capture on the live dev server tab timed out once with `Page.captureScreenshot` CDP timeout; a retry succeeded."
+	],
+	"outcome": "shipped"
+}

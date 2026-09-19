@@ -1,0 +1,17 @@
+{
+	"segment": "0412",
+	"at": "2026-09-18T22:43:49.545Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Explored the Gizmo extension system and gizmo-registry to plan a new 'codex-usage' UI extension. Verified that ~/.codex/auth.json exists and that GET https://chatgpt.com/backend-api/wham/usage with Bearer token + chatgpt-account-id header returns plan_type, rate_limit windows (used_percent, reset_at, etc.), additional_rate_limits, credits, and spend_control fields. Studied existing extensions (activity, git, subagents) to understand the server list/invoke pattern, web activate/statusBar/inspectorTabs shape, and confirmed Titlebar.svelte re-derives statusBarItems reactively so a polling store can drive live updates.",
+	"decisions": [
+		"Target the wham/usage endpoint (GET https://chatgpt.com/backend-api/wham/usage) with the access_token from ~/.codex/auth.json and the chatgpt-account-id header to fetch Codex plan/usage/limit data, since a direct browser fetch would be blocked by CORS.",
+		"Follow the git extension's pattern: a server-side GizmoServerExtension with list/invoke routed per workspace, paired with a web bundle providing statusBar and inspectorTab contributions backed by a reactive store.",
+		"Build the extension under extensions/codex-usage in the gizmo-registry, with the web source in packages/codex-usage/src/web mirroring the packages/activity layout, and register it in gizmo.registry.json.",
+		"Drive the titlebar indicator and inspector tab from a reactive store that polls on an interval so the $derived statusBarItems in Titlebar.svelte re-evaluates when usage/limit values change."
+	],
+	"files": [],
+	"errors": [
+		"A `cat` of the activity extension's package.json failed with exit code 1 (file not present); no extension-level package.json exists for activity — only the workspace root package.json."
+	],
+	"outcome": "explored"
+}

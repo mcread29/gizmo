@@ -1,0 +1,42 @@
+{
+	"segment": "0422",
+	"at": "2026-09-18T22:43:58.045Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Finished the workflows and other extension fixes directly (no subagents after the first two burned ~40% of the user's 5-hour usage), verified with the full test suite and build, then committed and pushed both the gizmo repo (branch pi-web, commit a9f6f41) and the gizmo-registry repo (main, commit 52746f0).",
+	"decisions": [
+		"Never spawn subagents on the default (Fable) model; do work directly in the main session, and if a subagent is needed, pass an explicit haiku/sonnet model and ask before launching more than one.",
+		"Scope workflows and subagents panels to the open thread by passing a sessionId on the web extension context, filtering server-side runs by session and workspace, and clearing the list on thread switch.",
+		"Add a 5-second heartbeat and on-every-flush workflow.json write so the workflows tab shows live progress, and mark runs as aborted when their heartbeat is over a minute old.",
+		"Git Changes panel rows are keyed by kind+path and git paths are rebased to the workspace root so agent edits match in subdirectory workspaces.",
+		"Ask-user rejects duplicate option labels at the tool level and keys options by index.",
+		"Declarative views share a single shutdown hook per Pi instance instead of one per view.",
+		"PI_CODING_AGENT_DIR expands a leading ~ like Pi does."
+	],
+	"files": [
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\no-fable-subagents.md",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\MEMORY.md",
+		"extensions/workflows/src/web/workflows-runtime.svelte.ts",
+		"extensions/workflows/src/server/index.ts",
+		"packages/git/src/web/ChangesPanel.svelte",
+		"packages/git/src/web/change-paths.ts",
+		"packages/git/src/web/change-paths.test.ts",
+		"packages/unity/src/server/docs/core.ts",
+		"packages/unity/src/server/docs/core.test.ts",
+		"extensions/codex/src/server/usage-service.ts",
+		"extensions/codex/src/server/index.ts",
+		"extensions/codex/src/web/codex-runtime.svelte.ts",
+		"extensions/ask-user/pi-extension.ts",
+		"extensions/ask-user/src/web/AskUserToolResult.svelte",
+		"packages/orchestration/src/agent-dir.ts",
+		"apps/app/src/lib/extensions/ProjectCapability.ts",
+		"apps/app/src/lib/extensions/WorkspaceInspector.svelte",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/app/src/lib/extensions/types.ts",
+		"apps/app/src/lib/AgentStore.sessions.test.ts",
+		"docs/extensions.md"
+	],
+	"errors": [
+		"Bash heredoc patch script failed with 'unexpected EOF while looking for matching `'`' because of quoting; worked around by writing the Python patcher to a scratchpad file and invoking it directly."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,43 @@
+{
+	"segment": "0181",
+	"at": "2026-09-18T22:40:22.824Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Performed a read-only audit of apps/agent-server, packages/protocol, and packages/extensions (backend/shared does not exist) to inform a refactor plan. Identified large files, mixed responsibilities, reusable extraction opportunities, the current split of tests between src and tests directories, import/config wiring, and produced prioritized phases with exact paths plus coupling and migration risks.",
+	"decisions": [
+		"backend/shared path does not exist in the repository, so the audit scope is limited to apps/agent-server, packages/protocol, and packages/extensions.",
+		"Tests currently live in two locations: colocated *.test.ts inside src/ (e.g. packages/protocol/src/index.test.ts, packages/extensions/src/patch.test.ts) and a dedicated tests/ tree in apps/agent-server; the proposal is to consolidate under a tests/ folder in apps/agent-server.",
+		"Phase 1 (low-risk extractions): move pi-runtime-config.ts out of src/config/ into a new packages/config package; extract AsyncMutex from apps/agent-server/src/projects/project-catalog.ts into packages/protocol/util/async-mutex.ts.",
+		"Phase 2 (medium-risk splits): split apps/agent-server/src/sessions/pi-agent-service.ts (>1300 LOC) into session-lifecycle.ts, event-translator.ts, and extensions/active-extensions.ts; split apps/agent-server/src/transport/websocket-server.ts (>800 LOC) into router.ts, auth.ts, and handlers/.",
+		"Phase 3 (coupling reduction): move activation context from packages/extensions/src/extension.ts to packages/protocol/src/extension-context.ts to remove the @earendil-works/pi-coding-agent dependency from packages/extensions.",
+		"Migration risk: pi-agent-service.ts is a hub importing from sessions, attachments, projects, resources, and extensions; it must be split behind an interface to avoid circular imports.",
+		"Migration risk: websocket-server.ts currently mixes protocol parsing, auth, and handler dispatch in one file; splitting requires keeping the request/response envelope stable to preserve the ws client contract.",
+		"Migration risk: project-catalog.ts contains an internal AsyncMutex; extracting it changes no public API but requires updating the single import site."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/src/config/pi-runtime-config.ts",
+		"apps/agent-server/package.json",
+		"apps/agent-server/tsconfig.json",
+		"packages/protocol/src/index.ts",
+		"packages/protocol/src/index.test.ts",
+		"packages/protocol/package.json",
+		"packages/protocol/tsconfig.json",
+		"packages/extensions/src/extension.ts",
+		"packages/extensions/src/index.ts",
+		"packages/extensions/src/patch.ts",
+		"packages/extensions/src/patch.test.ts",
+		"packages/extensions/src/project-service.ts",
+		"packages/extensions/package.json",
+		"packages/extensions/tsconfig.json",
+		"tsconfig.base.json",
+		"pnpm-workspace.yaml"
+	],
+	"errors": [
+		"fd find against backend/shared failed: '[fd error]: Search path C:\\\\Users\\\\mchan\\\\projects\\\\gizmo\\\\backend\\\\shared is not a directory.' — the backend/shared path does not exist in the repository."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,31 @@
+{
+	"segment": "0299",
+	"at": "2026-09-18T22:42:08.660Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Committed all pending changes on branch pi-web as 776d80d with message \"protocol v26: per-extension project services, sidebar reorder, unsaved-changes guard\", covering 77 files (1914 insertions, 808 deletions). The first commit attempt failed due to a stale .git/index.lock from a crashed git process; after removing the lock, the commit succeeded.",
+	"decisions": [
+		"Recovered from a stale .git/index.lock by deleting it (no git process was actually running), then retried the commit successfully."
+	],
+	"files": [
+		"README.md",
+		"WORKLOG.md",
+		"apps/agent-server/src/extensions/extension-host-service.ts",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/project-request-handler.ts",
+		"apps/agent-server/src/transport/project-watch-coordinator.ts",
+		"apps/app/src/lib/agent-client/websocket/transport.ts",
+		"apps/app/src/lib/features/settings/DiscardChangesDialog.svelte",
+		"apps/app/src/lib/features/settings/unsaved-changes.svelte.ts",
+		"packages/extensions/src/project-service.test.ts",
+		"packages/ui/src/reorder.ts",
+		"packages/ui/tests/reorder.test.ts",
+		"apps/agent-server/tests/transport/project-watch-coordinator.test.ts",
+		".git/index.lock (deleted as stale lock)"
+	],
+	"errors": [
+		"git commit failed with fatal: Unable to create '.git/index.lock': File exists — turned out to be a stale lock from a crashed earlier git process, resolved by removing the lock file and retrying."
+	],
+	"outcome": "shipped"
+}

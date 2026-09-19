@@ -1,0 +1,17 @@
+{
+	"segment": "0447",
+	"at": "2026-09-18T22:44:25.469Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Installed the TypeSafe skill into the gizmo repo using `npx skills add typesafe-ai/skills --skill typesafe-ai --agent '*' -y`, which placed files at .agents/skills/typesafe-ai/, created .claude/ and agent/ directories, and wrote skills-lock.json. Verified installation via `npx skills list --json` and read the installed SKILL.md to confirm contents.",
+	"decisions": [
+		"Chose the `npx skills add` installation route (over the `claude plugin` route) because the environment is a non-Claude agent (no .pi/.claude/.cursor/.codex config present initially; Claude CLI was on PATH but a non-interactive install was preferred).",
+		"Installed with `--agent '*' -y` to fan out to all 79 detected agents non-interactively rather than selecting one agent, since the active agent wasn't clearly identifiable from repo config."
+	],
+	"files": [
+		".agents/skills/typesafe-ai/LICENSE",
+		".agents/skills/typesafe-ai/SKILL.md",
+		"skills-lock.json"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

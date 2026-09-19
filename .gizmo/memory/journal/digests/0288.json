@@ -1,0 +1,31 @@
+{
+	"segment": "0288",
+	"at": "2026-09-18T22:41:59.304Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the agent-server transport to use a ProjectServiceRegistry (mapping extensionId → service) instead of a single ProjectService, updated server.ts/websocket-server.ts/request-router.ts/websocket-connection.ts accordingly, then propagated the per-extension project status/watch/open shape through the app's ProjectCapability, SessionCapability, AgentStore facade, and fake-client/test helpers.",
+	"decisions": [
+		"Replaced single `ProjectService` with `ProjectServiceRegistry` (Map keyed by extensionId); transport routes `project.status`/`project.watch`/`project.open` by the extensionId field in the request body.",
+		"`ProjectStatus` is treated as opaque extension-owned data; core types it as `Record<string, unknown>` so each extension defines its own shape (Unity-shaped payload kept in fake).",
+		"Per-extension status/error maps in store: `projectStatuses: Record<extensionId, status>`, `projectServiceErrors: Record<extensionId, message>`, with per-(path, extension) request dedup.",
+		"Renamed `createProjectService` option to `createProjectServices` (factory returning a registry), updated lifecycle test to use `ProjectServiceRegistry([...])`."
+	],
+	"files": [
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/transport/request-router.ts",
+		"apps/agent-server/src/transport/websocket-connection.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/tests/transport/websocket-server.lifecycle.test.ts",
+		"apps/app/src/lib/agent-client/agent-store/ProjectCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionCapability.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/fake-client/fixtures.ts",
+		"apps/app/src/lib/agent-client/fake-client/projects.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts"
+	],
+	"errors": [
+		"tsc: `ProjectServiceRegistry` cannot be used as a value when imported with `import type` in websocket-connection.ts — fixed by changing to a value import.",
+		"tsc: lifecycle test still used the old `createProjectService` option name — fixed by renaming to `createProjectServices` and constructing a `ProjectServiceRegistry`.",
+		"Edit call failed atomically when `edits[1]` text didn't match exactly — recovered by re-running with corrected `oldText` after reading the file."
+	],
+	"outcome": "explored"
+}

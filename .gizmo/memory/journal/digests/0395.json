@@ -1,0 +1,24 @@
+{
+	"segment": "0395",
+	"at": "2026-09-18T22:43:35.371Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Completed a refactor of the agent-server transport layer so a single PiAgentService, ProjectServiceRegistry, and ExtensionHostService are owned by the WebSocket server for its lifetime, with a shared ProjectWatchCoordinator ref-counting extension-host watches across services. Closing a tab no longer aborts or disposes anything; sessions survive disconnects and reattach via the existing snapshot path.",
+	"decisions": [
+		"Server owns one PiAgentService, ProjectServiceRegistry, and ExtensionHostService for its lifetime; factory options are purely test seams invoked once per server.",
+		"WebsocketConnection reduced to subscribing/unsubscribing to a shared event hub (~30 lines); it no longer aborts or disposes anything on close.",
+		"ProjectWatchCoordinator moved from per-connection to a shared class: one extension-host watch per path ref-counted across services, events broadcast to all sockets. Documented constraint that the last tab to select a project wins live updates, relying on the client's re-watch-on-selection behavior.",
+		"Server close() detaches clients, aborts streaming sessions, then disposes resources with each dispose isolated so one throw cannot leak the others.",
+		"Pre-existing check:loc failures on 6 oversized files (none touched by this change) were treated as out of scope for this refactor."
+	],
+	"files": [
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/transport/websocket-connection.ts",
+		"apps/agent-server/src/transport/project-watch-coordinator.ts",
+		"apps/agent-server/tests/transport/websocket-server.lifecycle.test.ts",
+		"apps/agent-server/tests/transport/project-watch-coordinator.test.ts"
+	],
+	"errors": [
+		"pnpm check:loc failed: 6 pre-existing files exceed the 300-line limit (e.g., scripts/dev-server.ts 357, resource-catalog.ts 333). Confirmed none of them were files touched in this change; failure treated as pre-existing."
+	],
+	"outcome": "shipped"
+}

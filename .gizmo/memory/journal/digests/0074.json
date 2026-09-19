@@ -1,0 +1,16 @@
+{
+	"segment": "0074",
+	"at": "2026-09-18T22:38:38.188Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Explored which globally installed Pi extensions should be ported as Gizmo extensions and audited whether docs still describe the product as a 'Unity agent harness' ahead of a pivot to a generic Pi frontend with stronger UI extensibility.",
+	"decisions": [
+		"Recommend porting `search-and-scrape.ts` to `@gizmo/search` first — Gizmo currently has zero web tools, and it proves the `createTools` + `web-bundles.ts` path without process management.",
+		"Recommend porting `subagents/index.ts` to `@gizmo/subagents` (with `workflows/index.ts` as `@gizmo/workflows` dependent) as the third batch, gated with `MAX_RUNNING=4` and respecting the 3-min workflow `agent()` timeout.",
+		"Recommend porting `ask-user.ts` to `@gizmo/ask` second, to gain a native web dialog via `GizmoWebExtension.dialog` instead of the TUI popup proxied through `PiExtensionUiRuntime`.",
+		"Do NOT port: `ui-customization` (TUI-only, redundant with `packages/design` + `packages/ui`), `copy-all.ts` (web clipboard API already in `apps/app`), `herdr-agent-state.ts` (tmux/HERDR-only), `auto-compact-threshold.ts` (Gizmo already exposes `PiAgentService.configureCompaction()` per-profile), `git-info/` and `model-info/` (covered by `@gizmo/git` + `@gizmo/activity`), or `shared/` (library, not an extension).",
+		"`windows-input/index.ts` → `@gizmo/windows-input` only if desktop automation is needed; skip `remote-input` unless private secret entry is required."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

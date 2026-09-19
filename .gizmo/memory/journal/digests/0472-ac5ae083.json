@@ -1,0 +1,28 @@
+{
+	"segment": "0472-ac5ae083",
+	"at": "2026-09-18T22:45:00.791Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed three issues in `screenshot_00.png`: (1) sidebar project rows no longer fall back to the full workspace path as the caption, so names stop double-truncating and the path remains only as a tooltip; (2) removed the `workspace-facts` status pill strip from the workspace overview along with its CSS and the now-dead `onConfigure` prop/git-integration derivations; (3) aligned the workspace overview header with the right-panel inspector header by introducing a `--header-row-h: 66px` token and applying it to both `workspace-screen-header` and `inspector-header`, verified via Playwright at http://localhost:5173 (both headers span y 48→114). Also updated the workspace-navigation integration test that had encoded the removed path-fallback behavior; full app suite passes (235/235).",
+	"decisions": [
+		"Sidebar caption falls back to nothing instead of the workspace path; the path is preserved only as the row's `title` tooltip, while the \"N threads\" caption still appears when there is more than one thread.",
+		"Removed the entire `workspace-facts` status pill block (markup, CSS, and the `onConfigure` prop / git+integration derivation plumbing) rather than just hiding it, since the user asked for removal.",
+		"Introduced a shared `--header-row-h: 66px` design token (matching the existing conversation header height) and applied it to both `[data-ui='workspace-screen-header']` and `[data-ui='inspector-header']` to vertically align the workspace header with the right-panel header.",
+		"Accepted that the workspace header is now vertically centered rather than top-aligned, which is what allows the two-line title+path block and the one-line inspector title to land on the same baseline row.",
+		"Test `workspace-navigation.integration.test.ts` was updated to assert the absence of `/projects/` in the row text instead of asserting the path fallback, since that fallback behavior is what was just removed."
+	],
+	"files": [
+		"apps/app/src/lib/features/sessions/SessionSidebar.svelte",
+		"apps/app/src/lib/features/workspace/WorkspaceHome.svelte",
+		"apps/app/src/lib/features/workspace/WorkspaceScreen.svelte",
+		"apps/app/src/styles/workspace-dashboard.css",
+		"apps/app/src/styles/inspector-parts/layout.css",
+		"apps/app/src/styles/sidebar-parts/layout.css",
+		"apps/app/src/styles/conversation.css",
+		"packages/design/src/tokens-base.css",
+		"apps/app/tests/app/workspace-navigation.integration.test.ts"
+	],
+	"errors": [
+		"Initial Playwright verification script failed with `ERR_UNSUPPORTED_ESM_URL_SCHEME` on Windows because of the bare `C:/` import path; fixed by switching to a `file:///C:/...` URL, after which screenshots and header bounding boxes were captured successfully."
+	],
+	"outcome": "shipped"
+}

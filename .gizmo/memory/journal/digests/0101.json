@@ -1,0 +1,16 @@
+{
+	"segment": "0101",
+	"at": "2026-09-18T22:39:09.577Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why the user's Gizmo agent reported the custom `ask_user` tool returned 'no interactive UI is available'. Confirmed pi-coding-agent 0.84.2 ships no built-in `ask_user` and the dev server (`tsx watch`) auto-reloads, so the tool is the project's custom one; the model likely paraphrased the bridge's 'did not answer' result. Plumbed through `apps/agent-server/src/sessions/pi-agent-service.ts` (extension UI runtime, `#callbacks`, `#emit`) to verify the dialog path is wired, then attempted a WS probe to inspect `session.created.tools` but couldn't get a working session-create payload (workspace resolved to a Unity project, session/tools came back undefined).",
+	"decisions": [],
+	"files": [
+		"apps/agent-server/src/sessions/pi-agent-service.ts"
+	],
+	"errors": [
+		"A WS probe to `ws://localhost:8787/agent` returned `session: undefined` and `tools: undefined` despite sending `session.create`; the correct envelope requires `options: { cwd: repo.path }` and the probe was not yet updated to match, so the tool-list verification was not completed.",
+		"`node -e 'require(\"@earendil-works/pi-coding-agent/package.json\")'` failed with `ERR_PACKAGE_PATH_NOT_EXPORTED` because the package's `exports` field doesn't expose `package.json`; version was instead read via grep.",
+		"Earlier inline `node --input-type=module -e` probe failed with a Node ESM eval error before being moved to `/tmp/probe-tools.mjs`."
+	],
+	"outcome": "explored"
+}

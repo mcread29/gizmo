@@ -1,0 +1,24 @@
+{
+	"segment": "0221",
+	"at": "2026-09-18T22:40:55.348Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed visual regressions in the app's settings screen by consolidating the orphaned 'Agent resources' sidebar item into the 'This device' group, replacing a bespoke tab bar with the app's existing segmented control, reverting the Agent settings instructions section from a two-pane workbench back to stacked full-width editor cards, and narrowing the Extensions page to the default content width.",
+	"decisions": [
+		"Merged the 'Agent resources' nav item into the 'This device' group instead of leaving it as a lone orphan item in its own untitled group.",
+		"Replaced the bespoke `agent-resource-nav` tab bar with the app's existing `segmented`/`segmented-option` control for visual consistency with the Appearance toggle and Skills filter.",
+		"Reverted the instructions section from a two-pane library-plus-editor workbench to stacked full-width editor cards (System prompt, Global AGENTS.md), because the workbench pattern was inappropriate for only 2 items and left most of the sidebar empty.",
+		"Limited the 1180px workbench width to Skills only; narrowed the Extensions page back to the default 680px content width because its simple switch-rows did not benefit from the wider layout.",
+		"Added `[data-ui='settings-content'] > [data-ui='segmented'] { justify-self: start; }` so the reused segmented control hugs its content rather than stretching to the grid track width.",
+		"Removed the now-dead `workbench` prop and its associated CSS from `InstructionsEditor.svelte` and `instructions-editor.css`.",
+		"Work was verified and not committed; awaiting confirmation before staging."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/app/src/lib/features/settings/SettingsScreen.svelte",
+		"apps/app/src/lib/features/settings/InstructionsEditor.svelte",
+		"apps/app/src/styles/settings-parts/layout.css",
+		"apps/app/src/styles/settings-parts/instructions-editor.css"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

@@ -1,0 +1,28 @@
+{
+	"segment": "0106",
+	"at": "2026-09-18T22:39:12.095Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Promoted the ask_user Pi extension into a paired package @gizmo/ask-user (mirror of @gizmo/unity) so its UI ships with it: the tool moved into packages/ask-user/pi-extension.ts and a new web extension (labels, parametersFor, resultFor -> AskUserToolResult.svelte) is registered as a static builtin alongside Svelte/Git/Activity. Verified with pnpm check, a new ask-user web extension test, and the full 46-test app suite; committed as 652a7b0.",
+	"decisions": [
+		"Created packages/ask-user as a paired Pi + web extension package (Unity-style), rather than leaving ask_user as a shell-level tool.",
+		"Web extension registered as a static builtin (same shape as Svelte/Git/Activity) instead of runtime-delivered over extensions.web; the app's only knowledge is one import + array entry in registry.svelte.ts.",
+		"ask_user's display label moved out of the shell's base tool labels into the new extension's labels contribution.",
+		"AskUserToolResult.svelte renders the result natively (question, numbered options with pick highlighted, custom-answer mark, dismissed state); the interactive question card stays as the generic bridge renderer for any select/input request.",
+		"packages/ask-user has no tsconfig and is excluded from typecheck (source file is only consumed by the agent-server generator/seed)."
+	],
+	"files": [
+		"packages/ask-user/package.json",
+		"packages/ask-user/src/pi-extension.ts",
+		"packages/ask-user/src/web/index.ts",
+		"packages/ask-user/src/web/AskUserToolResult.svelte",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/app/src/lib/extensions/ask-user.test.ts",
+		"apps/agent-server/src/pi-extensions/ask-user-source.ts",
+		"apps/app/src/lib/features/conversation/tool-labels.ts",
+		"pnpm-lock.yaml"
+	],
+	"errors": [
+		"Vitest failed on the new ask-user test because the import path '../conversation/tool-labels' resolved to src/lib/conversation (wrong one level up); corrected to '../features/conversation/tool-labels' and tests passed (2/2)."
+	],
+	"outcome": "shipped"
+}

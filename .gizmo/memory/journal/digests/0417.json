@@ -1,0 +1,14 @@
+{
+	"segment": "0417",
+	"at": "2026-09-18T22:43:52.891Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Wrote a detailed handoff prompt to a gitignored dev directory so a future agent can work on making registry extension Install/unlink operations take effect live without restarting the agent-server.",
+	"decisions": [
+		"Chose to store the handoff prompt at `.gizmo-dev/registry-live-reload-prompt.md` in the gizmo project root rather than in source-controlled paths, because `.gizmo-dev/` is gitignored dev state and won't pollute the repo."
+	],
+	"files": [
+		"C:/Users/mchan/projects/gizmo/.gizmo-dev/registry-live-reload-prompt.md"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

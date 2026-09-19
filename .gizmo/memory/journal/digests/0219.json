@@ -1,0 +1,32 @@
+{
+	"segment": "0219",
+	"at": "2026-09-18T22:40:57.440Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed the ugly textarea bottom-right corner as the browser's native resize-grip glyph (uncolorable in dark mode) and fixed it in instructions-editor.css by replacing resizable min-height with a fixed 280px height and `resize: none`, matching the skill editor's approach. Verified visually via browser screenshots and zoom, confirmed `pnpm check` passes, then committed all accumulated session work (19 files) as feat: add editing for Pi system prompt and AGENTS.md files (f03ac1d).",
+	"decisions": [
+		"Remove native resize grip on the instructions textarea (`resize: none`) and use a fixed `height: 280px` instead of `min-height: 180px`, because the browser-drawn grip glyph cannot be recolored for dark mode and clashes with the themed scrollbar — matches how the skill editor elsewhere handles this.",
+		"Commit the full instruction-editing feature as a single commit `feat: add editing for Pi system prompt and AGENTS.md files` (f03ac1d on pi-web), bundling the agent-server resources handler, protocol additions, app-side InstructionsEditor component, and the dark-mode polish."
+	],
+	"files": [
+		"apps/app/src/styles/settings-parts/instructions-editor.css",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/transport/request-router.ts",
+		"apps/agent-server/src/transport/resource-request-handler.ts",
+		"apps/agent-server/src/resources/instruction-files.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/agent-store/ResourceCapability.ts",
+		"apps/app/src/lib/features/settings/InstructionsEditor.svelte",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"apps/app/src/styles/settings.css",
+		"apps/app/tests/lib/agent-client/agent-store-invalid-client.ts",
+		"packages/protocol/src/requests/resources.ts",
+		"packages/protocol/src/resources.ts"
+	],
+	"errors": [
+		"First screenshot after navigating to localhost:5173/#settings timed out (CDP Page.captureScreenshot 30000ms timeout on tab 378341089); a retry succeeded.",
+		"Two earlier UI clicks in the transcript (before this segment) were noted as landing in the wrong place — not errors in this span but the user mentioned the corner 'looks even worse now' prior to the fix."
+	],
+	"outcome": "shipped"
+}

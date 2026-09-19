@@ -1,0 +1,19 @@
+{
+	"segment": "0450",
+	"at": "2026-09-18T22:44:27.252Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran a live Jev (Typesafe) evaluation against five past transcripts (~15.7k input tokens, 7 questions each in parallel), saved full answers to the gitignored .artifacts/jev-eval.json, then deleted the temporary scripts/jev-eval.mjs after capture. Followed up by enumerating global vs project-local skill directories and .env locations to plan making the typesafe-ai skill and TYPESAFE_API_KEY accessible across ncp/cronkis.",
+	"decisions": [
+		"Used a one-off scripts/jev-eval.mjs (raw fetch against Typesafe, no SDK install) to avoid adding dependencies to the gizmo project for a single review run.",
+		"Ran Jev in parallel across 5 transcripts (gizmo-0128, gizmo-0131, gizmo-0126, ncp-0115, cronkis-0080) with 7 questions each, 7000-char excerpt cap per transcript.",
+		"Removed the temporary scripts/jev-eval.mjs after the run, keeping only .artifacts/jev-eval.json (already covered by .gitignore).",
+		"Recorded high-level recommendations: one-intent-per-turn prompting template; log model + reason per task to split strong vs cheap tiers; require verification_done before declaring work done; explicitly invoke unity-docs and writing-for-agents skills; install typesafe-ai globally and propagate .env access to ncp/cronkis.",
+		"Chose ~/.agents/skills (already contains a typesafe-ai entry from Sep 16) over ~/.claude/skills or ~/.gizmo/skills as the global skill home for typesafe-ai."
+	],
+	"files": [
+		"scripts/jev-eval.mjs",
+		".artifacts/jev-eval.json"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

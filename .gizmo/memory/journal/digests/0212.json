@@ -1,0 +1,23 @@
+{
+	"segment": "0212",
+	"at": "2026-09-18T22:40:50.302Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented an editable instruction-files feature for gizmo: added protocol schemas for instruction targets and a new 'resources.instructions.read'/'write' request pair, a server-side instruction-files module that reads/writes the Pi system prompt override plus global and project AGENTS.md with safe allow-listed IO, corresponding service methods and request-handler cases, and existing-resource/allow-list integration via resourceRoots.",
+	"decisions": [
+		"Instruction targets are modeled as a discriminated union in the protocol: 'system-prompt' (single global file), 'global-agents' (~/.pi/agent/AGENTS.md), and 'project-agents' (<workspace>/AGENTS.md and <workspace>/.gizmo/AGENTS.md).",
+		"Per-target resolution of the file path is centralized in a new apps/agent-server/src/resources/instruction-files.ts module, mirroring the skill read/write pattern but dropping skill-specific markdown validation.",
+		"The project-agents allow-list is built from resourceRoots(workspacePath).agentsFiles rather than existingFiles(), so creating a missing AGENTS.md is supported.",
+		"Project-scoped writes require the workspace to be registered in the project catalog before the file path is resolved (added a #requireWorkspace guard on the service).",
+		"Symlinks are rejected on write (lstat + realpath equality check) to prevent escapes from the allowed path set.",
+		"System-prompt storage is kept as a plain file under the gizmo data dir (defaultDataDir()), separate from GlobalResourceStore's resources.json, and continues to be supplied to Pi via systemPromptOverride in pi-session-factory.ts rather than extending projectConfigSchema."
+	],
+	"files": [
+		"packages/protocol/src/resources.ts",
+		"packages/protocol/src/requests/resources.ts",
+		"apps/agent-server/src/resources/instruction-files.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/resource-request-handler.ts"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

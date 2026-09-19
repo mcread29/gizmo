@@ -1,0 +1,19 @@
+{
+	"segment": "0487-c6b31024",
+	"at": "2026-09-18T22:45:16.637Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Surveyed the gizmo repo's transcripts and journals in-place: counted `.agent-journal` (135 files, all non-empty), `.gizmo/memory/journal` (448 files), `WORKLOG.md` (~60KB), and `docs/` (8 files). Sampled the 10 most-recent `.agent-journal` entries (0135→0126) to characterize user prompting style, model mentions, skill usage, and errors/retries, then reported findings with concrete file examples of anti-patterns.",
+	"decisions": [
+		"Scored each of the 10 sampled journal files on user prompting style (vague vs specific, goal/context/constraints) and on prompt completeness — identifying mega-batch (0128), error-paste-without-repro (0131), and missing acceptance criteria (0133, 0128) as the dominant anti-patterns",
+		"Concluded there is no explicit model-choice evidence in the 10 sampled files; the 15 regex hits for model names were all incidental (compactionPolicy, SDK paths); provenance is recorded as `source: claude-code` vs `source: pi-archive`",
+		"Identified that `svelte-core-bestpractices` was explicitly loaded in 0126 and referenced 24× across 012x/013x, while `backfill-agent-journal` appears as a full SKILL.md paste in 0135; no other skills seen in the sample"
+	],
+	"files": [],
+	"errors": [
+		"`edit` ENOENT in 0127 on `packages/protocol/src/events.ts` and in 0126 on `ToolCallCard.svelte` — attributed to wrong working directory, then retried",
+		"`Bash → error` and test failures: 0126 `display.test.ts` 6 failed → 1 failed after fixes; 0128 `pi-agent-service-events` 1 failed with repeated `ELIFECYCLE` exits",
+		"Long-running commands timed out and were rerun as background tasks: 0131 `grep` hit 120s, 0128 had builds/verifies timing out at 300–600s",
+		"`spawn git ENOENT` recurring in service logs (0130/0129, ~43 occurrences), `ws://…/agent HTTP Authentication failed`, and `Extension is not installed: git` — S4U auth/extension chain"
+	],
+	"outcome": "explored"
+}

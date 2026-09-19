@@ -1,0 +1,28 @@
+{
+	"segment": "0195",
+	"at": "2026-09-18T22:40:32.286Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored apps/agent-server/src/sessions/pi-agent-service.ts into a thin facade that delegates to new cohesive modules (agent-event-hub, pi-agent-types, pi-model-runtime, pi-session-factory, session-catalog-service, session-operations, session-runtime-pool, tool-policy-service), preserving the public PiAgentService import path and behavior. Prettier, server check, and full server test suite (21 files, 114 tests) all pass; session-runtime-pool sits at 300 LOC and the facade at 302 LOC, while the touched session modules are under 300 LOC.",
+	"decisions": [
+		"Split pi-agent-service.ts into a facade plus eight cohesive modules (agent-event-hub, pi-agent-types, pi-model-runtime, pi-session-factory, session-catalog-service, session-operations, session-runtime-pool, tool-policy-service) rather than numbered chunks, reusing existing helpers like session-repository.",
+		"Kept the public PiAgentService import path/API intact via re-export `export type * from './pi-agent-types'` and a delegating class so transport/projects remain untouched.",
+		"Did not split the existing pi-agent-service.test.ts and pi-agent-service.eviction.test.ts because both already fit under 300 LOC and the eviction suite is already a focused extraction.",
+		"session-runtime-pool is intentionally kept at exactly 300 LOC (the cap) rather than further splitting, to avoid an arbitrary numbered chunk."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/sessions/agent-event-hub.ts",
+		"apps/agent-server/src/sessions/pi-agent-types.ts",
+		"apps/agent-server/src/sessions/pi-model-runtime.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/sessions/session-catalog-service.ts",
+		"apps/agent-server/src/sessions/session-operations.ts",
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/agent-server/src/sessions/tool-policy-service.ts"
+	],
+	"errors": [
+		"An edit on pi-agent-service.ts failed with 'Found 8 occurrences of edits[1]' because `this.projects`/`this.resources` were not unique; retried with additional context and succeeded.",
+		"A subsequent edit on the same file failed with 'Found 2 occurrences of edits[12]' for a non-unique `return this.resources.*` block; retried with more surrounding context and succeeded."
+	],
+	"outcome": "shipped"
+}

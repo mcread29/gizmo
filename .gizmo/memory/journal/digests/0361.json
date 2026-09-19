@@ -1,0 +1,18 @@
+{
+	"segment": "0361",
+	"at": "2026-09-18T22:43:08.521Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated Tailscale-based hosting options for Gizmo on a Windows tailnet machine (genge.angler-musical.ts.net). Determined that Tailscale MagicDNS only resolves the machine name itself (not arbitrary subdomains), portless's `--tailscale` mode just wraps `tailscale serve` on the machine name with port differentiation, and a `tailscale serve` known bug (#280) leaks stale registrations across runs.",
+	"decisions": [
+		"Custom domains require DNS A-record pointing at the tailnet IP (100.105.88.93) plus a publicly-trusted TLS cert via DNS-01 challenge, since Tailscale MagicDNS only issues certs for the machine's own name",
+		"Caddy with a DNS plugin is the recommended tool for the custom-domain case because it handles cert issuance/renewal automatically and can bind directly to the tailnet interface",
+		"Portless is not suitable for the custom-domain path on Windows because its non-loopback (LAN) proxy mode is not supported on Windows",
+		"Gizmo-side allowlist changes needed either way: Vite preview `allowedHosts` and agent-server WS `verifyClient` must include the new origin (tailnet hostname or custom domain), with both `https://genge` and `https://genge.angler-musical.ts.net` treated as distinct origins"
+	],
+	"files": [],
+	"errors": [
+		"python3 not available on the machine when attempting to parse `tailscale status --json` output",
+		"Web search returned largely irrelevant results (MLB, Vercel landing page) for portless + tailscale queries, with several engines (brave, duckduckgo, startpage, wikipedia) unresponsive"
+	],
+	"outcome": "explored"
+}

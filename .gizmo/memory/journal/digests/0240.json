@@ -1,0 +1,24 @@
+{
+	"segment": "0240",
+	"at": "2026-09-18T22:41:15.568Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Moved the message copy button from a footer below the message to an icon-only button next to the author/timestamp in the message header, then committed the change along with related conversation scrolling fixes.",
+	"decisions": [
+		"Copy button placement moved from a separate message-footer below the message into the message-header/message-meta alongside the author/timestamp.",
+		"Copy button rendered as icon-only (no \"Copy\" text), with aria-label retained for accessibility (\"Copy message\" / \"Copy response\" / \"Message copied\" / \"Response copied\").",
+		"Per-request change made icon-only after user follow-up clarified text was unnecessary."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/MessageGroup.svelte",
+		"apps/app/src/lib/features/conversation/MessageList.svelte",
+		"apps/app/src/lib/features/conversation/follow.ts",
+		"apps/app/src/styles/conversation.css",
+		"apps/app/src/styles/message-parts/messages.css",
+		"apps/app/tests/lib/features/conversation/MessageGroup.test.ts",
+		"apps/app/tests/lib/features/conversation/MessageList.test.ts"
+	],
+	"errors": [
+		"detect.mjs reported an advisory 'design-system-radius' antipattern on messages.css line 26 (border-radius: 8px outside DESIGN.md rounded scale); treated as advisory and not fixed in this segment."
+	],
+	"outcome": "shipped"
+}

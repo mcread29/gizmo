@@ -1,0 +1,27 @@
+{
+	"segment": "0150",
+	"at": "2026-09-18T22:39:57.901Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added a server-side `diff` operation to the git extension, wired it through `invokeProjectExtension`, and updated `ChangesPanel.svelte` to load per-file diffs on demand with a loading state. Fixed Svelte compile errors (mismatched `{/if}`/`</section>` tags) and a runtime `each_key_duplicate` error, then reordered groups so Unstaged appears above Staged with a divider between them.",
+	"decisions": [
+		"Added a new `diff(projectPath, file, signal)` method on `GitService` running `git diff HEAD --no-ext-diff --unified=3 -- <file>` and registered it as a non-mutating operation id `diff` alongside `status` and `commit`.",
+		"Refactored `WebExtensionHost.invokeProjectExtension` to take `projectPath` as its first argument so project-scoped git operations (like `diff`) can be resolved server-side.",
+		"Made `ChangesPanel` load diffs lazily via `invokeProjectExtension(projectPath!, 'git', 'diff', { file })`, caching results in a `Map<string, string>` and showing a 'Loading diff…' placeholder while in flight.",
+		"Changed the `{#each rows}` key in `ChangesPanel.svelte` from `row.node.path` to the array index to avoid duplicate-key runtime errors when the same path can appear in both Staged and Unstaged groups.",
+		"Reordered the `groups` array so Unstaged renders before Staged, and tagged the Staged group folder row with `data-group='staged'` so a CSS rule in `apps/app/src/styles/changes.css` can render a top border divider above it."
+	],
+	"files": [
+		"packages/git/src/server/git-service.ts",
+		"packages/git/src/server/git-extension.ts",
+		"packages/git/src/web/host.ts",
+		"packages/git/src/web/ChangesPanel.svelte",
+		"apps/app/src/styles/changes.css"
+	],
+	"errors": [
+		"Edit failed on `ChangesPanel.svelte` due to whitespace mismatch when trying to remove a stray `{/each}`; succeeded with a smaller, exact-matching block.",
+		"`pnpm build` failed with Svelte `element_invalid_closing_tag` at `ChangesPanel.svelte:340:4` because a `{/if}` was missing before `</section>`; fixed by re-reading the file and inserting the closing `{#if}`.",
+		"`pnpm check` produced a runtime `each_key_duplicate` error from Svelte because `row.node.path` was reused across Staged/Unstaged groups; resolved by keying the each block on the array index.",
+		"Subsequent build failed with Svelte `expected_token` after editing the each-block key, because the replacement text was missing the closing `}` of `{#each rows as row, index (index)}`; fixed by adding the brace."
+	],
+	"outcome": "shipped"
+}

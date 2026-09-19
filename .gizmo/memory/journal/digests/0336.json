@@ -1,0 +1,28 @@
+{
+	"segment": "0336",
+	"at": "2026-09-18T22:42:51.598Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed a duplicate type/value import bug in session-runtime-pool.ts, then split the 310-line pi-agent-service.ts facade into four small files (core/resources/projects/sessions) using a class inheritance chain with shared state via a `protected context`, and began splitting the 333-line resource-catalog.ts by extracting discovery logic into a new resource-discovery.ts file.",
+	"decisions": [
+		"Use a multi-file class inheritance chain (core → resources → projects → sessions → PiAgentService) to split the facade, keeping the flat `service.method()` API so transport handlers and tests need no call-site changes.",
+		"Share state across the inheritance chain via a `protected context` object instead of `#private` fields, because `#private` names cannot cross files.",
+		"Abstract classes broke test instantiation (TS2511) and implicit-any on factory params, so the chain is plain (non-abstract) classes.",
+		"Move discovery types (`Discovery`, `DiscoveredSkill`, `Discover`) and `discoverResources` + helpers into a new `resource-discovery.ts`; keep a re-export shim from `resource-catalog.ts` so existing test imports still resolve without churn."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/agent-server/src/sessions/pi-agent-service-core.ts",
+		"apps/agent-server/src/sessions/pi-agent-service-resources.ts",
+		"apps/agent-server/src/sessions/pi-agent-service-projects.ts",
+		"apps/agent-server/src/sessions/pi-agent-service-sessions.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/resources/resource-discovery.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts"
+	],
+	"errors": [
+		"TS2300/TS1361 in session-runtime-pool.ts: duplicate identifier for `PiExtensionUiRuntime` caused by both `import type` and a value import of the same name; fixed by keeping only the value import.",
+		"TS2511 in tests/transport/websocket-server.test.ts after facade split: abstract class layers could not be instantiated; resolved by removing `abstract` from the intermediate classes.",
+		"TS7006 in websocket-server.test.ts after split: factory callback params lost contextual typing once the constructor moved to PiAgentServiceCore."
+	],
+	"outcome": "explored"
+}

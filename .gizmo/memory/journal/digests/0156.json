@@ -1,0 +1,20 @@
+{
+	"segment": "0156",
+	"at": "2026-09-18T22:40:02.223Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed git-extension stage/unstage failures against the live agent dev server (PID 13356) as a stale in-memory module: the server had been started before the registry's git extension was updated to expose `stage`/`unstage`, so the extension host rejected those operations with `Extension git does not expose operation: stage/unstage`. After user approval, killed the stale process and restarted via the project's managed daemon (`pnpm dev:server:restart`, new PID 40300), then verified live that the descriptor now lists `stage`/`unstage` and a round-trip stage/unstage on a real modified file succeeds without altering the working tree; `commit` was also confirmed working end-to-end earlier against a scratch repo. Probe script and scratch repo were cleaned up.",
+	"decisions": [
+		"Root cause identified as a stale in-memory copy of the git extension in the running dev server (started before the registry's update added stage/unstage), not a code defect — no source changes were made.",
+		"Fix chosen: restart the managed dev server with `pnpm dev:server:restart` rather than adding a hot-reload mechanism, leaving dev-mode extension watch/reload as a possible follow-up.",
+		"Verified end-to-end against a throwaway scratch repo at /tmp/gizmo-git-probe that `commit` actually works at the server level; cleaned up both the probe script (`scripts/tmp-probe-git.mjs`) and the scratch repo afterwards."
+	],
+	"files": [
+		"scripts/tmp-probe-git.mjs"
+	],
+	"errors": [
+		"Initial probe script failed with `PROBE FAILED: Invalid agent protocol request` because outgoing requests lacked `protocolVersion: 25`; fixed by adding it to the sent payload.",
+		"Scratch-repo end-to-end commit probe failed with `Cannot find module 'C:/Users/mchan/projects/gizmo/node_modules/ws'` because node `-e` was run from `/tmp/gizmo-git-probe`; resolved by requiring `ws` via its pnpm path inside the repo.",
+		"PowerShell `Stop-Process -Id 13356` exited with code 1 (no output), interpreted as the process already being gone — subsequent `pnpm dev:server status` confirmed the old process was stopped and the new daemon (PID 40300) was running."
+	],
+	"outcome": "shipped"
+}

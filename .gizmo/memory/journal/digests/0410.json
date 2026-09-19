@@ -1,0 +1,44 @@
+{
+	"segment": "0410",
+	"at": "2026-09-18T22:43:51.572Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed six of seven reported side issues in one pass: switched the markdown link renderer to a plain function so `this.parser` resolves, added a non-side-effecting `session.read` protocol request used by the store's inspect path, stopped dropping project/extension events whose session id differs from the open thread, scoped `setWorkingVisible(false)` so it cannot hide a streaming session, and seeded `sessionStates` from the session catalog instead of resetting to idle. Deleted the stray `word-wrap-issue.png` and verified the console is clean after a reload. The web extension registry was re-checked and found not to need a change.",
+	"decisions": [
+		"Convert the `marked` link override to a plain function so `marked`'s bound `this.parser` is available, instead of relying on a parser on the module-level renderer.",
+		"Add a dedicated read-only `session.read` protocol request, server handler, and client method so inspecting a session no longer requires a double resume.",
+		"Stop filtering project status and extension events by the current session id on the client; let the reducer's project-path matching decide relevance.",
+		"Scope `setWorkingVisible(false)` to the extension's own message/spinner only, so a streaming session keeps its titlebar and transcript indicator.",
+		"Have the session catalog carry a `state` field sourced from the resident runtime and seed `sessionStates` from it on connect, rather than resetting all known sessions to idle.",
+		"Leave the web extension registry as-is after re-reading it: it replaces its set wholesale and was not add-only."
+	],
+	"files": [
+		"word-wrap-issue.png",
+		"apps/app/src/lib/features/conversation/markdown.ts",
+		"packages/protocol/src/requests/session.ts",
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/lib/agent-client/agent-store/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/agent-store/AgentStore.svelte.snapshots.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionSyncCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/event-replay.ts",
+		"apps/app/src/lib/features/conversation/transcript-settle.ts",
+		"apps/app/src/lib/features/sessions/session-actions.svelte.ts",
+		"apps/app/src/lib/extensions/activity-indicator.ts",
+		"packages/protocol/src/heartbeat.ts",
+		"apps/app/tests/lib/features/conversation/markdown.test.ts",
+		"apps/app/tests/lib/features/conversation/streaming.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.resync.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.registry.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.sessions.test.ts",
+		"apps/agent-server/tests/sessions/session-runtime-pool.test.ts",
+		"apps/agent-server/tests/transport/websocket-server.heartbeat.test.ts"
+	],
+	"errors": [
+		"Initially one resync test failed because the extension descriptor fixture was missing the required `capabilities` and `version` fields from `extensionDescriptorSchema`; fixed by adding those fields to the test event.",
+		"A file-length check failed for `apps/agent-server/src/sessions/pi-agent-service.ts` at 309 lines against a 302-line pre-existing limit; acknowledged but not changed in this pass."
+	],
+	"outcome": "shipped"
+}

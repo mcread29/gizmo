@@ -1,0 +1,20 @@
+{
+	"segment": "0120",
+	"at": "2026-09-18T22:39:28.421Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated and fixed an 'Invalid agent protocol response' error caused by the agent server leaking internal `linked` fields into registry status responses, and by Windows backslash paths not being normalized when deriving registry clone names (which also created a duplicate registration). Then, after clarifying the architecture, decided that every extension (Unity, Git, Svelte, Activity, Ask User) should live in the gizmo-registry as a Pi extension with an optional paired Gizmo web integration, and spawned four parallel subagents to migrate Unity, Git, Svelte, and Activity from the Gizmo source repo into gizmo-registry as isolated registry artifacts.",
+	"decisions": [
+		"Registry status serialization must not leak the internal `linked: string[]` field on each registry entry — only the protocol-declared fields are emitted (name, url, optional commit, addedAt, extensions).",
+		"Registry clone names must normalize Windows backslashes before deriving the stem, so the same path produces the same name and prevents duplicate registrations.",
+		"Every extension is fundamentally a Pi extension; it may optionally include a paired Gizmo web integration. Gizmo must contain no extension-specific behavior (no Unity, Git, Svelte, Activity, or Ask User knowledge).",
+		"The target registry layout puts each extension under `extensions/<id>/` with `pi-extension.ts` and an optional `src/web/index.ts` exporting `gizmoWebExtension`, plus a generated sibling bundle like `extensions/unity.web.js`.",
+		"The existing `GizmoServerExtension` implementations are treated as transitional; their backend behavior moves into proper Pi extensions and the legacy host-extension system will be removed from Gizmo."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/registry-manager.ts"
+	],
+	"errors": [
+		"'Invalid agent protocol response' — root cause: agent server was emitting an undeclared `linked` field on each registry entry in the `registry.status` response, which the strict TypeBox protocol schema (with `additionalProperties: false`) rejected during `parseRegistryStatus`."
+	],
+	"outcome": "explored"
+}

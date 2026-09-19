@@ -1,0 +1,25 @@
+{
+	"segment": "0199",
+	"at": "2026-09-18T22:40:36.357Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored AgentStore.svelte.ts into a 270-LOC facade backed by a new AgentStoreState.svelte.ts base and capability modules, preserving the public API and adding a stale-resume replay test. svelte-check, prettier, and the 34 agent-client tests pass; one pre-existing failure in tests/App.test.ts (the attachment \"Remove reference.png\" button) persists unchanged.",
+	"decisions": [
+		"Extract reactive state into a dedicated AgentStoreState.svelte.ts base class so AgentStore becomes a thin coordinating facade",
+		"Split capabilities (connection, sessions, projects, extensions, git, resources) into their own files under apps/app/src/lib/agent-client/agent-store/ for cohesion",
+		"Keep AgentStore's public fields, methods, and prototype method API identical to the pre-refactor surface",
+		"Split the monolithic AgentStore.test.ts into per-capability test files (connection, projects, sessions, resources, replay) plus shared gated/invalid test clients",
+		"Add an explicit test for ignoring a stale resume after a newer session switch completes (uses session-a on /projects/current while a stale stream for session-b on /projects/old arrives)"
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/agent-store/AgentStoreState.svelte.ts",
+		"apps/app/src/lib/agent-client/agent-store/types.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.replay.test.ts"
+	],
+	"errors": [
+		"tests/App.test.ts > application shell > attaches files from the composer and sends them with the prompt fails because the 'Remove reference.png' button is not found; pre-existing failure tied to unrelated working-tree changes in apps/app/src/App.svelte, not introduced by this refactor",
+		"Initial replay test for the stale-resume case failed with `expected '/projects/old' not to be '/projects/old'` because the gated client's snapshot.session.workspacePath was not preset to /projects/current; fixed by seeding `client.snapshot.session.workspacePath = '/projects/current'` before setSnapshot",
+		"First attempt to edit the replay test with the old text `const client = new GatedResumeClient();\\n\\t\\tclient.setSnapshot({` matched two occurrences and was rejected; resolved by widening the oldText to include the preceding `it('ignores a stale resume...', async () => {` line"
+	],
+	"outcome": "explored"
+}

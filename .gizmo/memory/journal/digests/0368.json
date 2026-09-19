@@ -1,0 +1,26 @@
+{
+	"segment": "0368",
+	"at": "2026-09-18T22:43:11.615Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Adjusted the workspace shell and session sidebar so the Git branch no longer appears in the titlebar (handled by the overview and Git inspector), constrained overview and fact layouts with min-width and max-width to prevent sidebar overflow, and made empty workspace projects render only their header row without expand/collapse controls. Added a no-matching-threads message in the sidebar and a corresponding integration test.",
+	"decisions": [
+		"Filter out the 'git.branch' status-bar item in Titlebar.svelte because the overview and Git inspector already display the branch.",
+		"Wrap the workspace disclosure and threads block in {#if threads.length > 0} / {#if open && threads.length > 0} guards in SessionSidebar.svelte so empty workspaces render only the header row.",
+		"Set [data-ui='workspace-home'] to grid-template-columns: minmax(0, 1fr) and its children to min-width: 0; width: min(920px, 100%) to prevent overflow, and add max-width: 100% to [data-ui='workspace-fact'].",
+		"Move cursor: pointer onto a button[data-ui='workspace-disclosure'] selector (rather than the generic data-ui) so non-button targets don't pick up the pointer cursor.",
+		"Show a 'No matching threads — Try a different search.' message in the sidebar when the query is non-empty and there are no matches."
+	],
+	"files": [
+		"apps/app/src/lib/features/shell/Titlebar.svelte",
+		"apps/app/src/lib/features/sessions/SessionSidebar.svelte",
+		"apps/app/src/styles/workspace-dashboard.css",
+		"apps/app/src/styles/sidebar-parts/layout.css",
+		"apps/app/tests/lib/features/shell/Titlebar.test.ts",
+		"apps/app/tests/app/workspace-configuration-and-threads.integration.test.ts"
+	],
+	"errors": [
+		"Read of apps/app/src/lib/components/ScrollPanel.svelte failed with ENOENT — that file does not exist, so the intended ScrollPanel change was skipped.",
+		"First edit attempt against apps/app/src/lib/features/shell/Titlebar.svelte returned ENOENT for the relative path; resolved by reissuing the edit with the absolute Windows path."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,20 @@
+{
+	"segment": "0077",
+	"at": "2026-09-18T22:38:45.665Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The user proposed narrowing Gizmo extensions to Svelte UI-only bundles, with Pi extensions owning all capabilities (tools, prompts, services). The assistant assessed this as coherent with the existing UI bridge plan and confirmed the change is feasible, surfacing three open problems: data transport from Pi extension to Svelte UI (generic bridge vs. declarative `pi.events` views vs. an invoke RPC), extension attribution in the bridge, and migration of the existing five Gizmo extensions. The assistant then clarified the tool-policy question, explaining that the hard-coded `tools:` allowlist at `pi-agent-service.ts:931` is what enforces Gizmo's no-shell guarantee, and laid out Option A (Pi's `defaultTools` setting, surfaced via Gizmo's Settings UI, seeded to `[\"read\",\"edit\",\"write\"]`) versus Option B (keep a Gizmo-side toggle), recommending A.",
+	"decisions": [
+		"Gizmo extensions become UI-only: they provide Svelte web UI (e.g. for ask_user, subagents, workflows) and no longer own tools, system prompts, profile fragments, list/invoke live ops, or project services — those belong to Pi extensions.",
+		"Pi extensions own capabilities (tools, commands, hooks, provider registration, in-process state) and remain portable across Pi's TUI, RPC, and SDK modes, loaded via the existing `additionalExtensionPaths` mechanism.",
+		"Existing Gizmo extension backends migrate to Pi extensions: Unity `unity_*` tools become `pi.registerTool` calls; Unity's project service (editor process watch, status, stop-play-mode confirm via `ctx.ui.confirm`) moves inside the Pi extension module; the `gizmo.extensions.json` registry becomes a UI-bundle registry or disappears entirely in favor of a Pi package declaring its frontend in its `pi` key (`{ \"pi\": { \"extensions\": [...], \"ui\": \"./web\" } }`).",
+		"The Gizmo UI contract will use the declarative `pi.events` view/action protocol (already prototyped in `pi-declarative-ui` for the TUI) as the canonical data transport from Pi extension → paired Gizmo Svelte UI, instead of inventing a new invoke RPC, because the TUI implementation is already working and ships an `extensionId` in its envelope.",
+		"Tool policy after migration will be Option A: delete the hand-written `tools: [...]` array in `pi-agent-service.ts:931`, defer to Pi's `defaultTools` setting (`settings.json`, per-project override capable, documented at `docs/settings.md:221`), and surface that setting in Gizmo's Settings UI seeded to `[\"read\",\"edit\",\"write\"]` so the no-shell-by-default posture is preserved as the seed value rather than a Gizmo-enforced allowlist."
+	],
+	"files": [
+		"docs/pi-extension-ui-bridge-plan.md",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/lib/extensions/types.ts"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

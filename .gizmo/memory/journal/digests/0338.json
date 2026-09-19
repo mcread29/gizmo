@@ -1,0 +1,19 @@
+{
+	"segment": "0338",
+	"at": "2026-09-18T22:42:48.694Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Reshuffled the `workspace-path` CSS base block from settings-parts/layout.css into workspace-dashboard.css so layout.css falls back under the 250-line warning threshold while keeping the rule next to its only user (WorkspaceScreen). Then re-ran prettier, pnpm check, and both test suites — all green — and investigated whether the changes are live, concluding the running instance is the production-mode `web:server` (plain tsx + vite preview of a Sep 2 dist) so neither commit is live until an app rebuild and server restart.",
+	"decisions": [
+		"Move the `[data-ui='workspace-path']` base rule out of settings-parts/layout.css into workspace-dashboard.css (just above its descendant rule) because only WorkspaceScreen uses it; trades a worse warning on workspace-dashboard (282→289) for layout.css clearing the 250-line warning.",
+		"Treat the three `data-ui` dead-hook errors from `check-ui-hooks` as pre-existing at HEAD (verified by stashing changes and re-running) and not caused by the refactor."
+	],
+	"files": [
+		"apps/app/src/styles/settings-parts/layout.css",
+		"apps/app/src/styles/workspace-dashboard.css"
+	],
+	"errors": [
+		"`pnpm check` initially reported three dead `data-ui` hooks (`native-folder-picker`, `window-control`, `window-controls`); verified via `git stash` to be pre-existing on HEAD and not introduced by the refactor.",
+		"Prettier `--check` flagged 9 files (including `settings-parts/skills-library.css` and `workspace-dashboard.css`); resolved with `prettier --write`."
+	],
+	"outcome": "shipped"
+}

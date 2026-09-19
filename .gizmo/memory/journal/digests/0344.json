@@ -1,0 +1,22 @@
+{
+	"segment": "0344",
+	"at": "2026-09-18T22:42:55.912Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why `/skill:continue` did not appear in the Gizmo composer, traced the root cause to Slapdash defining `continue` as a prompt template in `.pi/prompts/` (a directory Gizmo does not scan), then began scoping changes to make Gizmo discover and inject Pi-style project-local prompts.",
+	"decisions": [
+		"Treat `/skill:continue` as not-a-bug: Slapdash's `continue.md` is a prompt template, so it surfaces as `/continue`, not `/skill:continue`, and only `SKILL.md` resources receive the `/skill:` prefix.",
+		"Plan to extend Gizmo's prompt discovery to include project-local `.pi/prompts/` (in addition to existing `.gizmo/prompts` and `.agents/prompts`) so Slapdash-authored prompts become visible without relocation."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/resources/resource-paths.ts",
+		"apps/agent-server/src/resources/resource-discovery.ts",
+		"apps/app/src/lib/features/conversation/ComposerCommandMenu.svelte",
+		"apps/app/src/lib/features/conversation/composer-actions.ts",
+		"docs/resources.md"
+	],
+	"errors": [
+		"rg regex parse error: `(?:skillCommands()` has an unclosed group; the grep against `skillCommands(` in `apps/agent-server/src` failed and was not retried in this segment."
+	],
+	"outcome": "explored"
+}

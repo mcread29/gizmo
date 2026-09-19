@@ -1,0 +1,20 @@
+{
+	"segment": "0345",
+	"at": "2026-09-18T22:42:56.345Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added `.pi/prompts/` to the workspace prompt discovery roots in the agent server, updated the discover-resources test to assert a `.pi/prompts/continue.md` template is found as a project prompt, and refreshed `docs/resources.md` accordingly. Verified with the agent-server TypeScript check, the 209-test vitest run, Prettier, and `git diff --check`. Then investigated the running live instance to advise the user that a restart is required (the agent server runs straight from source via tsx and has the old module loaded), and recommended `pnpm web:update` because it relaunches through the launcher that carries `GIZMO_WEB_HOSTS`, whereas a bare `web:server restart` would drop those hosts.",
+	"decisions": [
+		"Prepend `join(workspacePath, '.pi', 'prompts')` to the workspace `prompts` roots in `resource-paths.ts` so project-local Pi prompt templates are discovered without copying into `.gizmo/` or `.agents/`.",
+		"Leave project-local `.pi/skills/` ignored (only prompts were added).",
+		"For the live instance, restart via `pnpm web:update` rather than `pnpm web:server restart`, because the launcher `.gizmo-web/startup.cmd` carries machine-local `GIZMO_WEB_HOSTS` while the bare-script restart path would silently drop them.",
+		"No frontend rebuild is needed: only agent-server source was changed and the UI is served from `apps/app/dist`.",
+		"For a thread already open at restart time, users should use Settings > Agent > Reload runtime to pick up the new prompt list."
+	],
+	"files": [
+		"apps/agent-server/src/resources/resource-paths.ts",
+		"apps/agent-server/tests/resources/discover-resources.test.ts",
+		"docs/resources.md"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

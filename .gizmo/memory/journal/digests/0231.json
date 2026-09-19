@@ -1,0 +1,21 @@
+{
+	"segment": "0231",
+	"at": "2026-09-18T22:41:07.240Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Updated the agent resources settings pages to remove duplicate headers (added a `hideHeader` option to `SettingsPage` and enabled it for Skills, Agent resources, and Extensions pages) and softened the 'everything is a card' look in `layout.css` so resource lists and skill lists only get top/bottom separator borders instead of full cards. Then adjusted the skills editor workbench in `skills-library.css` to drop the enclosing border, rounded corners, and surface background while keeping horizontal dividers.",
+	"decisions": [
+		"Added a `hideHeader?: boolean` prop to `SettingsPage.svelte` so callers can suppress the page-level title/scope header when it duplicates the tab label; enabled on Skills, Agent resources, and Extensions pages (Agent retitled from 'Agent' to 'Agent resources').",
+		"Replaced full 'card' treatment (border + radius) on resource lists inside agent/extensions settings and on the skills list with only `border-top`/`border-bottom` separators, so lists no longer read as individual cards.",
+		"For the skills editor workbench, removed the outer border, border-radius, and surface background from `.skills-library` so the editor no longer looks like one big card, retaining top/bottom separators for visual separation."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/SettingsPage.svelte",
+		"apps/app/src/lib/features/settings/SkillsSettings.svelte",
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/app/src/lib/features/settings/ExtensionsSettings.svelte",
+		"apps/app/src/styles/settings-parts/layout.css",
+		"apps/app/src/styles/settings-parts/skills-library.css"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

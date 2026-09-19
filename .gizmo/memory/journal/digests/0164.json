@@ -1,0 +1,29 @@
+{
+	"segment": "0164",
+	"at": "2026-09-18T22:40:11.442Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed the usage meter disappearing and manual compaction failing in gizmo. The meter now always renders (with an empty bar and the model's context window as fallback) via a new server-side `#emitUsageSnapshot` that re-emits the last known usage on client attach, and `configureCompaction` now caps `keepRecentTokens` at 16k so pi's cutter can always find a cut. Protocol schemas, the UI store's AgentModel, and tests were updated and all relevant suites pass.",
+	"decisions": [
+		"Cap gizmo-managed compaction at `keepRecentTokens = 16_000` in `configureCompaction` because pi's estimator only counts message content chars/4 (no system prompt or tool schemas), so mapping 5% of a 1M-token window to 50k tokens made manual compact return 'session too small' on real 84k-token sessions.",
+		"Re-emit the latest usage snapshot (with `contextWindow`) from the server on client attach via a new `#emitUsageSnapshot`, instead of relying solely on assistant-message-end events, so the meter appears on new sessions, reconnects, and post-compaction.",
+		"Make `#emitUsageSnapshot` defensive with `typeof manager.getBranch !== 'function'` after test fakes lacked `getBranch`; the change is also general robustness.",
+		"Always render `UsageMeter` in `Composer.svelte` when a session is open, falling back to `emptyUsage(store.model?.contextWindow)`, rather than only when a `session.usage` event has arrived.",
+		"Add optional `contextWindow` (non-negative integer) to the protocol's `agentModelOptionSchema` and `agentModelCatalogSchema` so the server can report and the UI can use the model's window.",
+		"Compute and include `percent` in `usageView` so the UI can show a 0–100 percentage alongside the bar fraction."
+	],
+	"files": [
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/sessions/pi-event-translator.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/features/conversation/usage.ts",
+		"apps/app/src/lib/features/conversation/usage.test.ts",
+		"apps/app/src/lib/features/conversation/UsageMeter.svelte",
+		"apps/app/src/lib/features/conversation/Composer.svelte"
+	],
+	"errors": [
+		"First `edit` call on `packages/protocol/src/index.ts` failed with 'Could not find edits[1]' because the oldText for the second edit used 4 tabs while the actual `current` object fields are indented with 5 tabs; verified via `sed ... | cat -A` and retried with the correct 5-tab indentation, after which 2 blocks were replaced.",
+		"`vitest` run for `pi-agent-service.test.ts` initially showed 7 failures because `#emitUsageSnapshot` called `manager.getBranch()` on test fakes that don't implement it; fixed by guarding with `typeof manager.getBranch !== 'function'`, after which all 7 tests passed."
+	],
+	"outcome": "shipped"
+}

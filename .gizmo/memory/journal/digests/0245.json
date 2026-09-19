@@ -1,0 +1,27 @@
+{
+	"segment": "0245",
+	"at": "2026-09-18T22:41:23.624Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated the existing Gizmo registry extension layout and the hand-installed subagents/workflows/search-and-scrape extensions to plan porting them into the gizmo-registry repo. Confirmed that the gizmoExtension server half and the Pi extension (SubagentManager, etc.) run in separate processes, validated shared helper deps and runtime deps (pi-ai 0.84.x, acorn), and began scaffolding by creating packages/orchestration/ with vendored shared files and a converted context-utilization test (deleting the heavy node:test child-session test).",
+	"decisions": [
+		"Port subagents, workflows, and search-and-scrape extensions into ~/.gizmo/registries/gizmo-registry as full registry extensions (index.ts + pi-extension.ts + src/web bundle), preserving the existing TUI dashboards/pickers by carrying pi-extension sources over nearly verbatim with adjusted import paths.",
+		"Vendor the shared helpers (child-session, context-utilization, activity-status, declarative-ui) into a new packages/orchestration package in the registry clone.",
+		"Enrich tool result details server-side in the ported extension code so rich web UI works without changing textual content.",
+		"Use existing workflow artifacts (~/.pi/agent/workflows/<id>/workflow.json) read by the server half for live workflow state; have the Pi extension persist a small state snapshot for subagents.",
+		"Add @earendil-works/pi-ai ^0.84.3 and acorn ^8.18.0 as direct deps to the registry root package.json (not just transitive), because pnpm's strict node_modules will not hoist them for bare imports from extension code.",
+		"Drop packages/orchestration/src/child-session.test.ts (node:test with heavy Pi SDK APIs) and convert context-utilization.test.ts to vitest imports to match the repo's vitest setup.",
+		"User chose 'Replace after build' for the existing hand-installed copies in ~/.pi/agent/extensions: link registry extensions and remove the old hand-installed ones only after the new ones are built and verified."
+	],
+	"files": [
+		"~/.gizmo/registries/gizmo-registry/packages/orchestration/src/activity-status.ts",
+		"~/.gizmo/registries/gizmo-registry/packages/orchestration/src/child-session.ts",
+		"~/.gizmo/registries/gizmo-registry/packages/orchestration/src/context-utilization.ts",
+		"~/.gizmo/registries/gizmo-registry/packages/orchestration/src/declarative-ui.ts",
+		"~/.gizmo/registries/gizmo-registry/packages/orchestration/src/context-utilization.test.ts",
+		"~/.gizmo/registries/gizmo-registry/packages/orchestration/src/child-session.test.ts"
+	],
+	"errors": [
+		"@earendil-works/pi-ai and acorn were not directly available in the registry's node_modules (pi-ai only via .pnpm transitive, acorn transitive under @sveltejs/acorn-typescript) — resolution would fail for bare imports from extension code; resolution: add as direct root deps."
+	],
+	"outcome": "explored"
+}

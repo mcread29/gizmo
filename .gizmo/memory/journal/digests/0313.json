@@ -1,0 +1,29 @@
+{
+	"segment": "0313",
+	"at": "2026-09-18T22:42:28.177Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Built a backfill pipeline that imports historical Pi and Claude Code sessions into the gizmo journal for the gizmo workspace. Created a Claude Code adapter (translating tool_use/tool_result/thinking/text into the existing journal schema, with noise filtering for slash-command plumbing), a backfill module that walks both session stores and stamps provenance (`source: pi-archive | claude-code`) on each segment, and a CLI entry point. Fixed the Pi normalizer to use the canonical branch (not the full entry tree, which double-included retried prose) and to drop empty assistant turns. All 34 memory tests pass and the dry run imports 60 Pi + 4 Claude Code segments cleanly.",
+	"decisions": [
+		"Scope: backfill only the gizmo workspace (59 Pi sessions + 4 Claude Code sessions), not other projects — chosen by the user to limit blast radius.",
+		"Both Pi and Claude Code sources are imported — Claude Code's ~5,900 entries are kept despite needing a new adapter because Pi's format is identical to gizmo's so Pi costs almost nothing, and the two schemas map cleanly onto the existing journal types.",
+		"Claude Code tool_result blocks must be split off from `user` messages into the `toolResult` role before normalization; otherwise ~1,921 tool payloads get journaled as user prose and poison the knowledge-layer signal.",
+		"Idempotency uses the source's stable per-entry id (Pi entry id, Claude `uuid`) via the existing `resumeAfter()` dedup, so backfill is safely re-runnable and cannot double-import.",
+		"Backfilled segments carry a `source:` provenance field in their frontmatter so downstream knowledge extraction can distinguish imported history from live sessions.",
+		"Pi imports use `SessionManager.getBranch()` rather than `getEntries()` so retried and abandoned branches don't double up in the journal.",
+		"`assistantSection` now returns `string | undefined` and the normalizer drops empty assistant turns instead of emitting bare `## assistant` headers."
+	],
+	"files": [
+		"apps/agent-server/src/memory/journal-store.ts",
+		"apps/agent-server/src/memory/claude-session-adapter.ts",
+		"apps/agent-server/src/memory/backfill.ts",
+		"apps/agent-server/src/memory/backfill-cli.ts",
+		"apps/agent-server/src/memory/journal-normalize.ts",
+		"apps/agent-server/tests/memory/claude-session-adapter.test.ts",
+		"apps/agent-server/tests/memory/backfill.test.ts"
+	],
+	"errors": [
+		"Initial dry run produced duplicated prose in Pi segments: cause was importing the full entry tree (including retried branches) instead of the canonical branch; fixed by switching backfill to `getBranch()`.",
+		"Initial dry run produced empty `## assistant` sections: cause was `assistantSection` always emitting a header even when the turn carried only a stop reason; fixed by making the section return `undefined` when empty and the normalizer skipping it."
+	],
+	"outcome": "shipped"
+}

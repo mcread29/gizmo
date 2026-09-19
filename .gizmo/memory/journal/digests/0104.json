@@ -1,0 +1,31 @@
+{
+	"segment": "0104",
+	"at": "2026-09-18T22:39:13.233Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Reverted the render-time ReferenceError in Conversation.svelte by passing `ui={extensionUi}` instead of the shorthand `{ui}` (no such variable in scope), removed the temporary ui-bridge diagnostics from the server runtime and store, and committed the fix. Then redesigned the ask_user experience: while a question is pending, the composer is hidden and replaced in-place by a card with a vertical stack of uniform full-width option buttons plus an always-available custom-answer text input; the protocol's 'Write my own answer…' sentinel is hidden from the list but still used under the hood, with typed text queued in the store and the follow-up input request answered automatically.",
+	"decisions": [
+		"Replace the shorthand `{ui}` prop with `ui={extensionUi}` on `<PiExtensionQuestion>` in Conversation.svelte — `ui` is not defined in that component's scope, only `extensionUi` is.",
+		"Remove the `[ui-bridge]` console.warn diagnostics from the server runtime and the store; their job (proving the bridge event arrives) is done, and the user's pasted error confirms it.",
+		"Pending `ask_user` questions replace the composer in-place (same slot, same visual weight) rather than appearing as a floating dialog above it.",
+		"Hide the protocol's 'Write my own answer…' sentinel option from the option list; keep it in the protocol so typed text can still submit through it (select responses must be one of the offered options).",
+		"Queue free-text typed for a select request in the store (`queuedCustomAnswer`) and auto-answer the follow-up `input` request with that text — single user-visible step, but protocol-compliant.",
+		"Stack option buttons vertically, full-width, min-height 36px, left-aligned text with overflow-wrap: anywhere so long labels wrap cleanly.",
+		"Focus the custom-answer text input by default when the question card appears.",
+		"The `ask_user` tool itself remains the user's Pi extension at `~/.pi/agent/extensions/ask-user.ts`, with one guard added (`ctx.mode === 'rpc' || ctx.hasUI`) so its bridge path runs under Gizmo's binding; Gizmo ships no duplicate tool.",
+		"Gizmo's chat card is the generic extension-UI bridge renderer — any extension's `ui.select`/`ui.input` gets the same card for free; a bespoke Gizmo UI for a specific tool would be a paired web extension bundle shipping with that Pi extension.",
+		"ask_user is not vendored into the Gizmo repo in this segment; it stays in the user's agent dir, so the card only activates when that extension is present on the machine.",
+		"The next direction raised (for future work, not done here): ship a Pi extension and its Gizmo web UI together as one paired extension package, with the generic chat card as fallback — ask_user as the pilot."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/Conversation.svelte",
+		"apps/app/src/lib/features/extension-ui/PiExtensionQuestion.svelte",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiStore.svelte.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiStore.questions.test.ts",
+		"apps/app/src/styles/composer.css",
+		"apps/agent-server/src/sessions/pi-extension-ui-runtime.ts"
+	],
+	"errors": [
+		"Uncaught ReferenceError: ui is not defined at Conversation.svelte:192 — caused by `<PiExtensionQuestion {ui} {question} />` shorthand where the variable `ui` does not exist (the component's prop is `extensionUi`); rendered when a question actually arrived, so unit tests that didn't trigger a pending question missed it. Fixed by passing `ui={extensionUi}`."
+	],
+	"outcome": "shipped"
+}

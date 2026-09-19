@@ -1,0 +1,36 @@
+{
+	"segment": "0071",
+	"at": "2026-09-18T22:38:34.052Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran repository-wide type checks (passed clean across 12 workspace projects) and the agent-server discover-resources test suite (failed: 20 of 100 tests). Then computed a sha256 of the diff for four targeted files and printed line ranges from three Svelte/TS files to confirm specific findings.",
+	"decisions": [
+		"Resources, agents-files, and skills must use non-absolute relative paths and proper `..${sep}` boundary checks so Windows cross-drive paths (e.g. D: vs C:) are not silently misclassified as project resources with `project/*` IDs.",
+		"All canonical resource roots must be derived from Pi's `getAgentDir()` (or an injected agent directory) rather than hardcoded `homedir()/.pi/agent`, so that `PI_CODING_AGENT_DIR` is respected consistently across resource roots and extension management.",
+		"The Pi Web branch in `pi-agent-service` must apply the same catalog-selected skill paths/no-skills configuration as the normal branch (via `ResourceCatalogService.enabledSkillPaths()`) so Pi-discovered skills honor Gizmo enablement and per-project overrides.",
+		"Extension discovery should reuse Pi's package/resource resolution instead of a divergent scanner that misclassifies `index.js`, `package.json` `pi.extensions`, top-level symlinks, and `.mts/.mjs/.cts/.cjs` files.",
+		"Provider extensions must be registered before model runtime selection in the normal branch (e.g. via `createAgentSessionServices` or flushing pending registrations) so a provider-only setup can select an initial model.",
+		"Skill editing must be restricted to declared canonical managed skill roots with `realpath` containment, and an `editable` capability must be exposed to the client to prevent writes to bundled-extension or symlink-escaped skill paths.",
+		"Saving a skill must validate with Pi's skill parser before replacing the file; on failure the editor must remain open with diagnostics so a malformed frontmatter cannot drop the skill from the catalog and lock it out.",
+		"The global settings page must always load the intended global catalog on entry (or carry catalog scope through edit requests) to avoid presenting workspace-catalog skills as editable when the server only authorizes against a global-only catalog.",
+		"Skill writes must include optimistic-concurrency metadata (revision/mtime) and the editor must guard against unsaved changes on Cancel/Escape/backdrop to prevent silent overwrites and accidental data loss.",
+		"Both WebSocket reads and writes must validate skill content against the shared `skillFileSchema` (including the 1 MB cap), so an oversized skill cannot be loaded for editing but blocked on save.",
+		"Discover-resources tests must be migrated alongside the canonical-folder behavior and extended to cover cross-drive Windows paths, custom Pi agent directories, extension manifests, symlinks, and editor path containment."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/app/src/lib/features/settings/SkillEditor.svelte",
+		"apps/app/src/lib/features/settings/SkillList.svelte",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/src/resources/resource-paths.ts",
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/tests/resources/discover-resources.test.ts",
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [
+		"`pnpm --filter @gizmo/agent-server test -- tests/resources/discover-resources.test.ts` failed with 20 of 100 tests failing across 5 files. `packageResourceRoots`/`extensionResourceRoots` returned `{ skills: [], prompts: [] }` instead of expected temp-directory paths because it does not resolve extension package roots. `discoverResources` returned Pi-loaded skills (`archify`, `svelte-code-writer`, `svelte-core-bestpractices`, `impeccable`) instead of only the expected `review`, and emitted a project-scoped entry whose discovery record lacked a `source` field. `runScript` tests threw `Script must be inside the workspace: <name>` from the workspace containment guard at `src/scripts/run-script.ts:60` instead of the expected shell/not-found/timeout/bun errors. `PiSessionRepository` catalog restored sessions keyed by Windows-style `C:\\...` workspace paths rather than the `/projects/game`/`/projects/tools` paths the test asserted. `pi-runtime-config` tests for missing Pi config and explicit Pi auth re-import failed (2 of 5)."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,28 @@
+{
+	"segment": "0329",
+	"at": "2026-09-18T22:42:40.097Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added the Ollama extension's web-side UI (OllamaPanel.svelte, store, types, format helpers, CSS, and web extension entry) plus a registry catalog entry, with a vitest web test suite. Verified TypeScript checks, prettier, the full test suite, and live exercised the server extension against a stub Ollama on :11434.",
+	"decisions": [
+		"Registry catalog entry for Ollama uses 4-space (not tab) indentation, matching the file's actual whitespace",
+		"Web bundle keeps its own copies of formatting helpers and store/inspector contracts rather than importing from server/app, to keep the bundle free of node builtins",
+		"UI uses text labels only (no lucide icon dependency) to match the rest of the registry's web extensions",
+		"Stub Ollama server used for end-to-end verification instead of installing real Ollama (~1GB), since it isn't on this machine"
+	],
+	"files": [
+		"gizmo.registry.json",
+		"extensions/ollama/src/web/types.ts",
+		"extensions/ollama/src/web/format.ts",
+		"extensions/ollama/src/web/store.svelte.ts",
+		"extensions/ollama/src/web/OllamaPanel.svelte",
+		"extensions/ollama/src/web/ollama.css",
+		"extensions/ollama/src/web/index.ts",
+		"extensions/ollama/src/web/web.test.ts"
+	],
+	"errors": [
+		"First edit attempt on gizmo.registry.json failed with whitespace mismatch (used tabs instead of the file's spaces); corrected after inspecting with cat -A and retried successfully",
+		"Top-level await in a /tmp tsx script failed under esbuild CJS output; moved the smoke script into the repo (.smoke/host-status.ts) where the package is ESM, after which it ran fine",
+		"Initial vitest run had 1 failure (details not captured in transcript) out of 43 tests; later the live exercise script ran all expected cases successfully"
+	],
+	"outcome": "shipped"
+}

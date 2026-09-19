@@ -1,0 +1,41 @@
+{
+	"segment": "0187",
+	"at": "2026-09-18T22:40:26.075Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Decomposed packages/protocol/src/index.ts (~1817 LOC) into cohesive TypeScript modules under src/ and src/requests/, with src/index.ts retained as a compatibility barrel re-exporting every existing export. Split tests/index.test.ts into tests/protocol.test.ts and tests/project-resources.test.ts. Fixed a missing non-exported constant (sessionTitleLimit) in src/core.ts that caused an initial tsc failure. Verified with pnpm check, vitest run, prettier --write, and AST/runtime export-name comparisons plus a runtime schema-hash comparison confirming identical wire schemas; protocolVersion=25 preserved.",
+	"decisions": [
+		"Split index.ts by domain (core, envelopes, errors, events, extensions, git, parsers, projects, providers, registry, resources, responses, sessions) plus a requests/ subdirectory split (git, project, resources, session), keeping src/index.ts as a barrel so existing imports continue to resolve.",
+		"Preserved the non-exported sessionTitleLimit constant locally in src/core.ts after an initial tsc failure showed the AST splitter had dropped it.",
+		"Reorganized tests/ from a single tests/index.test.ts into tests/protocol.test.ts and tests/project-resources.test.ts, each kept under the 300 LOC guideline.",
+		"Verified behavior preservation by hashing all exported *Schema TypeBox values via tsx and asserting deepStrictEqual against a baseline snapshot, and by comparing getExportsOfModule symbol counts (135 old vs 135 current, no missing/extra names)."
+	],
+	"files": [
+		"packages/protocol/src/index.ts",
+		"packages/protocol/src/core.ts",
+		"packages/protocol/src/envelopes.ts",
+		"packages/protocol/src/errors.ts",
+		"packages/protocol/src/events.ts",
+		"packages/protocol/src/extensions.ts",
+		"packages/protocol/src/git.ts",
+		"packages/protocol/src/parsers.ts",
+		"packages/protocol/src/projects.ts",
+		"packages/protocol/src/providers.ts",
+		"packages/protocol/src/registry.ts",
+		"packages/protocol/src/resources.ts",
+		"packages/protocol/src/responses.ts",
+		"packages/protocol/src/sessions.ts",
+		"packages/protocol/src/requests/index.ts",
+		"packages/protocol/src/requests/git.ts",
+		"packages/protocol/src/requests/project.ts",
+		"packages/protocol/src/requests/resources.ts",
+		"packages/protocol/src/requests/session.ts",
+		"packages/protocol/tests/index.test.ts",
+		"packages/protocol/tests/protocol.test.ts",
+		"packages/protocol/tests/project-resources.test.ts"
+	],
+	"errors": [
+		"Initial tsc run failed with TS2552 'Cannot find name sessionTitleLimit' in src/core.ts because the AST-based splitter had omitted the non-exported const; resolved by manually re-inserting the const declaration in src/core.ts, after which tsc passed.",
+		"An ad-hoc node -e export-comparison script failed with 'missing ) after argument list' due to a backslash-escape mistake in a heredoc string literal; rerun with corrected escaping and produced the expected {old:135,current:135,missing:[],extra:[]} result."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,26 @@
+{
+	"segment": "0037",
+	"at": "2026-09-18T22:57:14.061Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated Gizmo's existing two-extension architecture (server-global GizmoServerExtension and session-scoped Pi extensions) and produced a comprehensive design document proposing to unify backends as normal Pi extensions with a small Gizmo bridge for browser-facing descriptors, operations, and events. Includes a four-phase migration plan moving first-party packages (Git, Svelte, Skill authoring, Activity, Unity) from Gizmo server extensions to Pi extensions with versioned frontend host APIs and session-scoped protocol messages.",
+	"decisions": [
+		"Make each backend a normal Pi extension/package rather than a GizmoServerExtension, with a hidden Gizmo bridge used only to publish browser-facing descriptors, operations, events, and optional UI bundle metadata.",
+		"Browser extensions should activate only when the corresponding Pi backend is active and must not be required for backend tools, commands, or hooks to function.",
+		"Replace project-scoped RPC with session-scoped protocol messages (session.extensions.list, session.extension.invoke, session.extension.subscribe, session.extensions.changed, session.extension.event) with project path as contextual metadata only.",
+		"Treat confirmation as a protocol interaction rather than a magic `confirmed` input field on operation inputs.",
+		"Bridge communicates via Pi's shared `pi.events` bus with a discovery/register handshake (subscribe to gizmo:register then emit gizmo:discover) so order of bridge vs backend loading does not matter; inject the bridge via DefaultResourceLoader.extensionFactories.",
+		"Frontend receives a narrow `GizmoBrowserHost` (sessionId, invoke, subscribe, commands.execute, notifications.show) rather than direct AgentStore/WorkspaceLayout access.",
+		"Migrate first-party packages in this order: Git → Svelte → Skill authoring → Activity (move to core UI) → Unity, with GizmoServerExtension kept as a compatibility adapter during Phase 1.",
+		"Replace first-extension-wins createView() with composable app-owned declarative slots (inspector tab, command, status item, settings panel, tool-result renderer) and add bundle integrity/version checks with iframe/worker isolation evaluation for third-party UI."
+	],
+	"files": [
+		"apps/app/src/App.svelte",
+		"apps/app/src/lib/extensions/WorkspaceInspector.svelte",
+		"apps/app/src/lib/extensions/ExtensionDialogs.svelte",
+		"apps/app/src/lib/extensions/ExtensionSettings.svelte"
+	],
+	"errors": [
+		"Read of apps/app/src/lib/features/conversation/tool-presentation.ts failed with ENOENT (file does not exist); a ripgrep search then confirmed toolPresentationPlugins lives in apps/app/src/lib/features/conversation/ToolResult.svelte instead."
+	],
+	"outcome": "explored"
+}

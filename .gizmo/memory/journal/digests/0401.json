@@ -1,0 +1,26 @@
+{
+	"segment": "0401",
+	"at": "2026-09-18T22:43:41.096Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Committed the Gizmo registry's WIP (CSS extraction, unity tooling, new extensions, design refresh, plus the assistant's git-panel overlay fix) as a single commit after `pnpm check` (tsc --noEmit) passed cleanly. Reported the final state across both repos: two Gizmo commits (transport refactor, narrow-width CSS fixes with builder port) and the registry commit, with screenshots cleaned up and the rebuilt git.web.js reproducible from the now-committed git.css.",
+	"decisions": [
+		"Ran `pnpm check` (tsc --noEmit) in the registry before committing as a cheap sanity check; chose to still commit per user's explicit instruction even if it had failed.",
+		"Wrote the registry commit message from a diff overview, grouping themes (extension CSS extraction, unity package, new extensions, design refresh) rather than enumerating files; flagged that the user should amend if the message misrepresents the WIP's intent."
+	],
+	"files": [
+		"components.css",
+		"tokens/index.css",
+		"git.css",
+		"tool-results.css",
+		"unity.css",
+		"activity.css",
+		"unity-tools",
+		"search-and-scrape",
+		"subagents",
+		"workflows",
+		"orchestration package",
+		"pnpm-lock"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

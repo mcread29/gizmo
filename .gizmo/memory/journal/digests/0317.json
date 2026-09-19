@@ -1,0 +1,13 @@
+{
+	"segment": "0317",
+	"at": "2026-09-18T22:42:31.105Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "User asked how to see Claude Code's context usage percentage. The assistant initially suggested /cost and /status, then dispatched a docs subagent which corrected this: /context shows a real-time breakdown, /usage surfaces a 'long context' behavior flag at ≥10% of usage (the source of the 'high-context sessions' message), and a custom /statusline can display context usage continuously. The user then ran /context and shared its output showing 57.5k/1M tokens (6%) across system prompt, system tools, MCP tools, skills, and messages.",
+	"decisions": [
+		"There is no built-in live context-% meter in Claude Code; the closest signals are /context (on-demand breakdown), /usage (behavior flags like 'long context' at ≥10% threshold), and auto-compaction warnings.",
+		"A continuous context readout can be added by configuring the status line via /statusline (using prompt_cache fields)."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

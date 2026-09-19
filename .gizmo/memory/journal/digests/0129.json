@@ -1,0 +1,30 @@
+{
+	"segment": "0129",
+	"at": "2026-09-18T22:39:36.257Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran test suites across the gizmo monorepo and the gizmo-registry workspace, then configured vitest in gizmo-registry to fix Svelte/jsdom setup issues. The gizmo tests passed except for agent-server failures (Windows path containment in run-script, extension resource roots, pi-runtime config, and session repository), while gizmo-registry's first run failed due to missing test dependencies and Svelte parsing.",
+	"decisions": [
+		"Installed @testing-library/svelte, jsdom, and @testing-library/jest-dom as devDependencies in gizmo-registry so Svelte component tests can run.",
+		"Added a vitest.config.ts in gizmo-registry that enables the svelte() plugin, aliases '@gizmo/unity/server' to its source entry, sets environment to 'jsdom', and wires up a setup file.",
+		"Added a vitest.setup.ts that registers @testing-library/jest-dom matchers and stubs ResizeObserver globally."
+	],
+	"files": [
+		"apps/app/src/App.test.ts",
+		"apps/app/src/lib/extensions/WorkspaceInspector.test.ts",
+		"apps/app/src/lib/features/conversation/streaming.test.ts",
+		"apps/app/src/lib/features/shell/Titlebar.test.ts",
+		"docs/extensions.md",
+		"docs/project-configuration.md",
+		"gizmo-registry/package.json",
+		"gizmo-registry/vitest.config.ts",
+		"gizmo-registry/vitest.setup.ts"
+	],
+	"errors": [
+		"gizmo apps/agent-server tests failed (17 tests across run-script, extension-resources, session-repository, pi-runtime-config); run-script failures were caused by 'Script must be inside the workspace' on Windows paths (build.ts, run.ts).",
+		"extension-resources tests failed because packageResourceRoots returned empty skills/prompts arrays instead of the expected conventional or pi-manifest-declared directories.",
+		"session-repository test failed comparing restored session list (workspacePath came back as 'C:\\\\projects\\\\tools' rather than '/projects/tools').",
+		"pi-runtime-config tests failed on import/auth re-import expectations and a permission-mode check on auth.json (0o777 mismatch).",
+		"gizmo-registry vitest run initially failed 9 suites: '@gizmo/unity/server' could not be resolved, '@testing-library/svelte' was missing, vite import-analysis could not parse .svelte files, and node rejected the '.svelte' extension for @lucide/svelte until the svelte plugin and jsdom env were configured."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,22 @@
+{
+	"segment": "0391",
+	"at": "2026-09-18T22:43:32.599Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran final full verification across the monorepo: prettier clean, svelte-check 0 errors/0 warnings over 5,242 files, check-ui-hooks.mjs passes, and 425 tests green across all packages. Then updated the gizmo-frontend-audit.html artifact (header tally, per-finding status badges, closing summary) and republished it, summarizing that 22 of 24 findings were fixed with composer untouched.",
+	"decisions": [
+		"Reapplied blank-transcript fix with a settle loop that waits for both getTotalSize() and row count to stop moving (8 stable frames, 4s cap), releasing immediately on wheel/touch so it cannot fight the user",
+		"Marked Settings and Tree dialogs with role=\"dialog\" aria-modal, moved focus in and restored on close, and made the covered shell inert via a display:contents wrapper to preserve grid layout",
+		"Deliberately kept titlebar reachable (not in Tab trap) because it holds the only visible way out of the dialog",
+		"Restored focus rings on bare inputs",
+		"Memoized highlightCode per (language, source) so finished streaming code blocks stop being re-highlighted",
+		"Remapped bare 'p' shortcut (pin folders) to Alt+P in the agent text input so it does not shadow typed letters; updated footer hint accordingly",
+		"Replaced orphaned role=\"listitem\" on workspace rows with role=\"group\" plus the workspace name to satisfy ARIA and Svelte lint together",
+		"Corrected own report: ProvidersSettings missing element is an empty state, not an error path, and the available font-weight was 650, not 550",
+		"Left SessionTreeScreen off the pnpm check over-limit followup list rather than adding to it"
+	],
+	"files": [
+		"scratchpad/gizmo-frontend-audit.html"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

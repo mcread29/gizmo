@@ -1,0 +1,40 @@
+{
+	"segment": "0246",
+	"at": "2026-09-18T22:41:23.037Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Set up the @gizmo/orchestration package (manifest, tsconfig, barrel, agent-dir helper reading PI_CODING_AGENT_DIR), then copied the search-and-scrape/subagents/workflows extensions into a new extensions/ tree under the registry, rewriting shared/* and pi-declarative-ui imports to point at packages/orchestration/src and re-routing internal manager/controller/etc. imports to src/ subfolders. Also rewrote context-utilization.test.ts to vitest style and began adding an index.ts and a web barrel (with SearchToolResult/ScrapeToolResult components) for search-and-scrape.",
+	"decisions": [
+		"Agent directory is resolved via process.env.PI_CODING_AGENT_DIR only, mirroring @earendil-works/pi-coding-agent's getAgentDir (ENV_AGENT_DIR = `${APP_NAME.toUpperCase()}_CODING_AGENT_DIR`).",
+		"Tests in the orchestration package use vitest (vitest run script, @earendil-works/... devDeps list vitest 4.1.11); context-utilization.test.ts was rewritten with expect(...).toBe(...) instead of node:test/assert.",
+		"Ported extension sources are organized as extensions/<name>/pi-extension.ts + src/{server,web}/, so pi-extension.ts imports now use ./src/... and shared/* imports point at packages/orchestration/src.",
+		"Scrape tool details were enriched with bounded markdown_preview and markdown_length so the web card (which only sees `details`) can show a snippet without the full markdown."
+	],
+	"files": [
+		"packages/orchestration/package.json",
+		"packages/orchestration/tsconfig.json",
+		"packages/orchestration/src/index.ts",
+		"packages/orchestration/src/agent-dir.ts",
+		"packages/orchestration/src/context-utilization.test.ts",
+		"extensions/search-and-scrape/pi-extension.ts",
+		"extensions/search-and-scrape/index.ts",
+		"extensions/search-and-scrape/src/web/index.ts",
+		"extensions/subagents/pi-extension.ts",
+		"extensions/subagents/src/manager.ts",
+		"extensions/subagents/src/takeover.ts",
+		"extensions/subagents/src/result-delivery.test.ts",
+		"extensions/subagents/src/tool-call-timeout.test.ts",
+		"extensions/workflows/pi-extension.ts",
+		"extensions/workflows/src/model.ts",
+		"extensions/workflows/src/runner.ts",
+		"extensions/workflows/src/controller.ts",
+		"extensions/workflows/src/controller.test.ts",
+		"extensions/workflows/src/meta.test.ts",
+		"extensions/workflows/src/sandbox.test.ts",
+		"extensions/workflows/src/serialization.test.ts"
+	],
+	"errors": [
+		"pnpm install aborted initially with ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY; resolved by setting CI=true.",
+		"Subsequent pnpm install timed out after 300s; a retry with 900s timeout failed with EPERM unlink on node_modules/.pnpm/@esbuild+win32-x64@0.28.2/.../esbuild.exe (likely a holding process)."
+	],
+	"outcome": "explored"
+}

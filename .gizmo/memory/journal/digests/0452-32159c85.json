@@ -1,0 +1,27 @@
+{
+	"segment": "0452-32159c85",
+	"at": "2026-09-18T22:44:36.979Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Extended the session protocol with event roles, a queue snapshot, and a compaction result event (bumping protocolVersion to 28), then wired the agent-server to translate Pi queue_update/compaction_end events, emit queue and compaction-result snapshots, append compaction rows to the session transcript, and run an overdue-threshold compaction fallback.",
+	"decisions": [
+		"Protocol version bumped from 27 to 28 to carry the new event role, queue snapshot, and compaction result shapes.",
+		"Pi event translator was split so its pure helpers live in a separate file, keeping the main translator under the project's file-length policy.",
+		"Pi's whole-turn threshold compaction is paired with an explicit compaction-fallback that re-invokes compact() when the context is past the threshold, restoring the user's previously configured policy afterwards.",
+		"Compaction entries become first-class rows in the session transcript, with messages between firstKeptEntryId and the new head folded into the summary rather than dropped.",
+		"Queue state is exposed to the client as a single queue snapshot event per session change rather than streamed incrementally."
+	],
+	"files": [
+		"packages/protocol/src/sessions.ts",
+		"apps/agent-server/src/sessions/pi-event-translator.ts",
+		"apps/agent-server/src/sessions/pi-event-translator-helpers.ts",
+		"apps/agent-server/src/sessions/session-transcript.ts",
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/agent-server/src/sessions/compaction-fallback.ts",
+		".gizmo-dev/patch1.py"
+	],
+	"errors": [
+		"An inline Python heredoc used to patch session-transcript.ts and session-runtime-pool.ts failed with \"unexpected EOF while looking for matching `''`\"; the work was recovered by moving the script to .gizmo-dev/patch1.py and re-running it.",
+		"`pnpm --filter @gizmo/protocol build` printed ERR_PNPM_RECURSIVE_RUN_NO_SCRIPT because the protocol package exposes no build script; the agent-server `tsc` check that followed still completed."
+	],
+	"outcome": "explored"
+}

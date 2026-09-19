@@ -1,0 +1,32 @@
+{
+	"segment": "0261",
+	"at": "2026-09-18T22:41:36.046Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the Unity extension to expose its UI as a peer inspector tab via `inspectorTabs` instead of owning the workspace via `createView`, rewrote related tests, removed now-unused CSS, and updated `docs/extensions.md` to reflect the new client contract.",
+	"decisions": [
+		"Unity's domain plugin now contributes a peer `inspectorTabs` entry (id `unity`, label `Unity`, danger badge for errors) rather than providing `createView`, so it no longer owns workspace identity.",
+		"The Unity package's `gizmo-extension.ts` wires `inspectorTabs` from the domain plugin instead of `createView`.",
+		"`UnityPanel.svelte` was introduced as a thin wrapper around `EditorPanel.svelte` so the inspector tab renders the existing editor surface.",
+		"Workspace-inspector tests now use a shared `TestExtensionPanel.svelte` fixture and a descriptor helper, and were rewritten to cover `inspectorTabs` rendering and runtime disposal/isolation.",
+		"The Titlebar test no longer imports `WorkspaceView` or mocks a `view` prop, reflecting the workspace-owner removal.",
+		"`docs/extensions.md` updated to describe the `GizmoWebExtension` client contract as including `inspectorTabs`/`commands`/`statusBar` instead of `createView`/`hasProjectStatus`.",
+		"Obsolete CSS for `unity-panel`/`unity-view-switch`/`unity-subpanel` and the `inspector-panel[data-panel='unity']` rule were deleted."
+	],
+	"files": [
+		"apps/app/tests/lib/features/shell/Titlebar.test.ts",
+		"apps/app/tests/lib/extensions/fixtures/TestExtensionPanel.svelte",
+		"apps/app/tests/lib/extensions/WorkspaceInspector.test.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/domain-plugin.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/gizmo-extension.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/unity/UnityPanel.svelte",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/domain-plugin.test.ts",
+		"apps/app/src/styles/inspector-parts/panels.css",
+		"apps/app/src/styles/inspector-parts/layout.css",
+		"docs/extensions.md"
+	],
+	"errors": [
+		"Prettier check initially failed on `context-target.ts`, `PanelResizeHandle.svelte`, `app-settings.ts`, `domain-plugin.test.ts`, and `UnityPanel.svelte`; resolved by running `--write`.",
+		"Full `pnpm test` in the unity registry failed: `domain-plugin.test.ts` expected `tab.props.view.projectPath` to be `/projects/game` but received `undefined` because the mock `projects` array was empty; fixed by setting `projects: [{ title: \"game\", path: \"/projects/game\" }]`."
+	],
+	"outcome": "shipped"
+}

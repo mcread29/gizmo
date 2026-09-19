@@ -1,0 +1,10 @@
+{
+	"segment": "0464-8532a794",
+	"at": "2026-09-18T22:44:47.074Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Mapped the Gizmo extension system end-to-end: the @gizmo/extensions package (extension.ts, index.ts, patch.ts), agent-server extension loaders (load-extensions.ts, extension-host-service.ts, web-bundles.ts, extension-catalog.ts, registry-manager.ts, registry-links.ts, registry-git-build.ts), the Pi session factory wiring (activateExtensions, registeredExtensions), the app-side reload entry points (ExtensionCapability.reloadExtensions, SessionRuntimeCapability.reloadRuntime, /reload composer command), and Pi's internal extension cache (extensionCacheCwd/generation, useExtensionCacheCwd, clearExtensionCache, agent-session reload that re-emits session_start). json-render integration is centralized in apps/app/src/lib/extensions/runtime/host-modules.ts plus display-catalog.ts and DisplayElement/DisplayResult components, with json-render-exports and build-web-extension scripts in apps/app/scripts. The investigation surfaced that today's only reload path is a full agent-server restart (pnpm dev:server restart / reload script) and Pi's own session.reload(), with no way to hot-reload Gizmo registry extensions in place.",
+	"decisions": [],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

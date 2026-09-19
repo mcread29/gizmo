@@ -1,0 +1,24 @@
+{
+	"segment": "0291",
+	"at": "2026-09-18T22:42:05.951Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Finished the Protocol v26 project-service migration: created a new project-service-routing.test.ts in apps/agent-server (after splitting it out of websocket-server.lifecycle.test.ts), updated docs/extensions.md and WORKLOG.md with the v26 entry, and fixed a stale type import in the registry's unity-view.test.ts. Fixed a test typo (fakeService(() => {}) → fakeService()) that broke tsc. All gizmo packages typecheck and test green (123 agent-server + 174 app + extensions/protocol tests), svelte-check clean, prettier clean, and vite production build succeeds; registry tsc and 144 tests pass; web bundles rebuilt.",
+	"decisions": [
+		"Use a project-local temp path (.new-tests.txt under tests/transport) instead of /tmp when feeding bash-produced content to Windows Python, because /tmp is not visible to Windows python in this environment.",
+		"Drop the dummy `() => {}` argument from fakeService() calls in project-service-routing.test.ts since the factory takes no arguments (TS2554 at three call sites).",
+		"Date the new WORKLOG.md entry 2026-09-01 (queried via `date +%F`) rather than inventing or reusing the prior 2026-08-29 entry.",
+		"Fix unity-view.test.ts to import UnityStatus from `../types` instead of `@gizmo/protocol`, since UnityStatus is no longer exported from the protocol package after the v26 cleanup and the registry root tsconfig wouldn't catch it via tsc anyway.",
+		"Leave unrelated uncommitted changes in the registry repo and uncommitted gizmo state intact; the check:loc failures observed are pre-existing at HEAD."
+	],
+	"files": [
+		"apps/agent-server/tests/transport/project-service-routing.test.ts",
+		"docs/extensions.md",
+		"WORKLOG.md",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/unity/unity-view.test.ts"
+	],
+	"errors": [
+		"Python FileNotFoundError on /tmp/new-tests.txt — fixed by copying to tests/transport/.new-tests.txt so Windows Python could read the bash-produced file.",
+		"TS2554 'Expected 0 arguments, but got 1' at three fakeService(() => {}) call sites in project-service-routing.test.ts — fixed by removing the empty arrow argument."
+	],
+	"outcome": "shipped"
+}

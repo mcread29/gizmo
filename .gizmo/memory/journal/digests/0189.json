@@ -1,0 +1,24 @@
+{
+	"segment": "0189",
+	"at": "2026-09-18T22:40:28.256Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored apps/agent-server/src/projects/project-catalog.ts behavior-preservingly into cohesive modules while keeping the ProjectCatalog public API and import path stable. Split browser/search, catalog persistence, config normalization/persistence/migration, and integration resolution into separate files, and added a reusable AsyncMutex; reduced the facade to 196 LOC with all files ≤300 LOC.",
+	"decisions": [
+		"Extracted project browser/search to project-browser.ts (62 LOC) to isolate filesystem traversal and matching scoring from catalog state.",
+		"Extracted catalog JSON persistence to project-catalog-store.ts (56 LOC) with atomic writeFile+rename, encapsulating CatalogProject storage.",
+		"Extracted config normalization, parsing via parseProjectConfig, persistence, and legacy .gizmo/profiles.json migration to project-config-store.ts (204 LOC), guarded by a mutex.",
+		"Added reusable async-mutex.ts (18 LOC) with run<T>() for serializing async operations across stores.",
+		"Extracted integration resolution to project-integration-resolver.ts (31 LOC) combining overrides, registeredExtensions, and globally disabled extensions.",
+		"Kept ProjectCatalog class and import path unchanged as a coordinating facade that delegates to the new modules."
+	],
+	"files": [
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/src/projects/async-mutex.ts",
+		"apps/agent-server/src/projects/project-browser.ts",
+		"apps/agent-server/src/projects/project-catalog-store.ts",
+		"apps/agent-server/src/projects/project-config-store.ts",
+		"apps/agent-server/src/projects/project-integration-resolver.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

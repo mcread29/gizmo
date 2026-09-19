@@ -1,0 +1,10 @@
+{
+	"segment": "0157",
+	"at": "2026-09-18T22:39:59.906Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The user reported a 503 error from a provider named \"Console Go\". The assistant searched the gizmo project logs and codebase for \"Console Go\" and found no matches, then attempted to search the user's pi config (~/.pi/agent) and the pi-coding-agent node_modules for the provider name and the \"Error from provider\" string, but the second command was aborted before producing results.",
+	"decisions": [],
+	"files": [],
+	"errors": [],
+	"outcome": "blocked"
+}

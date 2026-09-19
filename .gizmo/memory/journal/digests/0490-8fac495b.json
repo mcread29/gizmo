@@ -1,0 +1,23 @@
+{
+	"segment": "0490-8fac495b",
+	"at": "2026-09-18T22:45:21.121Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "User asked about Gizmo's journal system; assistant explained the on-disk transcript segments, write triggers, and read tools, then discussed moving beyond raw transcripts (proposing a Haiku-generated digest sidecar and indexing). Follow-up work landed collision-safe segment ids (ordinal + first-entry-id hash) and a gitattributes merge=union rule for the index, plus schema fixes and test updates; all 262 agent-server tests pass and the diff is limited to five files.",
+	"decisions": [
+		"Collision-safe segment id format: `${paddedOrdinal}-${shortHashOfFirstEntryId}` so two machines cannot mint the same id; existing bare-ordinal segments remain valid without migration.",
+		"Append `.gitattributes` with `.gizmo/memory/journal/index.jsonl merge=union` so parallel sessions merge index appends instead of conflicting on pull.",
+		"Raise `journal_read` `id` maxLength from 16 to 64 and update the description's example to the suffixed form, so the model copies full ids instead of truncating to four digits."
+	],
+	"files": [
+		".gitattributes",
+		"apps/agent-server/src/memory/journal-store.ts",
+		"apps/agent-server/src/memory/journal-tools.ts",
+		"apps/agent-server/tests/memory/journal-store.test.ts",
+		"apps/agent-server/tests/memory/journal-search.test.ts",
+		"apps/agent-server/tests/pi-extensions/memory-journal.test.ts"
+	],
+	"errors": [
+		"After changing segment id format, tests in journal-store.test.ts and memory-journal.test.ts asserted bare-ordinal filenames like '0001-sess1.md'; updated assertions to '0001-e1-sess1.md' / '0002-e2-sess1.md' before suite passed."
+	],
+	"outcome": "shipped"
+}

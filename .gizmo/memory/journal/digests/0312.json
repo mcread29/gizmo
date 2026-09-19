@@ -1,0 +1,27 @@
+{
+	"segment": "0312",
+	"at": "2026-09-18T22:42:24.934Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed the journal fork-duplication bug by replacing session-keyed lookup with a project-wide entry-id lookup in journal-store, then wired the previously-unbuilt journal recorder into the agent runtime by adding a new memory-journal Pi extension with hooks for session_compact, session_before_tree, turn_end, and session_shutdown, and registering it via additionalExtensionPaths in pi-session-factory. Also added .gizmo/memory/journal/ to .gitignore. Typecheck clean, 155 tests pass (28 new), and the extension was verified to load via Pi's real resource loader.",
+	"decisions": [
+		"Replace per-session resume key with a project-wide lastEntryId lookup (resumeAfter(entries)) so forked sessions, which preserve entry ids but change session id, resume where the parent left off instead of re-journaling inherited history.",
+		"Wire the journal recorder as a bundled Pi extension (apps/agent-server/src/pi-extensions/memory-journal.ts) loaded via additionalExtensionPaths rather than discovered, so memory journaling is on by default rather than per-project configuration.",
+		"Use session_before_tree hook to capture the branch being abandoned, which closes the abandoned-branch gap that getBranch() alone cannot (since it only returns the active path).",
+		"Truncate journal segments at session_compact up to firstKeptEntryId so the recorded span ends exactly where the model's context resumes.",
+		"Wrap every hook so a journaling failure logs but never touches the session, and gate everything on GIZMO_MEMORY_JOURNAL=0 to disable.",
+		"Add .gizmo/memory/journal/ to .gitignore with a comment explaining how to reverse it, chosen as the reversible default since .gizmo/ is tracked in this repo.",
+		"Accept a bounded duplicate-recording case: if a fork point falls inside an already-journaled segment, the entries from the fork point to that segment's end are recorded twice, traded off against the bloat of indexing every entry id per segment."
+	],
+	"files": [
+		"apps/agent-server/src/memory/journal-store.ts",
+		"apps/agent-server/src/pi-extensions/memory-journal.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/tests/memory/journal-store.test.ts",
+		".gitignore"
+	],
+	"errors": [
+		"Initial probe calling loadExtensionFactories() on the resource loader returned an empty list with no error, which would have falsely indicated the extension wasn't loading; the real load path is load() and its result lives in extensionsResult, which did show the memory-journal extension resolved and loaded cleanly.",
+		"Node ERR_PACKAGE_PATH_NOT_EXPORTED encountered when probing how the @earendil-works/pi-coding-agent package re-exports internal modules, resolved by loading via the package's public resource loader instead of reaching into dist internals."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,10 @@
+{
+	"segment": "0276",
+	"at": "2026-09-18T22:41:49.243Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read-only inspection of project-service/status/open APIs across packages/extensions project-service, apps/agent-server transport, packages/protocol projects/events/parsers, apps/app AgentClient/ProjectCapability/state, and the installed Unity gizmo registry. Mapped current contracts (single-owner ProjectStatus returned by one service, Unity-shaped UnityOpenProjectResult on the wire, per-session watch ownership in project-watch-coordinator, store-side selection in AgentStore/ProjectCapability) to prepare a recommendation for bounded structural removal.",
+	"decisions": [],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

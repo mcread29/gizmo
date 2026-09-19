@@ -1,0 +1,39 @@
+{
+	"segment": "0469-ffc3d5eb",
+	"at": "2026-09-18T22:44:59.902Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented Phase 3 of the extension catalog work: added CatalogDisplaySpec support to the protocol display envelope and a gizmoDisplay server helper, then wired the app's extension type, tool-card dispatch, and a new DisplayResult renderer that resolves an extension catalog. Built the search-and-scrape registry's Svelte renderer (SearchResults, SearchHit, ScrapeToolResult), rewired its Pi tool to return the display envelope, and extended the display test suite for the new contract (any tool may carry a display).",
+	"decisions": [
+		"The display envelope now carries an optional `catalog` field so tools can ship specs referencing an extension's custom component catalog alongside the Gizmo built-ins; the protocol parser extracts `spec` from `details` only when `catalog` is absent.",
+		"Servers use a new `gizmoDisplay` helper (in @gizmo/extensions) to build the `details` shape that tells Gizmo to render `spec` as a chat card.",
+		"ToolCallCard's render order keeps the raw `resultText` block above the collapsible details and now renders the DisplayResult component after the details, only when the tool's result is a display envelope.",
+		"DisplayResult constructs a ComponentRegistry from `extension.catalogs[spec.catalog]` and falls back to a 'no component catalog' message when missing.",
+		"A display result is no longer restricted to the tool named `display`; any tool whose result carries a display envelope renders it, so the 'does not claim another tool's result' test was updated to assert the opposite.",
+		"Inline display tools render their spec outside the collapsed details summary, so catalog components remain visible when the tool body is collapsed.",
+		"The search-and-scrape registry's catalog id is `gizmo.search-and-scrape` and registers SearchResults/SearchHit for the search tool and ScrapeToolResult for the scrape tool."
+	],
+	"files": [
+		"packages/protocol/src/display.ts",
+		"packages/extensions/src/display.ts",
+		"packages/extensions/src/index.ts",
+		"apps/app/src/lib/extensions/types.ts",
+		"apps/app/src/lib/features/conversation/ToolCallCard.svelte",
+		"apps/app/src/lib/features/conversation/DisplayResult.svelte",
+		"apps/app/tests/lib/features/conversation/display.test.ts",
+		"apps/agent-server/tests/extensions/extension-catalog.test.ts",
+		"apps/agent-server/tests/extensions/extension-reload.test.ts",
+		"apps/agent-server/tests/sessions/session-reload.test.ts",
+		"~/.gizmo/registries/gizmo-registry/extensions/search-and-scrape/src/web/SearchResults.svelte",
+		"~/.gizmo/registries/gizmo-registry/extensions/search-and-scrape/src/web/SearchHit.svelte",
+		"~/.gizmo/registries/gizmo-registry/extensions/search-and-scrape/src/web/ScrapeToolResult.svelte",
+		"~/.gizmo/registries/gizmo-registry/extensions/search-and-scrape/src/web/index.ts",
+		"~/.gizmo/registries/gizmo-registry/extensions/search-and-scrape/src/server/search-display.ts",
+		"~/.gizmo/registries/gizmo-registry/extensions/search-and-scrape/pi-extension.ts"
+	],
+	"errors": [
+		"Prettier reported style issues in apps/agent-server/docs/melee-technique-catalog.md, apps/app/tests/lib/features/conversation/display.test.ts, and packages/protocol/src/display.ts (not yet reformatted across the repo).",
+		"pnpm check:loc reported 2 files exceeding the 300-line limit: apps/agent-server/tests/sessions/pi-agent-service-events.test.ts (331) and apps/app/src/lib/agent-client/agent-store/SessionCapability.ts (308).",
+		"App test suite reported 1 failed test before the contract update: 'inline display tools > does not claim another tool's result' was asserting that only a `display`-named tool renders a display result; after updating to allow any tool with a display envelope the suite passes (14/14)."
+	],
+	"outcome": "shipped"
+}

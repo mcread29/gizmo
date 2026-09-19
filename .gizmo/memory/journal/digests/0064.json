@@ -1,0 +1,29 @@
+{
+	"segment": "0064",
+	"at": "2026-09-18T22:38:30.112Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Addressed the reviewer's findings on the Skills split workbench by adding bindable dirty-state tracking, an unsaved-changes guard for skill switching/refresh/uninstall/settings navigation/close and browser unload, mobile library→editor flow with Back button, focus-within styling, aria-current/role=alert, and loading-state fixes. Verified with svelte-check (0 errors), 19 unit tests passing, and a production build, then committed all 27 changed files as `feat: add global Pi resource management` after cleaning temporary artifacts.",
+	"decisions": [
+		"Track editor unsaved state via a bindable `dirty` prop on SkillEditor plumbed up to SkillsSettings, SettingsScreen, and App.svelte so navigation can intercept.",
+		"Guard unsaved edits against: selecting another skill, refreshing the library, uninstalling, navigating within Settings, closing Settings, and browser unload (`beforeunload`).",
+		"On mobile, hide the skills library and show the editor with an `ArrowLeft` back button; on desktop keep the persistent split view.",
+		"Use `aria-current` on the selected skill row and `role=\"alert\"` / `role=\"status\"` on editor errors and loading.",
+		"Add `:focus-within` border treatment to `[data-ui='search-field']` since the input itself has `outline: none`.",
+		"Refine CSS so the desktop panel uses `max-width: calc(100vw - 32px)` to keep the right border visible and the mobile library/editor areas share a single stacked height of 520px.",
+		"Load the editor only when `all.length === 0 && store.resourcesLoading` (not when a catalog exists), and drive the header counter from `store.resourcesLoading` rather than a derived `catalog`.",
+		"Commit all changes (including agent-server resource management, router, docs, lockfile) together as `feat: add global Pi resource management` rather than splitting."
+	],
+	"files": [
+		"apps/app/src/App.svelte",
+		"apps/app/src/lib/features/settings/SettingsScreen.svelte",
+		"apps/app/src/lib/features/settings/SkillsSettings.svelte",
+		"apps/app/src/lib/features/settings/SkillEditor.svelte",
+		"apps/app/src/lib/features/settings/SkillList.svelte",
+		"apps/app/src/styles/settings.css"
+	],
+	"errors": [
+		"Initial edit to SkillsSettings.svelte failed with 'Could not find edits[3]' because the post-prettier whitespace no longer matched the `oldText`; resolved by re-reading the file and re-applying the changes in a new edit batch.",
+		"Subagent review of the workbench returned disposition `fix` listing unsaved-work gaps (navigation/unload/uninstall), mobile editor usability, missing focus/empty/filter-empty states, search focus visibility, and selection/status a11y — all addressed in this segment."
+	],
+	"outcome": "shipped"
+}

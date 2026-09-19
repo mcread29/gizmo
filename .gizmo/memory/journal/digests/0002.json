@@ -1,0 +1,31 @@
+{
+	"segment": "0002",
+	"at": "2026-09-18T22:57:12.577Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed why Pi auth reload appeared broken: the UI's 'Reload' only refreshes provider status, while 'Re-import Pi auth' copies ~/.pi/agent/auth.json into Gizmo's runtime, and existing sessions keep their old runtime. Verified the import via a direct WebSocket request, then outlined a substantial backend refactor to give Gizmo 'default Pi' behavior: route Pi resource/tool discovery to ~/.pi/agent via DefaultResourceLoader, restore all built-in Pi tools, keep Gizmo extensions coexisting, add project-trust handling for executable extensions, bridge TUI-only extension UI features, and add a runtime reload action.",
+	"decisions": [
+		"Keep Gizmo sessions in ~/.gizmo but point Pi runtime/resource discovery directly at ~/.pi/agent, eliminating the auth-copy/re-import workflow for default-Pi mode",
+		"In Pi Web mode, instantiate Pi's DefaultResourceLoader without noExtensions/noSkills/noPromptTemplates/noContextFiles so global and project extensions, skills, templates, AGENTS.md, packages, providers, and models discover normally",
+		"Enable all default Pi tools (read, bash, edit, write, grep, find, ls, plus Windows powershell) in Pi Web mode instead of Gizmo's curated subset, and let Gizmo extension tools add alongside rather than replace them",
+		"Keep Gizmo's own extensions (Git, Unity, Svelte, activity, skill authoring) loaded alongside Pi extensions, but disable the active-workspace-profile system-prompt override in Pi Web mode",
+		"Add a web-facing implementation of Pi's project-trust prompt (or a clearly configured default policy) because Pi only loads executable project-local extensions after trust, and silent trust is unsafe",
+		"For TUI-only extension features (ctx.ui.custom, terminal editor replacements, widgets, headers/footers, custom tool renderers), require graceful no-ops or a protocol bridge to Gizmo dialogs/notifications/status, with select/confirm/input/notifications as the first bridge",
+		"Expose a 'Reload Pi runtime' action that calls Pi's session reload lifecycle so extensions, skills, prompts, context files, packages, and provider registrations refresh in one step",
+		"Split session creation into createGizmoSession and createDefaultPiSession sharing one Gizmo adapter for model selection, compaction, and commit messages, differing only in resource/tool configuration"
+	],
+	"files": [
+		"apps/agent-server/src/config/pi-runtime-config.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/sessions/session-repository.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/app/src/lib/features/settings/ProvidersSettings.svelte",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [
+		"User-reported 'auth reload isn't working' turned out not to be a bug: the Reload button only refreshes provider status; Re-import Pi auth is the action that copies ~/.pi/agent/auth.json into Gizmo's runtime, and existing sessions retain their previously imported runtime so a new thread is required after import"
+	],
+	"outcome": "explored"
+}

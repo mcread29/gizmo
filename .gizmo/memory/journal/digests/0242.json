@@ -1,0 +1,16 @@
+{
+	"segment": "0242",
+	"at": "2026-09-18T22:41:18.600Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Committed all pending changes on the pi-web branch as a single commit titled \"Hide TUI-only Pi extensions in Gizmo\", affecting three files in apps/agent-server. The working tree was verified clean after the commit.",
+	"decisions": [
+		"Single commit titled \"Hide TUI-only Pi extensions in Gizmo\" used to land the staged changes, including 56 insertions and 11 deletions across three files."
+	],
+	"files": [
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/tests/resources/pi-global-resources.test.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

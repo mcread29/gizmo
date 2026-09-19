@@ -1,0 +1,19 @@
+{
+	"segment": "0252",
+	"at": "2026-09-18T22:41:26.559Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Found and fixed two gaps that hid the search-and-scrape extension's Settings → Extensions toggle. Added the missing `gizmoExtension` export to the registry entry so the extension registers with Gizmo's host, and fixed a bug in the Gizmo app's `discoverExtensionEntries` that skipped all Windows junction-linked extensions (causing the entire Pi section to be missing for linked extensions).",
+	"decisions": [
+		"Add a minimal `gizmoExtension = { id: \"search-and-scrape\", name: \"Search & Scrape\" }` export to `pi-extension.ts` (and re-export from `index.ts`) — same pattern as the activity extension — so the extension appears under Settings → Extensions with an On/Off switch. No live operations are exposed because search and scrape are stateless tools and the web side is presentation-only.",
+		"Follow symlinks and stat the target in `discoverExtensionEntries` so Windows directory junctions/symlinks (used by registry linking) are recognized as directories rather than skipped — fixing discovery of every registry-linked extension, not just search-and-scrape."
+	],
+	"files": [
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/search-and-scrape/pi-extension.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/search-and-scrape/index.ts",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/resources/pi-global-resources.ts"
+	],
+	"errors": [
+		"Initial WebSocket probe failed with `invalid_request` because the `resources.list` request takes `workspacePath`, not `projectPath` — fixed by switching the parameter name in the probe script."
+	],
+	"outcome": "shipped"
+}

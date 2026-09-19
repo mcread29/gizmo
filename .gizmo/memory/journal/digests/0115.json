@@ -1,0 +1,28 @@
+{
+	"segment": "0115",
+	"at": "2026-09-18T22:39:30.273Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Built out the registry system: the gizmo repo itself becomes the registry via a `gizmo.registry.json` manifest, the server's registry-manager was rewritten to support multiple registries with per-extension link/unlink, the protocol messages were reshaped to `registry.status/add/update/remove/link/unlink`, the AgentClient mock and Extensions settings page were updated to the catalog model with add/update/remove per registry and Link/Unlink per extension, and server + protocol typechecks passed.",
+	"decisions": [
+		"This repo doubles as a registry (the `gizmo.registry.json` manifest lists its own extensions), so a separate registry repository is not required.",
+		"Registry model is catalogs of extensions with per-extension link/unlink (not whole-registry install), and the user can register multiple registries via `registry.add { url }`.",
+		"Protocol message set was reshaped to: `registry.status`, `registry.add`, `registry.update`, `registry.remove`, `registry.link`, `registry.unlink` (all carrying the registry `name`)."
+	],
+	"files": [
+		"gizmo.registry.json",
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/features/settings/ExtensionsSettings.svelte"
+	],
+	"errors": [
+		"First Python rewrite of `packages/protocol/src/index.ts` message block failed with `ValueError: substring not found` because indentation differed; recovered by re-running with the correct literal indentation, then `messages reshaped` succeeded.",
+		"Second Python schema-rewrite pass failed with `NameError: name 'new_status' is not defined` due to a leftover stray reference; redone cleanly and `schemas reshaped` succeeded with `proto-ok`.",
+		"After the first protocol/handler rewrite the server's TypeScript check failed: `registry-manager.ts(244,8): Expected 3 arguments, but got 2` and `registry-manager.ts(247,18): InstalledRegistry` push missing `extensions` field; fixed by extracting `cloneArgs` and adding `linked: []` + `extensions: []` to the pushed registry — `server-ok`.",
+		"`pnpm dev:server:restart` from `apps/agent-server` failed with `[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command 'dev:server:restart' not found`; had to be run from the repo root.",
+		"Live registry probe still returned `spawn git ENOENT` after restart; investigation surfaced that `git clone` was spawned with `cwd` set to the not-yet-existing target directory, so spawn failed on cwd (not git missing). Fix applied: run git with `cwd = cloneHome()` instead of the target dir. Verified by probe after restart, but the transcript ends with the server-side probe script erroring (`Node.js v24.20.0`) before a final clean verification line.",
+		"App svelte-check reported `Class 'InvalidEventClient' incorrectly implements interface 'AgentClient'`; not resolved in this segment."
+	],
+	"outcome": "blocked"
+}

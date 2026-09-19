@@ -1,0 +1,24 @@
+{
+	"segment": "0394",
+	"at": "2026-09-18T22:43:34.306Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the agent-server websocket transport so PiAgentService, ProjectServiceRegistry, ExtensionHostService, and a new ProjectWatchCoordinator class are singletons created once per server (in server.ts) and shared across all connections, instead of being instantiated per-connection. Socket close now only unsubscribes from event hubs; disposal happens on server close. Updated the transport tests to match the shared-instance semantics and verified the full agent-server (201 tests) and app (195 tests) suites pass.",
+	"decisions": [
+		"PiAgentService, ProjectServiceRegistry, ExtensionHostService, and ProjectWatchCoordinator are shared singletons per server, not per connection — so multiple sockets receive the same events.",
+		"Socket close is non-destructive: it only unsubscribes from event hubs; agent/project service dispose only runs on server close.",
+		"ProjectWatchCoordinator was converted from a factory function to a class with explicit stopExtensionWatch/release semantics, since lifecycle ownership moved to the server.",
+		"Per-service watch refcounting: a service's extension-host watch is stopped only when all sessions/projects for that service have released it — so watching path /a for tests keeps the tests watch alive even after git moves to /b."
+	],
+	"files": [
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/transport/project-watch-coordinator.ts",
+		"apps/agent-server/tests/transport/websocket-server.lifecycle.test.ts",
+		"apps/agent-server/tests/transport/project-watch-coordinator.test.ts"
+	],
+	"errors": [
+		"TypeScript error TS1361: ProjectServiceRegistry was imported with `import type` but used as a value in websocket-server.ts — fixed by switching to a value import.",
+		"Test failure: `expect(() => watch.watch(...)).toThrow` did not catch the async rejection because watch is now an async method — fixed by using `await expect(...).rejects.toThrow(...)`.",
+		"Test failure: 're-points a service when the watched path changes' expected stopExtensionWatch to fire when git moved from /a to /b — under the new shared refcounting model, the tests extension on /a keeps the host watch alive, so the expectation was updated to reflect correct new semantics."
+	],
+	"outcome": "shipped"
+}

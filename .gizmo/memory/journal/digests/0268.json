@@ -1,0 +1,28 @@
+{
+	"segment": "0268",
+	"at": "2026-09-18T22:41:46.132Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Performed a read-only architectural analysis of the Gizmo app's workspace inspector to identify how a single extension currently owns workspace context via createView. Inspected workspace-view.ts, types.ts, WorkspaceInspector.svelte, registry.svelte.ts, runtime/install/load files, shell/titlebar usage, app settings, and the installed Unity registry package to map exact references and propose a minimal structural refactor.",
+	"decisions": [
+		"Workspace context ownership must move out of any single extension: the app should own the inspector shell, and workspace context should only reflect enabled extensions (peer panels/tabs) rather than a createView-dispatched domain.",
+		"createWorkspaceView in apps/app/src/lib/extensions/workspace-view.ts is the offending single-owner path: it picks the first activeDomain whose extension defines createView and synthesizes the WorkspaceView from that one extension's output, so it must be replaced with app-side derivation from enabled extensions.",
+		"WorkspaceView is constructed with fields tied to a domainId (domainId, panel, pill, canOpen/open/refresh as no-ops) in apps/app/tests/lib/extensions/WorkspaceInspector.test.ts; these domain-specific fields need to be removed and the WorkspaceView type slimmed to app-owned shell concerns only.",
+		"The installed Unity registry extension at packages/unity/src/web/ (unity-view.ts, UnityPanel.svelte, etc.) and apps/app/src/lib/app-settings.ts showUnityInspector are downstream consumers that must be migrated off createView and off the Unity-specific setting flag once the refactor lands.",
+		"Tests to update are apps/app/tests/lib/extensions/WorkspaceInspector.test.ts (WorkspaceView fixture with domainId, Subagents tab expectations) and apps/app/tests/lib/features/shell/Titlebar.test.ts (WorkspaceView import); they must drop domainId and rely on extension-tab presence instead."
+	],
+	"files": [
+		"apps/app/src/lib/extensions/workspace-view.ts",
+		"apps/app/src/lib/extensions/types.ts",
+		"apps/app/src/lib/extensions/WorkspaceInspector.svelte",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/app/src/lib/extensions/runtime/install.ts",
+		"apps/app/src/lib/extensions/runtime/load-web-extension.ts",
+		"apps/app/src/lib/app-settings.ts",
+		"apps/app/tests/lib/extensions/WorkspaceInspector.test.ts",
+		"apps/app/tests/lib/features/shell/Titlebar.test.ts",
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\packages\\unity\\src\\web\\unity\\unity-view.ts",
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\packages\\unity\\src\\web\\unity\\UnityPanel.svelte"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

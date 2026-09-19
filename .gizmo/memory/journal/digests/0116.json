@@ -1,0 +1,23 @@
+{
+	"segment": "0116",
+	"at": "2026-09-18T22:39:22.466Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Debugged the registry's spawn-git-ENOENT error caused by using a nonexistent clone directory as cwd in registry-manager.ts, confirmed gizmo.registry.json was untracked and missing from the clone, committed both fixes, and verified the full registry add/update/link/unlink loop end-to-end via WebSocket probes against the restarted dev server. Final state: ask-user extension installed (ask-user.ts + ask-user.web.js) in ~/.pi/agent/extensions/, pnpm check clean, 70 vitest tests passing, two commits landed.",
+	"decisions": [
+		"registry-manager.ts clone uses cloneHome() as exec cwd (not the target clone path) so the directory exists at spawn time — fixes the spawn git ENOENT",
+		"Committed gizmo.registry.json alongside the cwd fix so the registry manifest is present in the clone and readRegistryManifest picks up extensionsDir: 'pi-extensions' instead of defaulting to 'extensions'",
+		"Restarted the dev server (stop+start) before probing because tsx-watch had failed to reload the diagnostic code",
+		"Full registry loop verified via WebSocket probes: add, update (pull), link, unlink, relink — all ok"
+	],
+	"files": [
+		"apps/agent-server/src/extensions/registry-manager.ts",
+		"gizmo.registry.json"
+	],
+	"errors": [
+		"spawn git ENOENT on registry.add — caused by registry-manager.ts passing the target clone directory as exec cwd before it existed; fixed by using cloneHome()",
+		"registry.link ENOENT on pi-extension.ts — caused by gizmo.registry.json being untracked so the clone had no manifest and defaulted to extensionsDir 'extensions' instead of 'pi-extensions'; fixed by committing the manifest",
+		"Probe TypeError on .slice of undefined — fixed by JSON.stringify-ing the whole added response instead of dereferencing .result",
+		"git commit failed with .git/index.lock present — resolved by removing the stale lock file"
+	],
+	"outcome": "shipped"
+}

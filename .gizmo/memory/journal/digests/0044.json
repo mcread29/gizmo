@@ -1,0 +1,23 @@
+{
+	"segment": "0044",
+	"at": "2026-09-18T22:38:06.413Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Performed a detailed static analysis of the Pi SDK (v0.84.2) ExtensionUI contract and the existing Gizmo Pi agent service abstractions, then produced a comprehensive design document for bridging Pi extension UI calls over the WebSocket protocol. No code was changed — this is a pure research and design exploration that maps every UI method (select/confirm/input/editor/notify/setStatus/setWidget/setTitle/setEditorText), specifies new protocol messages (extension.ui.respond, extension.ui.requested, extension.ui.cancelled, extension.ui.runtime.cleared), defines a new ExtensionUIRuntime abstraction, and prescribes binding-order, reload, abort, eviction, and dispose lifecycle handling.",
+	"decisions": [
+		"Bump protocolVersion from 19 to 20 to add the extension UI wire protocol.",
+		"Bind extensions with mode: 'rpc' (not 'json') so ctx.hasUI is true and extensions receive the expected rpc mode.",
+		"Use a runtimeId distinct from sessionId because reload and idle reconstruction can create a new extension runtime for the same sessionId; client must scope persistent UI state by runtimeId.",
+		"Move bindExtensions() out of createDefaultPiSession and into PiAgentService so it runs after #activate() and after session.created is emitted, avoiding a race where session_start handlers fire before the service is registered.",
+		"Use explicit null (not undefined) for clearing status/widget values so it survives JSON serialization.",
+		"Use separate message types (extension.ui.requested, extension.ui.cancelled, extension.ui.runtime.cleared) rather than reusing Unity's confirmation.requested/resolve schemas, because Pi UI has method-aware responses, timeouts, signals, runtime generations, and multiple simultaneous dialogs.",
+		"Do not serialize WebSocket request handling — a client response must be dispatchable while another request is blocked awaiting that dialog.",
+		"Idle eviction must not silently drop a pending dialog; either skip eviction or cancel the dialog first.",
+		"Pi's dispose() does not emit session_shutdown, so the service must independently clean up UI on eviction/delete/disconnect.",
+		"editor() in Pi 0.84.2 has no timeout/signal option; it can only be cancelled by browser response or host/runtime cleanup.",
+		"Widget factories cannot be transported over the wire; only string-array form should be bridged.",
+		"setEditorText events must be scoped to the active session to avoid overwriting another session's visible draft."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

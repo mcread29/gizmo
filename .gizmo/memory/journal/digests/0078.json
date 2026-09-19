@@ -1,0 +1,23 @@
+{
+	"segment": "0078",
+	"at": "2026-09-18T22:38:45.544Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Confirmed design direction and began implementation: Gizmo's global settings UI will edit Pi's global `defaultTools`, per-project `.pi/settings.json` will hold editable overrides (subject to project trust), and the hard-coded `tools:` allowlist in `pi-agent-service.ts` will be removed in favor of Pi's settings-driven policy. The agent chose option 'Both' — implement the defaultTools piece now and update the bridge-plan design doc — and started with protocol additions (bumping version 22→23, adding `toolPolicySchema`, `ToolPolicy` type, and `tools.policy.get`/`tools.policy.set` request/response shapes).",
+	"decisions": [
+		"Adopt option A: Gizmo global settings UI edits Pi's global `defaultTools`; per-project `.pi/settings.json` is also editable as an override",
+		"Project override only applies when project is trusted; UI must show 'override inactive — project not trusted' rather than lying about effectiveness",
+		"Extension and SDK custom tools remain always enabled regardless of `defaultTools`; delete the hard-coded `tools:` allowlist at `pi-agent-service.ts:931` so `defaultTools` governs built-ins only",
+		"Seed global `defaultTools` to `['read', 'edit', 'write']` on first run if unset, preserving the no-shell default",
+		"Proceed with 'Both': implement defaultTools wiring now AND update the bridge-plan design doc for the larger migration",
+		"Bump `protocolVersion` from 22 to 23 to accommodate the new tool-policy messages",
+		"Implement own read-modify-write helper (temp + rename) for settings files since `FileSettingsStorage` is not re-exported from `@earendil-works/pi-coding-agent`",
+		"Use 2-space indent JSON to match real global settings file format"
+	],
+	"files": [
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [
+		"bash command exited with code 1 because `parseResourceCatalog` export was not found in the initial grep against `apps/app/src/lib/*.ts`; resolved by grepping protocol's `index.ts` directly, which located the export at line 1618"
+	],
+	"outcome": "explored"
+}

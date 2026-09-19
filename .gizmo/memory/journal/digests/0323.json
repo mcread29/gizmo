@@ -1,0 +1,14 @@
+{
+	"segment": "0323",
+	"at": "2026-09-18T22:42:33.272Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran a memory backfill CLI against the Gizmo workspace, importing 320 segments (6521 messages) across 66 sessions from pi-archive (289) and claude-code (31), with a second run confirming idempotency by importing only 1 new segment. Then inspected a few oversized journal files and the index to check segment structure.",
+	"decisions": [],
+	"files": [
+		".gizmo/memory/journal/0069-01a040a1-1526-7f42-bfe7-78341e45a09a.md",
+		".gizmo/memory/journal/0042-01a03ff0-491a-701a-8de0-663228cefab0.md",
+		".gizmo/memory/journal/0127-01a0444c-516d-7f6a-a0d0-5e3fcd43045e.md"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

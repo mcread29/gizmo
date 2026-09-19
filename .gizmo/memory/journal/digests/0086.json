@@ -1,0 +1,23 @@
+{
+	"segment": "0086",
+	"at": "2026-09-18T22:38:51.394Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Began a large refactor replacing the workspace-profile concept with a per-project configuration model. Mapped integration points across protocol, agent-server, and app, then started editing: removed `defaultProfile` and profile-related imports/exports from the extension registry, added a `disabledGizmoExtensions` field to `GlobalResourceSettings`, dropped `integrations` from the `project.add` protocol message, and added gizmo-extension catalog and toggle methods in `resource-catalog.ts` (including fixing `setGlobalSkill` writes to spread settings so the new field is preserved).",
+	"decisions": [
+		"Replace workspace-profile concept with a `ProjectConfig` (versioned, with explicit Gizmo extension enablement that inherits global toggles when absent) instead of multiple selectable profiles.",
+		"Drop `integrations` from the `project.add` protocol message; new projects inherit global settings and integrations rather than carrying an initial profile.",
+		"Add a `gizmoExtensions` listing plus a `setGlobalGizmoExtension` method on `ResourceCatalog` so installed Gizmo extensions can be toggled globally, independent of per-project overrides.",
+		"Per-project Pi extension disabling is done by filtering `piExtensionPaths` via project-config overrides (planned, not yet implemented in this segment)."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/registry.ts",
+		"apps/agent-server/src/resources/global-resource-settings.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"packages/protocol/src/index.ts"
+	],
+	"errors": [
+		"Edit to `global-resource-settings.ts` failed with `Could not find edits[2]`: the oldText used incorrect indentation (extra tab level) for the `read()` return object; retried with correct indentation and succeeded.",
+		"Earlier grep `grep -n \"defaultProfile\" apps/agent-server/src/extensions/registry.ts` exited with code 1 because the python regex had already stripped `defaultProfile` (no matches) — non-fatal, just an exit-code surprise."
+	],
+	"outcome": "explored"
+}

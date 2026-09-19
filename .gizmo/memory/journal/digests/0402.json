@@ -1,0 +1,23 @@
+{
+	"segment": "0402",
+	"at": "2026-09-18T22:43:40.996Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed narrow-sidebar bug where workspace-row actions were clipped by setting both workspace-list and thread-list grids to `grid-template-columns: minmax(0, 1fr)` and giving the secondary text a flex-shrink weight so titles stay intact at small widths; verified live at 200px. Then proposed composer improvements, refined the list with the user to favor removing/quieting chrome over adding it.",
+	"decisions": [
+		"Use `grid-template-columns: minmax(0, 1fr)` on workspace-list and thread-list grids so row widths are pinned to the sidebar rail rather than the widest row's max-content.",
+		"Give the path/count hint a flex-shrink weight of 100 so it collapses before the workspace title when the row is narrow.",
+		"Keep `readonly` (not `disabled`) on the composer textarea during compaction so focus and the caret are preserved.",
+		"Hide the usage meter until the first turn has used tokens, and fold the Compact action into a click on the meter or a small menu, since compaction is rare.",
+		"Start the composer textarea at a single line (the auto-grow already supports growing from there) instead of the current 64px minimum height.",
+		"Restyle the model and thinking controls into a single quiet pill so they read as controls rather than a status line — no new toolbar element added.",
+		"Drop from the composer proposal set: always-visible kbd shortcut hints, a 'Steering' label/accent border, a drop-zone overlay message, and a slash-command affordance — all rejected as permanent chrome that costs space to teach something once."
+	],
+	"files": [
+		"apps/app/src/styles/sidebar-parts/layout.css"
+	],
+	"errors": [
+		"Zoom screenshot capture in the Chrome MCP timed out / appeared frozen; fell back to a full-page screenshot and a Range.getBoundingClientRect probe to confirm titles were rendering in full rather than truncated.",
+		"A `svelte-check` invocation that piped output through `grep -n \"ok\\|error\"` returned only timestamps with no usable signal; a subsequent direct invocation reported 0 errors / 0 warnings across 5242 files."
+	],
+	"outcome": "shipped"
+}

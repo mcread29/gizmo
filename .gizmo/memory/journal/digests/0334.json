@@ -1,0 +1,26 @@
+{
+	"segment": "0334",
+	"at": "2026-09-18T22:42:45.991Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed a bug where deleting or evicting a session dropped unrecorded journal tail because the raw Pi AgentSession was disposed directly, bypassing the `session_shutdown` event the journal extension needs to flush its pending entries. Added an async `shutdown()` hook to the session abstraction, wired it into all eviction paths (delete, idle sweep, capacity) and into server shutdown, and ensured disposal still happens even when the flush fails.",
+	"decisions": [
+		"Add an optional `shutdown?(): Promise<void>` method to `PiSessionLike` rather than calling dispose directly, so extensions receive `session_shutdown` while their context is still alive; the caller disposes afterwards.",
+		"Implement `shutdown` on the real session by mirroring `AgentSessionRuntime.dispose()`: check `runner.hasHandlers('session_shutdown')` then emit `{ type: 'session_shutdown', reason: 'quit' }`, so the journal extension's existing handler records the tail with trigger `session-end` and dedupes by entry id to prevent double-journaling.",
+		"Make `#evict` async and drop map entries synchronously before awaiting `session.shutdown?.()` and then `dispose()`, so concurrent sweeps/re-activations cannot touch a dying runtime; still dispose (logging via `console.error`) if the flush throws.",
+		"Await `pool.remove` in `deleteSession` before `repository.delete`, so the journal flush completes before the transcript is archived.",
+		"Make service and websocket server `dispose()` async and awaited in the server-close chain, so journal flushes finish before process exit."
+	],
+	"files": [
+		"pi-agent-types.ts",
+		"pi-session-factory.ts",
+		"session-runtime-pool.ts",
+		"session-operations.ts",
+		"pi-agent-service.ts",
+		"websocket-server.ts",
+		"eviction test files (FakePiSession and related fakes, delete/eviction/server-close tests)"
+	],
+	"errors": [
+		"Eviction (`pool.remove` → `#evict` → `session.dispose()`) disposed the raw Pi `AgentSession`, which never fires the `session_shutdown` event, so deleting or evicting a thread dropped all journal entries since its last segment — root cause of the bug being fixed."
+	],
+	"outcome": "shipped"
+}

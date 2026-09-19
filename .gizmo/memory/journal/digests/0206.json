@@ -1,0 +1,20 @@
+{
+	"segment": "0206",
+	"at": "2026-09-18T22:40:43.514Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the extension UI module by splitting PiExtensionUiStore.svelte.ts into a thin 182 LOC facade plus four cohesive modules (State, Events, Types, Collections), preserving runtime-scoped state, dialogs, queued answers, notifications, response errors, cleanup, subscriptions, and public API. Verified with prettier, Svelte autofixer (clean on the reactive state module), app check (0 errors/0 warnings), 8/8 extension UI tests passing, and a full app suite of 165 passed / 1 unrelated concurrent failure (App.test.ts missing 'Remove reference.png').",
+	"decisions": [
+		"Reduced PiExtensionUiStore.svelte.ts to a stable public facade (~182 LOC) rather than splitting tests, since the related tests were already under 300 LOC."
+	],
+	"files": [
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiStore.svelte.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiState.svelte.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiEvents.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiTypes.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiCollections.ts"
+	],
+	"errors": [
+		"Full app suite had 1 failure in App.test.ts ('could not find Remove reference.png') that was determined to be an unrelated concurrent working-tree issue, not caused by this refactor."
+	],
+	"outcome": "shipped"
+}

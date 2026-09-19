@@ -1,0 +1,24 @@
+{
+	"segment": "0457-0acd84bc",
+	"at": "2026-09-18T22:44:45.656Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why the gizmo workspace's extension list omitted 'git': the supervised agent server's own log shows `spawn git ENOENT`, even though the server's PATH contains `C:\\Program Files\\Git\\cmd`. Replayed that exact PATH in a normal Node process (git spawns fine) and ran the same probe under an S4U scheduled task (also fine, including absolute-path spawns), so the failure is not reproducible from these isolated tests. While probing, found and fixed a quoting typo in `pi-session-factory.ts` (`'\\n'` instead of `'\\n'`) and confirmed the supervisor relaunched the server cleanly.",
+	"decisions": [
+		"Treated the git extension omission as a service-context issue rather than a PATH issue, because the same PATH string works in both a normal Node process and an S4U scheduled task probe — the exact failure mode in the live service could not be reproduced",
+		"Fixed a quoting bug in apps/agent-server/src/sessions/pi-session-factory.ts by changing ].join('\\n'); to ].join('\\n'); (escaped backslash before n), and verified tsc passes and the supervisor relaunched the server healthy on 8787/4173",
+		"Identified that Pi's commit-message generation uses completeSimple without attaching the x-opencode-session header that the 'Console Go' provider requires (returning MissingSessionID), with the header set in pi-coding-agent's provider-attribution.js"
+	],
+	"files": [
+		"C:\\Users\\mchan\\projects\\gizmo\\.gizmo-dev\\Read-ProcEnv.ps1",
+		"C:\\Users\\mchan\\projects\\gizmo\\.gizmo-dev\\s4u-git.js",
+		"C:\\Users\\mchan\\projects\\gizmo\\.gizmo-dev\\probe-commit.cjs",
+		"C:\\Users\\mchan\\projects\\gizmo\\apps\\agent-server\\src\\sessions\\pi-session-factory.ts"
+	],
+	"errors": [
+		"Initial attempt to run Read-ProcEnv.ps1 failed because PowerShell resolved the relative path from the wrong cwd ('not recognized as a cmdlet...'); re-invoking with the absolute path succeeded",
+		"Remove-Item on the S4U probe output file was blocked by Windows protected-path policy; worked around by skipping the delete",
+		"A child_process spawn of `git` from inside the supervised agent-server process returns ENOENT even with Git\\cmd on its Path; same spawn succeeds in a normal process and in a standalone S4U scheduled task probe, so the root cause remains unconfirmed",
+		"Pi's commit-message call returns 'MissingSessionID: Request is missing x-opencode-session' from the Console Go provider"
+	],
+	"outcome": "explored"
+}

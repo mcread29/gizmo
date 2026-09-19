@@ -1,0 +1,15 @@
+{
+	"segment": "0364",
+	"at": "2026-09-18T22:43:07.846Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Discussion segment in which the assistant explains why Tailscale's native tools (tailcat, tailscale serve, tsnsrv) all produce machine-first or service-tailnet naming, and proposes split DNS on homelab to achieve the user's desired service.machine shape (e.g. gizmo.genge, gizmo.forge). The assistant lays out dnsmasq + restricted-nameserver setup, Vite allowlist changes per machine, and TLS options (plain HTTP over WireGuard vs. mkcert private CA), suggesting a hosts-file test on the user's laptop as a quick proof-of-concept.",
+	"decisions": [
+		"tsnsrv chosen over tailscale serve for multiple services: each service becomes its own tailnet node on 443 with its own name, avoiding port juggling and per-app base-path surgery.",
+		"Tailnet rename considered as the cheap path to nicer ts.net URLs, but rejected by the user because the goal is service.machine, not service.tailnet.",
+		"Split DNS via dnsmasq on homelab (100.72.105.54) with Tailscale restricted nameservers chosen as the mechanism to produce service.machine names across all tailnet devices.",
+		"TLS deferred as a separate decision: plain HTTP over WireGuard (with secure-context caveat) vs. mkcert private CA; no public CA path is available for non-ts.net names."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

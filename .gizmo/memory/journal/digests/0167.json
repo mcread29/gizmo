@@ -1,0 +1,21 @@
+{
+	"segment": "0167",
+	"at": "2026-09-18T22:40:08.561Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The assistant audited the repository by searching for FakeAgentClient/TitlebarTestHost usages, inspecting app entry points (main.ts, agent-client index, design package files, app styles), running the Svelte autofixer on three components (App.svelte, WorkspaceConfigurePanel.svelte, CommandPalette.svelte), and running pnpm check and pnpm test across the workspace. Type checking passed cleanly, but the full test run revealed 17 failing tests in apps/agent-server (run-script, extension-resources, pi-runtime-config, session-repository) while the apps/app, packages/ui, packages/protocol, and packages/extensions suites all passed. The assistant then launched three long-running subagents for test/config, frontend refactor, and backend refactor audits and continued reconnaissance on design package imports and shared Button components.",
+	"decisions": [
+		"Workspaces will keep separate packages/design (tokens + plain CSS components) and packages/ui (bits-ui wrappers), with apps/app importing '@gizmo/design' for styles and '@gizmo/design/format' etc. for utilities as confirmed by current import sites.",
+		"apps/app/src/main.ts explicitly imports '../../../packages/design/src/components.css' as a workaround for Vite dropping a nested @import from @gizmo/design/index.css, so native button/dialog styles ship in the bundle.",
+		"apps/app/src/main.ts uses a dev-only dynamic import of FakeAgentClient gated on import.meta.env.DEV and the ?fake query string so it never reaches production bundles."
+	],
+	"files": [
+		"apps/app/src/App.svelte",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"apps/app/src/lib/features/sessions/CommandPalette.svelte"
+	],
+	"errors": [
+		"pnpm test reported 17 failures in apps/agent-server: 9 in src/scripts/run-script.test.ts (tests asserting 'Bun is required' or max-buffer behavior instead received 'Script must be inside the workspace: …' from runScript in src/scripts/run-script.ts:60), 5 in src/resources/extension-resources.test.ts (packageResourceRoots expectations on conventional directories, pi manifest directories, bare string vs array, fallback behavior, and cross-extension root collection), 2 in tests/config/pi-runtime-config.test.ts (auth.json file mode was 438 instead of expected 384 for missing/pi-only Pi config import cases), and 1 in tests/sessions/session-repository.test.ts PiSessionRepository 'restores durable transcripts and keeps projects isolated' (catalog.sessions assertion failed because actual entries used Windows-style C:\\projects paths and lastActiveAt values of 10/20 instead of the expected /projects paths).",
+		"Three subagent audit tasks (sa-1 frontend refactor audit, sa-2 backend refactor audit, sa-3 test/config audit) were started but produced no output yet by the end of this segment, so their findings remain pending."
+	],
+	"outcome": "explored"
+}

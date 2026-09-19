@@ -1,0 +1,25 @@
+{
+	"segment": "0326",
+	"at": "2026-09-18T22:42:39.306Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Explored Unity/codex web-extension patterns and pi-coding-agent 0.84.4's registerProvider API to confirm contracts, then scaffolded the ollama extension: wrote a typed HTTP client plus tests for list/show/pull/delete. Two test failures (DELETE init shape, pull error line without trailing newline) were fixed by correcting the test assertion and flushing the NDJSON buffer after the read loop.",
+	"decisions": [
+		"Static inspector tab receives full AgentStore + projectPath; chosen as the UI surface for the model management panel.",
+		"ProviderConfig supports models[] with {name, maxContextLength, capabilities, baseUrl, apiKey}; will set capabilities via show() capabilities.",
+		"Settings surface: host URL field only; other Ollama knobs go through the inspector management UI.",
+		"statusBar surface skipped for v1 because static functions can't poll; relies on inspector panel for live status.",
+		"Vitest config uses jsdom + testing-library; no .prettierrc found, so prettier defaults (2-space, double quotes) apply.",
+		"Branch feat/ollama-extension created for the scaffolded work.",
+		"NDJSON streaming must flush the final buffered line after the read loop even if it lacks a trailing newline."
+	],
+	"files": [
+		"extensions/ollama/src/shared/ollama-client.ts",
+		"extensions/ollama/src/shared/ollama-client.test.ts"
+	],
+	"errors": [
+		"DELETE test asserted init.json undefined because the client spreads rest and assigns body; fixed by parsing init.body instead.",
+		"Pull error path: error JSON chunk with no trailing newline sat unprocessed in the buffer; fixed by emitting remaining buffered line after the read loop.",
+		"Filesystem note: Windows path C:/Users/mchan/.gizmo/registries/gizmo-registry — the registry lives outside the projects/gizmo monorepo."
+	],
+	"outcome": "explored"
+}

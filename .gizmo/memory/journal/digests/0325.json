@@ -1,0 +1,18 @@
+{
+	"segment": "0325",
+	"at": "2026-09-18T22:42:39.249Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigation and planning for building a new `ollama` extension in the local gizmo-registry clone. Explored Gizmo's extension architecture (codex/git/unity references), Pi's `registerProvider` API, the model catalog/select protocol, ExtensionSettings UI, and the registry repo's build/test/lint tooling, then drafted a phased implementation plan for host detection/install, an Ollama client, server `list`/`invoke`, a web settings card, and provider registration.",
+	"decisions": [
+		"Extension will live in the gizmo-registry repo at `~/.gizmo/registries/gizmo-registry` as `extensions/ollama/`, declared in that repo's `gizmo.registry.json` and linked via Settings → Extensions.",
+		"Provider registration will go through Pi's `pi.registerProvider(\"ollama\", { baseUrl, api: \"openai-completions\", models: [...] })` inside the extension factory, since Gizmo's session-scoped `model.catalog`/`model.select` protocol flushes pending registerProvider calls per session.",
+		"Server logic will be co-located under `extensions/ollama/src/server/` (following codex's pattern) rather than a separate `packages/ollama`, and the paired web bundle will be built by `scripts/build-extensions.ts` into `extensions/ollama.web.js`.",
+		"Long-running operations (model pull) will use a shared server-side job registry with fire-and-forget start plus a status invoke the UI polls; no streaming protocol changes needed.",
+		"Extension settings (Ollama host URL, default `http://localhost:11434`) will be persisted via `ExtensionSettingsContext` so users can point at a non-default host.",
+		"Work will proceed on a new branch in the gizmo-registry repo with incremental commits per phase (scaffold → host detection → Ollama client → server list/invoke → web settings → catalog entry).",
+		"Web UI pattern will follow codex/git/unity: Svelte components with `data-ui` attributes and a local CSS file, contributing an inspector tab plus settings entry, rather than depending on `@gizmo/design`."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

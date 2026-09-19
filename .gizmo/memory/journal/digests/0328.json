@@ -1,0 +1,28 @@
+{
+	"segment": "0328",
+	"at": "2026-09-18T22:42:46.620Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the Ollama server extension to a `createOllamaExtension({client, jobs, detectHost})` factory with a singleton export, added invoke-surface tests with stubbed dependencies, then iterated to green: fixed a registry race where runs resolving after cancellation were reported as 'succeeded' by also checking `signal.aborted` and making the stub reject on abort; corrected test fixtures (flat `qwen3.context_length` key, added `family` field) and resolved TypeScript errors (missing `open`/`access` imports, optional `signal` on the mirrored `invoke?`, explicit `JobSnapshot & { controller: AbortController }` job typing, `requestJson` accepting the `json` extension). Final `tsc --noEmit` is clean and vitest reports 37/37 passing for extensions/ollama, after which the work was committed as checkpoint 2.",
+	"decisions": [
+		"Use a `createOllamaExtension({client?, jobs?, detectHost?})` factory with a `gizmoExtension` singleton so tests can inject dependencies.",
+		"In the job registry, a run that resolves after `signal.aborted` is treated as `cancelled` rather than `succeeded` (a pull that completed right as cancel arrived is acceptable to report cancelled).",
+		"Job object is explicitly typed as `JobSnapshot & { controller: AbortController }` with optional percent/message/error/finishedAt, so status can transition to `cancelled`/`failed` after construction.",
+		"The mirrored gizmo `invoke?` interface declares `signal?: AbortSignal` (optional) so callers can omit it.",
+		"`requestJson` signature widened to `RequestInit & { json?: unknown }` so call sites can pass the custom `json` extension through to `request`.",
+		"Stubbed `client.pull` mimics real fetch behavior by rejecting on abort rather than resolving, so cancellation semantics match production."
+	],
+	"files": [
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/ollama/src/server/index.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/ollama/src/server/index.test.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/ollama/src/server/jobs.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/ollama/src/server/host.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/ollama/src/shared/ollama-client.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/gizmo.registry.json (attempted catalog entry edit, failed — exact text not matched)"
+	],
+	"errors": [
+		"vitest: 2 of 37 tests failed. 'lists models' — fixture used nested `model_info: { qwen3: { context_length: 40_960 } }` and sample model lacked `family`; fixed by flattening to `model_info: { \"qwen3.context_length\": 40_960 }` and adding `family: \"qwen3\"`. 'cancels an active pull' — stub resolved after abort so registry set status to 'succeeded'; fixed by making the stub reject on abort and having the registry treat a resolved-but-aborted run as cancelled.",
+		"tsc --noEmit errors: missing `access` import in host.ts (replaced when `open` was removed earlier — restored both `access` and `open`); invoke signature required `signal: AbortSignal` so `invoke!(..., undefined)` failed — made signal optional; `(signal => detectHost(client, signal))` lost its `AbortSignal` annotation; jobs.ts inferred `status: \"running\"` literally so assigning `\"cancelled\"`/`\"failed\"` and reading `error` failed — annotated job as `JobSnapshot & { controller: AbortController }`; `requestJson` typed as `RequestInit` so `{ json: ... }` triggered excess-property check — widened to `RequestInit & { json?: unknown }`.",
+		"Final catalog entry edit against gizmo.registry.json failed with 'Could not find the exact text' — the `workflows` block plus trailing brace did not match the current file content, so the new `ollama` entry was not applied."
+	],
+	"outcome": "shipped"
+}

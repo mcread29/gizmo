@@ -1,0 +1,29 @@
+{
+	"segment": "0480-4aae41e8",
+	"at": "2026-09-18T22:45:37.976Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Compared per-project extension configs across workspaces and found that switching threads correctly reflects each project's resolved extensions. Identified a real bug: per-project overrides cannot turn a Pi extension on if it is globally disabled — `ProjectIntegrationResolver.resolve` gates on the global `enabled` flag before the override, and `enabledPiExtensionPaths` filters on the same global flag, so e.g. cronkis's `unity: true` / `svelte: true` overrides are ignored.",
+	"decisions": [
+		"Treat the original 'switching threads shows wrong extensions' theory as not reproduced — sidebar clicks, workspace Overview → Threads, page reload, new thread in another workspace, and command palette all show correct per-project extensions.",
+		"Attribute the observed inconsistency to per-project overrides being unable to enable a globally-disabled Pi extension, not to switching. Fixing it would require loading a globally-disabled Pi extension when a project opts in, changing extension-loading semantics — flagged as needing user sign-off before changing.",
+		"Abandon the test-data cleanup attempt: deleting threads raced with something recreating them, the delete-confirmation dialog kept intercepting clicks, and 4 empty 'New thread' threads remain across mchan (×2), jev-melee (×1), and cronkis (×1)."
+	],
+	"files": [
+		"apps/agent-server/src/projects/project-integration-resolver.ts",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/sessions/session-catalog-service.ts",
+		"apps/agent-server/src/sessions/pi-agent-service-projects.ts",
+		"apps/agent-server/src/transport/project-request-handler.ts",
+		"apps/agent-server/src/transport/resource-request-handler.ts",
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/resources/instruction-files.ts",
+		"C:/Users/mchan/.gizmo/config.json",
+		"C:/Users/mchan/projects/jev-melee/.gizmo/config.json"
+	],
+	"errors": [
+		"Earlier comparison truncated output to 500 chars and only compared identical alphabetical prefixes, masking real per-project differences.",
+		"Cleanup Playwright scripts `/tmp/cleanup2.mjs` and `/tmp/cleanup5.mjs` failed with a 30s TimeoutError because `<div id=\"bits-c27\" data-dialog-overlay>` intercepts pointer events on the New thread button, preventing the delete-confirmation flow from completing."
+	],
+	"outcome": "explored"
+}

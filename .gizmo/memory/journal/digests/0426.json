@@ -1,0 +1,41 @@
+{
+	"segment": "0426",
+	"at": "2026-09-18T22:49:09.638Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Removed all Tauri/desktop support from the Gizmo repo: deleted src-tauri, the sidecar build script, desktop.ts wrapper, WindowControls and NativeWorkspacePicker components, and all @tauri-apps/* dependencies; stripped desktop branches from UI and server code; renamed TAURI_DEV_HOST→GIZMO_DEV_HOST and TAURI_ENV_DEBUG→GIZMO_DEBUG_BUILD since they carried non-desktop functionality. Committed as c071310 (84 files, +505/-5309), pushed to origin/pi-web, verified with 447 passing tests and a live web server on the new build. Also pushed 2 pre-existing unpushed commits in gizmo-skills-registry after checking both registries.",
+	"decisions": [
+		"Gizmo is now web-only; Tauri/desktop path is permanently removed and noted in agent memory so it isn't suggested again",
+		"Renamed TAURI_DEV_HOST → GIZMO_DEV_HOST rather than dropping it because it served the real purpose of exposing the dev server on a LAN/Tailscale host",
+		"Renamed TAURI_ENV_DEBUG → GIZMO_DEBUG_BUILD for the same reason (controlled unminified debug builds)",
+		"Where code branched on isDesktop() for native affordances (workspace picker, transcript export), the browser fallback path (WorkspaceBrowser, plain download) is now the only path",
+		"docs/extensions.md and README.md were rewritten to describe the web server in place of the desktop build"
+	],
+	"files": [
+		"apps/app/src-tauri (deleted)",
+		"scripts/build-sidecar.ts (deleted)",
+		"apps/app/src/lib/desktop.ts (deleted)",
+		"apps/app/src/lib/features/shell/WindowControls.svelte (deleted)",
+		"apps/app/src/lib/features/sessions/command-palette/NativeWorkspacePicker.svelte (deleted)",
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/features/sessions/command-palette/CommandPaletteContent.svelte",
+		"apps/app/src/lib/features/shell/Titlebar.svelte",
+		"apps/app/src/lib/features/sessions/session-actions.svelte.ts",
+		"apps/app/vite.config.ts",
+		"apps/app/package.json",
+		"apps/agent-server/src/server-config.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/tests/server.test.ts",
+		"package.json",
+		".gitignore",
+		"scripts/lib/daemon-process.ts (created)",
+		"scripts/lib/managed-daemon.ts (created)",
+		"scripts/web-server.ts (created)",
+		"README.md",
+		"docs/extensions.md",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\gizmo-is-web-only.md (created)",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\gizmo-web-server-startup.md (created)",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\MEMORY.md (updated)"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

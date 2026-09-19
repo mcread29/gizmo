@@ -1,0 +1,24 @@
+{
+	"segment": "0458-7475c143",
+	"at": "2026-09-18T22:49:07.780Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Extracted the commit-message generation logic into a dedicated server module that passes the session id and OpenCode session header on the model call, then raised its token cap. Verified end to end against the live gizmo server by regenerating a commit message for the workspace working tree, then recorded the fix in the worklog and the gizmo-web-server-startup memory note.",
+	"decisions": [
+		"Move commit-message generation out of pi-session-factory.ts into its own sessions/commit-message.ts module that accepts the session and threads sessionId plus the OpenCode session header into modelRuntime.completeSimple.",
+		"Set the generation maxTokens cap from 600 to 1500 so wrapped bodies are not truncated on large diffs."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/commit-message.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/tests/sessions/commit-message.test.ts",
+		"WORKLOG.md",
+		"C:\\Users\\mchan\\.claude\\projects\\C--Users-mchan-projects-gizmo\\memory\\gizmo-web-server-startup.md",
+		"~/.gizmo/registries/gizmo-registry/packages/git/src/server/git-extension.ts (temporary log line added then reverted)"
+	],
+	"errors": [
+		"Initial probe to the supervised server exited with code 128; the server log showed it had already restarted and was healthy, so the relaunch was effective on a retry.",
+		"PowerShell taskkill to restart the server returned ERROR: The process with PID 34260 ... could not be terminated, but the supervisor still brought the process back healthy.",
+		"Earlier false diagnosis \"Extension is not installed: git\" turned out to be a mangled path in the test script, not a problem with the git extension itself."
+	],
+	"outcome": "shipped"
+}

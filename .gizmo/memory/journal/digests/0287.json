@@ -1,0 +1,25 @@
+{
+	"segment": "0287",
+	"at": "2026-09-18T22:41:58.734Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Explored both the gizmo and gizmo-registry repos to map out a protocol migration from v25 to v26 that makes project status opaque per-extension, then began implementing: updated the protocol package tests and exports, replaced CompositeProjectService with ProjectServiceRegistry (with an ordered entries accessor for v25 compat), and drafted per-extension watch coordinator, v25-compat project request handler, and websocket connection plumbing in agent-server.",
+	"decisions": [
+		"ProjectStatus type is now `unknown` (opaque) — extensions own payload shape, validation, and errors; core consumers validate whichever extension's data they render.",
+		"Replaced CompositeProjectService with ProjectServiceRegistry (Map-based, per-extension lookup by extensionId) with an ordered `entries` accessor reserved for v25 compatibility routing.",
+		"v25 client compatibility is isolated: requests without extensionId resolve to the first registered service in order; watch falls through entries until one succeeds, preserving original 'first extension wins' semantics.",
+		"Per-extension watches are tracked by extensionId; on path switch the coordinator stops only the extension-host watch and lets individual service watches be replaced when the app re-watches each status extension.",
+		"websocket option `noProjectServices` became an empty ProjectServiceRegistry instance; project.status.changed events now carry an opaque `extensions` map keyed by extensionId."
+	],
+	"files": [
+		"C:/Users/mchan/projects/gizmo/packages/protocol/tests/project-resources.test.ts",
+		"C:/Users/mchan/projects/gizmo/packages/extensions/src/project-service.ts",
+		"C:/Users/mchan/projects/gizmo/packages/extensions/src/index.ts",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/transport/project-watch-coordinator.ts",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/transport/project-request-handler.ts",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/transport/websocket-connection.ts"
+	],
+	"errors": [
+		"Initial draft of project-watch-coordinator.ts contained a double watchStatus call and an unnecessary stopServiceWatches map; it was rewritten cleanly after the flaw was recognized."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,27 @@
+{
+	"segment": "0194",
+	"at": "2026-09-18T22:40:32.554Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored WebSocketAgentClient by extracting WebSocket, request, and parsing logic into a new `websocket/` subdirectory, keeping the public class and import path stable. Updated the corresponding test file, removed an unchecked WebSocket cast, and verified with check, tests, and prettier.",
+	"decisions": [
+		"Split WebSocketAgentClient's responsibilities into modules under `apps/app/src/lib/agent-client/websocket/` (transport, request-client, session-requests, project-requests, resource-requests, git-requests, response-parsers) to keep all refactored/new files under 300 LOC.",
+		"Removed an unchecked WebSocket test cast in the WebSocketAgentClient test file and dropped the file from 330 to 291 LOC.",
+		"Kept the WebSocketAgentClient public class, its import path, and the AgentClient implementation stable to preserve behavior.",
+		"Did not commit the refactor; left unrelated worktree changes untouched."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/WebSocketAgentClient.ts",
+		"apps/app/src/lib/agent-client/websocket/transport.ts",
+		"apps/app/src/lib/agent-client/websocket/request-client.ts",
+		"apps/app/src/lib/agent-client/websocket/session-requests.ts",
+		"apps/app/src/lib/agent-client/websocket/project-requests.ts",
+		"apps/app/src/lib/agent-client/websocket/resource-requests.ts",
+		"apps/app/src/lib/agent-client/websocket/git-requests.ts",
+		"apps/app/src/lib/agent-client/websocket/response-parsers.ts",
+		"apps/app/tests/lib/agent-client/WebSocketAgentClient.test.ts"
+	],
+	"errors": [
+		"`wc -l` over `apps/app/src/lib/agent-client/websocket/*` exited with code 1 (likely the directory glob matched no files at the time), though individual files inside the directory were reported successfully."
+	],
+	"outcome": "shipped"
+}

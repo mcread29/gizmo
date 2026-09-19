@@ -1,0 +1,27 @@
+{
+	"segment": "0138",
+	"at": "2026-09-18T22:39:47.453Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed why extension UI failed to appear on full reload: runtime web extension bundles were being fetched before the WebSocket agent client connected, so every reload errored with \"Agent client is not connected\". Moved the bundle fetch into AgentStore.connect() right after the connection succeeds, removed the premature call from App.svelte, updated FakeAgentClient to support a webExtensionBundles option, and added a regression test.",
+	"decisions": [
+		"Trigger installWebExtensions from inside AgentStore.connect() after `await this.#client.connect()` succeeds, rather than from App.svelte during pre-connection initialization, so bundles load on first connect, page reloads, and reconnects.",
+		"Drop the pre-connection `void installWebExtensions(agentClient)` invocation and its import from App.svelte to eliminate the race.",
+		"Expose webExtensionBundles as an optional FakeAgentClient constructor option (with a default empty `{bundles:[], diagnostics:[]}` when omitted) instead of always-present, so tests can inject bundles without affecting tests that don't need them.",
+		"Log bundle diagnostics via console.warn in AgentStore.connect() rather than swallowing them, matching the prior App.svelte behavior."
+	],
+	"files": [
+		"apps/app/src/App.svelte",
+		"apps/app/src/App.test.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts"
+	],
+	"errors": [
+		"Svelte autofixer flagged benign `clearTimeout`/`setTimeout` calls inside an $effect as potential malpractice; ignored after review.",
+		"App.test.ts test 'overrides a Gizmo extension for the workspace and reverts it' failed because the DOM now shows two 'Unity enabled here' switches (a workspace override plus a project switch); fixed by querying the role-named switch directly.",
+		"svelte-check failed with 'Property listWebExtensionBundles does not exist on type FakeAgentClient' after adding a test that referenced it; resolved by adding the optional method plus the webExtensionBundles constructor option and switching the test to vi.spyOn.",
+		"AgentStore.test.ts 'discovers projects and keeps per-session transcripts' regressed because the prior bare-minimum FakeAgentClient broke once listWebExtensionBundles became optional; fixed by restoring a sensible default and the option-based injection.",
+		"Earlier attempt to read apps/app/src/lib/extensions/runtime/install.test.ts returned ENOENT; the file does not exist."
+	],
+	"outcome": "shipped"
+}

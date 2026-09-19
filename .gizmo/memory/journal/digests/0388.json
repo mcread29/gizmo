@@ -1,0 +1,29 @@
+{
+	"segment": "0388",
+	"at": "2026-09-18T22:43:32.804Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Applied a broad sweep of fixes across the design system, app shell, and conversation view while skipping the composer-related changes the user excluded. The work spanned three parallel subagents (design tokens/UI, app CSS/cleanup, extension UI a11y) plus hands-on edits to fix a blank-transcript defect with content-derived row-height estimates and a settle loop, cache markdown highlighting, and correct modal semantics. Test suites were repaired after failures surfaced.",
+	"decisions": [
+		"Excluded findings 05 and 06 from this batch per user instruction — composer toolbar grouping and usage meter readout are deferred.",
+		"Blank-transcript defect fixed by deriving row-height estimates from message content (capped at 6000px) instead of using the flat 48/220 constants, so the virtualizer reserves enough scroll height before measurements arrive.",
+		"Added a settle loop that re-pins to the end of the conversation on each measurement pass while the virtualizer stabilises, with cancelSettle wired to onDestroy.",
+		"Cached markdown syntax-highlight results by (text, language) key to avoid re-highlighting identical code blocks during streaming rerenders.",
+		"Promoted Settings and the workspace session tree from `region` to `dialog` semantics, and updated the integration tests that asserted the old roles to match."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/MessageList.svelte",
+		"apps/app/src/lib/features/conversation/message-rows.ts",
+		"apps/app/src/lib/features/conversation/markdown.ts",
+		"apps/app/src/lib/features/shell/AppWorkspaceShell.svelte",
+		"apps/app/tests/lib/features/conversation/MessageList.test.ts",
+		"apps/app/tests/lib/features/conversation/message-rows.test.ts",
+		"apps/app/tests/app/settings-and-workspace-picker.integration.test.ts",
+		"apps/app/tests/app/shell.integration.test.ts",
+		"apps/app/tests/app/workspace-configuration-and-threads.integration.test.ts"
+	],
+	"errors": [
+		"App test run failed with 5 failures and 9 errors: a missing `settleFrame` declaration caused ReferenceErrors, three integration tests still asserted `role=\"region\"` for the Settings/Session tree containers, and the MessageList virtual-window test hardcoded the old 22000px total height.",
+		"All three failure classes were resolved in-flight (added the declaration, updated test roles from region to dialog, reworked the virtual-window assertion to compare against the new estimator)."
+	],
+	"outcome": "explored"
+}

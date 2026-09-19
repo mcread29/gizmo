@@ -1,0 +1,29 @@
+{
+	"segment": "0122",
+	"at": "2026-09-18T22:39:30.793Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Committed the Unity/Git/Svelte/Activity extensions to the gizmo-registry repo, then refactored the Git server extension to expose a new 'commit-context' operation and updated the agent-server websocket dispatcher to call generateCommitMessage from it. Inlined a local patchFileName helper in ToolResult.svelte, removed the @gizmo/unity test setup, and pruned the @gizmo/{activity,git,svelte,unity,unity-tools,skill-authoring} dependencies from @gizmo/app and @gizmo/agent-server.",
+	"decisions": [
+		"Added a 'commit-context' case to the Git extension descriptor that delegates to a new service.commitContext(workspacePath) so commit-message generation is decoupled from the commit operation.",
+		"Refactored websocket-server.ts to import GitService as a value and reuse the shared instance instead of constructing one per connection.",
+		"Inlined the patchFileName helper directly in ToolResult.svelte rather than importing it from @gizmo/git/web.",
+		"Removed the Unity web extension from apps/app/src/test/setup.ts, replacing it with registerWebExtensions([]) in afterEach.",
+		"Removed @gizmo/activity, @gizmo/git, @gizmo/svelte, @gizmo/unity from @gizmo/app and @gizmo/activity, @gizmo/git, @gizmo/skill-authoring, @gizmo/svelte, @gizmo/unity, @gizmo/unity-tools from @gizmo/agent-server.",
+		"Stripped the 'extensions:build' script and the unity prebuild guard from the root package.json dev script."
+	],
+	"files": [
+		"C:/Users/mchan/projects/gizmo-registry/packages/git/src/server/git-extension.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/app/src/lib/features/conversation/ToolResult.svelte",
+		"apps/app/src/test/setup.ts",
+		"package.json",
+		"gizmo.extensions.json"
+	],
+	"errors": [
+		"Agent server failed to start with ECONNREFUSED on 127.0.0.1:8787 and EADDRINUSE on a second start attempt.",
+		"Failed to load linked Gizmo integrations from C:\\Users\\mchan\\.pi\\agent\\extensions\\integration\\index.ts and ...\\shared\\index.ts with ENOENT.",
+		"Unhandled rejection from C:\\Users\\mchan\\.pi\\agent\\extensions\\git-info\\index.ts: 'This extension ctx is stale after session replacement or reload'.",
+		"Initial websocket-server.ts edit failed because edits[6]'s oldText matched 2 occurrences; retried with broader context."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,21 @@
+{
+	"segment": "0463-9e45b60f",
+	"at": "2026-09-18T22:44:47.765Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed and fixed the \"session too small\" error: Pi's whole-turn compaction cut refused on the 70% session because everything since the last summary was a single turn. Added `compactRequested()` in `apps/agent-server/src/sessions/compaction-fallback.ts` that prefers a whole-turn cut and retries with `{ splitTurns: true }` when Pi throws \"Nothing to compact\", wired it into `session-operations.compact`, added tests (240 passing, tsc clean), and restarted the supervised live server.",
+	"decisions": [
+		"Manual compaction (`session.compact`) now goes through `compactRequested()` which tries the user's whole-turn policy first and, only on a \"Nothing to compact\" error from Pi, retries once with `splitTurns: true` before restoring the original policy — preserving whole-turn semantics when possible while unblocking sessions whose kept tail is one whole turn.",
+		"The Pi SDK was left as-is; the fallback lives entirely in Gizmo so no further patches or lockfile churn are needed.",
+		"Live server restart strategy remains `taskkill /T /F` against the supervised `scripts\\web-server.ts run` processes (relaunch ~17s); app build was not touched because only server code changed."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/compaction-fallback.ts",
+		"apps/agent-server/src/sessions/session-operations.ts",
+		"apps/agent-server/tests/sessions/compaction-fallback.test.ts"
+	],
+	"errors": [
+		"`prepareCompaction` is not exported from `@earendil-works/pi-coding-agent`'s package root, and the `dist/core/compaction/compaction.js` subpath is not in `exports`, so the repro script had to import it via an absolute `file:///C:/Users/...` URL (Git Bash `/c/` and bare `C:/` paths both failed under tsx).",
+		"Original `compact()` would throw on this session shape because Pi's whole-turn cut returns no messages to summarize and no prefix to keep; confirmed by running `prepareCompaction` on the live session file: `fullTurn=true` → undefined at retain 10/20/30%, `fullTurn=false` → ok with split prefix 251/213/163 messages."
+	],
+	"outcome": "shipped"
+}

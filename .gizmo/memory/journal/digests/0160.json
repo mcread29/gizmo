@@ -1,0 +1,22 @@
+{
+	"segment": "0160",
+	"at": "2026-09-18T22:40:02.332Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Moved the per-file stage/unstage button in the git ChangesPanel into the same row as the file entry and made it visible only on row hover/focus-within. Implementation split between the extension markup (icon-only button with aria-label/title preserved) and the host app's changes.css (grid layout with a hover-revealed action cell).",
+	"decisions": [
+		"Stage/unstage button rendered as a compact icon-only button (+/−) rather than text + icon, so it fits inline on the file row; aria-label and title keep the accessible name 'Stage file' / 'Unstage file' (switching to 'Staging…' / 'Unstaging…' while updating).",
+		"Layout uses a two-column CSS grid on [data-ui='change-file'] (header | actions) with the action cell hidden via visibility and revealed on :hover/:focus-within of the row, so nothing shifts when it appears.",
+		"Diff body ([data-ui='change-body']) is spanned across both grid columns so it stays full-width below the row.",
+		"Hover-only styling lives in the host app's changes.css (matching where all other change-* styles live); a host that doesn't include this CSS will not get the hover-reveal behavior."
+	],
+	"files": [
+		"gizmo-registry/packages/git/src/web/ChangesPanel.svelte",
+		"gizmo-registry/packages/git/src/web/ChangesPanel.test.ts",
+		"apps/app/src/styles/changes.css",
+		"gizmo-registry/extensions/git.web.js"
+	],
+	"errors": [
+		"First edit attempt to ChangesPanel.svelte failed with 'edits[0] and edits[1] overlap'; retried by merging into a single edit block, which succeeded."
+	],
+	"outcome": "shipped"
+}

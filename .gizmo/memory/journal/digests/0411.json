@@ -1,0 +1,20 @@
+{
+	"segment": "0411",
+	"at": "2026-09-18T22:49:04.156Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why staging changes appears to interrupt the agent and traced the cause to a `ResizeObserver loop completed with undelivered notifications` error fired by the composer textarea's auto-grow observer. The fix defers auto-grow re-fits to the next frame and restricts them to width changes, so a git-status-driven layout shift no longer trips Vite's unhandled-error overlay over the running agent.",
+	"decisions": [
+		"Auto-grow on the composer textarea must only react to width changes and schedule the re-measure on the next frame, because re-setting the textarea's own height inside its ResizeObserver callback is what triggers the loop-completed error.",
+		"The per-row ResizeObserver added to `MessageList.svelte` was given the same deferred, width-only treatment for safety against the same class of error.",
+		"The git status path itself was ruled out as the cause: the server poll, status event, extension host, and git extension (Pi and server) all leave the session untouched, and no client code aborts or reloads on git-status updates."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/composer-actions.ts",
+		"apps/app/src/lib/features/conversation/MessageList.svelte"
+	],
+	"errors": [
+		"Vite dev-client `[Unhandled error] Error: ResizeObserver loop completed with undelivered notifications` was firing on every composer-driven layout shift (3125 occurrences in the dev log, clustered around UI activity). Confirmed gone in the live tab after forcing four inspector-width shifts.",
+		"CDP `Runtime.evaluate` timed out once while scripting scroll loops on the message list ('The renderer may be frozen or unresponsive'); subsequent narrower scroll scripts completed and the page stayed responsive."
+	],
+	"outcome": "shipped"
+}

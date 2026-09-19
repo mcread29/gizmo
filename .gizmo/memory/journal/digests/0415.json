@@ -1,0 +1,18 @@
+{
+	"segment": "0415",
+	"at": "2026-09-18T22:43:55.225Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why a clicked 'Install' of the codex extension did not appear in the Gizmo UI. Confirmed the install itself succeeded (manifest, Pi junction, and web bundle symlink all present), but Gizmo's agent-server loads its extension catalog once at process startup via registerExtensions (apps/agent-server/src/server.ts:40) with no rescan on link, so the running server's in-memory catalog still omitted codex. Restarted the managed dev server (pnpm dev:server:restart, PID 28852 -> 24152) so the new catalog is picked up; user is told to refresh the browser so installWebExtensions runs again on reconnect.",
+	"decisions": [
+		"Treated the install click as having succeeded; root cause is the agent-server's one-shot startup catalog scan, not the install flow itself.",
+		"Restarted the managed dev server via pnpm dev:server:restart (rather than asking the user to do it) because the restart is needed for the new linked extension to appear in the in-memory catalog.",
+		"Recommended a browser refresh after restart because ConnectionCapability.installWebExtensions runs on websocket reconnect to fetch and register web bundles (including codex.web.js).",
+		"Flagged as a Gizmo UX gap that linking an extension while the server is running requires a server restart with no UI hint; suggested a follow-up to make registryLink trigger a server-side rescan."
+	],
+	"files": [],
+	"errors": [
+		"Symptom reported: clicking Install in the Gizmo extension UI did not cause the codex extension to show up. Cause: agent-server's registerExtensions call runs once at process start (apps/agent-server/src/server.ts:40), so extensions linked after startup are missing from registeredExtensions() -> ProjectIntegrationResolver output -> enabledExtensionIds, hiding status bar item and inspector tab.",
+		"Pre-existing, unrelated client-side noise in .gizmo-dev/dev-server.log: marked renderer.link errors from marked@18.0.9 and ResizeObserver loop completed with undelivered notifications errors from @vite/client; not caused by and not blocking the install."
+	],
+	"outcome": "shipped"
+}

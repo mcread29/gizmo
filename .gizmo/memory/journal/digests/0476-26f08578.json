@@ -1,0 +1,35 @@
+{
+	"segment": "0476-26f08578",
+	"at": "2026-09-18T22:45:06.086Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented header alignment, shared panel rounding, tighter tool-call row pitch, a per-turn reply footer with run time and copy button, a generated thread-name feature wired from a new Settings option through protocol/server/client, and protocol support for marking assistant message completion. Verified end-to-end against a real thread at localhost:5173; all 553 tests, svelte-check, prettier, and file-length checks pass.",
+	"decisions": [
+		"Thread header height uses the shared --header-row-h token so thread header and inspector header align at y 48–114.",
+		"Conversation panel and its header take --radius-sm top corners to match the folder-tab shelf.",
+		"Tool-call/reasoning row pitch tightened from 44px to 38px by setting the per-grouped-message margin to 2px (--space-2), since a multi-step reply produces many grouped messages rather than one.",
+		"Reply footer shows 'Worked for X' plus a copy button on each finished assistant reply; the THREAD eyebrow was removed and the title ellipsizes instead of pushing actions off the row.",
+		"Streaming/total run time now counts from the start of the turn rather than the last assistant message, so it no longer restarts on every tool call.",
+		"Generated thread names: new 'Thread name model' setting (default Off) in Settings → Chat; a thread is named from its first message once the first reply lands, threads the user renames are left alone, and failures silently keep the existing name.",
+		"Added an optional completedAt on assistant messages (client-stamped when a run goes idle, derived from the newest entry timestamp of the turn when loading persisted transcripts); older transcripts show no footer rather than a wrong number."
+	],
+	"files": [
+		"apps/app/src/lib/app-settings.ts",
+		"apps/app/src/lib/agent-client/agent-store/session-naming.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/AgentStoreState.svelte.ts",
+		"apps/app/src/lib/features/settings/ChatSettings.svelte",
+		"apps/app/src/lib/features/conversation/message-rows.ts",
+		"apps/app/src/lib/features/conversation/MessageGroup.svelte",
+		"apps/app/src/lib/features/conversation/MessageList.svelte",
+		"apps/app/src/App.svelte",
+		"apps/app/src/lib/features/shell/workspace.svelte.ts",
+		"apps/agent-server/src/sessions/pi-agent-service-sessions.ts",
+		"packages/protocol/src/sessions.ts",
+		"packages/protocol/src/requests/session.ts"
+	],
+	"errors": [
+		"Dev server could not bind port 8787 because an orphan agent-server from a previous start (PID 24944) was holding the port, causing the app to show 'Could not connect'; resolved by killing that process and starting a fresh server.",
+		"Prettier reported 6 files with style issues; fixed by running --write, after which --check passed."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,23 @@
+{
+	"segment": "0335",
+	"at": "2026-09-18T22:42:53.600Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Committed the session-journal flush work as 1218325, then ran the LOC checker and inspected the six files exceeding the 300-line limit (dev-server.ts, resource-catalog.ts, two CSS files, session-runtime-pool.ts, pi-agent-service.ts). Drafted a refactor proposal splitting the pool into confirmation/snapshot/eviction modules, dev-server into a runner + CLI, resource-catalog into discovery + mutation, and the two CSS files into concern-specific parts. Began implementing the pool split by creating session-confirmations.ts, session-snapshot.ts, and session-eviction.ts, then rewriting session-runtime-pool.ts to delegate to them; fixed a duplicated/incorrect import in session-eviction.ts.",
+	"decisions": [
+		"Handle the 30 warning-level files (251–298 lines) opportunistically on next touch, not via a big-bang refactor, because a line-count-only churn would generate review noise without behavior wins.",
+		"Split session-runtime-pool.ts by responsibility: ConfirmationRegistry → session-confirmations.ts; #spliceInFlightMessage / #emitUsageSnapshot / withContextWindow → session-snapshot.ts; #evict / #evictIdle / dispose flush logic → session-eviction.ts, leaving the pool as transport wiring + delegate routing.",
+		"Mark PiExtensionUiRuntime import in session-eviction.ts as type-only to avoid a runtime circular dependency (pool ↔ eviction).",
+		"For pi-agent-service.ts the proposed primary split is a mixin chain grouping ~50 delegation methods by capability; flagged the #private-fields issue and offered collaborator classes as an alternative if mixin inheritance proves fragile.",
+		"For CSS, move shared resource-row/search-field/resource-error rules into a new settings-parts/resource-shared.css, the skills-workbench block into skills-library.css or a new workbench.css, and the segmented-control block into segmented.css."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/agent-server/src/sessions/session-confirmations.ts",
+		"apps/agent-server/src/sessions/session-snapshot.ts",
+		"apps/agent-server/src/sessions/session-eviction.ts"
+	],
+	"errors": [
+		"First edit on session-eviction.ts produced a redundant pair of imports (one type-only, one value) for the same module; corrected by collapsing to a single type-only import."
+	],
+	"outcome": "explored"
+}

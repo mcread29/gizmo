@@ -1,0 +1,26 @@
+{
+	"segment": "0429",
+	"at": "2026-09-18T22:44:10.186Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Read-only investigation into why `/skill:continue` does not appear in the Gizmo composer for the Slapdash project. Found that Slapdash stores `continue` as a prompt template at `.pi/prompts/continue.md` (added 2026-09-02), but Gizmo's resource discovery only scans `.gizmo/prompts`, `.agents/prompts`, `.gizmo/skills`, and `.agents/skills` (established in commits 2252ec2 and 6027d33), and explicitly disables ambient Pi discovery via `noSkills`/`noPromptTemplates` (refactored in 4f6c17f). Even if discovered, prompts surface as `/continue`, not `/skill:continue`; only skills receive the `skill:` prefix (pi-session-factory.ts:188-201 and 253-260, feature added in bef2d39).",
+	"decisions": [
+		"Conclusion framed as resource-convention mismatch: Slapdash uses project-local `.pi/prompts` while Gizmo requires `.gizmo/prompts` or `.agents/prompts` (no `.pi/prompts` entry in `resource-paths.ts:24-50`).",
+		"`/skill:continue` expectation deemed a category conflation: prompts render as `/continue`; only skills are prefixed `skill:` per `pi-session-factory.ts:253-260`.",
+		"UI filtering (Composer.svelte:46-51 and composer-actions.ts:82-99) ruled out as the likely cause because matching is case-insensitive substring on names/descriptions and would accept `skill:continue` if the command existed."
+	],
+	"files": [
+		"C:/Users/mchan/projects/Slapdash/.pi/prompts/continue.md",
+		"C:/Users/mchan/projects/Slapdash/.pi/prompts/handoff.md",
+		"C:/Users/mchan/projects/Slapdash/AGENTS.md",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/sessions/pi-session-factory.ts",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/resources/resource-discovery.ts",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/resources/resource-paths.ts",
+		"C:/Users/mchan/projects/gizmo/apps/app/src/lib/features/conversation/Composer.svelte",
+		"C:/Users/mchan/projects/gizmo/apps/app/src/lib/features/conversation/composer-actions.ts",
+		"C:/Users/mchan/projects/gizmo/apps/app/src/lib/features/conversation/ComposerCommandMenu.svelte",
+		"C:/Users/mchan/projects/gizmo/apps/app/tests/app/shell.integration.test.ts",
+		"C:/Users/mchan/projects/gizmo/docs/resources.md"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

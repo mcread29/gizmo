@@ -1,0 +1,22 @@
+{
+	"segment": "0114",
+	"at": "2026-09-18T22:39:20.663Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed lingering type and test failures from the extension registry feature: added missing registry stub methods to InvalidEventClient in AgentStore.test.ts, imported RegistryStatus, and bumped remaining protocolVersion fixtures from 24 to 25 across extension-ui tests. Full pnpm check green and all tests passing; final commit c5e35ec.",
+	"decisions": [
+		"Protocol version for extension fixtures standardized at 25 across all extension-ui tests (PiExtensionQuestion.test.ts and PiExtensionUiStore.questions.test.ts) to match the AgentClient interface's protocolVersion=25",
+		"InvalidEventClient in AgentStore.test.ts must implement the four new registry methods (registryStatus, registryInstall, registryUpdate, registryRemove) returning RegistryStatus stubs"
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiStore.questions.test.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionQuestion.test.ts"
+	],
+	"errors": [
+		"svelte-check reported InvalidEventClient missing registryStatus/registryInstall/registryUpdate/registryRemove — fixed by adding stubs",
+		"Protocol version incompatibility (24 vs 25) in PiExtensionQuestion.test.ts — fixed by bumping fixture to 25",
+		"Initial Python str.replace anchor didn't match InvalidEventClient's stub signature (returned ResourceCatalog instead of ProjectConfig) — fixed by switching anchor to resolveExtensionUi and adding RegistryStatus type import",
+		"3 PiExtensionUiStore questions tests failed due to stale protocolVersion: 24 fixtures — fixed by bumping to 25"
+	],
+	"outcome": "shipped"
+}

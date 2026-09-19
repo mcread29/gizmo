@@ -1,0 +1,21 @@
+{
+	"segment": "0011",
+	"at": "2026-09-18T22:37:41.615Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Anchored the composer in empty/loading threads by giving the thread-empty and transcript-skeleton blocks flex:1 in conversation.css, then committed the CSS-only fix as abfa639 with passing checks and tests. Afterwards, explored refactoring Gizmo extensions to be built on top of Pi extensions: documented a proposal where Pi extensions are the backend/source of truth and Gizmo web entries become optional presentation companions, including a registerGizmoBackend bridge, session-scoped transport, and a generic Pi ctx.ui mapping.",
+	"decisions": [
+		"Anchor the composer with CSS only by adding flex:1 to [data-ui='thread-empty'] and [data-ui='transcript-skeleton'] in apps/app/src/styles/conversation.css rather than restructuring layout markup.",
+		"Treat Pi extensions as the backend/source of truth for future extensions; Gizmo web entries become optional browser companions for inspector tabs, tool-result renderers, status bars, settings, dialogs, and notifications only.",
+		"Expose arbitrary browser RPC from Pi extensions via a new @gizmo/pi-web registerGizmoBackend(pi, { id, operations, subscriptions }) helper that initially talks over a shared Pi events bus to a hidden Gizmo host extension, avoiding Pi core changes.",
+		"Move extension transport from project-scoped to session-scoped messages: session.extensions.list, session.extension.invoke, session.extension.subscribe, session.extension.event, session.extensions.changed, because Pi extensions are recreated on reload/session switch/fork/resume/new thread.",
+		"Implement generic ctx.ui bridges for Gizmo (notify, confirm, select, input, editor, setStatus, setWidget) so most Pi extensions work in Gizmo without custom frontend code; terminal-only primitives degrade gracefully.",
+		"Define companion activation rules: activate only when matching Pi backend is loaded in the active session, apiVersion is compatible, the package is trusted, and the web bundle loads; a broken web bundle must never disable the Pi backend.",
+		"Use the @gizmo/git extension as the pilot migration: move defaultTools to pi.registerTool, move status/commit into registerGizmoBackend, start watcher on session_start, stop on session_shutdown, keep ChangesPanel.svelte but switch to the session extension host, then remove the gizmo.extensions.json entry.",
+		"Final migration ends with removal of GizmoServerExtension, ExtensionHostService, and gizmo.extensions.json, and narrowing the frontend host so extensions no longer receive the entire AgentStore."
+	],
+	"files": [
+		"apps/app/src/styles/conversation.css"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

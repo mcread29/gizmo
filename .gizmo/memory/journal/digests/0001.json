@@ -1,0 +1,22 @@
+{
+	"segment": "0001",
+	"at": "2026-09-18T22:57:06.610Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Switched to the pi-web branch and started the dev server via `pnpm pi-web:dev`, then diagnosed and fixed the Pi Web mode behavior in apps/agent-server/src/server.ts and apps/agent-server/src/sessions/pi-agent-service.ts so that extensions (including Git) are loaded and model/thinking-level selection is retained in Pi Web mode.",
+	"decisions": [
+		"In Pi Web mode (GIZMO_PI_WEB=1), still call loadServerExtensions normally instead of passing an empty array, so Git and other registered extensions remain available.",
+		"In Pi Web mode, suppress only the custom harness system-prompt override (do not apply systemPromptOverride when GIZMO_PI_WEB=1), but keep all other session wiring intact.",
+		"Use the full existing App.svelte shell in Pi Web mode rather than the previously introduced PiWebApp.svelte (deleted)."
+	],
+	"files": [
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/PiWebApp.svelte",
+		"apps/app/src/main.ts"
+	],
+	"errors": [
+		"First attempt to run `pnpm pi-web:dev` failed on Windows because the script's leading `GIZMO_PI_WEB=1 VITE_PI_WEB=1` env-var syntax is not recognized by cmd; resolved by exporting the vars in the calling shell before invoking pnpm.",
+		"Initial Pi Web implementation loaded zero extensions and omitted model-selection support, causing 'git extension not installed' and 'model selection unavailable' UI errors; fixed by removing the piWebMode short-circuit on loadServerExtensions and restoring session/model wiring."
+	],
+	"outcome": "shipped"
+}

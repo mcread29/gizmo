@@ -1,0 +1,38 @@
+{
+	"segment": "0421",
+	"at": "2026-09-18T22:43:59.097Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Reviews of workflows, codex, activity, ask-user, search-and-scrape, and (git, unity, svelte, skill-authoring, orchestration) finished and were summarized to the user. The user then asked to fix the bugs and noted an additional workflows issue of showing all workflows instead of just the current thread. A host contract change was made to expose a live sessionId on the web extension context, the subagents snapshot was scoped to the open thread (tests pass), and extension docs were updated. Two parallel fix agents (workflows; unity/git/codex/ask-user/orchestration) were launched but the user interrupted and killed both mid-edit. The user then objected to Fable being used for subagents; the user interruption occurred before any rollback or relaunch could happen.",
+	"decisions": [
+		"Make thread identity available to web extensions by adding a live `sessionId` to the extension context (typed on `ActivateContext`) so per-thread-scoped panels can pass it into `invoke`.",
+		"Document the new `sessionId` context field in `docs/extensions.md` next to the existing `apiVersion`/`activate`/`invoke` description.",
+		"Scope the subagents snapshot to the open thread by passing `sessionId` from the runtime into the `snapshot` invoke.",
+		"Fix the confirmed bugs across extensions (Unity docs core stages, workflows live progress + result rehydration + per-thread scoping, git each-key + project-vs-repo root diff matching, codex fetch timeout/signal, ask-user each-key, workflows phase each-key, orchestration shutdown handler leak, resolveAgentDir tilde expansion).",
+		"Fix all bugs in parallel streams: one agent for the workflows extension, one agent for unity/git/codex/ask-user/orchestration, plus the in-progress host and subagents work.",
+		"Use Sonnet (not Fable) for subsequent subagents work, per the user's correction."
+	],
+	"files": [
+		"apps/app/src/lib/extensions/types.ts",
+		"apps/app/src/lib/agent-client/context.ts",
+		"extensions/subagents/pi-extension.ts",
+		"extensions/subagents/src/server/index.ts",
+		"extensions/subagents/src/state.ts",
+		"extensions/subagents/src/web/SubagentsPanel.svelte",
+		"extensions/subagents/src/web/subagents-runtime.svelte.ts",
+		"extensions/subagents/src/web/types.ts",
+		"extensions/workflows/pi-extension.ts",
+		"extensions/workflows/src/meta.ts",
+		"extensions/workflows/src/model.ts",
+		"extensions/workflows/src/web/WorkflowToolResult.svelte",
+		"extensions/workflows/src/web/types.ts",
+		"gizmo.registry.json",
+		"packages/git/src/web/ChangesPanel.svelte",
+		"packages/unity/src/server/docs/core.ts",
+		"docs/extensions.md"
+	],
+	"errors": [
+		"Two parallel fix agents (workflows; unity/git/codex/ask-user/orchestration) were stopped by the user mid-edit, leaving partial uncommitted changes across extensions/workflows and packages/git (and possibly others); the changes were not rolled back before the next interruption.",
+		"The user objected to Fable being used for subagents work; the reason for the model choice was not given in the transcript."
+	],
+	"outcome": "blocked"
+}

@@ -1,0 +1,16 @@
+{
+	"segment": "0272",
+	"at": "2026-09-18T22:41:48.186Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Performed an analysis-only pass to propose renaming internal activeDomains/domainId terminology to enabledExtensionIds/integrations across apps/app, apps/agent-server, and packages/protocol. Inspected protocol schemas (projectDomainsSchema, SessionOptions with domainId), agent-server wiring (project-catalog, project-config-store, project-integration-resolver, session-repository, pi-session-factory), and app-side consumers (AgentStore, agent-event-reducer, WorkspaceInspector, Titlebar, GizmoExtensionOverridesSection) to distinguish compatibility wire fields from internal names. No files were edited.",
+	"decisions": [
+		"Wire-level schema field `projectDomainsSchema.domains` (packages/protocol/src/projects.ts) should remain temporarily as a compatibility field, since persisted session/config data still references it",
+		"SessionOptions field `domainId` (packages/protocol/src/sessions.ts) is treated as a compatibility wire field and should be mapped, not renamed, to avoid breaking protocol/persisted-session compatibility",
+		"Internal names that can be renamed now: `activeDomains` -> `enabledExtensionIds` in apps/app store/reducer/UI, and `domains` -> `integrations` in agent-server internals (pi-session-factory, project-catalog)",
+		"`WorkspaceIntegration` already represents the desired internal concept (id + root), so new code should consume it directly instead of translating to/from domain shapes",
+		"Session event `session.created` and persisted `AgentSessionSummary` data must continue to serialize the legacy `domains`/`domainId` fields on the wire, with internal renaming only"
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

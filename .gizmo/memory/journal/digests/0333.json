@@ -1,0 +1,22 @@
+{
+	"segment": "0333",
+	"at": "2026-09-18T22:42:46.461Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Finalized the eviction tests in pi-agent-service.eviction.test.ts to match the new async shutdown-before-dispose seam: added a `shutdown` to the fake, replaced broken stray-expression code, fixed timer/microtask flushing using `vi.advanceTimersByTimeAsync`, and added a robust flush for the LRU-cap test. Verified via pnpm check (tsc clean), pnpm vitest run on tests/sessions+tests/transport (14/14 files, 69 tests pass), the full agent-server suite (39/39 files, 209 tests pass), and tests/memory (46 tests pass). Confirmed via `git show HEAD:...` line counts that the six `check:loc` file-length failures pre-existed on HEAD and were not caused by this work; ran prettier on all touched files (unchanged).",
+	"decisions": [
+		"Use `vi.advanceTimersByTimeAsync(0)` after `vi.advanceTimersByTime(...)` in eviction tests to flush microtasks from the now-async shutdown-then-dispose sequence — chosen over `vi.runAllTimersAsync` because the latter loops indefinitely on the re-arming sweep interval.",
+		"Add `await vi.advanceTimersByTimeAsync(0)` after the third createSession in the LRU-cap test to make the fire-and-forget cap-eviction settle before asserting dispose was called, making the assertion robust.",
+		"Treat the `check:loc` file-length failures as pre-existing (verified by comparing HEAD line counts of the six failing files to current), not introduced by this change; no trimming performed.",
+		"Use the existing `StreamingPiSession` fake in websocket-server.test.ts as-is — its omission of `shutdown` is fine because `shutdown` is optional on PiSessionLike."
+	],
+	"files": [
+		"apps/agent-server/tests/sessions/pi-agent-service.eviction.test.ts"
+	],
+	"errors": [
+		"Eviction tests failed with typecheck-clean code because eviction became async: `vi.advanceTimersByTime` fires the sweep synchronously but does not flush microtasks from the awaited `shutdown` call before `dispose` runs in `finally`. Fix: add `await vi.advanceTimersByTimeAsync(0)` after timer advancement.",
+		"Second eviction test hit `Error: Aborting after running 10000 timers, assuming an infinite loop!` because `vi.runAllTimersAsync` kept re-arming the periodic sweep interval. Fix: replace with `vi.advanceTimersByTimeAsync(1_500)` which doesn't loop.",
+		"Stray junk left in the second test (`console.error;` as a bare expression) was identified and removed in a cleanup edit.",
+		"Workspace `pnpm check` failed at `check:loc` with six files over the 300-line limit — determined via `git show HEAD:...` line counts to be a pre-existing condition on HEAD, not caused by this change."
+	],
+	"outcome": "shipped"
+}

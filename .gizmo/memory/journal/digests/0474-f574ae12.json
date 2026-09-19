@@ -1,0 +1,25 @@
+{
+	"segment": "0474-f574ae12",
+	"at": "2026-09-18T22:45:01.648Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Began implementing seven thread-view polish items from screenshot_01.png. Removed the 'Thread' eyebrow, lined up the conversation header baseline with the inspector header via shared h1/h2 styles, and matched the header's top-corner rounding to the folder-tab look. Extended the protocol and event translator to carry per-message `completedAt`/turn-end timestamps, added a `stampTurnEnds` pass in `session-transcript.ts`, and exposed a `turnStart(messages)` helper in `streaming.ts` so UI can compute total agent run time. Also clarified two open questions with the user (rounding target = folder-tab look; thread-name model = configurable setting).",
+	"decisions": [
+		"Thread header top corners get `border-radius: var(--radius-sm) var(--radius-sm) 0 0` to match the folder-tab look (instead of any inspector-specific radius).",
+		"Conversation header and inspector header share the same `[data-ui='conversation-header'] h1, [data-ui='inspector-header'] h2` rule so their baselines align.",
+		"The 'Thread' eyebrow span in the conversation header is removed; the title alone is the thread header.",
+		"Thread name generation will be driven by a configurable 'title model' setting (defaulting to a cheap one), not the same model used for commit messages or a hard-coded free model.",
+		"Timing/total-run-time support: add `completedAt?: number` to `message.completed` events and a `turnEnd` field on assistant messages, then expose `turnStart(messages)` on the client to compute total elapsed time for the current turn.",
+		"Per-turn duration shown after the final agent message will be derived from the existing `createdAt`/`turnEnd` timestamps on assistant messages; no separate timer stream is introduced.",
+		"For the running-agent total-time indicator at the top of the page, the implementation will use the same `turnStart` helper rather than the current tool/thinking-local timer."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/Conversation.svelte",
+		"apps/app/src/styles/conversation.css",
+		"packages/protocol/src/sessions.ts",
+		"apps/agent-server/src/sessions/pi-event-translator.ts",
+		"apps/agent-server/src/sessions/session-transcript.ts",
+		"apps/app/src/lib/features/conversation/streaming.ts"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

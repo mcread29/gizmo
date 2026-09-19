@@ -1,0 +1,23 @@
+{
+	"segment": "0098",
+	"at": "2026-09-18T22:39:06.507Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added a first-party `ask_user` tool to Gizmo's agent server that blocks on the existing extension-UI bridge, and added frontend rendering of those select/input prompts as inline chat question cards instead of modal dialogs. Backend wiring is in place; frontend work is in progress (store changes made, new PiExtensionQuestion.svelte written) but not yet wired into Conversation.svelte or verified.",
+	"decisions": [
+		"ask_user is implemented as an agent-server tool (apps/agent-server/src/tools/ask-user-tool.ts) that reuses the existing PiExtensionUiRuntime select/input round-trip, rather than introducing a new Pi extension package.",
+		"Modal PiExtensionDialogs are now restricted to confirm/editor requests only; select and input requests render inline in chat as agent questions.",
+		"Free-text 'Write my own answer…' is always appended as the last multiple-choice option so the user can override the offered choices.",
+		"If the user cancels/skips a question the tool returns a structured 'no answer' result with details.answer = null instead of throwing, so the agent loop continues."
+	],
+	"files": [
+		"apps/agent-server/src/tools/ask-user-tool.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiStore.svelte.ts",
+		"apps/app/src/lib/features/extension-ui/PiExtensionQuestion.svelte"
+	],
+	"errors": [
+		"Initial edit attempt against PiExtensionUiStore.svelte.ts was rejected as a no-op (identical old/new text); the subsequent edit with the real dialogFor change succeeded.",
+		"Multiple exploratory `grep`/`ls` commands returned no output (e.g. searching node_modules/@earendil-works/pi-coding-agent for 'ask_user', searching apps/packages for the string) before the assistant concluded ask_user is not a pi built-in tool."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,23 @@
+{
+	"segment": "0365",
+	"at": "2026-09-18T22:43:09.795Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated naming/HTTPS options for service.machine-style hostnames on a Tailscale tailnet and concluded that trusted HTTPS with zero per-device toil requires an owned domain with public DNS-01 (e.g., init0.link on Cloudflare + Caddy). Then removed a stray `nul` file and committed two new reload shims (`reload`, `reload.cmd`) that wrap `pnpm web:update`.",
+	"decisions": [
+		"Trusted HTTPS for arbitrary service.machine names (e.g., gizmo.genge.ts.net) cannot be obtained from Tailscale or Let's Encrypt: Tailscale only certs node MagicDNS names, and LE cannot DNS-01 challenge under .ts.net since the user doesn't control that zone.",
+		"The only path that satisfies exact service.machine shape, trusted HTTPS, and zero per-device setup is an owned domain + public A records to tailnet 100.x IPs (unroutable off-tailnet) + Caddy with Cloudflare DNS-01 for auto-issue/renewal.",
+		"Cloudflare A records for these names must be proxied=false (DNS-only) so clients resolve to the tailnet IP directly rather than Cloudflare's edge.",
+		"A single Cloudflare API token scoped to Edit zone DNS for init0.link covers both creating A records and Caddy's DNS-01 renewal challenges.",
+		"Discard the `nul` file as a stray Windows redirect artifact (contained a 'Could not find files' message); commit only `reload` and `reload.cmd`."
+	],
+	"files": [
+		"nul",
+		"reload",
+		"reload.cmd"
+	],
+	"errors": [
+		"User initially thought adding `.ts.net` to the hostname would yield automatic HTTPS; assistant clarified Tailscale certs are per-node (only the node's own MagicDNS name), so names like `gizmo.genge.ts.net` get no cert from Tailscale or LE.",
+		"`nul` was a 54-byte Windows artifact ('Could not find files for the given pattern(s).'), not real content — deleted rather than committed."
+	],
+	"outcome": "shipped"
+}

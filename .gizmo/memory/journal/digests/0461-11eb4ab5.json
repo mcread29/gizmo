@@ -1,0 +1,21 @@
+{
+	"segment": "0461-11eb4ab5",
+	"at": "2026-09-18T22:44:45.468Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated a Pi compaction overlap bug by tracing unguarded `signal` reads across Pi packages and Gizmo extensions, comparing auth files, reading `models.js`/`provider-retry.js`/`agent-session.js` and Gizmo's session/compaction code. Opened a pnpm patch workspace for `@earendil-works/pi-coding-agent@0.84.4` and rewrote the manual compact path to be single-flight with a local AbortController (new `_compactionAbortController` assignment at line 1476, `_runDefaultCompaction` call at 1529). Two subsequent commands editing the Gizmo-side `compaction-fallback.ts` were interrupted by the user before completing, and the pnpm patch-commit output was cut off.",
+	"decisions": [
+		"Pi's manual `compact()` was patched to be single-flight by introducing a local AbortController stored in `_compactionAbortController`, replacing the previously unguarded reuse of an existing controller.",
+		"Verified via `findCutPoint`-style tests that existing compaction tests in `apps/agent-server/tests/sessions/pi-compaction.test.ts` only cover cut-point logic, not the manual-compact overlap path.",
+		"Confirmed Gizmo's `~/.gizmo/auth.json` for openai-codex last refreshed Aug 26 while Pi's `~/.pi/agent/auth.json` shows a Sep 14 refresh, supporting the hypothesis that Gizmo's auth copy has not been kept current."
+	],
+	"files": [
+		"node_modules/.pnpm/@earendil-works+pi-coding-agent@0.84.4_ws@8.21.3/node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js",
+		"/tmp/pi-patch/dist/core/agent-session.js",
+		"patches/@earendil-works__pi-coding-agent@0.84.4.patch"
+	],
+	"errors": [
+		"User interrupted two Bash calls that were applying Gizmo-side single-flight guards and stack logging into `apps/agent-server/src/sessions/compaction-fallback.ts` (via `/tmp/gizmo-repro`/node `-<<EOF` heredoc edits), so those changes did not land.",
+		"The `pnpm patch-commit` output was truncated mid-run before its success/failure could be confirmed, leaving the committed state of the new patch unverified."
+	],
+	"outcome": "blocked"
+}

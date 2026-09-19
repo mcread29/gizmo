@@ -1,0 +1,42 @@
+{
+	"segment": "0265",
+	"at": "2026-09-18T22:41:44.029Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Consolidated inspector and changes CSS into the Unity and Git extension packages, removing obsolete styles from the app, then renamed Unity-prefixed protocol symbols (UnityStatus/UnityOpenProjectResult) to project-agnostic equivalents (ProjectStatus/ProjectOpenResult) across the protocol, agent-client, websocket, fixtures, and tests.",
+	"decisions": [
+		"Move inspector-parts CSS into the Unity extension by writing unity.css in the Unity package and importing it from UnityPanel.svelte, wrapping EditorPanel in a [data-ui='unity-status-panel'] container.",
+		"Delete apps/app/src/styles/inspector-parts/activity.css and remove its import from inspector.css.",
+		"Delete apps/app/src/styles/diagnostics.css and remove its import from apps/app/src/app.css.",
+		"Consolidate changes CSS (summary.css + tree.css) into a single git.css inside the Git extension package and import it from ChangesPanel.svelte.",
+		"Delete apps/app/src/styles/changes.css and the apps/app/src/styles/changes-parts directory.",
+		"Tag Unity-prefixed protocol symbols (unityStatusSchema/UnityStatus, unityOpenProjectResultSchema/UnityOpenProjectResult) as @deprecated aliases of projectStatusSchema/ProjectStatus and projectOpenResultSchema/ProjectOpenResult, and migrate imports/usages to the non-Unity names.",
+		"Add a runtime pass in the web extension installer that removes stale <style> tags keyed by data-gizmo-extension-style when their extension is no longer loaded."
+	],
+	"files": [
+		"apps/app/src/styles/inspector-parts/layout.css",
+		"apps/app/src/styles/inspector-parts/panels.css",
+		"apps/app/src/styles/inspector.css",
+		"apps/app/src/styles/inspector-parts/activity.css",
+		"apps/app/src/styles/diagnostics.css",
+		"apps/app/src/styles/changes.css",
+		"apps/app/src/styles/changes-parts",
+		"apps/app/src/app.css",
+		"apps/app/src/lib/extensions/runtime/install.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/websocket/project-requests.ts",
+		"apps/app/src/lib/agent-client/fake-client/fixtures.ts",
+		"apps/app/tests/lib/agent-client/agent-store-invalid-client.ts",
+		"packages/protocol/src/projects.ts",
+		"packages/protocol/src/events.ts",
+		"packages/protocol/src/parsers.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/unity/unity.css",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/unity/src/web/unity/UnityPanel.svelte",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/git/src/web/git.css",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/packages/git/src/web/ChangesPanel.svelte",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/scripts/build-web-extension.ts"
+	],
+	"errors": [
+		"Edit to UnityPanel.svelte failed with 'Could not find edits[0]' because the oldText used a tab-indented import while the file uses two-space indentation; retried with the matching two-space indentation and succeeded."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,35 @@
+{
+	"segment": "0057",
+	"at": "2026-09-18T22:38:19.174Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored skill and global resource loading: switched SkillEditor to onMount, wrapped it in an editorOpen guard in AgentSettings, replaced the $effect-based resource refresh with onMount, and updated resource discovery to respect PI_CODING_AGENT_DIR with Windows-safe cross-drive handling. Added an `editable` flag to SkillResource, validated that relative paths from workspace are not absolute, and updated README, docs/resources.md, and resource-paths comments to reflect canonical-folder behavior.",
+	"decisions": [
+		"SkillEditor now loads content in onMount rather than as a derived/effect-driven fetch, and is only mounted when editorOpen is true in AgentSettings.",
+		"AgentSettings.refreshResources is invoked via onMount instead of a $effect to avoid reassigning state inside an effect.",
+		"SkillResource schema gains an optional `editable` boolean indicating Gizmo can safely edit the Markdown in place.",
+		"globalResourceRoots and pi-global-resources now honor PI_CODING_AGENT_DIR (with ~ expansion) so a custom Pi agent directory can be used.",
+		"Project-vs-global classification now rejects paths that are absolute or start with `..` after relative(), fixing Windows cross-drive misclassification of global resources as project.",
+		"Skill index.ts/index.js are accepted as loadable entries alongside .ts/.js files in pi-global-resources.",
+		"docs/resources.md and README.md updated to state that Pi's `~/.pi/agent` is the canonical source and that skills and global extensions are toggleable (not just skills).",
+		"The legacy migration helper in resource-paths.ts is marked deprecated since canonical discovery no longer copies Pi resources."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/SkillEditor.svelte",
+		"apps/app/src/lib/features/settings/AgentSettings.svelte",
+		"apps/agent-server/src/resources/resource-paths.ts",
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"packages/protocol/src/index.ts",
+		"docs/resources.md",
+		"README.md"
+	],
+	"errors": [
+		"svelte-autofixer reported $effect function calls flagged as potentially reassigning stateful variables in AgentSettings/SkillList/SkillEditor; resolve by switching to onMount/derived.",
+		"impeccable detect flagged a side-tab accent border and an undocumented color (#4ade80) in apps/app/src/styles/settings.css (process exited 2).",
+		"Initial docs/resources.md edit failed due to whitespace mismatch; retried after rg locating exact lines.",
+		"pnpm test in apps/app failed: WorkspaceInspector.test.ts and Titlebar.test.ts threw 'Cannot read properties of undefined (reading includes)' on store.activeDomains, plus Titlebar commit-message test error about Pi commit generation.",
+		"Final edit to apps/agent-server/src/resources/pi-global-resources.ts failed: 'Could not find edits[0]' due to oldText whitespace mismatch."
+	],
+	"outcome": "explored"
+}

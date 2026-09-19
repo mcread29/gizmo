@@ -1,0 +1,29 @@
+{
+	"segment": "0271",
+	"at": "2026-09-18T22:41:52.542Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Architectural analysis (no code changes) of the workspace-view ownership model, identifying that `createWorkspaceView()` grants a single enabled extension privileged ownership over workspace identity, titlebar, inspector, context menu, and editor actions. Proposes a minimal refactor: make `WorkspaceView` app-owned metadata only, flatten static and activated inspector contributions into one peer tab list, demote Unity to a normal `Unity Status` tab with `Console` as a sibling, and remove `createView`, `WorkspacePanel`, `domainId`, `panel`, and `pill` from the extension contract. Includes detailed file/line references, Unity migration steps, settings rename (`showUnityInspector` → `showWorkspaceInspector`), and a test rewrite plan.",
+	"decisions": [
+		"Make `WorkspaceView` app-owned workspace metadata only; remove `domainId`, `canOpen`/`open`/`refresh`, `pill`, `panel` from it",
+		"Remove `WorkspacePanel`, `GizmoWebExtension.createView`, and the `createView` validation in `load-web-extension.ts` from the extension contract",
+		"Flatten static and activated inspector contributions into a single peer tab list rendered through one identical panel branch",
+		"Unity contributes a normal `unity.status` (label `Unity`) static tab; the activated `unity.console` tab is a sibling peer rather than nested under the owner",
+		"Use the first available peer tab as the default selection instead of hard-coding `git`, and add an app-owned empty state when no enabled extension contributes a panel",
+		"Return `WebExtensionRuntime[]` directly from `activateProjectExtensions()` and dispose them directly, dropping the `{ extensionId, runtime }` wrapper used only for owner filtering",
+		"Titlebar displays only app-owned workspace metadata; extension status items remain peers and do not replace workspace title/subtitle",
+		"Rename persisted setting `showUnityInspector` to `showWorkspaceInspector`, accepting the legacy value on load while writing only the new key on save",
+		"Update accessibility label in `PanelResizeHandle.svelte` from `editor inspector` to `workspace inspector`",
+		"Require globally unique tab IDs across extensions (existing extensions already namespace via `unity.console`, `subagents.panel`, `workflows.panel`)",
+		"Keep all tab metadata including `shortLabel` and `badgeTone` so the danger badge tone Unity needs reaches the tab shell (currently dropped by the mapping)",
+		"Optionally introduce a `enabledWebExtensions(store)` helper to centralize `store.activeDomains` filtering; defer the broader `enabledExtensionIds` rename due to session/protocol 'domain' compatibility",
+		"Remove the Unity-specific global context-menu actions in `AppContextMenu.svelte`/`context-target.ts`; Unity still exposes Open Editor via commands and `EditorPanel.svelte`",
+		"Svelte browser stub (`packages/svelte/src/web/index.ts` and `extensions/svelte/src/web/index.ts`) is no longer needed for workspace naming"
+	],
+	"files": [],
+	"errors": [
+		"Current mapping drops `shortLabel` and `badgeTone` from tab metadata despite `packages/ui/src/Tabs.svelte:7-12` supporting both, which currently prevents Unity's danger badge tone from reaching the tab shell",
+		"Comments in `types.ts:115-119` say static tabs appear whenever an extension is 'installed', but the inspector actually filters through `store.activeDomains` at `WorkspaceInspector.svelte:81` — the comments are inconsistent with actual enablement gating",
+		"Current unstaged changes to `WorkspaceInspector.svelte`, `registry.svelte.ts`, and its test preserve runtime ownership so tabs can be nested under the owning domain, which contradicts the requested peer model and should be replaced rather than extended"
+	],
+	"outcome": "explored"
+}

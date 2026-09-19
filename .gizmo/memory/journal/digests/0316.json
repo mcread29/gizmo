@@ -1,0 +1,21 @@
+{
+	"segment": "0316",
+	"at": "2026-09-18T22:42:28.163Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Packaged the backfill-agent-journal skill as a workspace extension `@gizmo/memory-extension` so Gizmo's registry discovers it through `gizmo.extensions.json` instead of a loose user-level skill. Wrote the standalone backfill script, SKILL.md, the extension's package.json/tsconfig, a minimal `GizmoServerExtension` entry whose entry-point depth is three levels (so `packageRoot` resolves correctly), and registered the extension in `gizmo.extensions.json` followed by `pnpm install`.",
+	"decisions": [
+		"Ship the skill through Gizmo's extension registry (`@gizmo/memory-extension` listed in `gizmo.extensions.json`) rather than as a loose user-level skill.",
+		"Extension's server entry lives at `src/server/index.ts` (three levels under the entry file) so Gizmo's `packageRoot` walk lands on the package directory and its skills are found; a shallower path would resolve one level too high.",
+		"Backfill script kept as a zero-dependency standalone `.mjs` so it runs in any repo regardless of stack; cross-checked against the TypeScript implementation (delta attributed to this session growing)."
+	],
+	"files": [
+		"packages/memory-extension/skills/backfill-agent-journal/scripts/backfill-journal.mjs",
+		"packages/memory-extension/skills/backfill-agent-journal/SKILL.md",
+		"packages/memory-extension/package.json",
+		"packages/memory-extension/tsconfig.json",
+		"packages/memory-extension/src/server/index.ts",
+		"gizmo.extensions.json"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

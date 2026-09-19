@@ -1,0 +1,39 @@
+{
+	"segment": "0198",
+	"at": "2026-09-18T22:40:35.213Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored AgentStore.svelte.ts into a coordinating facade plus capability modules (Connection, Extension, Git, Project, Registry, Resource, Session, SessionRuntime) with all files under 300 LOC, while preserving the public API and critical behaviors (reconnect backoff, replay buffering, stale-request protection, session switching, event ordering, snapshot hydration, in-flight messages). Split AgentStore.test.ts into semantically named files (connection, projects, sessions, resources, replay) and extracted shared test client helpers.",
+	"decisions": [
+		"Split AgentStore into a thin AgentStore facade plus cohesive capability modules in apps/app/src/lib/agent-client/agent-store/ to enforce <=300 LOC per file",
+		"Preserved the public AgentStore API and behavioral contracts (reconnect backoff, replay buffer, stale-request protection, session switching, snapshot hydration, in-flight messages) so App.svelte and existing consumers remain untouched",
+		"Extracted shared test scaffolding into agent-store-gated-client.ts and agent-store-invalid-client.ts under apps/app/tests/lib/agent-client/ to avoid duplication across the split test files",
+		"Did not modify FakeAgentClient, WebSocketAgentClient, or App.svelte as instructed",
+		"Did not commit changes per instruction"
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/agent-store/ConnectionCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/ExtensionCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/GitCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/ProjectCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/RegistryCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/ResourceCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionRuntimeCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/shared.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.connection.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.projects.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.sessions.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.resources.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.replay.test.ts",
+		"apps/app/tests/lib/agent-client/agent-store-gated-client.ts",
+		"apps/app/tests/lib/agent-client/agent-store-invalid-client.ts"
+	],
+	"errors": [
+		"svelte-check initially reported 2 errors in agent-store-invalid-client.ts due to an InnerAgentEvent type alias referencing AgentEvent without an import; removed the unused alias and svelte-check then reported 0 errors/0 warnings",
+		"Initial full vitest run included a pre-existing App.test.ts failure ('attaches files from the composer and sends them with the prompt') unrelated to this refactor; the split AgentStore test files (5 files, 17 tests) all pass",
+		"svelte-autofixer reported no issues or suggestions for the refactored AgentStore.svelte.ts"
+	],
+	"outcome": "shipped"
+}

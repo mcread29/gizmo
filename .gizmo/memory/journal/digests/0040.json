@@ -1,0 +1,34 @@
+{
+	"segment": "0040",
+	"at": "2026-09-18T22:38:12.490Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Assistant explored the existing frontend architecture and Pi extension SDK typings in preparation for designing a new extension UI semantic bridge. The work consisted entirely of read-only investigation: ripgrep scans of App.svelte, component styles, AgentClient, protocol schemas, and the Pi coding-agent's ExtensionUIContext typings, plus a failed read attempt at a non-existent UnityDialog path that was recovered via a directory listing.",
+	"decisions": [
+		"Add new protocol events `extension.ui.dialog`, `extension.ui.update`, `extension.ui.cancelled`, `extension.ui.runtime-cleared` and requests `extension.ui.respond`, `extension.ui.cancel-runtime` in `packages/protocol/src/index.ts`, with a bumped `protocolVersion`.",
+		"Use a separate `uiRequestId` field (not `requestId`) for extension UI response envelopes, and every response must include `sessionId`, `runtimeId`, and `uiRequestId`.",
+		"Dialog responses are discriminated: `{kind:'value',value}`, `{kind:'confirmation',confirmed}`, `{kind:'cancelled'}`.",
+		"`AgentStore.parseAgentEvent` should recognize the new events but return early for `extension.ui.*` and must not add bridge state to `AgentEventState`; subscriptions already multiplex via `Set<AgentEventListener>`.",
+		"Reuse the existing `ConfirmDialog` (with `tone=\"primary\"`) for extension confirmations, reuse `Dialog`/`Button` from `@gizmo/ui` for input/editor, and model Pi select on Bits UI `Command` behavior rather than reusing the workspace-specific `CommandPalette`.",
+		"Pi input/editor results must preserve the exact string (no trimming); select rows must be keyed by request ID + option index and return the original option string.",
+		"Only the first queued Pi dialog mounts; Pi dialogs are queued (not opened) while any of the command palette, rename/delete dialogs, or `store.pendingConfirmations` are active.",
+		"Frontend timeouts are advisory; the server remains authoritative and must emit `extension.ui.cancelled` on timeout/abort so stale UI closes.",
+		"Mount `PiExtensionDialogs` inside `AppDialogs.svelte` next to the existing web-extension `ExtensionDialogs.svelte`, which continues to handle Gizmo web-extension dialogs only.",
+		"`PiExtensionUiStore` must be started before `store.connect()` and disposed before disconnect; visible UI session is derived as `router.current === 'workspace' ? undefined : store.sessionId`.",
+		"While `extensionUi.activeDialog` is present, the shell's `App.svelte:onKeydown` shortcuts must be suppressed so the modal owns keyboard input.",
+		"Toast `ToastTone` is extended from `success|danger` to include `info|warning`, with `error → danger`, and `ToastMessage` may gain a `sourceLabel`; notifications are enqueued immediately into the existing toast system and not retained in `PiExtensionUiStore`.",
+		"Pi status entries are concatenated with existing `statusBarItems` in `Titlebar.svelte:47` and rendered as static `<span>`s reusing `data-ui=\"status-bar-item\"`; `shell.css:214-218` hover/pointer styling is restricted to interactive contributed buttons only.",
+		"Add a `<svelte:head><title>` to `App.svelte` showing `Pi runtime title → thread title — Gizmo → Gizmo`; runtime cleanup restores the default. Do not replace the visual thread heading or titlebar workspace label.",
+		"Insert `PiExtensionWidgets` at `Conversation.svelte:177` around the existing `composer-wrap`/Composer, render text widgets as keyed plain text with `white-space: pre-wrap`, no `{@html}`/Markdown, and bounded line count and payload size.",
+		"Composer text is controlled via a registered `PiComposerAdapter` using the existing `DraftStore` and `edit(text)` path; never manipulate the `<textarea>` value directly.",
+		"`setText` must verify the event's session/runtime is still active, queue editor commands briefly when the session exists but the composer has not mounted yet, and drop them once the runtime/session is stale.",
+		"Working state is unified by extending `streamingActivity()` in `conversation/streaming.ts:11` with an optional bridge override (message, visibility, stripped text frames, frame interval); the server normalizes ANSI/styled terminal output to plain text before sending.",
+		"Future `setToolsExpanded` is supported by replacing the one-way `collapseToken` with a versioned `{version,expanded}` directive passed into `ToolCallCard.svelte`, while preserving existing `pinned` behavior.",
+		"Cleanup rules: session switch hides old-session contributions and cancels unresolved dialogs; runtime reload emits `extension.ui.runtime-cleared` and resolves pending calls with safe defaults; disconnect and delete/eviction hard-clear runtime state; `PiExtensionUiStore` also subscribes to `subscribeDisconnect()` to clear synchronously; reconnect requires the server to either re-emit a persistent UI snapshot or recreate the runtime, otherwise `session_start`-only statuses are lost.",
+		"Extension ownership attribution is blocked because the shared `ExtensionUIContext` does not expose canonical per-extension identity; until per-extension scoped UI contexts or source metadata exist, use a runtime-level fallback label such as \"Pi extension\" rather than inferring ownership from command/tool names."
+	],
+	"files": [],
+	"errors": [
+		"Read of `packages/unity/src/web/UnityDialog.svelte` failed with ENOENT; recovered by listing `packages/unity` files, which showed the actual file is `packages/unity/src/web/UnityDomainDialog.svelte`."
+	],
+	"outcome": "explored"
+}

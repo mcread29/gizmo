@@ -1,0 +1,20 @@
+{
+	"segment": "0210",
+	"at": "2026-09-18T22:40:47.510Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Split apps/agent-server/tests/sessions/pi-agent-service.test.ts (553 LOC) into three semantically named test files (creation, commands, events) each under 300 LOC, extracting reusable typed fixtures (FakePiSession, createTestService, piEvent) into apps/agent-server/tests/sessions/support/pi-agent-service-fixtures.ts. All 16 tests and 33 assertions were preserved with identical titles; prettier, tsc check, and vitest run (23 files / 114 tests) all passed.",
+	"decisions": [
+		"Chose to place shared fixtures under apps/agent-server/tests/sessions/support/ rather than tests/support, keeping them co-located with the consumer tests.",
+		"Split along behavioral boundaries — creation/setup, command routing/compaction/attachments, and event translation/replay — rather than by line count, keeping each file semantically focused and ≤300 LOC.",
+		"Verified equivalence by comparing test titles and `expect(` counts between the old file (16 titles / 33 expects) and the combined new files (identical), confirming zero assertion loss during the split."
+	],
+	"files": [
+		"apps/agent-server/tests/sessions/pi-agent-service.test.ts (deleted)",
+		"apps/agent-server/tests/sessions/pi-agent-service-creation.test.ts (created)",
+		"apps/agent-server/tests/sessions/pi-agent-service-commands.test.ts (created)",
+		"apps/agent-server/tests/sessions/pi-agent-service-events.test.ts (created)",
+		"apps/agent-server/tests/sessions/support/pi-agent-service-fixtures.ts (created)"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

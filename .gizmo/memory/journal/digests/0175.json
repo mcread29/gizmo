@@ -1,0 +1,18 @@
+{
+	"segment": "0175",
+	"at": "2026-09-18T22:40:17.774Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Split the monolithic frontend vendor bundle in apps/app into logical Rolldown chunks (markdown, ui-vendor, schema, vendor), shrinking the main JS chunk from 898 kB to 260 kB and clearing the 500 kB warning. Verified via svelte-check, vitest (170 tests), and a clean production build, then committed as 566a1f0. Separately confirmed that @earendil-works/pi-coding-agent is declared as ^0.84.2 in two package.json files but pnpm-lock.yaml pins and patches 0.84.2; the latest published version on npm is 0.84.4.",
+	"decisions": [
+		"Split the apps/app frontend bundle via Rolldown output.codeSplitting groups: a 'markdown' group for dompurify/highlight.js/marked (priority 30), a 'ui-vendor' group for @floating-ui, @lucide/svelte, @tanstack, bits-ui, tabbable (priority 20), a 'schema' group for typebox (priority 10), and a catch-all 'vendor' group for remaining node_modules.",
+		"Do not change the @earendil-works/pi-coding-agent dependency range in this segment; keep ^0.84.2 in apps/agent-server/package.json and packages/extensions/package.json, leaving the lockfile at the patched 0.84.2."
+	],
+	"files": [
+		"apps/app/vite.config.ts"
+	],
+	"errors": [
+		"Initial grep for 'codeSplitting' against `node_modules/.pnpm/vite@8.2.2` failed because the actual installed folder name includes the peer-dep hash (vite@8.2.2_@types+node@26.2_...). Search succeeded once the hashed folder was used.",
+		"Web search for the npm package returned zero results due to engine rate limiting/CAPTCHAs; the answer came from `pnpm view` instead."
+	],
+	"outcome": "shipped"
+}

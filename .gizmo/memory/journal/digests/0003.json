@@ -1,0 +1,22 @@
+{
+	"segment": "0003",
+	"at": "2026-09-18T22:57:09.885Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Committed the Gizmo-shell-preservation fix for Pi web mode, then began implementing a minimal 'default Pi mode' in the agent server that uses `@earendil-works/pi-coding-agent`'s default resource discovery. Added `defaultPiAgentDir`/`defaultPiRuntimePaths` to `pi-runtime-config.ts`, switched `pi-agent-service.ts` to use them when `GIZMO_PI_WEB=1`, and wired a project-trust resolver that defers to Pi's `ProjectTrustStore` and `defaultProjectTrust` setting (per user decision).",
+	"decisions": [
+		"Committed prior shell-preservation work as 'fix: preserve Gizmo shell in Pi web mode' before proceeding.",
+		"When `GIZMO_PI_WEB=1`, the agent server uses default Pi runtime paths (`~/.pi/agent`) and skips `importPiRuntimeConfig`, letting Pi's default resource discovery take over.",
+		"Project trust in Pi Web mode follows Pi settings: trust resources that don't require trust, return `ProjectTrustStore.get(cwd)` if saved, otherwise fall back to `settingsManager.getDefaultProjectTrust() === 'always'` (user-chosen 'Follow Pi settings' option)."
+	],
+	"files": [
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/main.ts",
+		"apps/app/src/PiWebApp.svelte",
+		"apps/agent-server/src/config/pi-runtime-config.ts"
+	],
+	"errors": [
+		"rg command failed with exit code 2 because `apps/agent-server/README.md` does not exist; the targeted grep otherwise succeeded against the listed files."
+	],
+	"outcome": "shipped"
+}

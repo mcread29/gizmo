@@ -1,0 +1,16 @@
+{
+	"segment": "0139",
+	"at": "2026-09-18T22:39:47.688Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed CommandPalette so that after Tab completes a directory path, pressing Enter submits the completed path (with trailing separator stripped) rather than the currently highlighted child folder. Added a regression test, ran the full app test suite and `pnpm check` (both clean), and committed the change as `70495be`.",
+	"decisions": [
+		"On Enter in workspace mode, submit the typed/resolved `location` (with trailing slash stripped) instead of the highlighted child, so Tab-completed paths round-trip correctly.",
+		"Place registry clones under `~/.gizmo/registries/<registry-name>/` rather than `~/.pi/agent/extensions-src/`, because Gizmo owns registry cloning/building/linking and `.gizmo` is the clearer boundary."
+	],
+	"files": [
+		"apps/app/src/lib/features/sessions/CommandPalette.svelte",
+		"apps/app/src/App.test.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

@@ -1,0 +1,28 @@
+{
+	"segment": "0103",
+	"at": "2026-09-18T22:39:09.281Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated why the user's ask_user Pi extension tool hangs in Gizmo with no UI appearing in a fresh incognito tab. Confirmed the full chain works end-to-end via a server-side probe (event emitted) and a new frontend store unit test (event queues correctly into questionsFor). Both ends of the WebSocket were instrumented with [ui-bridge] warnings so the user can reload and trigger ask_user again to see whether the event is lost between server and browser or arrives but fails to render.",
+	"decisions": [
+		"Edit ~/.pi/agent/extensions/ask-user.ts to treat ctx.hasUI as dialog-capable (change guard from `ctx.mode === \"rpc\"` to `ctx.mode === \"rpc\" || ctx.hasUI`) so the extension's existing bridge path (ctx.ui.select/ctx.ui.input) runs under Gizmo's mode='json' binding instead of bailing with 'No interactive UI is available'.",
+		"Revert the Gizmo-side duplicate ask_user custom tool (delete ask-user-tool.ts and its test, remove the askUserTool registration and customTools list in pi-agent-service.ts) so the user's extension is the sole ask_user provider and not shadowed by registry order.",
+		"Keep the frontend inline chat question card (PiExtensionQuestion in Conversation.svelte + PiExtensionUiStore.questionsFor routing) since it renders the extension's bridge select/input requests inline in chat rather than as a modal.",
+		"Add a unit test (PiExtensionUiStore.questions.test.ts) that feeds the exact wire payload the server emits for a bridge select request and asserts it lands in questionsFor and is removed on answer.",
+		"Instrument both ends with [ui-bridge] console.warn lines in pi-extension-ui-runtime.ts (server emit) and PiExtensionUiStore.svelte.ts (client receive) so the next reproduction yields a definitive server-vs-client-vs-render diagnosis."
+	],
+	"files": [
+		"~/.pi/agent/extensions/ask-user.ts (user file, edited guard at line ~163)",
+		"apps/agent-server/src/sessions/pi-agent-service.ts (removed askUserTool registration and customTools list)",
+		"apps/agent-server/src/tools/ask-user-tool.ts (deleted)",
+		"apps/agent-server/tests/tools/ask-user-tool.test.ts (deleted)",
+		"apps/agent-server/tests/tools directory (removed if empty)",
+		"apps/agent-server/src/sessions/pi-extension-ui-runtime.ts (added [ui-bridge] server emitting warn)",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiStore.svelte.ts (added [ui-bridge] client received warn)",
+		"apps/app/src/lib/features/extension-ui/PiExtensionUiStore.questions.test.ts (new store routing test)"
+	],
+	"errors": [
+		"User reported the tool spins forever and no UI appears even in a fresh incognito tab. Root cause not yet isolated: server probe shows the event is emitted correctly and the store unit test confirms it queues into questionsFor, so the failure is either (a) the event is dropped between server and browser socket, (b) the event arrives but the card fails to render, or (c) the user's extension session never reloaded with the ctx.hasUI guard fix. Awaiting next reproduction with [ui-bridge] instrumentation logs to localize.",
+		"Earlier duplicate Gizmo ask_user tool was found to be unnecessary because the user's Pi extension already provides ask_user; reverted in commit 97dbc8a."
+	],
+	"outcome": "blocked"
+}

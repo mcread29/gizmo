@@ -1,0 +1,29 @@
+{
+	"segment": "0380",
+	"at": "2026-09-18T22:43:26.170Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented two fixes: (1) on agent_settled, the server pool now calls clearQueue() to recover any steered messages left stranded by a run that died before reaching its next model call and emits them as a new session.unsent event; the client reducer accumulates them on the store, clears them on session/project/connection resets, and the Composer drains them via a new takeUnsent() helper, merging them into the per-session draft and showing a warning toast; (2) when an assistant turn ends as an interrupted (stopped) message, session-transcript marks it with interrupted: true, the reducer propagates that to the message, and MessageGroup renders a 'Response interrupted' status line.",
+	"decisions": [
+		"Server emits a new 'session.unsent' event (steering+followUp merged, trimmed) on agent_settled via session.clearQueue() rather than exposing queue state as a generic session property, so the client only learns about stranded text when a run actually settles.",
+		"Unsent messages live in store.unsent (cleared alongside store.messages on connection/project/session resets) and are drained by a new store.takeUnsent() that empties the array atomically, so the composer restore is a one-shot effect rather than re-running on every store update.",
+		"Restored unsent messages are prepended to the existing per-session draft (joined with blank lines) and accompanied by a 'warning' toast explaining the message was never delivered, instead of silently re-queuing to the composer.",
+		"Interrupted turns are persisted by setting interrupted: true on the assistant ConversationMessage in session-transcript and surfaced by MessageGroup as a 'Response interrupted' role=status line with a CircleSlash icon, distinguishing aborted runs from completed ones."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/agent-server/src/sessions/session-transcript.ts",
+		"apps/app/src/lib/agent-client/agent-event-reducer.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/agent-store/AgentStoreState.svelte.ts",
+		"apps/app/src/lib/agent-client/agent-store/ConnectionCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/ProjectCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionCapability.ts",
+		"apps/app/src/lib/features/conversation/Composer.svelte",
+		"apps/app/src/lib/features/conversation/MessageGroup.svelte"
+	],
+	"errors": [
+		"Initial `cd apps/agent-server && grep … node_modules/…` failed with 'No such file or directory' because the shell's cwd had drifted; the follow-up command using an absolute path worked.",
+		"`ls packages/protocol/src && grep … events.ts` failed with exit 2 from the missing directory; re-running from the repo root succeeded."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,26 @@
+{
+	"segment": "0483-b4c04ac6",
+	"at": "2026-09-18T22:45:08.892Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed a deterministic bug in `SessionCapability.switchSession`: when a workspace screen was viewed and the user returned to the thread already open, the thread header, inspector, and transcript stayed pointed at the workspace instead of rebinding to the thread. The early-return on `sessionId === store.sessionId` was changed to skip only when the transcript has already been rebound, so re-entering the same thread now restores the workspace and reloads messages if they were cleared.",
+	"decisions": [
+		"Replaced the blanket `if (sessionId === store.sessionId) return;` early-return in `switchSession` with `if (sessionId === store.sessionId && store.messages.length) return this.rebindSelection();` so that re-opening the already-open thread re-derives the workspace and reloads messages when the transcript was cleared by a workspace visit.",
+		"Moved the workspace-adoption helper (`enterThreadWorkspace`) from `SessionCapability` into `ProjectCapability` to keep workspace logic co-located and keep `SessionCapability` under the 300-line file-length limit.",
+		"Added an integration test `puts the workspace back on the thread when returning to the open one` in `workspace-navigation.integration.test.ts`; verified it fails without the fix and passes with it.",
+		"Extended the same integration test to seed a thread with a known message count and assert the transcript survives a workspace round-trip, catching the secondary 'transcript comes back empty' half of the bug.",
+		"Fixed a Prettier issue in `apps/app/src/lib/features/shell/AppWorkspaceShell.svelte` surfaced by `prettier --check` after the code changes."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/agent-store/SessionCapability.ts",
+		"apps/app/src/lib/agent-client/agent-store/ProjectCapability.ts",
+		"apps/app/tests/app/workspace-navigation.integration.test.ts",
+		"apps/app/src/lib/features/shell/AppWorkspaceShell.svelte"
+	],
+	"errors": [
+		"Initial reproduction script (`/tmp/repro-race.mjs`) showed 30/30 mismatches with header pointing at the workspace while a different thread's tabs were open — root cause was the `switchSession` early-return, not a timing race.",
+		"After the first fix, end-to-end verification (`/tmp/verify-fix.mjs`) revealed a second half of the same bug: transcript came back empty (5 → 0 messages) because entering a workspace cleared `store.messages` and re-entering the already-open thread never reloaded them. Fixed by falling through to the normal reload path when `store.messages.length === 0`.",
+		"First attempt at the new integration test failed with `expected 0 to be greater than 0` because the fake fixture's thread had no seeded messages; resolved by sending a composer message via `FakeAgentClient` before the workspace round-trip so `messageCount > 0` could be asserted.",
+		"`SessionCapability.ts` briefly exceeded the 300-line limit (321 lines) after the fix; resolved by relocating the workspace-adoption helper into `ProjectCapability.ts`."
+	],
+	"outcome": "shipped"
+}

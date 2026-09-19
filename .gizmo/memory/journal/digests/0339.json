@@ -1,0 +1,19 @@
+{
+	"segment": "0339",
+	"at": "2026-09-18T22:42:52.046Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added a root `pnpm web:update` script that rebuilds the frontend bundle and restarts the Gizmo web daemon, then diagnosed why the Tailscale IP wasn't reachable after the user ran it.",
+	"decisions": [
+		"Use `pnpm -C apps/app build && pnpm web:server restart` as the new root script so a build failure short-circuits before the restart, leaving the running instance untouched.",
+		"Build before restart (not restart then build) so the daemon is the last step and a failed build never takes the server down.",
+		"Do not put `//` comments inside package.json — JSON does not support them and it caused `pnpm web:server status` to fail with a parse error (initial commit was amended to remove them).",
+		"User must run `pnpm web:update` from a normal terminal at the repo root, not from inside a Gizmo session, because the restart drops the agent server the session lives on."
+	],
+	"files": [
+		"package.json"
+	],
+	"errors": [
+		"First version of the edit added `//` comments inside `package.json`, producing \"Expected double-quoted property name in JSON at position 869\" and breaking `pnpm web:server status`; fixed by removing the comments and amending commit."
+	],
+	"outcome": "explored"
+}

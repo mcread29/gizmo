@@ -1,0 +1,34 @@
+{
+	"segment": "0248",
+	"at": "2026-09-18T22:41:24.649Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ported node:test-based test files in the subagents and workflows extensions to vitest, rewrote the workflows web entry, updated gizmo.registry.json catalog entries, bumped @earendil-works/pi-coding-agent to ^0.84.4 across packages, removed unsupported `modelRegistry` fields from createAgentSession calls to satisfy the 0.84.4 type signature, and got tsc clean. The vitest run is mostly green (42/43 files, 134/139 tests) but workflows sandbox tests fail because `runWorkflowSandbox` rejects non-file URLs in its worker loader.",
+	"decisions": [
+		"Hand-rewrite each test file from node:test to vitest with assert.* → expect.* mappings rather than scripting a mass conversion, because tricky cases like `assert.throws(fn, /regex/)` need custom handling.",
+		"Remove `modelRegistry` from the two createAgentSession call sites (subagents/src/manager.ts and workflows/src/runner.ts) to match pi-coding-agent 0.84.4's CreateAgentSessionOptions; the option was being silently ignored at runtime by 0.84.4 anyway, so behavior is preserved.",
+		"Bump @earendil-works/pi-coding-agent to ^0.84.4 in packages/extensions, packages/git, packages/unity-tools, and packages/unity so registry package versions agree."
+	],
+	"files": [
+		"extensions/workflows/src/web/index.ts",
+		"extensions/workflows/index.ts",
+		"extensions/search-and-scrape/index.ts",
+		"extensions/subagents/src/result-delivery.test.ts",
+		"extensions/subagents/src/tool-call-timeout.test.ts",
+		"extensions/workflows/src/controller.test.ts",
+		"extensions/workflows/src/meta.test.ts",
+		"extensions/workflows/src/sandbox.test.ts",
+		"extensions/workflows/src/serialization.test.ts",
+		"extensions/subagents/src/manager.ts",
+		"extensions/workflows/src/runner.ts",
+		"gizmo.registry.json",
+		"packages/extensions/package.json",
+		"packages/git/package.json",
+		"packages/unity-tools/package.json",
+		"packages/unity/package.json"
+	],
+	"errors": [
+		"tsc --noEmit reported TS2353 in extensions/subagents/src/manager.ts(261,9) and extensions/workflows/src/runner.ts(314,7): 'modelRegistry' is not a known property of CreateAgentSessionOptions in pi-coding-agent 0.84.4. Fixed by removing the field from both call sites.",
+		"vitest run: 5 tests failing in extensions/workflows/src/sandbox.test.ts with TypeError \"The URL must be of scheme file\" thrown from sandbox.ts:106 (fileURLToPath on a non-file URL). Not yet fixed in this segment."
+	],
+	"outcome": "blocked"
+}

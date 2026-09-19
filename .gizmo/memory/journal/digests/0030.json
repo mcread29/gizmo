@@ -1,0 +1,16 @@
+{
+	"segment": "0030",
+	"at": "2026-09-18T22:37:55.605Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "After several failed attempts at hidden process management on Windows that produced unwanted console windows, the agent fell back to simple `nohup` backgrounding of the pnpm dev processes. The agent-server (`@gizmo/agent-server`) was started separately with `pnpm --filter @gizmo/agent-server start` and is now listening on `127.0.0.1:8787`, while the app (vite) listens on `localhost:5173`.",
+	"decisions": [
+		"Use `nohup ... < /dev/null &` to background pnpm dev processes on Windows rather than custom detached runners, because custom approaches kept producing visible console windows."
+	],
+	"files": [
+		"scripts/dev-server.ts"
+	],
+	"errors": [
+		"agent-server (`tsx watch src/server.ts`) repeatedly failed to bind to port 8787 inside the pnpm `--parallel` dev script, causing vite to log `ECONNREFUSED 127.0.0.1:8787` ws proxy errors and pnpm to exit with `ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL` exit status 3221225786."
+	],
+	"outcome": "shipped"
+}

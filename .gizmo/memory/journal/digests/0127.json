@@ -1,0 +1,13 @@
+{
+	"segment": "0127",
+	"at": "2026-09-18T22:39:34.672Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran a grep over docs for extension-related references and then executed `pnpm test` to check status; both the parent repo and gizmo-registry submodule are clean, but the test suite fails with multiple vitest failures in apps/app, including ToolCallCard rendering issues and a Titlebar TypeError when reading store.activeDomains.",
+	"decisions": [],
+	"files": [],
+	"errors": [
+		"pnpm test failed: @gizmo/app@0.0.0 vitest run exited with code 1, with reported failures including ToolCallCard.test.ts assertions (e.g., unable to find link 'Assets/Editor/Test.cs:12:4', missing 'Game.PlayerTests.Jumps' and 'Unity TypeScript' text) and src/lib/features/shell/Titlebar.svelte:58:44 TypeError 'Cannot read properties of undefined (reading includes)' because store.activeDomains is undefined when webExtensions() is iterated in Titlebar's $derived block.",
+		"The git status output from the bash invocation was truncated and not visible in the transcript, so the working-tree state could not be confirmed from this segment."
+	],
+	"outcome": "blocked"
+}

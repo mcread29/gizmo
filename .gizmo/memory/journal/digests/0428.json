@@ -1,0 +1,22 @@
+{
+	"segment": "0428",
+	"at": "2026-09-18T22:44:10.452Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ran the extension's real host.install flow end-to-end: downloaded the ~1.5 GB Ollama 0.34.0 Windows installer with live progress, silently installed it, confirmed the server came up, pulled qwen3:0.6b (520 MB) with digest-keyed progress, then verified models.list and the Pi provider mapping against the real installed models. Cleaned up the .smoke scratch directory, ran final tsc/prettier/tests (all green), then investigated the running Gizmo's registry discovery code to give precise test steps: catalog is read live from the local clone's working tree and linking is a junction + symlink (no republish needed), so fast-forward-merged feat/ollama-extension into main on the local registry clone.",
+	"decisions": [
+		"Did NOT run host.install unprompted — asked the user first because it installs ~1 GB of software on their machine; user then approved the full install + model pull.",
+		"Merged feat/ollama-extension into main on the local registry clone via fast-forward only, so the registry's git state stays coherent with the UI's Update button (which runs `git pull` against origin).",
+		"Conveyed that the running Gizmo instance picks up the extension automatically because catalogFor reads the clone's working tree (not a pinned commit) and syncExtension junctions the extension dir + symlinks the prebuilt ollama.web.js — no republish step needed."
+	],
+	"files": [
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/.smoke/provider.ts",
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/.smoke/degraded.ts",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/extensions/registry-manager.ts",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/extensions/registry-catalog.ts",
+		"C:/Users/mchan/projects/gizmo/apps/agent-server/src/extensions/registry-links.ts"
+	],
+	"errors": [
+		"Degraded-path smoke test failed with 'expected empty catalog' because the stub Ollama server was still running in the background from an earlier session — PowerShell Stop-Process attempts with bash variable expansion failed with a parser error ('You must provide a value expression') before a correct PowerShell invocation killed the three stub-server node.exe processes (34516, 36072, 36544), after which the rerun passed: models while server down: [] / 'degrades cleanly'."
+	],
+	"outcome": "shipped"
+}

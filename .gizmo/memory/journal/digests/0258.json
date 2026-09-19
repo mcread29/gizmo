@@ -1,0 +1,17 @@
+{
+	"segment": "0258",
+	"at": "2026-09-18T22:41:30.868Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Verified the diff for the WorkspaceInspector, registry, and tests changes (101 insertions, 60 deletions across 3 files). The change fixed routing so Unity runtime tabs (e.g., Console) stay in Unity while Subagents and Workflows render as workspace-level inspector tabs, with runtime ownership preserved in registry.svelte.ts.",
+	"decisions": [
+		"Runtime tabs owned by Unity (e.g., Console) remain inside Unity, while Subagents and Workflows are exposed as workspace-level inspector tabs.",
+		"Runtime ownership for each tab is recorded in registry.svelte.ts so the active domain panel can distinguish workspace-owned vs runtime-owned tabs."
+	],
+	"files": [
+		"apps/app/src/lib/extensions/WorkspaceInspector.svelte",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/app/tests/lib/extensions/WorkspaceInspector.test.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

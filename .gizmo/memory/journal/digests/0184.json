@@ -1,0 +1,24 @@
+{
+	"segment": "0184",
+	"at": "2026-09-18T22:40:25.895Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The assistant produced a comprehensive refactor audit of the monorepo without editing any files. It documented the test baseline (noting 17 Windows-related failures across four files), identified LOC hotspots, and proposed detailed file-level extraction plans for major backend modules. It also outlined test reorganization, shared infrastructure opportunities, and a seven-phase migration roadmap.",
+	"decisions": [
+		"Baseline stabilization (portable path containment and POSIX-permission assertions) should precede structural moves to keep regressions attributable.",
+		"Reuse the existing portable `isPathWithin()` from `apps/agent-server/src/path-utils.ts` everywhere instead of duplicating containment logic; this also addresses the 14 Windows test failures.",
+		"Keep `packages/protocol/src/index.ts` as the only public barrel; do not introduce subpath imports initially, and do not bump protocol version for file-only refactors.",
+		"Preserve protocol wire details during decomposition: tuple/`as const` literals, `additionalProperties: false`, schema aliases such as `projectStatusSchema = unityStatusSchema`, and existing unions, to avoid widening discriminants and breaking narrowing in `websocket-server.ts`.",
+		"`pi-session-factory.ts` must receive explicit resource/model/extension dependencies rather than constructing `ResourceCatalogService` and reading global registries internally.",
+		"Preserve shared Pi+project event-ID sequencing across websocket and per-connection dispatch; drop the unused `emit` parameter on `dispatch()` during extraction.",
+		"Introduce an explicit `ProjectNotHandledError` in `packages/extensions` before changing `CompositeProjectService` dispatch, because the current implementation swallows all errors as 'not handled'.",
+		"Lock ownership in the project-catalog update path must be made explicit, since migration code currently tries to re-acquire the same project mutex.",
+		"Add characterization tests for `registry-manager.ts` (currently untested) before extraction, and validate that `registryLink(name, id)` rejects IDs outside the catalog and traversal paths before they reach `join()`/`rm()`.",
+		"Treat the three concerns in `packages/extensions` (SDK contract, project runtime dispatch, patch reversal) as separable internal subdirectories while keeping the root re-export stable for external extension authors.",
+		"Plan a phased migration: baseline/test org, shared primitives, protocol decomposition, extensions+server catalogs, transport decomposition, session runtime decomposition, then compatibility/alias cleanup."
+	],
+	"files": [],
+	"errors": [
+		"17 of 114 tests fail in `apps/agent-server` on Windows across four files: `src/scripts/run-script.test.ts` (9) and `src/resources/extension-resources.test.ts` (5) fail on `/`-based containment checks; `tests/config/pi-runtime-config.test.ts` (2) fails POSIX permission-mode assertions; `tests/sessions/session-repository.test.ts` (1) fails a hard-coded POSIX path assertion."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,31 @@
+{
+	"segment": "0289",
+	"at": "2026-09-18T22:42:00.076Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Updated test files in the app package to reflect the new opaque ProjectStatus and per-extension project service model (extensionId on watchProjectStatus, projectStatuses map, projectOpening object). Updated the registry's protocol package: removed parseUnityProjects, made ProjectStatus opaque, updated the project.status.changed subscription test, then rewrote the registry's extensions package to export a ProjectServiceRegistry and updated its index. Began investigating the registry unity package consumers (unity-view, UnityPanel) for follow-on changes.",
+	"decisions": [
+		"ProjectStatus is opaque (typed `unknown`) at the protocol layer; extensions own validation and shape of status payloads.",
+		"WebSocketAgentClient.watchProjectStatus now requires an extensionId argument (e.g. 'unity').",
+		"App store tracks per-extension status in store.projectStatuses (e.g. .unity) rather than a single store.projectStatus, and store.projectOpening becomes an object map.",
+		"Registry extensions package exposes a ProjectServiceRegistry (replacing CompositeProjectService) that dispatches open/status/watch requests to per-extension ProjectService implementations.",
+		"Tests that asserted Editor launch failure interpretation are moved out of the app into the registry unity package, since the registry now owns parsing of opaque results.",
+		"WorkspaceInspector test cast: projectOpening shape changed from `false` to `{}` to match the new per-extension loading state."
+	],
+	"files": [
+		"apps/app/tests/lib/agent-client/agent-store-invalid-client.ts",
+		"apps/app/tests/lib/agent-client/WebSocketAgentClient.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.projects.test.ts",
+		"apps/app/tests/lib/agent-client/AgentStore.sessions.test.ts",
+		"apps/app/tests/lib/extensions/WorkspaceInspector.test.ts",
+		"packages/protocol/src/index.ts",
+		"packages/protocol/src/index.test.ts",
+		"packages/extensions/src/project-service.ts",
+		"packages/extensions/src/index.ts"
+	],
+	"errors": [
+		"svelte-check reported 3 pre-existing/unrelated type errors (protocolVersion mismatch in PiExtensionQuestion.test.ts and agent-event-reducer.test.ts) — not introduced by this segment.",
+		"vitest run from packages/protocol directory failed to resolve vitest.setup.ts due to config path; resolved by running `npx vitest run packages/protocol` from registry root.",
+		"packages/protocol/src/index.test.ts 'validates project status subscriptions and change events' initially failed because the test sent extension-less project.watch; fixed by updating the test to pass extensionId='unity' in the request."
+	],
+	"outcome": "explored"
+}

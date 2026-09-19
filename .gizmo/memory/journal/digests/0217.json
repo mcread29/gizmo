@@ -1,0 +1,21 @@
+{
+	"segment": "0217",
+	"at": "2026-09-18T22:40:53.671Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed an empty System Prompt editor by replacing the session-cache-based default prompt lookup with an on-demand `defaultSystemPrompt()` helper. The helper dynamically imports the pi-coding-agent SDK, spins up a minimal `AgentSession` (using `createAgentSessionFromServices` plus a fresh `SessionManager.create`), reads `session.systemPrompt`, then disposes the session. Runtime probe confirmed it returns the ~8408-char default prompt; typecheck and full `pnpm check` are clean and the dev server was restarted.",
+	"decisions": [
+		"Compute Pi's default system prompt on demand rather than caching it from a previous session run — because the cache only fills after a real session, leaving the editor empty until then.",
+		"Implement on-demand lookup by creating a disposable minimal AgentSession via `createAgentSessionFromServices` + a fresh `SessionManager.create(cwd, agentDir)`, then reading `session.systemPrompt` and calling `dispose()` — the SDK does not expose the built-in default prompt as a standalone value.",
+		"Use `process.cwd()` for the session's cwd and choose the agentDir based on `GIZMO_PI_WEB === '1'` (`getAgentDir()` vs `defaultDataDir()`) to match the surrounding resource-loading conventions.",
+		"Dynamic-import the pi-coding-agent module inside the helper rather than at module top level, to avoid loading the heavy SDK for callers that never hit the no-override branch."
+	],
+	"files": [
+		"apps/agent-server/src/resources/instruction-files.ts",
+		"apps/agent-server/probe.ts"
+	],
+	"errors": [
+		"Initial implementation failed typecheck: `createAgentSessionFromServices` requires a `sessionManager` argument. Fixed by passing `SessionManager.create(cwd, agentDir)` alongside `services`.",
+		"Runtime probe attempts with raw `node --experimental-strip-types` and `npx tsx` from /tmp both failed (ERR_MODULE_NOT_FOUND on extensionless TS imports, and CJS top-level await errors). Resolved by placing the probe inside `apps/agent-server/` and wrapping the body in an async `main()`."
+	],
+	"outcome": "shipped"
+}

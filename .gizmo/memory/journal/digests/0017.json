@@ -1,0 +1,21 @@
+{
+	"segment": "0017",
+	"at": "2026-09-18T22:37:48.614Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed and fixed a broken Gizmo UI where the Pi extension bridge had been registered with mode 'rpc', which activated RPC-only diagnostic extensions that pushed the composer off-screen and rendered non-clickable status pills as buttons. Switched the bridge to mode 'json' while preserving ctx.hasUI, restyled Pi extension status spans to look like plain text, and constrained the extension widgets container to the composer width with a scrollable max height.",
+	"decisions": [
+		"Bind the Pi agent session extensions with mode: 'json' instead of mode: 'rpc' in apps/agent-server/src/sessions/pi-agent-service.ts, because Gizmo supplies a real UI context but is not Pi's JSONL RPC transport and the rpc mode pulls in diagnostic chrome that doesn't belong in Gizmo.",
+		"Render per-extension status entries from piStatuses in apps/app/src/lib/features/shell/Titlebar.svelte as a non-interactive span with data-ui='pi-extension-status' instead of the existing status-bar-item span, so they no longer look like clickable pills.",
+		"Constrain [data-ui='extension-widgets'] in apps/app/src/styles/extension-ui.css to width: min(var(--content-max), 100%) and max-height: 120px with overflow-y: auto, so a large tool-activation probe widget cannot push the composer out of view."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/app/src/lib/features/shell/Titlebar.svelte",
+		"apps/app/src/styles/extension-ui.css"
+	],
+	"errors": [
+		"First edit attempt against apps/app/src/lib/features/shell/Titlebar.svelte failed with 'Could not find the exact text' because of whitespace mismatch; the assistant re-read the file and retried the edit successfully.",
+		"The websocket enumeration probe against ws://127.0.0.1:8787/agent exited with code 2 after printing the methods list (timed out), which is treated as a benign verification step."
+	],
+	"outcome": "shipped"
+}

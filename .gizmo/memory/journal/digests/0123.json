@@ -1,0 +1,33 @@
+{
+	"segment": "0123",
+	"at": "2026-09-18T22:39:30.971Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored agent-server extension tests to use inline GizmoServerExtension objects instead of importing from removed first-party packages, fixed type-check failures (Type.Object and missing details field), relocated Unity tests to a separate registry workspace, and updated docs/extensions.md to describe the no-built-ins runtime model where extensions arrive through `extensions.web` and de-duplicate by id.",
+	"decisions": [
+		"Inline `svelteExtension`/`unityExtension` definitions are used in agent-server tests rather than importing from `@gizmo/svelte/server` or `@gizmo/unity/server` (those packages were removed).",
+		"Tool parameter schemas in registry.test.ts use `Type.Object({})` from `typebox` instead of plain object literals.",
+		"Tool `execute` returns must include `details: {}` to satisfy the `AgentToolResult<unknown>` shape.",
+		"Unity test files were moved out of `apps/agent-server/tests/unity/` into the `gizmo-registry` workspace (then later targeted for deletion).",
+		"First-party packages (`activity`, `git`, `svelte`, `unity`, `unity-tools`, `skill-authoring`) were deleted, and the docs now state there are no built-in extensions — the registry starts empty and web extensions de-duplicate by id.",
+		"Web bundles for the editor companion are now read from `dist/web.js` per extension and placed under `~/.pi/agent/extension-web/` (outside Pi's backend auto-discovery) to avoid Pi executing browser code as an extension."
+	],
+	"files": [
+		"apps/agent-server/tests/extensions/registry.test.ts",
+		"apps/agent-server/tests/resources/discover-resources.test.ts",
+		"apps/agent-server/tests/projects/project-catalog.test.ts",
+		"apps/agent-server/tests/unity",
+		"apps/app/src/lib/extensions/runtime/load-web-extension.test.ts",
+		"docs/extensions.md",
+		"packages/activity",
+		"packages/git",
+		"packages/svelte",
+		"packages/unity",
+		"packages/unity-tools",
+		"packages/skill-authoring"
+	],
+	"errors": [
+		"`pnpm check` failed with TS2322 in registry.test.ts because the tool's `execute` return type was missing the required `details` field; resolved by adding `details: {}` to the execute result.",
+		"Two test failures after the registry rewrite: `registerWebExtensions > adds loaded extensions alongside the built-in ones` expected 'svelte' but received ['third-party', 'unity'] because the test still assumed a built-in svelte entry, and `AgentStore > discovers projects and keeps per-session transcripts` got `undefined` for `projectStatus.state` (expected 'connected'). These were being investigated at the end of the segment."
+	],
+	"outcome": "explored"
+}

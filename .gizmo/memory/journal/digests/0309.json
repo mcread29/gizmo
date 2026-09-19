@@ -1,0 +1,21 @@
+{
+	"segment": "0309",
+	"at": "2026-09-18T22:42:24.467Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Mapped the Pi SDK context-management surface (before_agent_start, context, session_before_compact) against gizmo's existing session wiring, then designed a file-based memory system: register memory_write/memory_delete as tools, append a MEMORY.md index in before_agent_start, do dynamic recall in the context hook, and harvest durable facts during compaction. Identified a structural gap — GizmoServerExtension has no pi.on access — and proposed adding a real Pi extension under apps/agent-server/src/pi-extensions/ alongside a GizmoServerExtension wrapper for UI.",
+	"decisions": [
+		"Use files on disk under .gizmo/memory/ rather than a vector DB; keep a MEMORY.md index that always sits in context, load full bodies on demand.",
+		"Use the per-call context hook for dynamic memory injection rather than before_agent_start, to keep memory text out of the session transcript and re-run recall mid-turn; cache the recall result within a turn to limit prompt-cache invalidation.",
+		"Use pi.registerTool with promptSnippet/promptGuidelines so tool documentation flows into Pi's own system prompt sections instead of being hand-rolled.",
+		"Treat compaction as the memory-harvest point by subscribing to session_before_compact/session_compact and extracting durable facts from the summary, reusing Pi's existing CompactionPolicy mapping at apps/agent-server/src/sessions/pi-session-factory.ts:163 rather than replacing it.",
+		"Phase the work: (1) MemoryStore + memory_write/memory_read tools + index in before_agent_start; (2) context hook with turn-scoped cache; (3) compaction harvest; (4) Gizmo UI via list/invoke on a GizmoServerExtension wrapper.",
+		"Ship a real Pi extension at apps/agent-server/src/pi-extensions/memory.ts (loaded via additionalExtensionPaths) alongside a GizmoServerExtension wrapper, because GizmoServerExtension alone cannot subscribe to pi.on events."
+	],
+	"files": [],
+	"errors": [
+		"Bash `cd node_modules/.pnpm/...` with a relative path failed with 'No such file or directory'; resolved by using the absolute /c/Users/mchan/... prefix.",
+		"Bash `ls packages apps && ls node_modules/@mariozechner` exited with code 2 because the @mariozechner directory does not exist; the actual SDK is @earendil-works/pi-coding-agent, confirmed by grepping apps/agent-server/package.json and packages/extensions/package.json.",
+		"Bash `ls node_modules/@earendil-works/pi-coding-agent/dist` exited with code 2 because pnpm hoists the package under node_modules/.pnpm; switched to find node_modules/.pnpm -maxdepth 1 to locate it."
+	],
+	"outcome": "explored"
+}

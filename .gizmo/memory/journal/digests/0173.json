@@ -1,0 +1,36 @@
+{
+	"segment": "0173",
+	"at": "2026-09-18T22:40:16.663Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Continued decomposing large modules and tests into subagent-managed splits, then added a workspace-wide line-length check wired into `pnpm check`. Committed refactors for extensions/registry-manager, conversation helpers, and command-palette modes, plus the split test files produced by sa-17/sa-18, and finally committed the new LOC enforcement tooling.",
+	"decisions": [
+		"All handwritten source/test files must stay <=300 LOC, enforced by a new `scripts/check-file-lengths.mjs` invoked via `pnpm check:loc` and prepended to the existing `pnpm check`.",
+		"Line count in the LOC script excludes a trailing newline so files ending in `\\n` report their actual content line count.",
+		"Subagents performing splits must not commit themselves; the orchestrator stages and commits each group with a scoped refactor/test message.",
+		"Sa-17 split `apps/app/tests/App.test.ts` into semantically named integration files under `apps/app/tests/app/` plus a shared `tests/support/app.ts` fixture.",
+		"Sa-18 split `apps/agent-server/tests/sessions/pi-agent-service.test.ts` into command/creation/events/lifecycle test files with reusable typed fixtures under `tests/sessions/support/`.",
+		"For Svelte 5 `.svelte.ts`/component splits (AgentStore, App.svelte) subagents must load the svelte-code-writer and svelte-core-bestpractices skills and run the Svelte autofixer."
+	],
+	"files": [
+		"apps/agent-server/src/extensions",
+		"apps/app/src/lib/features/conversation",
+		"apps/app/src/lib/features/sessions/CommandPalette.svelte",
+		"apps/app/src/lib/features/sessions/command-palette",
+		"apps/app/tests/lib/features/sessions/command-palette-location.test.ts",
+		"apps/app/src/styles/dialogs-parts/command-palette.css",
+		"apps/agent-server/tests/sessions/pi-agent-service.test.ts",
+		"apps/app/tests/App.test.ts",
+		"apps/app/tests/app",
+		"apps/app/tests/support/app.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service-commands.test.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service-creation.test.ts",
+		"apps/agent-server/tests/sessions/pi-agent-service-events.test.ts",
+		"apps/agent-server/tests/sessions/support",
+		"scripts/check-file-lengths.mjs",
+		"package.json"
+	],
+	"errors": [
+		"Initial `pnpm check:loc` run failed with exit 1 because `App.test.ts`, `pi-agent-service.test.ts`, `pi-agent-service.ts`, and `session-runtime-pool.ts` exceeded 300 lines; root cause was the script counting a trailing newline as an extra line, fixed by subtracting 1 when content ends with `\\n`."
+	],
+	"outcome": "shipped"
+}

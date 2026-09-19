@@ -1,0 +1,15 @@
+{
+	"segment": "0081",
+	"at": "2026-09-18T22:38:51.330Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Attempted to launch the full Gizmo dev stack for the user to test. The direct `pnpm dev` backgrounded via nohup died (pid 288 gone, nothing listening on 5173/8787, leaving orphan node.exe processes), so the assistant switched to the repo's managed dev server (`pnpm dev:server:start`), which launched Pi Web mode detached (PID 36132, logging to .gizmo-dev/dev-server.log). Verified both endpoints are live: Vite app on http://localhost:5173 returns 200 and the agent WebSocket on ws://127.0.0.1:8787/agent answers with 426 to plain HTTP (expected for a WS endpoint).",
+	"decisions": [
+		"Use the managed `pnpm dev:server:start` (Pi Web mode) instead of raw `pnpm dev` because the git-bash backgrounded pnpm process died with its parent shell and left nothing listening; the managed server is explicitly designed for detached background runs with PID/state tracking.",
+		"Test in Pi Web mode (GIZMO_PI_WEB=1) rather than normal mode, since that's what the managed dev server runs and the feature under test works in both modes."
+	],
+	"files": [],
+	"errors": [
+		"`nohup pnpm dev > .gizmo-dev/dev.log 2>&1 &` exited: the wrapper pid 288 disappeared, the log never advanced past the first shell line, neither 5173 nor 8787 became reachable, and several orphan node.exe processes remained in tasklist. The cause was attributed to the backgrounded git-bash process dying when its parent shell closed."
+	],
+	"outcome": "shipped"
+}

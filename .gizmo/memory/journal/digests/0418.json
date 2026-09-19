@@ -1,0 +1,15 @@
+{
+	"segment": "0418",
+	"at": "2026-09-18T22:43:54.229Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated the subagents gizmo extension: located the gizmo-registry repo under ~/.gizmo/registries/, ran its type check and 158 tests (all passing), verified the server-side integration loads cleanly (~2.1s, valid list/invoke), and probed the live WebSocket to confirm subagents is present in the agent-server extension descriptors. Then began checking why the web side never activates it, inspecting the integration resolver, web bundle loader diagnostics, and protocol version (27).",
+	"decisions": [
+		"Approach the issue as runtime, not build, since pnpm check and pnpm test both pass in the gizmo-registry repo (46 files, 158 tests).",
+		"Probe the running agent-server via WebSocket from the browser instead of just reading source, to compare server-side vs web-side activation."
+	],
+	"files": [],
+	"errors": [
+		"esbuild TransformError when loading one extension index.ts under apps/agent-server with tsx; worked around by renaming to .mts, after which both subagents and workflows imported successfully and returned valid gizmoExtension objects."
+	],
+	"outcome": "explored"
+}

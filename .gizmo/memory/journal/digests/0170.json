@@ -1,0 +1,43 @@
+{
+	"segment": "0170",
+	"at": "2026-09-18T22:40:12.769Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Standardized workspace test discovery by moving .test.ts files from src/ to tests/ in protocol/extensions/ui packages, updating their imports, and adding per-package vitest.config.ts files plus updated tsconfig.json includes. Then promoted several Svelte UI components (Menu, ScrollPanel, SelectField, Tabs) from apps/app to packages/ui and re-exported them, with keyed each blocks where applicable.",
+	"decisions": [
+		"Move co-located .test.ts files into a sibling tests/ directory rather than keep them under src/, to separate sources from test discovery.",
+		"Re-export the promoted Svelte components (Menu, ScrollPanel, SelectField, Tabs) and their types (MenuItem, SelectOption, TabItem) from packages/ui rather than duplicating them.",
+		"Use Svelte 5 keyed each blocks for Menu items (keyed by item.label) and Tabs items (keyed by item.value) when relocating the components."
+	],
+	"files": [
+		"packages/protocol/src/index.test.ts",
+		"packages/extensions/src/patch.test.ts",
+		"packages/ui/src/diff.test.ts",
+		"packages/protocol/tests/index.test.ts",
+		"packages/extensions/tests/patch.test.ts",
+		"packages/ui/tests/diff.test.ts",
+		"packages/protocol/tsconfig.json",
+		"packages/extensions/tsconfig.json",
+		"apps/agent-server/vitest.config.ts",
+		"packages/protocol/vitest.config.ts",
+		"packages/extensions/vitest.config.ts",
+		"packages/ui/vitest.config.ts",
+		"apps/app/src/lib/components/ConfirmDialog.svelte",
+		"packages/ui/src/ConfirmDialog.svelte",
+		"packages/ui/src/index.ts",
+		"apps/app/src/lib/components/index.ts",
+		"apps/app/src/lib/components/Menu.svelte",
+		"apps/app/src/lib/components/ScrollPanel.svelte",
+		"apps/app/src/lib/components/SelectField.svelte",
+		"apps/app/src/lib/components/Tabs.svelte",
+		"packages/ui/src/Menu.svelte",
+		"packages/ui/src/ScrollPanel.svelte",
+		"packages/ui/src/SelectField.svelte",
+		"packages/ui/src/Tabs.svelte",
+		"packages/design/package.json",
+		"packages/ui/package.json"
+	],
+	"errors": [
+		"Initial edit on packages/ui/src/Tabs.svelte failed with 'Found 2 occurrences of edits[1]… Each oldText must be unique' because the same `{#each items as item}` text appeared twice; resolved by providing more surrounding context for both occurrences."
+	],
+	"outcome": "shipped"
+}

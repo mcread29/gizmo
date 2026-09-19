@@ -1,0 +1,19 @@
+{
+	"segment": "0054",
+	"at": "2026-09-18T22:38:16.468Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The user requested adding a global pi skills/extensions manager and editor to gizmo, with skills editable as .md and extensions toggleable, citing pstack skills, Matt Pocock, and Ben Davis' pi setup as inspiration. The assistant spawned three research subagents for those references and inspected the gizmo repo (README, docs/resources.md, docs/extensions.md, agent-client, agent-server pi-agent-service, package manifests, and existing skill SKILL.md files) to understand current resource handling and Pi extension APIs.",
+	"decisions": [
+		"Skills will be editable in .md format, and extensions will be enable/disable togglable at a global level.",
+		"Inspiration sources: pstack skills, Matt Pocock's skills, and Ben Davis' pi setup (my-pi-setup repo at https://github.com/davis7dotsh/my-pi-setup).",
+		"Pi's Agent Skills standard is the reference for skill format; compatibility differences (e.g., pstack 'Poteto Mode' display-style names vs portable lowercase-hyphenated spec names) should be flagged rather than rejected.",
+		"Existing gizmo direction (per docs/resources.md): skills are installed globally, start disabled, can be overridden per workspace profile; prompts and AGENTS.md are listed for inspection only, not toggleable; no file watcher for the catalog.",
+		"Pi extension discovery paths: `~/.pi/agent/extensions/` (global) and `.pi/extensions/` (project-local), per Pi's docs/extensions.md."
+	],
+	"files": [],
+	"errors": [
+		"ripgrep searches against node_modules/@earendil-works/pi-coding-agent/dist failed with 'The system cannot find the path specified' (os error 3); a corrected path under node_modules/.pnpm/.../dist was located subsequently.",
+		"The reasoning block 'Planning per-project extension management / Evaluating global versus per-project extension enabling' appears truncated/middle-elided in the transcript."
+	],
+	"outcome": "explored"
+}

@@ -1,0 +1,12 @@
+{
+	"segment": "0471-9b8c4b05",
+	"at": "2026-09-18T22:44:53.707Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Notified that the 'Registry hygiene: collapse wrappers' background agent failed due to an API rate-limit error (HTTP 429) at the session limit, while its underlying process exited successfully.",
+	"decisions": [],
+	"files": [],
+	"errors": [
+		"Background agent 'Registry hygiene: collapse wrappers' (task a304a43a54403c6d6) failed with HTTP 429 rate_limit ('You've hit your session limit · resets 4:30pm (America/Los_Angeles)') on model claude-sonnet-5, even though the agent's result exited with code 0."
+	],
+	"outcome": "blocked"
+}

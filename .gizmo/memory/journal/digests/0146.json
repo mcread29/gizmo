@@ -1,0 +1,24 @@
+{
+	"segment": "0146",
+	"at": "2026-09-18T22:39:54.641Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated the current state of Unity, Git, Svelte, Activity, and Ask User extensions across the monorepo, mapping package paths, exports, dependencies, tests, static coupling, and runtime integration points. Identified that load-web-extension drops inspectorTabs, that Pi extension installation does not populate activeDomains, and that the Pi extension contract cannot carry Git or Unity server lifecycles without a backend-to-web invoke/events bridge.",
+	"decisions": [
+		"Do not copy the four workspace packages directly into pi-extension.ts; their entry shape is incompatible with Pi and workspace:* dependencies will not install independently.",
+		"Keep Ask User as the reference Pi extension implementation.",
+		"Fix generic companion loading before moving UI packages: preserve inspectorTabs in load-web-extension.ts, activate companions from enabled Pi extension identity rather than only activeDomains, standardize runtime entries on gizmoWebExtension, and fix Unity's export mismatch.",
+		"Move Svelte next by rewriting its prompt as a Pi extension hook and dropping the web stub unless Svelte-specific workspace labeling remains a requirement.",
+		"Prefer absorbing Activity into core UI rather than migrating it; otherwise ship a no-op Pi entry plus companion bundle after activation fixes.",
+		"Move Git only after a Pi backend-to-web request/events channel exists; rewrite GitService behavior into the Pi extension, move the panel and tests, relocate patchFileName, then remove the static app import, server GitService import, special commit-message route, and Git-specific store operations.",
+		"Move Unity last, including packages/unity-tools, putting project process/status/open/console management inside the Pi extension and exposing status and console data through the planned declarative events/invoke bridge; remove the root Unity build hardcode and workspace dependencies only after runtime loading is verified.",
+		"Remove each ID from gizmo.extensions.json only when its Pi replacement is active to avoid duplicate web IDs and duplicate backend behavior.",
+		"If immediate physical extraction is needed before the Pi bridge is complete, extend gizmo.registry.json and registry-manager.ts with a second explicitly legacy GizmoServerExtension artifact type rather than stretching the pi-extension.ts contract."
+	],
+	"files": [],
+	"errors": [
+		"packages/unity/src/web/unity/CompileConfirmationDialog.test.ts imports nonexistent package-local paths '../../app-settings', '../../agent-client', and '../shell/workspace.svelte'.",
+		"packages/unity/src/web/console/console-extension.test.ts imports nonexistent '../types'; the available contract is '../host.ts'.",
+		"packages/unity/package.json has no 'check' or 'test' script and no package tsconfig, so the broken Unity tests are not exercised by recursive workspace commands."
+	],
+	"outcome": "explored"
+}

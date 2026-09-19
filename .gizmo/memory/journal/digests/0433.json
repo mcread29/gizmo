@@ -1,0 +1,21 @@
+{
+	"segment": "0433",
+	"at": "2026-09-18T22:44:18.104Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Conducted a read-only audit of the session tree UI, agent-server session operations, fake client, CSS, and related tests. No files were modified. Identified 10 issues spanning branching semantics (user-entry double-click, server bypass of Pi runtime state, fake-client history loss), tree refresh revision staleness during streaming, selection loss under default filter, edit-state loss on branch failure, missing concurrency guards, dropped valid Pi entry types in serialization, missing cycle protection in `visibleParent`, and CSS/responsive risks.",
+	"decisions": [
+		"Branching a user entry must use Pi's `navigateTree()` semantics (move to parent, prefill user text) rather than treating it as a child, producing `user → user` chains.",
+		"The client updates `store.messages` directly on branch, bypassing Pi's runtime state; the next server prompt may use the abandoned branch's runtime context unless a tree-navigation op on `PiSessionLike` delegates to Pi's `navigateTree()`.",
+		"The fake client's `branch()` truncates its linear `messages` array, contradicting the real append-only tree; it should be remodeled with persistent all-entry storage, explicit `parentId`, and a current `leafId` that branch navigation only changes.",
+		"`treeRevision` is computed from `sessionId` + `messageCount` and misses completion events and non-message entries; it should use an explicit server-side tree revision/version or reload on message completion.",
+		"If the current `leafId` is filtered out (e.g., a tool-only assistant under the default filter), selection becomes undefined and the footer says 'Select an entry'; either always render the current leaf or fall back to the nearest visible ancestor.",
+		"Editor state in `SessionTreeScreen` clears `editing` before `branchTo()` runs, so a branch failure discards the user's typed prompt; edit state should be retained until branching succeeds.",
+		"`SessionTreeActions` buttons are only disabled while streaming, leaving them concurrency-unsafe under repeated clicks and double-click branching; a `branching`/`forking` state should disable all tree actions and ignore duplicate requests.",
+		"`treeEntry()` in `session-transcript.ts` has no representation for `custom_message`, `custom`, bash, and other valid session entries; they should be mapped to `kind: 'other'` with a useful summary/detail.",
+		"`visibleParent()` lacks the cycle protection that `activePath()` has; self-parent or cyclic entries should be tracked and treated as roots, falling back to `null`.",
+		"Recommended interaction model: single click selects only; user entries show 'Fork and edit' with prefilled text, assistant/tool/other entries show 'Fork and continue' with an empty composer; branch only on prompt submit; keep old branches immutable and visible; keep editor open with text preserved on failure."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

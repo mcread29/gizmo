@@ -1,0 +1,29 @@
+{
+	"segment": "0400",
+	"at": "2026-09-18T22:43:39.169Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Ported CSS-injection logic from the registry's web-extension builder into the gizmo repo's build script so emitted CSS assets get installed via a keyed <style> tag instead of being dropped silently. Added a regression test, fixed two bugs (wrong variable name `entries`, treating bundles as entries), and verified with vitest (3/3) and svelte-check (0 errors). Then committed the gizmo changes plus the prior transport refactor in two separate commits.",
+	"decisions": [
+		"Web-extension builder now flattens bundle outputs into a single `entries` array and both chunk-selection and CSS collection iterate over it, matching the registry builder's structure.",
+		"CSS injection uses a <style> tag keyed by `package`-derived styleKey with a `data-gizmo-extension-style` attribute so reinstalls replace cleanly.",
+		"Regression test fixture uses a plain `.css` import from the entry, with lenient assertions on `fixture-panel`, `color:red`, and `data-gizmo-extension-style` rather than tying to exact formatting.",
+		"Split into two commits: (1) transport refactor owning agent resources by the server, (2) narrow-width sidebar fixes + web-extension CSS-injection, so each commit is a coherent unit."
+	],
+	"files": [
+		"apps/app/scripts/build-web-extension.ts",
+		"apps/app/tests/scripts/build-web-extension.test.ts",
+		"apps/app/src/styles/sidebar-parts/layout.css",
+		"apps/app/src/styles/workspace-dashboard.css",
+		"apps/app/src/lib/features/workspace/WorkspaceScreen.svelte",
+		"apps/agent-server/src/transport/project-watch-coordinator.ts",
+		"apps/agent-server/src/transport/websocket-connection.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/tests/transport/project-watch-coordinator.test.ts",
+		"apps/agent-server/tests/transport/websocket-server.lifecycle.test.ts"
+	],
+	"errors": [
+		"Initial port referenced `entries.flatMap(...)` but the gizmo code defined `outputs`/`chunks` only — caused ReferenceError on the CSS collection path.",
+		"First CSS test failed with empty CSS because the code iterated `outputs` (bundles) instead of flattening to per-entry assets; fixed by introducing `entries = outputs.flatMap(...)` and iterating `entries`."
+	],
+	"outcome": "shipped"
+}

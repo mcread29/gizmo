@@ -1,0 +1,29 @@
+{
+	"segment": "0437",
+	"at": "2026-09-18T22:44:19.464Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented the built-in Gizmo `display` Pi tool with a shared validator in `packages/protocol/src/display.ts`, registered it alongside memory-journal, and wired the optional input dialog through the existing `ctx.ui` API (no new transport). The tool emits the display envelope via `onUpdate` before awaiting user input, returns `{status:'submitted',value}` or `{status:'cancelled'}`, and errors explicitly on headless runs that request input. Fixed several TypeScript test compilation issues, added validator tests, and verified with focused vitest runs (23 protocol tests + 13 tool tests passing) plus `tsc` and file-length checks.",
+	"decisions": [
+		"Shared display parser/types live in `packages/protocol/src/display.ts` and are re-exported via `packages/protocol/src/index.ts`; tool backend lives in `apps/agent-server/src/pi-extensions/display.ts`.",
+		"Display envelope shape: `tool details.gizmoDisplay = { version:1, title?, spec }`; final result adds `response: { status:'submitted', value } | { status:'cancelled' }` and textual result must include the input response for the agent.",
+		"Tool publishes spec via `onUpdate` BEFORE awaiting `ctx.ui.input/select/confirm` so the chart/card appears while the input dialog waits; no input means immediate completion.",
+		"Headless `ctx.hasUI === false` returns an explicit error when input is requested, rather than hanging; abort signal settles the tool with `cancelled` even if the UI never responds.",
+		"`confirm` returning `false` is treated as cancelled/No-or-dismissed and documented as such (indistinguishable from cancel).",
+		"Strict validation rejects arbitrary HTML/actions/dynamic expressions via TypeBox `strict` schemas and bounded JSON budgets (envelope parsing budget 70_000 chars / 11_000 entries).",
+		"Built-in registration wired via the factory's `additionalExtensionPaths` alongside `journalExtensionPath()`, with `before_agent_start` guidance exposing the `display` tool description and contract.",
+		"Test mocks cast UI-only context to `ExtensionContext` via `unknown`; exposure tests pass the factory's `cwd` through to `beforeAgentStart` rather than reading it off the session."
+	],
+	"files": [
+		"packages/protocol/src/display.ts",
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/pi-extensions/display.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"packages/protocol/tests/display.test.ts",
+		"apps/agent-server/tests/pi-extensions/display.test.ts",
+		"apps/agent-server/tests/pi-extensions/display-exposure.test.ts"
+	],
+	"errors": [
+		"Initial `tsc` failed with 5 errors in display tests: `cwd` missing on `AgentSession` in exposure tests, mock `ExtensionContext` cast incompatibility, `.details?.gizmoDisplay`/`.details?.response` property access on `{}`, and `Promise.withResolvers` missing under the current TS lib target. Fixed by returning `{session, cwd}` from the build helper, casting mock through `unknown`, asserting via `toMatchObject`, and (per the file) using a polyfill-friendly resolver pattern."
+	],
+	"outcome": "shipped"
+}

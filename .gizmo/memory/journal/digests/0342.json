@@ -1,0 +1,13 @@
+{
+	"segment": "0342",
+	"at": "2026-09-18T22:42:55.463Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated how workspaces are added and how the registry clone is integrated. Confirmed the web server is running, inspected project catalog and workspace browser code, and verified the gizmo-registry local clone exists and is clean.",
+	"decisions": [
+		"To add the gizmo-registry as a workspace in the production app, the user opens the workspace picker from the left sidebar and enters the full path `C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry` (treating it as a normal workspace, not a registry reinstall).",
+		"Adding the registry clone only inserts it into Gizmo's workspace list; it does not reinstall or relink extensions. The caveat is that later workspace-specific settings will create `.gizmo/config.json` inside the registry clone."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

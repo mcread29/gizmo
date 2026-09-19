@@ -1,0 +1,28 @@
+{
+	"segment": "0108",
+	"at": "2026-09-18T22:39:15.315Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Restructured the ask-user extension from a workspace package into a per-extension directory under pi-extensions/, added a bun-runnable build script that emits sibling .web.js bundles via the existing web-extension bundler, and began migrating tests away from the static builtin — but ran into a failing test setup and stopped mid-debug.",
+	"decisions": [
+		"Move pi-extensions into per-extension dirs (e.g. pi-extensions/ask-user) with optional src/web/index.ts, so the existing buildWebExtension(packageDir, outFile) bundler can be reused.",
+		"Emit sibling bundles as pi-extensions/<name>.web.js instead of embedding them in the sidecar build.",
+		"Add a root script scripts/build-pi-extensions.ts wired as `pi-extensions:build` in package.json and run it with bun (not tsx), because the bundler uses top-level await under CJS.",
+		"Remove the static ask-user builtin from the app registry so ask-user loads at runtime like a third-party extension (drop @gizmo/ask-user workspace dep and registry import).",
+		"In ask-user.test.ts, register ask-user inside beforeEach (guarded by extension('ask-user') check) rather than beforeAll, because apps/app/src/test/setup.ts re-registers unity in a beforeEach that resets installed each test."
+	],
+	"files": [
+		"pi-extensions/ask-user/pi-extension.ts",
+		"pi-extensions/ask-user/src/web/index.ts",
+		"pi-extensions/ask-user/src/web/AskUserToolResult.svelte",
+		"packages/ask-user/package.json (deleted)",
+		"scripts/build-pi-extensions.ts",
+		"package.json",
+		"apps/app/src/lib/extensions/ask-user.test.ts"
+	],
+	"errors": [
+		"bun scripts/build-pi-extensions.ts initially failed under npx tsx with \"Top-level await is currently not supported with the cjs output format\" from esbuild; fixed by switching the script invocation to bun.",
+		"ask-user.test.ts failed: after a successful beforeAll registration, the it() body showed installed ids as [svelte, git, activity, unity] — ask-user gone and unity present. Root cause: apps/app/src/test/setup.ts calls registerWebExtensions([unityWebExtension]) in a beforeEach that replaces installed each test, wiping the beforeAll-registered ask-user.",
+		"Final vitest run reported \"Test Files 1 failed (1) / Tests no tests\" after the beforeAll→beforeEach rewrite; the rewrite appears to have removed/left zero tests in the file — not yet resolved in this segment."
+	],
+	"outcome": "blocked"
+}

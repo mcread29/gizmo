@@ -1,0 +1,24 @@
+{
+	"segment": "0237",
+	"at": "2026-09-18T22:41:18.188Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Created a `remove-nul-files` command on PATH (a Node.js script plus a .cmd shim in `C:\\Users\\mchan\\.pi\\agent\\bin`) that recursively removes case-insensitive `NUL` files under the home directory without following symlinks, and ran it to delete 8 existing NUL files. Then created two private GitHub repositories (`mcread29/gizmo-registry` and `mcread29/gizmo-skills-registry`), pushed the existing local registry contents to them, pointed `installed.json` at the GitHub URLs, and committed and pushed the leftover `ChangesPanel` changes in `gizmo-registry` (commit `fa038ec`).",
+	"decisions": [
+		"Installed the NUL remover as `remove-nul-files` in `C:\\Users\\mchan\\.pi\\agent\\bin` (already on PATH) using a `.mjs` script wrapped by a `.cmd` shim so it works as a bare command.",
+		"The NUL scanner does not follow directory symlinks (checks `!entry.isSymbolicLink()`) and counts unscannable directories as `skipped` rather than `failed`, exiting 0 as long as at least one root was readable.",
+		"Hosting the two Gizmo registries as private repos on GitHub under `mcread29/`, switching their tracked `origin` from the local managed copies to the GitHub URLs (HTTPS in installed.json, SSH in git remotes).",
+		"Bumped the installed registry manifest's recorded commit for `gizmo-registry` to `fa038ec` after the `refine changes panel rendering` commit was pushed."
+	],
+	"files": [
+		"C:\\Users\\mchan\\.pi\\agent\\bin\\remove-nul-files.mjs",
+		"C:\\Users\\mchan\\.pi\\agent\\bin\\remove-nul-files.cmd",
+		"C:\\Users\\mchan\\.gizmo\\registries\\installed.json",
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\packages\\git\\src\\web\\ChangesPanel.svelte",
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\packages\\git\\src\\web\\ChangesPanel.test.ts"
+	],
+	"errors": [
+		"Initial `remove-nul-files --dry-run` exited with code 1 because inaccessible directories were counted as failures; after changing them to a `skipped` count with `console.warn`, the real run exited 0.",
+		"`C:\\Users\\mchan\\AppData\\Local\\ElevatedDiagnostics` could not be scanned (EPERM); handled by the skip path and reported as 'Skipped 1 inaccessible directory'."
+	],
+	"outcome": "shipped"
+}

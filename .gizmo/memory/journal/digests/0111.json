@@ -1,0 +1,29 @@
+{
+	"segment": "0111",
+	"at": "2026-09-18T22:39:19.082Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added end-to-end support for Pi extensions to ship sibling UI bundles (`.web.js`), giving the subagents extension the same delivery path the git panel uses. The server now scans Pi extension dirs (user agent dir + seeded data dir) for sibling web bundles, serves them via `extensions.web`, the generator embeds built UI into the seeded sources, and seed runs before listing so fresh installs serve UI from first startup. Verified live (`bundles: unity, ask-user`) and committed as `380304b`.",
+	"decisions": [
+		"Sibling-bundle convention: a web bundle travels as `<stem>.web.js` next to the extension (or its seeded copy in the data dir), discovered by file stem — consistent with the existing ask-user pair.",
+		"Precedence: bundles dedupe by id across Gizmo extensions and Pi extension dirs, with the user's agent-dir copy winning over a shipped one (mirroring pi tool precedence).",
+		"Scan both dirs: `<piAgentDir>/extensions` and `<defaultDataDir>/pi-extensions`, in that order, in the `extensions.web` handler (already-registered Gizmo extensions are merged in too).",
+		"Generator also embeds built `pi-extensions/<name>.web.js` into a generated `<name>-web-source.ts` so it ships in the compiled agent server, mirroring how shipped extensions are embedded.",
+		"Seed runs before the data-dir listing at first startup so a fresh install serves its UI without requiring a re-launch.",
+		"Methodology stays extension-scoped: Gizmo only knows the generic `GizmoWebExtension` contract, the bridge request vocabulary with generic renderers, and a shipping manifest in `pi-extensions/seed.ts` listing which files ship; per-tool semantics, labels, result renderers, and tabs all live in each extension's own bundle (verified via grep: zero runtime references to ask_user/subagents/workflows in app or server code)."
+	],
+	"files": [
+		"apps/agent-server/src/extensions/web-bundles.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"scripts/generate-pi-extension-source.ts",
+		"apps/agent-server/src/pi-extensions/seed.ts",
+		"apps/agent-server/src/pi-extensions/ask-user-source.ts",
+		"apps/agent-server/src/pi-extensions/ask-user-web-source.ts"
+	],
+	"errors": [
+		"Initial `piExtensionWebBundles` implementation skipped non-dotfiles instead of dotfiles (inverted condition: `if (!entry.name.startsWith('.')) continue` should have been `if (entry.name.startsWith('.')) continue`); corrected immediately.",
+		"Dev server did not appear to restart after edits, so the seeded pair was absent and the new handler hadn't run; resolved by explicitly restarting the dev server and re-probing, after which both bundles (unity + ask-user) and the seeded files were present.",
+		"`pnpm --filter @gizmo/agent-server check` returned exit code 1 with zero matched errors, interpreted as a benign noise/false-positive (no actual `error` lines)."
+	],
+	"outcome": "shipped"
+}

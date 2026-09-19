@@ -1,0 +1,30 @@
+{
+	"segment": "0454-a82ef982",
+	"at": "2026-09-18T22:44:38.557Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "The assistant iterated on the headless Playwright verification harness for the SessionSidebar and conversation flow: fixed selector mismatches (workspace-toggle → workspace-disclosure), relaunched the machine-local web/agent server via .gizmo-web/startup.cmd after a misconfigured restart dropped the domain origin from the allowlist, and reworked probe.mjs/verify-fake.mjs to set the Origin header so the agent WebSocket would accept the connection. It then guarded stale virtual rows, added fake session usage, lowered the fake compaction size threshold, and extended the verify script with longer threads and scroll diagnostics so all eight UI behaviors pass headlessly. Finally it ran format/check/test/loc checks, deleted patch scripts, and began extracting fake thread extras into a new thread-extras.ts module to bring MessageList.svelte and prompt-stream.ts under the 300-line cap.",
+	"decisions": [
+		"Use button[data-ui=\"workspace-disclosure\"] as the workspace-toggle selector in verify scripts.",
+		"Relaunch the web/agent server through .gizmo-web/startup.cmd (the scheduled-task launcher) rather than ad-hoc restarts, because the launcher sets GIZMO_WEB_HOSTS/GIZMO_WEB_ORIGINS needed for the domain origin/host allowlists.",
+		"Make probe/verify scripts send Origin: https://gizmo.genge.init0.link on the Playwright context so the agent server's WebSocket origin allowlist accepts the connection.",
+		"Lower the fake compaction threshold from messageCount >= 6 to >= 5 and pre-grow the thread in verify-fake.mjs so scroll/jump checks see enough content.",
+		"Move the mouse over the transcript viewport before wheeling in verify-fake.mjs so wheel events reach the scroll container.",
+		"Extract the fake usage/compaction/queue extras from prompt-stream.ts into a new fake-client/thread-extras.ts module to satisfy the 300-line file limit."
+	],
+	"files": [
+		".gizmo-dev/verify.mjs",
+		".gizmo-dev/probe.mjs",
+		".gizmo-dev/verify-fake.mjs",
+		"apps/app/src/lib/features/conversation/MessageList.svelte",
+		"apps/app/src/lib/agent-client/fake-client/prompt-stream.ts",
+		"apps/app/src/lib/agent-client/fake-client/thread-extras.ts",
+		".gizmo-web/server.log"
+	],
+	"errors": [
+		"Headless probe timed out waiting for button[data-ui=\"workspace-disclosure\"] after a server restart left the agent's WebSocket origin allowlist without the domain origin, producing HTTP Authentication failed on the upgrade.",
+		"First relaunch attempt via Start-Process on startup.cmd failed with 'Port 4173 is already in use' because the prior server was still listening.",
+		"Listener/curl check command exited with code 143 after 2 minutes (timeout) while verifying domain origin/host acceptance.",
+		"Initial verify-fake run threw 'Cannot read properties of undefined (reading createdAt)' from a stale virtual row before the guard was added, and a later run hit a 30s timeout on [data-ui=\"jump-to-latest\"] button before the thread was made long enough and the mouse was moved over the viewport."
+	],
+	"outcome": "explored"
+}

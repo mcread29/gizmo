@@ -1,0 +1,15 @@
+{
+	"segment": "0162",
+	"at": "2026-09-18T22:40:05.635Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated a reported bug where /compact reports 'NOTHING TO COMPACT' on a session with real content, instrumenting buildSessionContext to inspect messages, tokens, and findCutPoint output. Discovered the actual project under development is the user's own gizmo (pi-web) repo, and began tracing the context-fill UI (UsageMeter, usage.ts, SessionUsage, session.usage events in pi-agent-service) to understand when the fill bar appears.",
+	"decisions": [
+		"Confirmed via instrumentation that the failing session (22-49-19) has 45 context messages and estimateContextTokens of 28980 but findCutPoint returns firstKeptEntryIndex 0 / turnStartIndex -1 — bug reproduces in upstream pi-coding-agent compaction.js, not in gizmo itself",
+		"Recognized gizmo (apps/agent-server + apps/app) IS the user's pi-web project, so the 'compact UI' under discussion lives in this repo, not upstream"
+	],
+	"files": [],
+	"errors": [
+		"Reproduction: session 22-49-19 (45 messages) reports 'NOTHING TO COMPACT' despite estimateContextTokens=28980 — findCutPoint returns firstKeptEntryIndex=0, turnStartIndex=-1, so messagesToSummarize is empty; root cause not yet located"
+	],
+	"outcome": "explored"
+}

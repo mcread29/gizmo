@@ -1,0 +1,22 @@
+{
+	"segment": "0196",
+	"at": "2026-09-18T22:40:33.652Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored PiAgentService into cohesive extracted modules (event hub, session catalog, session operations, runtime pool, session factory, model runtime, tool policy, shared types) while preserving pi-agent-service.ts as a stable facade. Reformatted an arrow-body unsubscribe for readability, replaced a wildcard type re-export with explicit named exports, ran prettier, type-check, and the full vitest suite (21 files, 114 tests passing), and confirmed each handwritten session file is <=300 LOC.",
+	"decisions": [
+		"Kept apps/agent-server/src/sessions/pi-agent-service.ts as the stable public facade/import path, with extracted types explicitly re-exported by name instead of via `export type *`."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/agent-event-hub.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/sessions/pi-agent-types.ts",
+		"apps/agent-server/src/sessions/pi-model-runtime.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/sessions/session-catalog-service.ts",
+		"apps/agent-server/src/sessions/session-operations.ts",
+		"apps/agent-server/src/sessions/session-runtime-pool.ts",
+		"apps/agent-server/src/sessions/tool-policy-service.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

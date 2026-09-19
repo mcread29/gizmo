@@ -1,0 +1,30 @@
+{
+	"segment": "0404",
+	"at": "2026-09-18T22:43:42.928Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Addressed five UI complaints in the Gizmo chat app: moved the Stop button next to Send, converted the context usage bar into a radial ring, shrunk the model/thinking pill, fixed message overflow by pinning message body and part grids to minmax(0, 1fr), and corrected clipped text descenders in select labels by giving them the snug line-height. Verified visually in the browser, passed svelte-check, prettier, and all 34 app tests.",
+	"decisions": [
+		"Reasoning block wrap issue was traced to the message-body and message-part grids using a default `auto` column (the same root cause as the earlier sidebar bug), so both grids were pinned to `minmax(0, 1fr)` to let long code lines wrap inside their column.",
+		"Clipped descenders were fixed at the shared design layer by setting `line-height: var(--leading-snug)` on `[data-ui='select-label']` and `[data-ui='select-hint']` in packages/design/primitives.css, so every select in the app benefits, not just the composer's.",
+		"Model pill was reduced by hiding the provider suffix in the trigger (showing it only in the menu), capping each segment at 11rem and 24px tall, and joining model + thinking level into one outlined pill split by a hairline divider.",
+		"Usage meter was redesigned as a 16px radial ring that fills clockwise using the same ok/warn/full thresholds as before, remaining hidden until a response reports usage and keeping token counts and cost in its tooltip.",
+		"Stop button placement changed to sit immediately before Send in the composer toolbar's right group, with the integration test updated to assert the new order instead of the old 'Stop far from Send' arrangement."
+	],
+	"files": [
+		"apps/app/src/lib/features/conversation/ComposerToolbar.svelte",
+		"apps/app/src/lib/features/conversation/UsageMeter.svelte",
+		"apps/app/src/lib/features/conversation/Composer.svelte",
+		"apps/app/src/styles/composer-parts/model-controls.css",
+		"apps/app/src/styles/composer-parts/editor.css",
+		"apps/app/src/styles/message-parts/messages.css",
+		"apps/app/src/styles/sidebar-parts/layout.css",
+		"packages/design/src/primitives.css",
+		"apps/app/tests/app/conversation.integration.test.ts"
+	],
+	"errors": [
+		"The zoom screenshot tool returned `Region exceeds viewport boundaries (1438x1497)` when the requested composer region fell outside the visible viewport; a full-viewport screenshot was taken instead.",
+		"One reasoning block in the thread rendered at 1071px width inside a 582px message body, traced to the default `auto` grid column and fixed by switching to `minmax(0, 1fr)`.",
+		"Select labels and hints using `line-height: 1` for vertical centering lost descenders (g, p) inside overflow-hidden spans; fixed by applying `var(--leading-snug)` in the shared design primitives."
+	],
+	"outcome": "shipped"
+}

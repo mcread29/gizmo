@@ -1,0 +1,20 @@
+{
+	"segment": "0128",
+	"at": "2026-09-18T22:39:38.100Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated apps/app test failures, identifying a WorkspaceInspector test failure caused by a missing `apiVersion` field on a mocked extension. Set `apiVersion: 1` on the test fixture to satisfy the registry's version check, then updated documentation (`docs/project-configuration.md`, `docs/extensions.md`) to clarify extension activation, registry catalog entries, and the distinction between Pi's \"Extensions\" concept and `GizmoServerExtension`.",
+	"decisions": [
+		"WorkspaceInspector test fixture must declare `apiVersion: 1` on the mocked extension definition so the registry's `definition.apiVersion !== descriptor.apiVersion` check passes and the inspector tabs render.",
+		"Docs rewrite: Gizmo extensions are activated via the registry catalog (per-workspace enable/disable, no workspace detection in Gizmo); Pi's \"Extensions\" concept is treated as separate from `GizmoServerExtension`, with client runtime loading delivered over the agent connection."
+	],
+	"files": [
+		"apps/app/src/lib/extensions/WorkspaceInspector.test.ts",
+		"docs/project-configuration.md",
+		"docs/extensions.md"
+	],
+	"errors": [
+		"WorkspaceInspector test failed with `expected true, received null` for `[data-ui=\"test-domain-panel-tab\"]` because the mocked extension definition lacked `apiVersion`, causing the registry to skip activation; fixed by adding `apiVersion: 1` to the fixture.",
+		"Initial docs edit to `docs/project-configuration.md` failed because the `oldText` did not match exactly; a follow-up read confirmed the actual content and a corrected edit succeeded."
+	],
+	"outcome": "explored"
+}

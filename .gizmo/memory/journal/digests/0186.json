@@ -1,0 +1,18 @@
+{
+	"segment": "0186",
+	"at": "2026-09-18T22:40:28.494Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Audited the workspace's test layout, ran the Svelte autofixer on the two test-only Svelte components (no issues found), and executed `pnpm check` (passed) and `pnpm test`. Test discovery via Vitest defaults finds 52 files / 303 tests across 5 workspaces, but 17 tests in `apps/agent-server` fail on Windows due to POSIX path-separator and permission assumptions.",
+	"decisions": [
+		"Do not run a production build or format check during the audit; only run `pnpm check` and `pnpm test`, and leave the working tree untouched (confirmed clean on branch `pi-web`).",
+		"Recommend standardizing on `<workspace>/tests/` mirroring production paths with `tests/setup.ts` and `tests/fixtures/`, migrating away from colocated `src/**/*.test.ts` and centralized `tests/` mixes.",
+		"Keep `apps/app/src/lib/agent-client/FakeAgentClient.ts` in `src/` because `src/main.ts` dynamically loads it for a development runtime mode (not test-only), but move the two Svelte test fixtures (`TestExtensionPanel.svelte`, `TitlebarTestHost.svelte`) under `tests/.../fixtures/`.",
+		"Note that `packages/design` has no tests and no `check` script and is silently skipped by root `--if-present` runs; `packages/ui` is also skipped from `pnpm check` despite containing Svelte/TS — both should gain tsconfigs/`check` scripts.",
+		"Root `pnpm build` runs `pnpm extensions:build`, but no such script exists in the repo — flagged as a broken build command."
+	],
+	"files": [],
+	"errors": [
+		"`pnpm test` failed: 17 Windows-only test failures in `apps/agent-server` across 4 files. `src/scripts/run-script.test.ts` throws `Script must be inside the workspace: <name>` instead of the expected `Shell scripts are not supported` / `No such script` / `Bun is required` messages because tests pass relative paths and the resolver rejects them. `src/resources/extension-resources.test.ts`, `tests/config/pi-runtime-config.test.ts` (auth.json mode expected 0o600, got 0o666), and `tests/sessions/session-repository.test.ts` (workspacePath comes back as `C:\\projects\\...` Windows paths instead of POSIX `/projects/...`). CI only runs Ubuntu, so these regressions are uncaught."
+	],
+	"outcome": "explored"
+}

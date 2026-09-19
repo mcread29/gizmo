@@ -1,0 +1,24 @@
+{
+	"segment": "0192",
+	"at": "2026-09-18T22:40:30.178Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored apps/agent-server/src/transport/websocket-server.ts into nine cohesive modules (websocket-server, websocket-connection, protocol-messages, request-message-handler, request-router, session-request-handler, resource-request-handler, project-request-handler, project-watch-coordinator) each under 300 LOC, keeping the createAgentWebSocketServer export path and API stable.",
+	"decisions": [
+		"Split the single transport file into connection lifecycle (websocket-connection), protocol serialization/parsing (protocol-messages), request dispatch (request-router + request-message-handler), per-domain handlers (session/resource/project-request-handler), and project watch reuse (project-watch-coordinator), with websocket-server reduced to a thin server/origin-check coordinator.",
+		"Preserved the createAgentWebSocketServer public export from ./transport/websocket-server, so src/server.ts and src/index.ts import paths and signatures remain unchanged.",
+		"Tests in apps/agent-server/tests/transport were not modified or split because both existing files (244 LOC and 237 LOC) already stayed under the 300 LOC threshold and continued to pass."
+	],
+	"files": [
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/src/transport/websocket-connection.ts",
+		"apps/agent-server/src/transport/protocol-messages.ts",
+		"apps/agent-server/src/transport/request-message-handler.ts",
+		"apps/agent-server/src/transport/request-router.ts",
+		"apps/agent-server/src/transport/session-request-handler.ts",
+		"apps/agent-server/src/transport/resource-request-handler.ts",
+		"apps/agent-server/src/transport/project-request-handler.ts",
+		"apps/agent-server/src/transport/project-watch-coordinator.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

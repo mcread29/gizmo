@@ -1,0 +1,18 @@
+{
+	"segment": "0484-b418e50c",
+	"at": "2026-09-18T22:45:11.962Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed and fixed the Unity web-extension by renaming its exported binding from `unityWebExtension` to `gizmoWebExtension` in `extensions/unity/src/web/index.ts` and rebuilding the bundle. After verifying the Unity tab now appears on Unity-enabled projects, committed all outstanding work: one commit in the main repo (`gizmo`) on branch `pi-web` covering the workspace-shelf thread header, turn timing, thread naming, and related fixes, plus the Unity export fix in the separate `gizmo-registry` repo.",
+	"decisions": [
+		"Unity extension's web entry must re-export under the name `gizmoWebExtension` because the bundle loader looks up exactly that one name; the prior `unityWebExtension` export caused the bundle to load but be rejected so the tab never registered.",
+		"All gizmo changes were committed as a single commit (`3c5cbd8`) rather than split, because the title-generation and extension-enablement changes both touch the session factory, request router, and catalog service — splitting would have required hunk surgery for little benefit.",
+		"The `screenshots/` directory was intentionally left untracked in the gizmo commit; it contains UI screenshots the user sent and the assistant judged they did not belong in the repo.",
+		"Nothing was pushed to remotes; both commits remained local because the user did not ask for a push and `gizmo-registry` is on its default branch."
+	],
+	"files": [
+		"C:/Users/mchan/.gizmo/registries/gizmo-registry/extensions/unity/src/web/index.ts",
+		"C:/Users/mchan/.pi/agent/extension-web/unity.web.js"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

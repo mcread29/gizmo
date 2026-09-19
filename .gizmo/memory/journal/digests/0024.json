@@ -1,0 +1,32 @@
+{
+	"segment": "0024",
+	"at": "2026-09-18T22:37:51.886Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the agent-server session creation flow to read workspace profiles through a new `activeProfileFor` helper, and introduced a `PiSessionRuntimeOptions` type that carries `extensionTools` and `extensionPrompt` flags derived from the active profile's tool/prompt modes. The createSession, resumeSession, and createDefaultPiSession paths were updated to pass these flags and gate the runScript tool plus system-prompt override accordingly. Prettier was then run across the touched files.",
+	"decisions": [
+		"Added `ProjectCatalog.activeProfileFor(projectPath)` to return the resolved profile (with default fallback) and rewrote `integrationsFor` to delegate to it, so profile-driven configuration is sourced from one place.",
+		"Defined `PiSessionRuntimeOptions = SessionOptions & { extensionTools?: boolean; extensionPrompt?: boolean }` as the factory input shape, deriving `extensionTools` from `profile.tools?.mode === 'default-plus-extension'` and `extensionPrompt` from `profile.prompt?.mode === 'default-plus-extension-fragments'`.",
+		"Gated the extra `runScript` tool and the `systemPromptOverride` on the new `extensionTools` / `extensionPrompt` flags inside `createDefaultPiSession`, replacing the previous unconditional inclusion.",
+		"Applied Prettier formatting across the agent-server, app, and extension packages that were touched (or confirmed unchanged)."
+	],
+	"files": [
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/extensions/registry.ts",
+		"apps/agent-server/src/extensions/extension-host-service.ts",
+		"apps/agent-server/src/server.ts",
+		"apps/agent-server/tests/extensions/extension-host-service.test.ts",
+		"apps/agent-server/tests/projects/project-catalog.test.ts",
+		"apps/app/src/lib/features/workspace/profile-overrides.ts",
+		"packages/extensions/src/extension.ts",
+		"packages/git/src/server/git-extension.ts",
+		"packages/unity/src/server/index.ts",
+		"packages/unity/src/server/domain/unity-domain.ts"
+	],
+	"errors": [
+		"An edit to pi-agent-service.ts initially failed with 'Could not find edits[2]' because the third oldText block didn't match exactly; after re-reading the relevant offsets it was reapplied successfully as 3 block replacements.",
+		"`rg 'function createDefaultPiSession'` exited 1 with no matches; a broader `rg createDefault` located the definition at line 785.",
+		"`git diff --check` exited 2 with CRLF/LF warnings on several files and a 'new blank line at EOF' notice for extensions/registry.ts; formatting was addressed by running Prettier on the affected files."
+	],
+	"outcome": "explored"
+}

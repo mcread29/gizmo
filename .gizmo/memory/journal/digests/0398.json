@@ -1,0 +1,26 @@
+{
+	"segment": "0398",
+	"at": "2026-09-18T22:43:37.074Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed three column-blowout bugs caused by unshrinkable min-content: (0) sidebar workspace-path small element now ellipsizes so the workspace-list grid column fits the rail; (1) git extension file rows overlay change-actions absolutely instead of reserving an auto grid column, returning ~60px to the name; (2) workspace screen header wraps and title/path column has min-width: 0, plus a markup tweak wrapping the mono path in a span that ellipsizes. Rebuilt the git extension's web bundle and verified prettier, svelte-check, and workspace navigation tests all clean.",
+	"decisions": [
+		"Sidebar workspace-path small in layout.css switches to flex-shrink with text-overflow: ellipsis, so a long path min-content can no longer blow out the workspace-list grid column.",
+		"Git extension change-actions become an absolutely-positioned strip with background: inherit (matches row tint on hover/unstaged/staged/expanded) and right: 3px, padding-left: var(--space-2); overlay replaces the reserved auto grid column.",
+		"Container-query flex-wrap: wrap rule on change-actions removed because actions now overlay with a fixed 27px strip height and fit on one row in the narrow panel.",
+		"WorkspaceScreen.svelte wraps project.path in a <span> so the CSS ellipsis can target just the text (path still surfaces on hover via title attribute).",
+		"Workspace dashboard section-heading span and path-span explicitly allow shrinking (min-width: 0, overflow: hidden, text-overflow: ellipsis, white-space: nowrap).",
+		"Workspace screen header uses flex-wrap with space-between and no bottom border; shelf line is carried by the folder tab strip below.",
+		"Git extension web bundle rebuilt via `pnpm --filter @gizmo/app extension:build <git-package-dir> --out ~/.pi/agent/extension-web/git.web.js` because agent-server reads the bundle fresh from disk on each extensions.web request — no server restart needed."
+	],
+	"files": [
+		"apps/app/src/styles/sidebar-parts/layout.css",
+		"apps/app/src/styles/workspace-dashboard.css",
+		"apps/app/src/lib/features/workspace/WorkspaceScreen.svelte",
+		"C:\\Users\\mchan\\.gizmo\\registries\\gizmo-registry\\packages\\git\\src\\web\\git.css",
+		"C:\\Users\\mchan\\.pi\\agent\\extension-web\\git.web.js"
+	],
+	"errors": [
+		"bash `grep -rn \"extensionWebDir\" ... && find ... build-web-extension*` exited with code 2 because the chained find found nothing; resolved by separate ls/find/grep invocations."
+	],
+	"outcome": "shipped"
+}

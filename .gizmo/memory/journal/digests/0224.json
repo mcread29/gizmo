@@ -1,0 +1,15 @@
+{
+	"segment": "0224",
+	"at": "2026-09-18T22:40:57.398Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Reordered the Extensions settings page so the 'Install from a registry' form and the 'Registries' sections render above the 'Installed extensions' section, per the user's request that registries be at the top. Verified via `pnpm check`, `pnpm test` (all 308 tests passing across 5 packages), and live browser screenshot of the running dev server.",
+	"decisions": [
+		"Place 'Install from a registry' (form block) and 'Registries' (`<ExtensionRegistrySection />`) above 'Installed extensions' on the Extensions page, in that order, instead of the prior layout where 'Installed extensions' came first.",
+		"Restrict `ExtensionRegistrySection`'s per-registry listing to `registry.extensions.filter((ext) => !ext.linked)` so already-installed entries are not duplicated against the Installed extensions list — they are managed there instead via Unlink."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/ExtensionsSettings.svelte"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

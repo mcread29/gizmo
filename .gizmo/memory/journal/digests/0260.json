@@ -1,0 +1,30 @@
+{
+	"segment": "0260",
+	"at": "2026-09-18T22:41:36.684Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored Gizmo's workspace inspector to remove extension ownership of WorkspaceView: eliminated the `createView` extension hook, the `createWorkspaceView` helper, and the `'unity'` context kind. Extensions now contribute `dialog`/`settings` components and `inspectorTabs` directly; the inspector renders only those extension tabs. Renamed `showUnityInspector` setting to `showInspector` with a legacy migration.",
+	"decisions": [
+		"Removed `WorkspaceView` interface, `createWorkspaceView` factory, and `workspace-view.ts`; workspace inspector now iterates `webExtensions[*].inspectorTabs` instead of being driven by a domain-owned view",
+		"Removed `createView` extension field from `load-web-extension.ts` keep list and from `WebExtensionDefinition` semantics; extensions expose `dialog` and `settings` components instead",
+		"Dropped `'unity'` from `ContextKind` in `context-target.ts` and removed `canOpenEditor`/`onOpenEditor`/`onRefreshEditor` props from `AppContextMenu.svelte`",
+		"Extracted `workspaceNameFromPath` helper into new `apps/app/src/lib/extensions/workspace-label.ts` so shell code no longer depends on the deleted workspace-view module",
+		"Renamed persisted setting `showUnityInspector` → `showInspector` in `app-settings.ts` and `workspace.svelte.ts`, with backward-compatible legacy load that maps the old key to the new one"
+	],
+	"files": [
+		"apps/app/src/lib/extensions/types.ts",
+		"apps/app/src/lib/extensions/registry.svelte.ts",
+		"apps/app/src/lib/extensions/workspace-label.ts",
+		"apps/app/src/lib/extensions/WorkspaceInspector.svelte",
+		"apps/app/src/lib/extensions/workspace-view.ts",
+		"apps/app/src/lib/extensions/runtime/load-web-extension.ts",
+		"apps/app/src/lib/features/shell/Titlebar.svelte",
+		"apps/app/src/lib/features/shell/AppWorkspaceShell.svelte",
+		"apps/app/src/lib/features/shell/AppContextMenu.svelte",
+		"apps/app/src/lib/features/shell/context-target.ts",
+		"apps/app/src/lib/features/shell/workspace.svelte.ts",
+		"apps/app/src/lib/app-settings.ts",
+		"apps/app/tests/lib/app-settings.test.ts"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

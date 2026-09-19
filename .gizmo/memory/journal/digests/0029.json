@@ -1,0 +1,12 @@
+{
+	"segment": "0029",
+	"at": "2026-09-18T22:37:56.091Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "After committing the profile-driven extensions refactor, the assistant attempted to restart the dev server by listing node/pnpm processes listening on ports 8787 and 5173, but the PowerShell command failed with a CommandNotFoundException due to bash-style variable expansion leaking into the PowerShell interpreter.",
+	"decisions": [],
+	"files": [],
+	"errors": [
+		"PowerShell command failed with CommandNotFoundException because bash-style `$_` references were interpreted by PowerShell, causing 'a positional parameter cannot be found' / '/usr/bin/bash.CommandLine' errors. Full output was truncated at 50KB."
+	],
+	"outcome": "blocked"
+}

@@ -1,0 +1,22 @@
+{
+	"segment": "0408",
+	"at": "2026-09-18T22:43:49.033Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Worked on making Gizmo registry extensions take effect live without restarting agent-server. Read registry/extension source files, the registry-live-reload prompt, and existing tests; began writing new source files (event-replay.ts, SessionSyncCapability.ts, transcript-settle.ts). Then in the browser, clicked Unlink on the Codex Gizmo extension and verified its status bar item disappeared from the main view without restart, then re-Install linked it again (link landed on disk but UI hadn't refreshed yet by last check).",
+	"decisions": [
+		"Link/unlink/install of registry extensions should update the running UI immediately via a rescan hook on the server plus a client refresh and one shared merge helper, rather than requiring an agent-server restart.",
+		"Keep the change minimal: two layers (rescan hook, client refresh) plus one shared merge helper and tests; anything else goes in the PR description.",
+		"Unlink is non-blocking — no confirm dialog — verified by inspecting ExtensionsSettings.svelte before clicking.",
+		"Added new app-side modules: apps/app/src/lib/agent-client/agent-store/event-replay.ts and SessionSyncCapability.ts to handle snapshot/event replay and queued resyncs for session state."
+	],
+	"files": [
+		"apps/app/src/lib/agent-client/agent-store/event-replay.ts",
+		"apps/app/src/lib/agent-client/agent-store/SessionSyncCapability.ts",
+		"apps/app/src/lib/features/conversation/transcript-settle.ts"
+	],
+	"errors": [
+		"After clicking Install for Codex, the link landed on disk and in ~/.gizmo/registries/installed.json (codex re-listed under gizmo-registry) but the Extensions settings UI did not yet show the Unlink Codex button, suggesting the client refresh path is not yet wired to refresh after the registry install.",
+		"Dev server log shows repeated ECONNREFUSED on 127.0.0.1:8787 (vite ws proxy to agent-server) — server appears down or unreachable, which may also explain the missing UI refresh."
+	],
+	"outcome": "explored"
+}

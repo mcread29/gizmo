@@ -1,0 +1,18 @@
+{
+	"segment": "0161",
+	"at": "2026-09-18T22:40:03.275Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Investigated a pi-coding-agent compaction issue where the user reports manual /compact fails with \"Nothing to compact (session too small)\" while the context-window fill indicator is also missing. Inspected the installed v0.84.3 dist (compaction.js, utils.js, settings), read the user's settings.json (compaction.enabled=false, reserveTokens=40000, keepRecentTokens=20000) and models-store.json (contextWindow=1000000), then ran prepareCompaction against the user's session JSONL files in node. The probe showed some sessions correctly produce compaction plans, others correctly return NOTHING TO COMPACT (genuinely small or last entry is already a compaction), and several large sessions return OK with messagesToSummarize.length=0 alongside 140k–250k tokensBefore, suggesting a related cut-point bug. No code or settings were changed; the work is exploratory debugging only.",
+	"decisions": [
+		"Treated this as a debug/investigation task against the installed pi-coding-agent package rather than a code change in the user's gizmo project.",
+		"Used the user's existing settings (compaction.enabled=false, reserveTokens=40000, keepRecentTokens=20000) and the 1,000,000-token context window from models-store.json as the relevant configuration context.",
+		"Ran prepareCompaction in node against multiple user session files to reproduce and characterize the \"Nothing to compact\" behavior, rather than modifying any source."
+	],
+	"files": [],
+	"errors": [
+		"prepareCompaction in some sessions returns OK with messagesToSummarize.length=0 despite tokensBefore of 143061, 147178, 246761, and 181470 tokens, suggesting an incorrect cut-point result for large sessions.",
+		"Sessions whose last entry is already of type compaction hit the \"Already compacted\" error path instead of \"Nothing to compact\".",
+		"The user-reported \"Nothing to compact (session too small)\" was reproduced on at least the 22-49-19- and 03-47-35- sessions, both with only 48 entries."
+	],
+	"outcome": "explored"
+}

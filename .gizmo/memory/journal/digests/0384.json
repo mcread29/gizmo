@@ -1,0 +1,30 @@
+{
+	"segment": "0384",
+	"at": "2026-09-18T22:43:30.564Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Verified the journal layer end-to-end (real query returns 12 excerpts in ~380ms under 10KB, 186 tests green, prettier clean) and then committed only the journal-related changes—journal tools, chunking, exposure tests, session factory/repository wiring, and dependency updates—on pi-web as 'Add memory journal with journal_search tool and segment chunking' (24 files, +2795/-17), leaving another active session's skill files in packages/memory-extension/ unstaged.",
+	"decisions": [
+		"Chunking cuts spans at user-message boundaries at ~40 KB; a single turn exceeding the budget is cut in front of assistant messages so a tool call and its result stay together, and oversized assistant prose is kept whole rather than truncated.",
+		"JournalStore.append returns one meta per chunk (all indexed) so the last chunk's entry id is the resume point.",
+		"A before_agent_start hook appends one tool-availability line to the system prompt only when it does not already mention the tools, covering the prompt-override path that discards Pi's tool list.",
+		"Backfill CLI defaults the workspace to pnpm's INIT_CWD so running it from the repo root targets the repo.",
+		"Commit scoped to the assistant's own files only; another active Claude Code session's changes (gizmo.extensions.json, pnpm-lock.yaml, packages/memory-extension/) were left unstaged and uncommitted."
+	],
+	"files": [
+		".gitignore",
+		"apps/agent-server/package.json",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/src/sessions/session-repository.ts",
+		"apps/agent-server/tests/sessions/session-repository.test.ts",
+		"apps/agent-server/src/memory/",
+		"apps/agent-server/src/pi-extensions/",
+		"apps/agent-server/tests/memory/",
+		"apps/agent-server/tests/pi-extensions/"
+	],
+	"errors": [
+		"Backfill reruns pick up new messages from another active Claude Code session in the same repo—initially suspected as duplication, confirmed as correct behaviour for in-progress sessions.",
+		"Pre-existing check:loc (line-count) failures unrelated to this work exist in packages/memory-extension/skills/backfill-agent-journal/scripts/backfill-journal.mjs (473 lines, from the other session) and seven other files; this segment's own files are all under 250 lines.",
+		"pnpm check:loc is not defined at the package level; must be run from repo root (pnpm check at root works)."
+	],
+	"outcome": "shipped"
+}

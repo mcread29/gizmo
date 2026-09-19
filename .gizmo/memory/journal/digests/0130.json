@@ -1,0 +1,26 @@
+{
+	"segment": "0130",
+	"at": "2026-09-18T22:39:37.488Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed and fixed failing test suite in the gizmo-registry monorepo. Added a root svelte.config.js with vitePreprocess, installed bits-ui, @lucide/svelte, and @tanstack/svelte-virtual as dev dependencies, removed the SSR noExternal setting in vitest.config.ts, and stubbed DOM dimensions (clientWidth/clientHeight) in vitest.setup.ts so console virtualization could be tested.",
+	"decisions": [
+		"Added a root svelte.config.js using vitePreprocess to match apps/app's Svelte preprocessing for tests.",
+		"Installed bits-ui, @lucide/svelte, and @tanstack/svelte-virtual as dev dependencies at the workspace root (rather than relying on nested packages) so the test runner can resolve Svelte component imports.",
+		"Removed the `ssr.noExternal: ['@lucide/svelte', 'bits-ui']` block from vitest.config.ts once those packages became dev dependencies.",
+		"Stubbed HTMLElement.prototype.clientWidth and clientHeight via Object.defineProperty in vitest.setup.ts (76 for console-row, 800 for scroll-viewport, 0 otherwise) so @tanstack/svelte-virtual can compute viewport virtualization in jsdom."
+	],
+	"files": [
+		"svelte.config.js",
+		"vitest.config.ts",
+		"vitest.setup.ts",
+		"package.json",
+		"packages/unity/package.json",
+		"packages/unity/src/web/unity/CompileConfirmationDialog.test.ts"
+	],
+	"errors": [
+		"8 test suites failed initially due to unresolved imports of '../../src/extensions/extension-host-service', '../../app-settings', 'bits-ui', and unknown '.svelte' file extension errors for bits-ui/bits-ui and @lucide/svelte.",
+		"After preprocessing fix, 4 tests in ChangesPanel.test.ts and ConsolePanel.test.ts failed with Svelte lifecycle_outside_component errors because bits-ui used getContext/setContext during component init.",
+		"After dependency reorganization, ConsolePanel test 'only mounts a viewport-sized window from a large console tail' failed expecting fewer than 20 console entries but got 256, because jsdom returned 0 for clientWidth/clientHeight so virtualization never triggered."
+	],
+	"outcome": "shipped"
+}

@@ -1,0 +1,32 @@
+{
+	"segment": "0311",
+	"at": "2026-09-18T22:42:29.036Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented the journal layer under apps/agent-server/src/memory/ (normalize, store, recorder) with vitest coverage, and changed session-repository.ts delete() to move transcripts into ~/.gizmo/sessions/archived/ instead of removing them. All 145 tests pass, typecheck is clean, and prettier is clean on the touched files.",
+	"decisions": [
+		"Delete action is implemented as archive, not removal: transcripts are renamed into ~/.gizmo/sessions/archived/ and attachments are moved alongside. SessionManager.listAll reads its directory non-recursively, so archived sessions naturally drop out of the catalog and open() — no filtering required.",
+		"Journal normalization preserves user/assistant prose verbatim; reasoning, tool arguments, and successful tool results get head+tail truncation with a dropped-char count, but tool errors are kept whole because errors are usually short and explain later decisions.",
+		"JournalStore writes the segment file (tmp+rename) before its index.jsonl line, so a crash mid-append leaves an unreferenced segment rather than a dangling index entry — the recoverable direction. A torn final index line is skipped rather than thrown.",
+		"record(session, { trigger, until }) takes an explicit until boundary so the compaction case can pass firstKeptEntryId and the segment ends exactly where live context resumes, preventing kept messages from being journaled twice.",
+		"No model calls anywhere in the journal layer; it must keep working when extraction is unavailable, which is why journaling and the later facts layer are kept separate.",
+		"Archive storage is global (~/.gizmo/sessions/archived/) because Pi keys sessions by id, not project; the journal is per-project (<project>/.gizmo/memory/journal/) because knowledge is scoped to the project.",
+		"ReadonlySessionManager is replaced with a local structural type in journal-recorder because Pi's type is not re-exported from the package root.",
+		"The recorder is not yet wired to any hook (session_compact, turn_end, session_shutdown); that is left pending the user's decision on whether memory is bundled into every session via pi-session-factory's additionalExtensionPaths or made per-project-toggleable via ProjectCatalog.disabledPiExtensionsFor(cwd)."
+	],
+	"files": [
+		"apps/agent-server/src/sessions/session-repository.ts",
+		"apps/agent-server/tests/sessions/session-repository.test.ts",
+		"apps/agent-server/src/memory/journal-normalize.ts",
+		"apps/agent-server/src/memory/journal-store.ts",
+		"apps/agent-server/src/memory/journal-recorder.ts",
+		"apps/agent-server/tests/memory/journal-normalize.test.ts",
+		"apps/agent-server/tests/memory/journal-store.test.ts",
+		"apps/agent-server/tests/memory/journal-recorder.test.ts"
+	],
+	"errors": [
+		"Initial recorder build failed typecheck because ReadonlySessionManager is not re-exported from @earendil-works/pi-coding-agent's package root; resolved by replacing it with a local structural type the recorder actually needs.",
+		"pnpm check:loc failed with '7 file(s) exceed the 300-line limit', confirmed pre-existing on a clean tree and not caused by this work.",
+		"pnpm format:check failed repository-wide after prettier --write ran, but only because of pre-existing files outside the touched set; the new memory files and edited session-repository files are clean."
+	],
+	"outcome": "shipped"
+}

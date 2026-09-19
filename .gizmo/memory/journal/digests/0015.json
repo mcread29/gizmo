@@ -1,0 +1,32 @@
+{
+	"segment": "0015",
+	"at": "2026-09-18T22:37:44.731Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Adds the first functional Pi extension UI bridge: server-side PiExtensionUiRuntime tests and protocol validation for extension.ui.* events, an app-side FakeAgentClient.resolveExtensionUi helper, integration tests rendering and resolving semantic extension UI, plus MessageList/Titlebar streaming activity wired to extensionUi.workingFor and a session.reload sequence that clears and starts a new runtime.",
+	"decisions": [
+		"PiExtensionUiStore is now optional (extensionUi?) in MessageList and uses optional chaining when computing streaming activity, allowing consumers like Titlebar to omit it.",
+		"Session reload wraps the existing beforeSessionStart hook to both extensionUi.clear() and extensionUi.startNewRuntime(), ensuring prior UI requests are dropped before the new runtime begins.",
+		"PiExtensionWidgets.svelte renders widget lines via widget.request.lines?.join('\\n') rather than an {#each} block to satisfy Svelte 5's keyed-each lint without adding a key.",
+		"A new CSS rule for [data-ui='streaming-custom-indicator'] is defined alongside the existing streaming-cursor styles to render working-state text via a mono accent-colored element.",
+		"docs/pi-extension-ui-bridge-plan.md is updated to mark the first functional bridge milestone as implemented, and docs/extensions.md notes the active bridge milestones."
+	],
+	"files": [
+		"apps/agent-server/tests/sessions/pi-extension-ui-runtime.test.ts",
+		"packages/protocol/src/index.test.ts",
+		"apps/app/src/lib/agent-client/FakeAgentClient.ts",
+		"apps/app/src/App.test.ts",
+		"apps/app/src/lib/features/conversation/MessageList.svelte",
+		"apps/app/src/lib/features/conversation/Conversation.svelte",
+		"apps/app/src/lib/features/shell/Titlebar.svelte",
+		"apps/app/src/lib/features/extension-ui/PiExtensionWidgets.svelte",
+		"apps/app/src/styles/message.css",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"docs/pi-extension-ui-bridge-plan.md",
+		"docs/extensions.md"
+	],
+	"errors": [
+		"Svelte 5 autofixer flagged an unkeyed {#each} over widget.request.lines in PiExtensionWidgets.svelte; resolved by joining lines into a single string.",
+		"Svelte 5 autofixer repeatedly surfaced a generic suggestion about reassigning stateful variables inside $effect across several Svelte components; resolved as informational with no source changes required."
+	],
+	"outcome": "shipped"
+}

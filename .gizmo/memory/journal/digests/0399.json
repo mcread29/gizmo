@@ -1,0 +1,20 @@
+{
+	"segment": "0399",
+	"at": "2026-09-18T22:43:38.441Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Diagnosed that a rebuild of `git.web.js` had stripped the Git panel's CSS, because the gizmo repo's builder (unlike the registry's `scripts/build-web-extension.ts`) silently drops Vite's emitted CSS asset. Rebuilt git.web.js with the registry's own builder, verified the overlay rule and the CSS-injection mechanism are present, and began porting the registry's CSS-injection logic into the gizmo repo's `apps/app/scripts/build-web-extension.ts` so the two builders can't diverge again.",
+	"decisions": [
+		"Rebuild `extensions/git.web.js` using the registry's `scripts/build-web-extension.ts`, not the gizmo repo's `apps/app/scripts/build-web-extension.ts` — the gizmo builder drops emitted CSS assets.",
+		"The bug was diagnosed as the gizmo builder lacking the `data-gizmo-extension-style` injection path that the registry builder implements (its own comment: \"leaving those assets behind silently drops their styles\").",
+		"Plan to commit only the gizmo-side changes (builder port + git panel CSS/HTML fixes) plus the registry's `extensions/git/src/web/git.css` change; leave the registry's pre-existing uncommitted design/UI/package WIP uncommitted and tell the user."
+	],
+	"files": [
+		"registries/gizmo-registry/extensions/git/src/web/git.css",
+		"registries/gizmo-registry/extensions/git.web.js",
+		"apps/app/scripts/build-web-extension.ts"
+	],
+	"errors": [
+		"Rebuilding `git.web.js` with the gizmo repo's builder silently dropped the Git panel's CSS — verified by `grep -c surface-soft` returning 0 against the rebuilt bundle and `position:absolute` also absent, while sibling bundles (activity/unity/svelte) contained `surface-soft`. Cause: the gizmo builder writes only the JS chunk and ignores Vite's CSS asset; the registry builder explicitly collects emitted CSS and injects it via `style[data-gizmo-extension-style=<key>]`."
+	],
+	"outcome": "shipped"
+}

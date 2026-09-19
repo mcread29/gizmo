@@ -1,0 +1,19 @@
+{
+	"segment": "0241",
+	"at": "2026-09-18T22:41:17.162Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Fixed TUI-only Pi extensions (ui-customization, git-info, model-info) appearing in Gizmo settings by introducing a `filterGizmoCompatiblePiExtensions` helper and routing the resource catalog through it, then restarted the dev server.",
+	"decisions": [
+		"Route extension enumeration in the resource catalog through a new `filterGizmoCompatiblePiExtensions` helper instead of the unfiltered `listPiExtensions`, so TUI-only extensions (runtime: \"tui\") are excluded from settings UI.",
+		"Reuse `enabledPiExtensionPaths` over the new filtered list so session loading also skips TUI-only extensions consistently."
+	],
+	"files": [
+		"apps/agent-server/src/resources/pi-global-resources.ts",
+		"apps/agent-server/src/resources/resource-catalog.ts",
+		"apps/agent-server/tests/resources/pi-global-resources.test.ts"
+	],
+	"errors": [
+		"Prettier --check failed on the edited pi-global-resources.ts because of formatting drift; resolved by running `prettier --write` and re-checking, after which it passed."
+	],
+	"outcome": "shipped"
+}

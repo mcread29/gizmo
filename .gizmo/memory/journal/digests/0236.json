@@ -1,0 +1,27 @@
+{
+	"segment": "0236",
+	"at": "2026-09-18T22:41:13.344Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Implemented and verified a Node-based upstream sync script for the skills registry, paired with a weekly GitHub Actions workflow that opens a PR when snapshots change. Committed those changes, then consolidated the registry repositories by fast-forwarding the managed copies under ~/.gizmo/registries, removing the duplicate project checkouts under ~/projects, repointing installed.json to the managed paths, and updating the skills-registry README. Also cleaned up a stray NUL file left by a shell redirection in gizmo.",
+	"decisions": [
+		"Script lives at scripts/sync-upstreams.mjs and supports --dry-run and --only flags; it validates that snapshots contain SKILL.md files before staging.",
+		"Automation workflow lives at .github/workflows/sync-upstreams.yml, runs weekly (cron '17 9 * * 1') and is also workflow_dispatch triggerable; it uses concurrency group 'sync-upstream-skills' with cancel-in-progress: false and force-updates a dedicated automation branch to open or refresh a PR.",
+		"Authoritative registry copies are now C:/Users/mchan/.gizmo/registries/gizmo-registry and C:/Users/mchan/.gizmo/registries/gizmo-skills-registry; the ~/projects/* duplicates were removed and the local 'origin' remotes were dropped from the managed clones to avoid circular references.",
+		"installed.json was updated to point at the managed registry paths and pin gizmo-skills-registry to commit 1087ff7.",
+		"The skills-registry README no longer hardcodes the old C:/Users/mchan/projects path; it instructs users to add the repo via Settings → Extensions."
+	],
+	"files": [
+		"scripts/sync-upstreams.mjs",
+		".github/workflows/sync-upstreams.yml",
+		"README.md",
+		"C:/Users/mchan/.gizmo/registries/installed.json",
+		"C:/Users/mchan/.gizmo/registries/gizmo-skills-registry/README.md",
+		"C:/Users/mchan/projects/gizmo-registry (deleted)",
+		"C:/Users/mchan/projects/gizmo-skills-registry (deleted)",
+		"C:/Users/mchan/projects/gizmo/NUL (deleted)"
+	],
+	"errors": [
+		"Initial `node scripts/sync-upstreams.mjs --dry-run` failed with MODULE_NOT_FOUND because the working directory was C:/Users/mchan/projects/gizmo instead of gizmo-skills-registry; reran with an explicit `cd` and the dry run succeeded."
+	],
+	"outcome": "shipped"
+}

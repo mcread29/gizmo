@@ -1,0 +1,17 @@
+{
+	"segment": "0285",
+	"at": "2026-09-18T22:41:56.018Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Began the protocol v26 migration to remove the single-owner project-service architecture. Traced the existing project status/open request path through the protocol package, agent server handlers, CompositeProjectService, the app's ProjectCapability/store, and the Unity extension provider, surfacing the relevant files and current v25 contracts (projectStatusSchema, projectOpenResultSchema, project.request/project.event schemas, ProjectService interface, UnityProjectService, hasProjectStatus manifest flag). No code changes were made yet — the segment is purely reconnaissance to scope the versioned migration.",
+	"decisions": [
+		"Protocol bump target is v26 (planned): increment `protocolVersion` from 25 to 26 in `packages/protocol/src/core.ts`.",
+		"v26 `project.status` and `project.open` requests must identify both `workspacePath` and `extensionId`, while v25 requests without `extensionId` are temporarily accepted for compatibility.",
+		"Core must stop carrying Unity-shaped status/open payload types; status payloads become opaque extension-owned data (e.g. `Type.Unknown()`), with Unity-specific parsing/validation/errors moved into the Unity extension.",
+		"App-side per-extension state (status, loading, error) is keyed by extension ID rather than a single project-service slot, with workspace identity and the inspector shell remaining app-owned.",
+		"Server must emit only v26 project-service responses for v26 clients (no parallel legacy + new fields), and `session.created.domains` keeps its v25 role for enabled extension IDs unless v26 migration explicitly replaces it.",
+		"Routing must dispatch each project request directly to the extension's service keyed by `extensionId`, removing the `CompositeProjectService.#first()` fallback path."
+	],
+	"files": [],
+	"errors": [],
+	"outcome": "explored"
+}

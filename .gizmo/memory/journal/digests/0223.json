@@ -1,0 +1,20 @@
+{
+	"segment": "0223",
+	"at": "2026-09-18T22:40:56.111Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Refactored the Extensions settings page so each registry's listing only shows extensions not yet installed, added an Unlink action to the Installed extensions rows, and reordered the page to put Registries above Installed extensions. Split the Registries block into its own ExtensionRegistrySection.svelte to stay under the 300-line limit.",
+	"decisions": [
+		"Registries section was extracted into a separate ExtensionRegistrySection.svelte component to keep ExtensionsSettings.svelte under the 300-line repo limit.",
+		"Each registry's extension list is filtered to show only extensions not already installed; if nothing remains to install, the registry displays 'Everything in this registry is already installed — manage it above.'",
+		"Installed extensions rows now include an Unlink (uninstall) action alongside the existing enable/disable toggle, so managing an extension happens in one place.",
+		"Page order on the Extensions settings page is: Install/Add registry form and Registries list first, then Installed extensions list below."
+	],
+	"files": [
+		"apps/app/src/lib/features/settings/ExtensionsSettings.svelte",
+		"apps/app/src/lib/features/settings/ExtensionRegistrySection.svelte"
+	],
+	"errors": [
+		"pnpm check failed because ExtensionsSettings.svelte grew to 303 lines after edits, exceeding the 300-line repo limit; resolved by extracting ExtensionRegistrySection.svelte."
+	],
+	"outcome": "shipped"
+}

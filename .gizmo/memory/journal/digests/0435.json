@@ -1,0 +1,19 @@
+{
+	"segment": "0435",
+	"at": "2026-09-18T22:44:16.105Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Begins implementation of a backend built-in Gizmo Pi tool `display` for rendering json-render formatted chat content. Explored the workspace, reviewed the existing memory-journal extension registration pattern (fileURLToPath + additionalExtensionPaths), tool result transport via pi-event-translator and session-transcript, and the typebox/defineTool tool definition idiom. Started writing `apps/agent-server/src/pi-extensions/display.ts` with displayLimits constants and strict validator scaffolding against typebox Value.Check.",
+	"decisions": [
+		"Tool will be defined via `defineTool` from `@earendil-works/pi-coding-agent` with a TypeBox Object schema matching the contract: `{ title?: string, spec: { root: string, elements: Record<string, {type, props, children?}> } }`.",
+		"Registration will reuse the `additionalExtensionPaths` mechanism used for memory-journal (a `journalExtensionPath`-style helper appended to `piExtensions` in pi-session-factory).",
+		"Output will set Pi `details: { gizmoDisplay: { version: 1, title?, spec } }` so the existing tool-result transport (tool_execution_end → session-transcript `details` field) carries the payload; text will be a short summary, not the full spec.",
+		"Errors are thrown as normal tool errors (not display payloads) and validated against a static, bounded tree: missing children, cycles, unreachable nodes, total UTF-8 byte cap, and reasonable element counts.",
+		"May create `packages/protocol/src/display.ts` (re-exported from protocol index) to share parser/types/constants with the frontend; transcript notes this shared file will be owned by the task.",
+		"Work is constrained to backend and backend tests only; no frontend or shared-package edits beyond the optional new protocol file."
+	],
+	"files": [
+		"apps/agent-server/src/pi-extensions/display.ts"
+	],
+	"errors": [],
+	"outcome": "explored"
+}

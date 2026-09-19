@@ -1,0 +1,44 @@
+{
+	"segment": "0045",
+	"at": "2026-09-18T22:38:03.826Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Inspected the Gizmo workspace/extension/profile system without modifying any files. Mapped the protocol schema, project catalog storage on disk (.gizmo/profiles.json), server-side GizmoServerExtension contract (detect / detectRoots / profile / systemPrompt / createTools), how extensions self-register globally vs per-project, and the activateExtensions pipeline that merges defaultTools with extension tools/prompts.",
+	"decisions": [
+		"Workspace-type auto-detection is implemented via each GizmoServerExtension's optional `detect` and `detectRoots` hooks, plus per-extension `profile` factories; removing auto-detection means deleting/ignoring those fields across packages and from extension-host wiring.",
+		"Extensions are globally registered (gizmo.extensions.json + per-package gizmoExtension exports from packages/svelte, /unity, /git, /activity, /skill-authoring), so 'globally installed but manually enabled per project' maps to keeping registration but gating enablement through project-level state (e.g., profiles.json / project.extensions) rather than auto-activation in activateExtensions.",
+		"Default profiles are extension-supplied factories that get materialized into .gizmo/profiles.json on add; an 'ephemeral override that reverts to canonical when equal' would need to live in memory only and be compared structurally against the extension's canonical profile before applying.",
+		"WorkspaceProfile / WorkspaceProfiles / StoredProject types in packages/protocol/src/index.ts are the canonical protocol/storage shapes; project-catalog.ts is the single writer/reader of profiles.json and is the place to intercept save semantics.",
+		"User-created profiles already coexist with extension-sourced profiles via `source: 'extension:<id>'` vs user-defined entries; preserving that distinction is required for the override-vs-canonical comparison."
+	],
+	"files": [
+		"packages/protocol/src/index.ts",
+		"apps/agent-server/src/projects/project-catalog.ts",
+		"apps/agent-server/src/extensions/extension-host-service.ts",
+		"apps/agent-server/src/extensions/registry.ts",
+		"apps/agent-server/src/sessions/pi-agent-service.ts",
+		"apps/agent-server/src/transport/websocket-server.ts",
+		"apps/agent-server/tests/projects/project-catalog.test.ts",
+		"apps/agent-server/tests/extensions/registry.test.ts",
+		"apps/agent-server/tests/extensions/extension-host-service.test.ts",
+		"apps/agent-server/tests/extensions/web-bundles.test.ts",
+		"apps/app/src/lib/agent-client/AgentClient.ts",
+		"apps/app/src/lib/agent-client/AgentStore.svelte.ts",
+		"apps/app/src/lib/agent-client/AgentStore.test.ts",
+		"apps/app/src/lib/features/workspace/WorkspaceConfigurePanel.svelte",
+		"docs/workspace-profiles.md",
+		"docs/extensions.md",
+		"packages/extensions/src/extension.ts",
+		"packages/svelte/src/server/svelte-extension.ts",
+		"packages/unity/src/server/index.ts",
+		"packages/unity/src/server/domain/unity-domain.ts",
+		"packages/git/src/server/git-extension.ts",
+		"packages/activity/src/server/index.ts",
+		"packages/skill-authoring/src/server/index.ts"
+	],
+	"errors": [
+		"ENOENT: packages/unity/src/server/unity-extension.ts does not exist; the actual entry is packages/unity/src/server/index.ts re-exporting unityDomain.",
+		"ENOENT: packages/activity/src/server/activity-extension.ts does not exist; actual file is packages/activity/src/server/index.ts.",
+		"ENOENT: packages/skill-authoring/src/server/skill-authoring-extension.ts does not exist; actual file is packages/skill-authoring/src/server/index.ts."
+	],
+	"outcome": "explored"
+}
