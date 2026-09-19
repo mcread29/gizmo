@@ -2,6 +2,8 @@ import { DigestStore } from './digest-store';
 import { completeWithGizmoModel } from './digest-model';
 import { DigestSettingsStore } from './digest-settings';
 import { generateDigest } from './digest-generator';
+import { generateFacts } from './fact-generator';
+import { FactStore } from './fact-store';
 import type { JournalSegmentMeta } from './journal-store';
 import { JournalStore } from './journal-store';
 
@@ -16,7 +18,10 @@ import { JournalStore } from './journal-store';
  *
  * Work is serialized per workspace. Segments arrive in bursts — one append can
  * write several — and letting a burst fan out would put the user's own chat
- * behind a queue of background requests on the same provider.
+ * behind a queue of background requests on the same provider. The fact tier
+ * needs that serialization for correctness rather than politeness: a segment's
+ * facts are judged against the facts already standing, so two segments derived
+ * at once would both decide against the same stale record.
  */
 export class DigestRunner {
 	readonly #settings: DigestSettingsStore;
@@ -54,6 +59,7 @@ export class DigestRunner {
 
 		const journal = new JournalStore(workspacePath);
 		const digests = new DigestStore(workspacePath);
+		const facts = new FactStore(workspacePath);
 		const complete = await completeWithGizmoModel(settings.model);
 
 		for (const id of ids) {
@@ -67,7 +73,22 @@ export class DigestRunner {
 				undefined,
 				(reason) => console.error(`Memory digest failed for ${id}:`, reason),
 			);
-			if (digest) await digests.write(digest);
+			if (!digest) continue;
+			await digests.write(digest);
+
+			// Facts are derived from the digest just written, against whatever is
+			// standing right now — which is why this reads the store each time
+			// rather than hoisting it: an earlier segment in this same burst may
+			// have just changed it.
+			const entry = await generateFacts(
+				digest,
+				await facts.current(),
+				settings.model,
+				complete,
+				undefined,
+				(reason) => console.error(`Memory facts failed for ${id}:`, reason),
+			);
+			if (entry) await facts.write(entry);
 		}
 	}
 }

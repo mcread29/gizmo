@@ -5,6 +5,7 @@ import type { RouteResult } from './request-router';
 type MemoryRequestType =
 	| 'memory.status'
 	| 'memory.digests'
+	| 'memory.facts'
 	| 'memory.settings.set'
 	| 'memory.backfill.start'
 	| 'memory.backfill.stop';
@@ -26,6 +27,8 @@ export async function handleMemoryRequest(
 					request.limit,
 				),
 			};
+		case 'memory.facts':
+			return { result: await memory.facts(request.projectPath) };
 		case 'memory.settings.set': {
 			// No project means the default; a project means its override, which
 			// `inherit` clears so the workspace falls back to the default again.

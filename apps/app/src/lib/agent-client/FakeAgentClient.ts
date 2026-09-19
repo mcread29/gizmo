@@ -39,6 +39,10 @@ export class FakeAgentClient implements AgentClient {
 		return this.#memory.digests(query, limit);
 	}
 
+	memoryFacts() {
+		return this.#memory.facts();
+	}
+
 	setMemoryDefaults(settings: DigestSettings) {
 		return this.#memory.setDefaults(settings);
 	}

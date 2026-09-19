@@ -3,7 +3,9 @@ import {
 	searchDigests,
 	type DigestHit,
 } from './digest-search';
+import { type FactHit, formatFactHit, searchFacts } from './fact-search';
 import type { JournalDigest } from './journal-digest';
+import type { JournalFact } from './journal-fact';
 import type { JournalStore } from './journal-store';
 
 export interface SearchOptions {
@@ -22,6 +24,14 @@ export interface SearchOptions {
 	digests?: readonly JournalDigest[];
 	/** Most digests reported, before any segment excerpt is shown. */
 	maxDigests?: number;
+	/**
+	 * The facts still standing, searched ahead of everything else. Must be the
+	 * live set: passing retired facts would reintroduce exactly the stale
+	 * answers the tier exists to suppress.
+	 */
+	facts?: readonly JournalFact[];
+	/** Most facts reported. Kept small; this section is meant to be read in full. */
+	maxFacts?: number;
 }
 
 export interface SearchHit {
@@ -34,6 +44,8 @@ export interface SearchHit {
 
 export interface SearchResult {
 	terms: string[];
+	/** What is currently true, ranked. Empty when the fact tier is unbuilt. */
+	facts: FactHit[];
 	/** What earlier sessions concluded, ranked. Empty when nothing is digested. */
 	digests: DigestHit[];
 	hits: SearchHit[];
@@ -42,12 +54,13 @@ export interface SearchResult {
 	segmentsSearched: number;
 }
 
-const defaults: Required<Omit<SearchOptions, 'digests'>> = {
+const defaults: Required<Omit<SearchOptions, 'digests' | 'facts'>> = {
 	context: 3,
 	perSegment: 3,
 	maxHits: 12,
 	maxBytes: 12_000,
 	maxDigests: 5,
+	maxFacts: 6,
 };
 
 /** Long lines are usually JSON tool arguments; keep the neighbourhood of the hit. */
@@ -77,6 +90,7 @@ export async function searchJournal(
 	if (terms.length === 0) {
 		return {
 			terms,
+			facts: [],
 			digests: [],
 			hits: [],
 			truncated: false,
@@ -84,6 +98,10 @@ export async function searchJournal(
 		};
 	}
 
+	const factHits = searchFacts(options.facts ?? [], terms).slice(
+		0,
+		settings.maxFacts,
+	);
 	const ranked = searchDigests(options.digests ?? [], terms);
 	const digestHits = ranked.slice(0, settings.maxDigests);
 
@@ -123,6 +141,7 @@ export async function searchJournal(
 	}
 	return {
 		terms,
+		facts: factHits,
 		digests: digestHits,
 		hits,
 		truncated: truncated || ranked.length > digestHits.length,
@@ -132,10 +151,23 @@ export async function searchJournal(
 
 export function formatSearchResult(result: SearchResult): string {
 	if (result.terms.length === 0) return 'No search terms given.';
-	if (result.hits.length === 0 && result.digests.length === 0) {
+	if (
+		result.hits.length === 0 &&
+		result.digests.length === 0 &&
+		result.facts.length === 0
+	) {
 		return `No matches for ${result.terms.join(' ')} across ${result.segmentsSearched} journal segments.`;
 	}
 	const sections: string[] = [];
+	// Facts lead because they are the only section that claims to be current.
+	// A digest states what was concluded in one segment and an excerpt what was
+	// said at one moment; both can have been overtaken since, and neither says
+	// so. Putting the standing answer first means a reader who stops early
+	// stops on the right one.
+	if (result.facts.length > 0) {
+		const lines = result.facts.map(formatFactHit).join('\n');
+		sections.push(`What is currently true:\n\n${lines}`);
+	}
 	if (result.digests.length > 0) {
 		const blocks = result.digests.map(formatDigestHit).join('\n\n');
 		sections.push(`What earlier sessions concluded:\n\n${blocks}`);
@@ -144,9 +176,12 @@ export function formatSearchResult(result: SearchResult): string {
 		const blocks = result.hits
 			.map((hit) => `[segment ${hit.segment} line ${hit.line}]\n${hit.excerpt}`)
 			.join('\n\n');
-		// The heading only earns its space when there is a digest block above
-		// it to tell the excerpts apart from.
-		const heading = result.digests.length > 0 ? 'Matching excerpts:\n\n' : '';
+		// The heading only earns its space when there is a fact or digest block
+		// above it to tell the excerpts apart from.
+		const heading =
+			result.digests.length > 0 || result.facts.length > 0
+				? 'Matching excerpts:\n\n'
+				: '';
 		sections.push(`${heading}${blocks}`);
 	}
 	const footer = result.truncated

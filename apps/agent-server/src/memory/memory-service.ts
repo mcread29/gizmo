@@ -1,18 +1,22 @@
 import type {
 	DigestOverride,
 	DigestSettings,
+	JournalFact,
 	MemoryStatus,
 } from '@gizmo/protocol';
 import { backfillDigests, type BackfillProgress } from './digest-generator';
 import { completeWithGizmoModel } from './digest-model';
 import { DigestSettingsStore } from './digest-settings';
 import { DigestStore } from './digest-store';
+import { buildFacts } from './fact-generator';
+import { FactStore } from './fact-store';
 import { digestSearchText, type JournalDigest } from './journal-digest';
 import { JournalStore } from './journal-store';
 
 interface RunningBackfill {
 	controller: AbortController;
 	progress: BackfillProgress;
+	phase: 'digests' | 'facts';
 }
 
 /**
@@ -28,10 +32,13 @@ export class MemoryService {
 	readonly #running = new Map<string, RunningBackfill>();
 
 	async status(workspacePath: string): Promise<MemoryStatus> {
-		const [segments, digested, settings, defaults, overridden] =
+		const factStore = new FactStore(workspacePath);
+		const [segments, digested, facts, factSegments, settings, defaults, overridden] =
 			await Promise.all([
 				new JournalStore(workspacePath).list(),
 				new DigestStore(workspacePath).segments(),
+				factStore.current(),
+				factStore.segments(),
 				this.#settings.read(workspacePath),
 				this.#settings.readDefault(),
 				this.#settings.isOverridden(workspacePath),
@@ -40,6 +47,8 @@ export class MemoryService {
 		return {
 			segments: segments.length,
 			digested: digested.length,
+			facts: facts.length,
+			factSegments: factSegments.length,
 			settings,
 			defaults,
 			overridden,
@@ -49,6 +58,7 @@ export class MemoryService {
 							done: active.progress.done,
 							total: active.progress.total,
 							failed: active.progress.failed,
+							phase: active.phase,
 							...(active.progress.error
 								? { error: active.progress.error }
 								: {}),
@@ -80,6 +90,17 @@ export class MemoryService {
 				return terms.every((term) => haystack.includes(term));
 			})
 			.slice(0, limit);
+	}
+
+	/**
+	 * The facts that currently stand, newest segment first. Superseded facts
+	 * are left out: the page shows what is true now, and the history behind a
+	 * statement is reachable from the segment it names.
+	 */
+	async facts(workspacePath: string): Promise<JournalFact[]> {
+		const facts = await new FactStore(workspacePath).current();
+		facts.sort((left, right) => right.id.localeCompare(left.id));
+		return facts;
 	}
 
 	async readSettings(workspacePath?: string): Promise<DigestSettings> {
@@ -120,11 +141,13 @@ export class MemoryService {
 		const entry: RunningBackfill = {
 			controller,
 			progress: { done: 0, total: 0, failed: 0, segment: '' },
+			phase: 'digests',
 		};
 		this.#running.set(workspacePath, entry);
 
 		const journal = new JournalStore(workspacePath);
 		const digests = new DigestStore(workspacePath);
+		const facts = new FactStore(workspacePath);
 		const model = settings.model;
 
 		// Detached on purpose: the request returns the starting status and the
@@ -149,6 +172,38 @@ export class MemoryService {
 							console.error(`Memory digest failed for ${segment}:`, reason),
 						onProgress: (progress) => {
 							entry.progress = progress;
+						},
+					},
+				);
+
+				// Facts second, and only after every digest exists: the tier is
+				// derived from digests, so building it against a half-filled
+				// digest layer would bake the gaps in. Nothing here reruns a
+				// segment whose facts are already on disk, so an interrupted run
+				// resumes instead of paying for the whole history again.
+				entry.phase = 'facts';
+				entry.progress = { done: 0, total: 0, failed: 0, segment: '' };
+				await buildFacts(
+					{
+						listDigests: () => digests.list(),
+						listFacts: () => facts.list(),
+						writeFacts: (written) => facts.write(written),
+					},
+					model,
+					complete,
+					{
+						regenerate,
+						signal: controller.signal,
+						onFailure: (segment, reason) =>
+							console.error(`Memory facts failed for ${segment}:`, reason),
+						onProgress: (progress) => {
+							entry.progress = {
+								done: progress.done,
+								total: progress.total,
+								failed: progress.failed,
+								segment: progress.segment,
+								...(progress.error ? { error: progress.error } : {}),
+							};
 						},
 					},
 				);

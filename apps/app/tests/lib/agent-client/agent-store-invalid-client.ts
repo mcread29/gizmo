@@ -36,12 +36,18 @@ export class InvalidEventClient implements AgentClient {
 		return {
 			segments: 0,
 			digested: 0,
+			facts: 0,
+			factSegments: 0,
 			settings: { auto: false },
 			defaults: { auto: false },
 			overridden: false,
 		};
 	}
 	async memoryDigests() {
+		return [];
+	}
+
+	async memoryFacts() {
 		return [];
 	}
 	async setMemoryOverride(_projectPath: string, _override?: DigestOverride) {
@@ -55,6 +61,8 @@ export class InvalidEventClient implements AgentClient {
 		return {
 			segments: 0,
 			digested: 0,
+			facts: 0,
+			factSegments: 0,
 			settings: { auto: false },
 			defaults: { auto: false },
 			overridden: false,
@@ -64,6 +72,8 @@ export class InvalidEventClient implements AgentClient {
 		return {
 			segments: 0,
 			digested: 0,
+			facts: 0,
+			factSegments: 0,
 			settings: { auto: false },
 			defaults: { auto: false },
 			overridden: false,

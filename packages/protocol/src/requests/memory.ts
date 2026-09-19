@@ -25,6 +25,19 @@ export const memoryRequestSchemas = [
 		{ additionalProperties: false },
 	),
 	/**
+	 * The facts that currently stand, after supersession. Retired facts stay on
+	 * disk but are never sent: the client has no use for a statement the
+	 * project has already moved past.
+	 */
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('memory.facts'),
+			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	/**
 	 * Writes either the default or one workspace's override. An override with
 	 * no keys clears it, so the workspace inherits the default again.
 	 */

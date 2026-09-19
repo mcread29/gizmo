@@ -2,6 +2,7 @@
 	import type {
 		DigestOverride,
 		JournalDigest,
+		JournalFact,
 		MemoryStatus,
 	} from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
@@ -9,12 +10,14 @@
 	import { Button } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import MemoryDigestList from './MemoryDigestList.svelte';
+	import MemoryFactList from './MemoryFactList.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
 	let { store }: { store: AgentStore } = $props();
 
 	let status = $state<MemoryStatus | undefined>();
 	let digests = $state<JournalDigest[]>([]);
+	let facts = $state<JournalFact[]>([]);
 	let query = $state('');
 	let busy = $state(false);
 
@@ -54,6 +57,7 @@
 		try {
 			status = await store.memory.memoryStatus();
 			digests = await store.memory.memoryDigests(query || undefined);
+			facts = await store.memory.memoryFacts();
 		} catch (error) {
 			toasts.show(
 				error instanceof Error ? error.message : 'Could not read memory',
@@ -207,7 +211,8 @@
 				<strong>Coverage</strong>
 				<span>
 					{#if status?.running}
-						Digesting {status.running.done} of {status.running.total}
+						{status.running.phase === 'facts' ? 'Deriving facts from' : 'Digesting'}
+						{status.running.done} of {status.running.total}
 						{#if status.running.failed > 0}
 							· {status.running.failed} failed
 						{/if}
@@ -246,6 +251,21 @@
 				</Button>
 			{/if}
 		</div>
+	</div>
+
+	<div data-ui="settings-card">
+		<div data-ui="setting-field" data-layout="stacked">
+			<div>
+				<strong>What is currently true</strong>
+				<span>
+					Statements the project still stands behind, derived from the digests.
+					A later session that contradicts one retires it, so this list shrinks
+					as well as grows.
+				</span>
+			</div>
+		</div>
+
+		<MemoryFactList {facts} />
 	</div>
 
 	<div data-ui="settings-card">

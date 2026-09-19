@@ -121,3 +121,37 @@
 	margin-top: 4px;
 	color: var(--color-danger);
 }
+
+[data-ui='memory-fact'] {
+	display: grid;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4);
+	border-top: 1px solid var(--color-border);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+}
+[data-ui='memory-fact'] header {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-2);
+}
+[data-ui='memory-fact'] header code {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+[data-ui='memory-fact'] ul {
+	display: grid;
+	gap: 3px;
+	margin: 0;
+	padding-left: var(--space-4);
+}
+/* A revised fact is still simply true; the marker records that it replaced
+   something, so it stays quieter than the statement it sits beside. */
+[data-ui='memory-fact'] em {
+	margin-left: 4px;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	font-style: normal;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}

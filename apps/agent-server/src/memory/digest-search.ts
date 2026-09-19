@@ -42,8 +42,11 @@ export function searchDigests(
 		const score = scoreDigest(digest, terms);
 		if (score > 0) hits.push({ segment: digest.segment, score, digest });
 	}
-	// Among equal scores the later segment wins: newer conclusions supersede
-	// older ones, and nothing here tracks supersession explicitly yet.
+	// Among equal scores the later segment wins. This is a heuristic and stays
+	// one: a digest records what a segment concluded and never learns that a
+	// later segment overturned it. Explicit supersession lives in the fact
+	// tier, which is why facts are reported above this section rather than
+	// ranked alongside it.
 	hits.sort(
 		(left, right) =>
 			right.score - left.score || right.segment.localeCompare(left.segment),

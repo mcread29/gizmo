@@ -2,6 +2,7 @@ import type {
 	DigestOverride,
 	DigestSettings,
 	JournalDigest,
+	JournalFact,
 	MemoryStatus,
 } from '@gizmo/protocol';
 import type { AgentClient } from '../AgentClient';
@@ -32,6 +33,10 @@ export class MemoryCapability {
 
 	memoryDigests(query?: string, limit?: number): Promise<JournalDigest[]> {
 		return this.client.memoryDigests(this.#projectPath(), query, limit);
+	}
+
+	memoryFacts(): Promise<JournalFact[]> {
+		return this.client.memoryFacts(this.#projectPath());
 	}
 
 	setMemoryDefaults(settings: DigestSettings): Promise<DigestSettings> {

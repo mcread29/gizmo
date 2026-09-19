@@ -2,6 +2,7 @@ import type {
 	DigestOverride,
 	DigestSettings,
 	JournalDigest,
+	JournalFact,
 	MemoryStatus,
 } from '@gizmo/protocol';
 
@@ -52,10 +53,47 @@ export class FakeMemoryCapability {
 		},
 	];
 
+	/**
+	 * Standing facts only, as the server sends them. The first two describe one
+	 * subject without contradicting each other; the third records a change,
+	 * which is why no "minimax-m3" fact appears here despite the digest above
+	 * still mentioning it.
+	 */
+	readonly #facts: JournalFact[] = [
+		{
+			id: '0488#1',
+			segment: '0488',
+			at: '2026-09-18T20:10:02.100Z',
+			subject: 'journal storage',
+			statement:
+				'The journal lives in .gizmo/memory/journal and is append-only; .agent-journal is retired.',
+			supersedes: [],
+		},
+		{
+			id: '0491#1',
+			segment: '0491',
+			at: '2026-09-18T21:54:28.954Z',
+			subject: 'journal storage',
+			statement:
+				'Segment ids carry a hash suffix so two machines cannot collide, and index.jsonl union-merges.',
+			supersedes: [],
+		},
+		{
+			id: '0491#2',
+			segment: '0491',
+			at: '2026-09-18T21:54:28.954Z',
+			subject: 'digest model',
+			statement: 'Digests are written by opencode-go/glm-5.3.',
+			supersedes: ['0402#1'],
+		},
+	];
+
 	async status(): Promise<MemoryStatus> {
 		return {
 			segments: 491,
 			digested: this.#digests.length,
+			facts: this.#facts.length,
+			factSegments: 2,
 			settings: this.#effective(),
 			defaults: this.#defaults,
 			overridden: Boolean(this.#override),
@@ -91,6 +129,13 @@ export class FakeMemoryCapability {
 			return terms.every((term) => haystack.includes(term));
 		});
 		return matches.slice(0, limit);
+	}
+
+	/** The standing facts, newest segment first. */
+	async facts(): Promise<JournalFact[]> {
+		return [...this.#facts].sort((left, right) =>
+			right.id.localeCompare(left.id),
+		);
 	}
 
 	async setDefaults(settings: DigestSettings): Promise<DigestSettings> {

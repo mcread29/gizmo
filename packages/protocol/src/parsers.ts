@@ -35,6 +35,8 @@ import {
 	digestSettingsSchema,
 	type JournalDigest,
 	journalDigestSchema,
+	type JournalFact,
+	journalFactSchema,
 	type MemoryStatus,
 	memoryStatusSchema,
 } from './memory';
@@ -75,6 +77,9 @@ export const parseRegistryStatus = parser<RegistryStatus>(registryStatusSchema);
 export const parseMemoryStatus = parser<MemoryStatus>(memoryStatusSchema);
 export const parseJournalDigests = parser<JournalDigest[]>(
 	Type.Array(journalDigestSchema),
+);
+export const parseJournalFacts = parser<JournalFact[]>(
+	Type.Array(journalFactSchema),
 );
 export const parseDigestSettings = parser<DigestSettings>(digestSettingsSchema);
 export const parseAgentRequest = parser<AgentRequest>(

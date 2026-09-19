@@ -56,6 +56,25 @@ export const journalDigestSchema = Type.Object(
 export type JournalDigest = Static<typeof journalDigestSchema>;
 
 /**
+ * One statement that currently holds, with the segment it came from. Facts
+ * that have been superseded are kept on disk but never sent: the client only
+ * ever sees the standing set.
+ */
+export const journalFactSchema = Type.Object(
+	{
+		id: Type.String({ minLength: 1 }),
+		segment: Type.String({ minLength: 1 }),
+		at: Type.String(),
+		subject: Type.String(),
+		statement: Type.String(),
+		supersedes: Type.Array(Type.String()),
+	},
+	{ additionalProperties: false },
+);
+
+export type JournalFact = Static<typeof journalFactSchema>;
+
+/**
  * How much of a project's journal has been digested. The Memory page shows
  * this to make the derived layer's completeness visible, since a partial
  * layer silently weakens search rather than failing.
@@ -64,6 +83,10 @@ export const memoryStatusSchema = Type.Object(
 	{
 		segments: Type.Integer({ minimum: 0 }),
 		digested: Type.Integer({ minimum: 0 }),
+		/** How many facts currently stand, after supersession. */
+		facts: Type.Integer({ minimum: 0 }),
+		/** Segments whose facts have been derived, which trails `digested`. */
+		factSegments: Type.Integer({ minimum: 0 }),
 		/** What this workspace actually runs under, after any override. */
 		settings: digestSettingsSchema,
 		/** The default it falls back to, so the UI can name what is inherited. */
@@ -77,6 +100,12 @@ export const memoryStatusSchema = Type.Object(
 					done: Type.Integer({ minimum: 0 }),
 					total: Type.Integer({ minimum: 0 }),
 					failed: Type.Integer({ minimum: 0 }),
+					/**
+					 * Which tier is being built. A run does digests first and facts
+					 * second, and the counts restart between them, so without this
+					 * the progress bar appears to jump backwards.
+					 */
+					phase: Type.Union([Type.Literal('digests'), Type.Literal('facts')]),
 					/** Why the most recent failure failed, when one has. */
 					error: Type.Optional(Type.String()),
 				},

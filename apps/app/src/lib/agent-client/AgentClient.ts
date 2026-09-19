@@ -2,6 +2,7 @@ import type {
 	DigestOverride,
 	DigestSettings,
 	JournalDigest,
+	JournalFact,
 	MemoryStatus,
 	AgentAttachment,
 	AgentModelCatalog,
@@ -47,6 +48,8 @@ export interface AgentClient {
 		query?: string,
 		limit?: number,
 	): Promise<JournalDigest[]>;
+	/** Only the standing facts; superseded ones never cross the wire. */
+	memoryFacts(projectPath: string): Promise<JournalFact[]>;
 	setMemoryDefaults(settings: DigestSettings): Promise<DigestSettings>;
 	setMemoryOverride(
 		projectPath: string,

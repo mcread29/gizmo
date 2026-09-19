@@ -1,6 +1,7 @@
 import {
 	parseDigestSettings,
 	parseJournalDigests,
+	parseJournalFacts,
 	parseMemoryStatus,
 	type DigestOverride,
 	type DigestSettings,
@@ -21,6 +22,11 @@ export class MemoryRequests extends GitRequests {
 			...(limit ? { limit } : {}),
 		});
 		return parseJournalDigests(response.result);
+	}
+
+	async memoryFacts(projectPath: string) {
+		const response = await this.request({ type: 'memory.facts', projectPath });
+		return parseJournalFacts(response.result);
 	}
 
 	async setMemoryDefaults(settings: DigestSettings) {
