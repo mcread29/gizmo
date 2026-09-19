@@ -26,6 +26,31 @@ export class FakeSessionCapability {
 		return fakeProviders;
 	}
 
+	async setProviderApiKey(providerId: string, apiKey: string) {
+		this.state.assertConnected();
+		const provider = fakeProviders.find((entry) => entry.id === providerId);
+		if (!provider) throw new Error(`Unknown provider: ${providerId}`);
+		if (!provider.supportsApiKey)
+			throw new Error(`${provider.name} does not support API keys`);
+		if (!apiKey.trim()) throw new Error('API key is required');
+		return fakeProviders.map((entry) =>
+			entry.id === providerId
+				? { ...entry, authenticated: true, credentialType: 'api_key' as const }
+				: entry,
+		);
+	}
+
+	async removeProviderApiKey(providerId: string) {
+		this.state.assertConnected();
+		const provider = fakeProviders.find((entry) => entry.id === providerId);
+		if (!provider) throw new Error(`Unknown provider: ${providerId}`);
+		return fakeProviders.map((entry) =>
+			entry.id === providerId
+				? { ...entry, authenticated: false, credentialType: undefined }
+				: entry,
+		);
+	}
+
 	async list() {
 		this.state.assertConnected();
 		return {

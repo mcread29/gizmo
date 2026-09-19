@@ -3,7 +3,12 @@ import {
 	setPiExtensionEnabled,
 	writeManagedSkill,
 } from '../resources/pi-global-resources';
-import { listProviders, reimportPiAuth } from './pi-model-runtime';
+import {
+	listProviders,
+	reimportPiAuth,
+	removeProviderApiKey,
+	setProviderApiKey,
+} from './pi-model-runtime';
 import { PiAgentServiceCore } from './pi-agent-service-core';
 import { reloadExtensions } from '../extensions/extension-reload';
 
@@ -15,6 +20,14 @@ export class PiAgentServiceResources extends PiAgentServiceCore {
 
 	reimportPiAuth() {
 		return reimportPiAuth();
+	}
+
+	setProviderApiKey(providerId: string, apiKey: string) {
+		return setProviderApiKey(providerId, apiKey);
+	}
+
+	removeProviderApiKey(providerId: string) {
+		return removeProviderApiKey(providerId);
 	}
 
 	listResources(workspacePath?: string) {

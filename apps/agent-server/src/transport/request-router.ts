@@ -49,6 +49,8 @@ export async function routeRequest(
 
 		case 'providers.list':
 		case 'providers.import-pi-auth':
+		case 'providers.set-api-key':
+		case 'providers.remove-api-key':
 		case 'attachment.read':
 		case 'attachment.reveal':
 		case 'session.list':

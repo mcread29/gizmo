@@ -39,6 +39,41 @@ export class RegistryCapability {
 		}
 	}
 
+	async setProviderApiKey(providerId: string, apiKey: string) {
+		const store = this.store;
+		if (store.connection !== 'connected') return false;
+		store.providersLoading = true;
+		store.providerError = undefined;
+		try {
+			store.providers = await this.client.setProviderApiKey(
+				providerId,
+				apiKey,
+			);
+			return true;
+		} catch (error) {
+			store.providerError = errorMessage(error);
+			return false;
+		} finally {
+			store.providersLoading = false;
+		}
+	}
+
+	async removeProviderApiKey(providerId: string) {
+		const store = this.store;
+		if (store.connection !== 'connected') return false;
+		store.providersLoading = true;
+		store.providerError = undefined;
+		try {
+			store.providers = await this.client.removeProviderApiKey(providerId);
+			return true;
+		} catch (error) {
+			store.providerError = errorMessage(error);
+			return false;
+		} finally {
+			store.providersLoading = false;
+		}
+	}
+
 	async refreshRegistry() {
 		const store = this.store;
 		if (store.connection !== 'connected') return;

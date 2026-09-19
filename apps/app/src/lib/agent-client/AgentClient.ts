@@ -75,6 +75,11 @@ export interface AgentClient {
 	stopMemoryBackfill(projectPath: string): Promise<MemoryStatus>;
 	listProviders(): Promise<ProviderStatus[]>;
 	reimportPiAuth(): Promise<ProviderStatus[]>;
+	setProviderApiKey(
+		providerId: string,
+		apiKey: string,
+	): Promise<ProviderStatus[]>;
+	removeProviderApiKey(providerId: string): Promise<ProviderStatus[]>;
 	connect(): Promise<void>;
 	disconnect(): Promise<void>;
 	listSessions(): Promise<SessionCatalog>;

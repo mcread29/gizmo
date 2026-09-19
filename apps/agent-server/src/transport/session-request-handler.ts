@@ -5,6 +5,8 @@ import type { RouteResult } from './request-router';
 type SessionRequestType =
 	| 'providers.list'
 	| 'providers.import-pi-auth'
+	| 'providers.set-api-key'
+	| 'providers.remove-api-key'
 	| 'attachment.read'
 	| 'attachment.reveal'
 	| 'session.list'
@@ -40,6 +42,17 @@ export async function handleSessionRequest(
 			return { result: await service.listProviders() };
 		case 'providers.import-pi-auth':
 			return { result: await service.reimportPiAuth() };
+		case 'providers.set-api-key':
+			return {
+				result: await service.setProviderApiKey(
+					request.providerId,
+					request.apiKey,
+				),
+			};
+		case 'providers.remove-api-key':
+			return {
+				result: await service.removeProviderApiKey(request.providerId),
+			};
 		case 'attachment.read':
 			return {
 				result: await service.readAttachment(

@@ -91,6 +91,12 @@ export class GatedResumeClient extends InvalidEventClient {
 	async reimportPiAuth(): Promise<ProviderStatus[]> {
 		return [];
 	}
+	async setProviderApiKey(): Promise<ProviderStatus[]> {
+		return [];
+	}
+	async removeProviderApiKey(): Promise<ProviderStatus[]> {
+		return [];
+	}
 	async listSessions(): Promise<SessionCatalog> {
 		const sessions = [
 			this.snapshot.session,

@@ -16,9 +16,50 @@
 		store.providers.filter((provider) => provider.authenticated).length,
 	);
 
+	let sortedProviders = $derived(
+		[...store.providers].sort(
+			(left, right) =>
+				Number(right.authenticated) - Number(left.authenticated) ||
+				left.name.localeCompare(right.name),
+		),
+	);
+
+	let drafts = $state<Record<string, string>>({});
+	let savingId = $state<string | null>(null);
+	let removingId = $state<string | null>(null);
+
 	async function reimport() {
 		if (await store.reimportPiAuth()) {
 			toasts.show('Refreshed Pi authentication for new threads', 'success');
+		}
+	}
+
+	async function saveKey(providerId: string, providerName: string) {
+		const apiKey = (drafts[providerId] ?? '').trim();
+		if (!apiKey) {
+			toasts.show('Paste an API key first', 'danger');
+			return;
+		}
+		savingId = providerId;
+		try {
+			if (await store.setProviderApiKey(providerId, apiKey)) {
+				drafts[providerId] = '';
+				toasts.show(`Saved API key for ${providerName}`, 'success');
+			}
+		} finally {
+			savingId = null;
+		}
+	}
+
+	async function removeKey(providerId: string, providerName: string) {
+		removingId = providerId;
+		try {
+			if (await store.removeProviderApiKey(providerId)) {
+				drafts[providerId] = '';
+				toasts.show(`Removed API key for ${providerName}`, 'success');
+			}
+		} finally {
+			removingId = null;
 		}
 	}
 </script>
@@ -51,8 +92,8 @@
 		{#if !store.providersLoading && store.providers.length === 0}
 			<ResourceNote>No providers found.</ResourceNote>
 		{:else}
-			{#each store.providers as provider (provider.id)}
-				<div data-ui="setting-field">
+			{#each sortedProviders as provider (provider.id)}
+				<div data-ui="setting-field" data-layout="stacked">
 					<div>
 						<strong>{provider.name}</strong>
 						<span>
@@ -72,6 +113,45 @@
 							? provider.source || 'Authenticated'
 							: 'Not configured'}
 					</span>
+					{#if provider.supportsApiKey}
+						<div data-ui="endpoint-field">
+							<label for="api-key-{provider.id}" data-ui="sr-only"
+								>API key for {provider.name}</label
+							>
+							<input
+								id="api-key-{provider.id}"
+								type="password"
+								bind:value={drafts[provider.id]}
+								placeholder={provider.authenticated &&
+								provider.credentialType === 'api_key'
+									? 'Replace API key'
+									: `Paste ${provider.name} API key`}
+								autocomplete="off"
+								spellcheck="false"
+							/>
+							<Button
+								variant="secondary"
+								size="sm"
+								disabled={store.providersLoading ||
+									savingId === provider.id ||
+									!(drafts[provider.id] ?? '').trim()}
+								onclick={() => void saveKey(provider.id, provider.name)}
+							>
+								{savingId === provider.id ? 'Saving…' : 'Save'}
+							</Button>
+							{#if provider.authenticated && provider.credentialType === 'api_key'}
+								<Button
+									variant="secondary"
+									size="sm"
+									disabled={store.providersLoading ||
+										removingId === provider.id}
+									onclick={() => void removeKey(provider.id, provider.name)}
+								>
+									{removingId === provider.id ? 'Removing…' : 'Remove'}
+								</Button>
+							{/if}
+						</div>
+					{/if}
 				</div>
 			{/each}
 		{/if}

@@ -86,6 +86,8 @@ export class InvalidEventClient implements AgentClient {
 	async reimportPiAuth(): Promise<ProviderStatus[]> {
 		return [];
 	}
+	async setProviderApiKey(): Promise<ProviderStatus[]> { return []; }
+	async removeProviderApiKey(): Promise<ProviderStatus[]> { return []; }
 
 	async connect() {}
 	async disconnect() {}

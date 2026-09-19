@@ -26,6 +26,23 @@ export class SessionRequests extends RequestClient {
 		return parseProviderStatuses(response.result);
 	}
 
+	async setProviderApiKey(providerId: string, apiKey: string) {
+		const response = await this.request({
+			type: 'providers.set-api-key',
+			providerId,
+			apiKey,
+		});
+		return parseProviderStatuses(response.result);
+	}
+
+	async removeProviderApiKey(providerId: string) {
+		const response = await this.request({
+			type: 'providers.remove-api-key',
+			providerId,
+		});
+		return parseProviderStatuses(response.result);
+	}
+
 	async createSession(options: SessionOptions = {}) {
 		const response = await this.request({ type: 'session.create', options });
 		if (!response.sessionId) {

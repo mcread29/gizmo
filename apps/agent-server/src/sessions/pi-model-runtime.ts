@@ -57,3 +57,32 @@ export async function reimportPiAuth(): Promise<ProviderStatus[]> {
 	modelRuntimePromise = undefined;
 	return listProviders();
 }
+
+export async function setProviderApiKey(
+	providerId: string,
+	apiKey: string,
+): Promise<ProviderStatus[]> {
+	const id = providerId.trim();
+	const key = apiKey.trim();
+	if (!id) throw new Error('Unknown provider');
+	if (!key) throw new Error('API key is required');
+	const runtime = await gizmoModelRuntime();
+	const provider = runtime.getProvider(id);
+	if (!provider) throw new Error(`Unknown provider: ${id}`);
+	if (!provider.auth.apiKey)
+		throw new Error(`${provider.name} does not support API keys`);
+	await runtime.setRuntimeApiKey(id, key);
+	return listProviders();
+}
+
+export async function removeProviderApiKey(
+	providerId: string,
+): Promise<ProviderStatus[]> {
+	const id = providerId.trim();
+	if (!id) throw new Error('Unknown provider');
+	const runtime = await gizmoModelRuntime();
+	const provider = runtime.getProvider(id);
+	if (!provider) throw new Error(`Unknown provider: ${id}`);
+	await runtime.removeRuntimeApiKey(id);
+	return listProviders();
+}

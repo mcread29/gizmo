@@ -66,6 +66,8 @@ export class AgentStore extends AgentStoreState {
 	reimportPiAuth() {
 		return this.#registry.reimportPiAuth();
 	}
+	setProviderApiKey(p: string, k: string) { return this.#registry.setProviderApiKey(p, k); }
+	removeProviderApiKey(p: string) { return this.#registry.removeProviderApiKey(p); }
 	connect() {
 		return this.#connection.connect();
 	}
