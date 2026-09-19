@@ -2,19 +2,13 @@ import { closeSync, openSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import {
-	createDaemon,
-	firstExit,
-	stopProcessTree,
-	waitForPort,
-} from './lib/managed-daemon';
-import {
-	refuseSupervisedVerb,
-	reportSupervisedStatus,
-} from './lib/supervised';
+import { appendFile, mkdir } from 'node:fs/promises';
+import { firstExit, stopProcessTree, waitForPort } from './lib/web-process';
+import { reportSupervisedStatus } from './lib/supervised';
 
 const root = join(__dirname, '..');
 const runtimeDirectory = join(root, '.gizmo-web');
+const logFile = join(runtimeDirectory, 'server.log');
 
 const agentPort = Number(process.env.GIZMO_PORT ?? 8787);
 const webPort = Number(process.env.GIZMO_WEB_PORT ?? 4173);
@@ -104,26 +98,38 @@ async function runManagedServer(logFile: string) {
 	}
 }
 
-const daemon = createDaemon({
-	label: 'Gizmo Web',
-	root,
-	runtimeDirectory,
-	runnerScript: join(root, 'scripts', 'web-server.ts'),
-	urls: webHosts.map((host) => `http://${host}:${webPort}`),
-	run: runManagedServer,
-});
-
-// Only `run` still goes through the daemon, because `run` is what the
-// supervisor invokes. The lifecycle verbs it also provides are handled here
-// instead: this server is not ours to start or stop any more.
-const verb = process.argv[2];
-if (verb === 'status') {
-	void reportSupervisedStatus([
-		{ port: agentPort, label: 'agent server' },
-		{ port: webPort, label: 'web app' },
-	]);
-} else if (verb === 'start' || verb === 'stop' || verb === 'restart') {
-	refuseSupervisedVerb(verb);
-} else {
-	daemon.run('Usage: pnpm web:server <run|status>');
+/**
+ * Two verbs, because there are only two things anyone does with this server.
+ *
+ * `run` is what the "Gizmo Web" scheduled task invokes; it is the server. The
+ * task owns starting, stopping and restarting it, so nothing here does. See
+ * docs/web-server.md.
+ */
+async function main() {
+	if (process.argv[2] === 'status') {
+		await reportSupervisedStatus([
+			{ port: agentPort, label: 'agent server' },
+			{ port: webPort, label: 'web app' },
+		]);
+		return;
+	}
+	if (process.argv[2] !== 'run') {
+		console.error('Usage: pnpm web:server <run|status>');
+		process.exitCode = 2;
+		return;
+	}
+	await mkdir(runtimeDirectory, { recursive: true });
+	await appendFile(
+		logFile,
+		`\n--- Gizmo Web started ${new Date().toISOString()} ---\n`,
+	);
+	process.exitCode = await runManagedServer(logFile);
 }
+
+void main().catch((error: unknown) => {
+	const message =
+		error instanceof Error ? (error.stack ?? error.message) : String(error);
+	console.error(message);
+	void appendFile(logFile, `${message}\n`);
+	process.exitCode = 1;
+});

@@ -1,28 +1,9 @@
-import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { appendFile, writeFile } from 'node:fs/promises';
+import { spawnSync, type ChildProcess } from 'node:child_process';
+import { appendFile } from 'node:fs/promises';
 import { connect } from 'node:net';
-import { join } from 'node:path';
 
-export function isRunning(pid: number) {
-	try {
-		process.kill(pid, 0);
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-export function delay(milliseconds: number) {
+function delay(milliseconds: number) {
 	return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
-export async function waitForExit(pid: number, timeoutMilliseconds: number) {
-	const deadline = Date.now() + timeoutMilliseconds;
-	while (Date.now() < deadline) {
-		if (!isRunning(pid)) return true;
-		await delay(100);
-	}
-	return !isRunning(pid);
 }
 
 /** Resolves once something accepts TCP connections on the port. */
@@ -85,49 +66,5 @@ export function firstExit(children: readonly ChildProcess[], logFile: string) {
 			});
 			child.once('exit', (code) => resolve(code ?? 1));
 		}
-	});
-}
-
-/**
- * Detaches the supervisor with no console window. Windows has no equivalent
- * of a POSIX detached session, so a WSH shim launches the real command with
- * the window hidden and relays its exit code.
- */
-export async function spawnHiddenWindowsRunner(
-	runtimeDirectory: string,
-	root: string,
-	runnerArguments: string[],
-) {
-	const script = join(runtimeDirectory, 'hidden-runner.vbs');
-	const commandFile = join(runtimeDirectory, 'hidden-runner.cmd');
-	await Promise.all([
-		writeFile(
-			script,
-			[
-				'Set shell = CreateObject("WScript.Shell")',
-				'command = Chr(34) & WScript.Arguments(0) & Chr(34)',
-				'exitCode = shell.Run(command, 0, True)',
-				'WScript.Quit exitCode',
-				'',
-			].join('\r\n'),
-		),
-		writeFile(
-			commandFile,
-			[
-				'@echo off',
-				[process.execPath, ...runnerArguments]
-					.map((argument) => `"${argument.replaceAll('"', '""')}"`)
-					.join(' '),
-				'exit /b %errorlevel%',
-				'',
-			].join('\r\n'),
-		),
-	]);
-	return spawn('wscript.exe', ['//nologo', script, commandFile], {
-		cwd: root,
-		detached: true,
-		env: process.env,
-		stdio: 'ignore',
-		windowsHide: true,
 	});
 }

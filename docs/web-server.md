@@ -48,25 +48,11 @@ below.
 
 ## Do not start it by hand
 
-`pnpm web:server:start|stop|restart` **no longer exist**, and
-`scripts/web-server.ts` refuses those verbs. Until 2026-09-16 they were how
-Gizmo ran, and they kept working well enough to look authoritative afterwards
-while tracking a `.gizmo-web/server.json` that nothing writes any more. Two
-things follow from that, both of which have happened:
-
-- `status` reported a perfectly healthy server as "not running", because the
-  state file it consulted was gone.
-- A hand-started server took ports 8787 and 4173, and the supervisor then
-  logged `port 8787 is held by pid(s) N which are NOT ours` every 15 seconds
-  and never came back up.
-
-If a hand-started tree is already holding the ports: `taskkill /PID <pid> /T
-/F`, then wait for the supervisor's next attempt.
-
-The obsolete launchers (`startup.cmd`, `startup.vbs`, `hidden-runner.*`) have
-been moved to `.gizmo-web/obsolete/`. Nothing invokes them; `startup.cmd` in
-particular claims in its own header to be run by the scheduled task, which has
-not been true since the supervisor took over.
+There is no way to, and that is deliberate: `scripts/web-server.ts` has exactly
+two verbs, `run` and `status`. Starting a second server by hand takes ports 8787
+and 4173, and the supervisor then logs `port 8787 is held by pid(s) N which are
+NOT ours` every 15 seconds and never comes back up. If that has happened,
+`taskkill /PID <pid> /T /F` and wait for the next attempt.
 
 ## Checking it in a browser
 
