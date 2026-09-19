@@ -42,6 +42,22 @@ describe('display validation', () => {
 		expect(parseDisplaySpec(spec(node))).toBeUndefined();
 	});
 
+	it('accepts a proxied spec, as a Svelte $state tool result is on the client', () => {
+		const deep = <T extends object>(value: T): T =>
+			new Proxy(value, {
+				get(target, key, receiver) {
+					const item = Reflect.get(target, key, receiver);
+					return item !== null && typeof item === 'object' ? deep(item) : item;
+				},
+			});
+		const proxied = deep(spec());
+		expect(() => structuredClone(proxied)).toThrow();
+		expect(parseDisplaySpec(proxied)).toEqual(spec());
+		expect(
+			readDisplayResult(deep({ gizmoDisplay: { version: 1, spec: spec() } })),
+		).toEqual({ version: 1, spec: spec() });
+	});
+
 	it('rejects broken trees, leaf children, disconnected nodes, cycles and shared children', () => {
 		const leaf = { type: 'Text', props: { text: 'hi' } };
 		const stack = (children: string[]) => ({

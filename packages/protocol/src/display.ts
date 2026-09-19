@@ -223,7 +223,7 @@ export function parseDisplaySpec(value: unknown): DisplaySpec | undefined {
 				node.props.rows.some((row) => row.length !== node.props.columns.length)
 			);
 		};
-		return rootedTree(spec, wellFormed) ? structuredClone(spec) : undefined;
+		return rootedTree(spec, wellFormed) ? plainClone(spec) : undefined;
 	} catch {
 		return undefined;
 	}
@@ -243,10 +243,20 @@ export function parseCatalogDisplaySpec(
 		if (!boundedJson(value) || !Value.Check(catalogDisplaySpecSchema, value))
 			return;
 		const spec = value as CatalogDisplaySpec;
-		return rootedTree(spec, validateNode) ? structuredClone(spec) : undefined;
+		return rootedTree(spec, validateNode) ? plainClone(spec) : undefined;
 	} catch {
 		return undefined;
 	}
+}
+
+/**
+ * A detached plain copy. `structuredClone` is not usable here: a Svelte
+ * `$state` proxy (which is how a thread's tool results arrive on the client)
+ * throws DataCloneError, and `boundedJson` has already proven the value is
+ * plain JSON, so a text round-trip loses nothing.
+ */
+function plainClone<T>(value: T): T {
+	return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function rootedTree<T extends { children?: string[] }>(
