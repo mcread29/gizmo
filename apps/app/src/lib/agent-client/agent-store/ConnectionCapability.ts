@@ -3,7 +3,7 @@ import {
 	isHeartbeat,
 	parseHeartbeat,
 } from '@gizmo/protocol';
-import { installWebExtensions } from '../../extensions/runtime/install';
+import { extensionUi } from '../../extensions/extension-ui.svelte';
 import type { AgentClient } from '../AgentClient';
 import type { AgentStore } from '../AgentStore.svelte';
 import type { SessionCapability } from './SessionCapability';
@@ -23,6 +23,7 @@ const silenceCheckMs = 5_000;
 export class ConnectionCapability {
 	#unsubscribe?: () => void;
 	#unsubscribeDisconnect?: () => void;
+	#detachExtensionUi?: () => void;
 	#reconnectTimer?: ReturnType<typeof setTimeout>;
 	#autoReconnect = true;
 	#lastMessageAt = 0;
@@ -74,8 +75,9 @@ export class ConnectionCapability {
 			await this.client.connect();
 			store.connection = 'connected';
 			store.reconnectAttempt = 0;
-			const diagnostics = await installWebExtensions(this.client);
-			for (const diagnostic of diagnostics) console.warn(diagnostic);
+			// The catalog follows the connection: it tracks the selected
+			// workspace and re-fetches on its own from here on.
+			this.#detachExtensionUi = extensionUi.attach(this.client, store);
 			await store.refreshProjects();
 			const catalog = await this.client.listSessions();
 			store.sessions = catalog.sessions;
@@ -163,6 +165,8 @@ export class ConnectionCapability {
 
 	#cleanupSubscriptions() {
 		this.#clearSilenceWatch();
+		this.#detachExtensionUi?.();
+		this.#detachExtensionUi = undefined;
 		this.#unsubscribe?.();
 		this.#unsubscribe = undefined;
 		this.#unsubscribeDisconnect?.();

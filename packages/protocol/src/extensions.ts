@@ -35,32 +35,6 @@ export const extensionsSchema = Type.Object(
 export type Extensions = Static<typeof extensionsSchema>;
 
 /**
- * One runtime-loadable web extension bundle. `code` is a standalone ES module
- * exporting `gizmoWebExtension`; the app imports it through a real runtime
- * `import()` of a blob URL, which its own bundler never had to resolve.
- */
-export const webExtensionBundleSchema = Type.Object(
-	{
-		id: Type.String({ minLength: 1, maxLength: 128 }),
-		code: Type.String({ minLength: 1 }),
-	},
-	{ additionalProperties: false },
-);
-
-export type WebExtensionBundle = Static<typeof webExtensionBundleSchema>;
-
-export const webExtensionBundlesSchema = Type.Object(
-	{
-		bundles: Type.Array(webExtensionBundleSchema),
-		/** Extensions that declared a web bundle Gizmo could not load. */
-		diagnostics: Type.Array(Type.String()),
-	},
-	{ additionalProperties: false },
-);
-
-export type WebExtensionBundles = Static<typeof webExtensionBundlesSchema>;
-
-/**
  * Outcome of `extensions.reload`: the server re-evaluated every linked
  * extension from disk, rebuilt project services, and reloaded idle Pi
  * runtimes. Sessions mid-turn reload when their turn settles.

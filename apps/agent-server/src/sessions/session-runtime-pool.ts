@@ -41,7 +41,6 @@ export class SessionRuntimePool {
 	readonly #eviction: SessionEviction;
 	/** Sessions that were streaming when a reload was requested. */
 	readonly #pendingReload = new Set<string>();
-	/** Runs a deferred reload once the session's turn has settled. */
 	onPendingReload?: (sessionId: string) => Promise<void>;
 
 	constructor(
@@ -59,7 +58,6 @@ export class SessionRuntimePool {
 		return this.#sessions.has(sessionId);
 	}
 
-	/** Every resident session id, streaming or idle. */
 	sessionIds(): string[] {
 		return [...this.#sessions.keys()];
 	}
@@ -98,13 +96,14 @@ export class SessionRuntimePool {
 		this.#extensionUiRuntimes.set(sessionId, extensionUi);
 		return {
 			extensionUi,
-			confirmStopPlayMode: (projectPath) =>
+			confirm: (projectPath, kind, options = {}) =>
 				this.#confirmations.create(sessionId, (confirmationId) =>
 					this.events.emit(sessionId, {
 						type: 'confirmation.requested',
 						confirmationId,
-						kind: 'stop_play_mode_for_compile',
+						kind,
 						projectPath,
+						...options,
 					}),
 				),
 		};

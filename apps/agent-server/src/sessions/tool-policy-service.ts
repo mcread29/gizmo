@@ -4,6 +4,7 @@ import {
 	writeGlobalToolPolicy,
 	writeProjectToolPolicy,
 } from '../settings/tool-policy';
+import { workspaceTrusted } from '../projects/project-trust';
 import { defaultDataDir } from './session-repository';
 
 /** Reads and writes Pi-compatible tool policy for the active runtime mode. */
@@ -15,7 +16,7 @@ export class ToolPolicyService {
 			cwd,
 			agentDir,
 			...(process.env.GIZMO_PI_WEB === '1'
-				? { projectTrusted: await projectSettingsTrusted(cwd, agentDir) }
+				? { projectTrusted: await workspaceTrusted(cwd) }
 				: {}),
 		});
 	}
@@ -33,10 +34,7 @@ export class ToolPolicyService {
 			agentDir,
 			...(process.env.GIZMO_PI_WEB === '1'
 				? {
-						projectTrusted: await projectSettingsTrusted(
-							workspacePath,
-							agentDir,
-						),
+						projectTrusted: await workspaceTrusted(workspacePath),
 					}
 				: {}),
 		});
@@ -49,19 +47,4 @@ async function agentDirForToolPolicy() {
 		return getAgentDir();
 	}
 	return defaultDataDir();
-}
-
-/** Apply workspace settings only when Pi's project-trust rules allow them. */
-async function projectSettingsTrusted(cwd: string, agentDir: string) {
-	const {
-		hasTrustRequiringProjectResources,
-		ProjectTrustStore,
-		SettingsManager,
-	} = await import('@earendil-works/pi-coding-agent');
-	if (!hasTrustRequiringProjectResources(cwd)) return true;
-	const saved = new ProjectTrustStore(agentDir).get(cwd);
-	if (saved !== null) return saved;
-	return (
-		SettingsManager.create(cwd, agentDir).getDefaultProjectTrust() === 'always'
-	);
 }

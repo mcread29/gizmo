@@ -8,16 +8,14 @@
 	} from '@gizmo/design/format';
 	import { highlightCode } from '@gizmo/design/highlight';
 	import { toolParameters } from './tool-summary';
-	import { webExtensions as toolPresentationPlugins } from '../../extensions/registry.svelte';
+	import { extensionUi } from '../../extensions/extension-ui.svelte';
 
 	interface Props {
 		tool: ToolCallView;
 		projectPath?: string;
-		consoleEntries: unknown[];
-		errors: unknown[];
 	}
 
-	let { tool, projectPath, consoleEntries, errors }: Props = $props();
+	let { tool, projectPath }: Props = $props();
 
 	function patchFileName(patch: string) {
 		for (const line of patch.split('\n')) {
@@ -37,23 +35,20 @@
 		stringValue(recordValue(tool.result, 'file')) ??
 			(diff ? patchFileName(diff) : undefined),
 	);
-	let parameters = $derived(
-		toolPresentationPlugins().reduce(
-			(params, plugin) => plugin.parametersFor?.(tool.name, params) ?? params,
-			toolParameters(tool.input),
-		),
-	);
+	// An extension that names the parameters worth showing gets exactly those,
+	// in the order it named them; every other tool shows all of them.
+	let parameters = $derived.by(() => {
+		const all = toolParameters(tool.input);
+		const wanted = extensionUi.parametersFor(tool.name);
+		if (!wanted) return all;
+		return wanted.flatMap((name) => all.filter(([key]) => key === name));
+	});
 	// Structured results are JSON; the code blocks beside them are highlighted,
 	// so these should be too. highlight.js escapes its own output.
 	let highlighted = $derived(
 		typeof tool.result === 'string'
 			? undefined
 			: highlightCode(resultText, 'json'),
-	);
-	let resultComponent = $derived(
-		toolPresentationPlugins()
-			.map((plugin) => plugin.resultFor?.(tool.name))
-			.find((component) => component !== undefined),
 	);
 </script>
 
@@ -70,9 +65,6 @@
 
 {#if tool.status === 'running' && !resultText}
 	<p data-ui="tool-empty">Waiting for the tool to finish…</p>
-{:else if resultComponent}
-	{@const ResultComponent = resultComponent}
-	<ResultComponent {tool} {projectPath} {consoleEntries} {errors} />
 {:else if diff}
 	<DiffView {diff} file={diffFile} {projectPath} />
 {:else if resultText}

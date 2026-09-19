@@ -8,7 +8,8 @@
 	import { shortcutHint } from './shortcuts';
 	import PanelToggle from './PanelToggle.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
-	import { webExtensions } from '../../extensions/registry.svelte';
+	import { extensionUi as extensionCatalog } from '../../extensions/extension-ui.svelte';
+	import { extensionIcon, hasExtensionIcon } from '../../extensions/icons';
 	import { workspaceNameFromPath } from '../../extensions/workspace-label';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 
@@ -59,18 +60,27 @@
 	);
 
 	let statusBarItems = $derived(
-		webExtensions()
-			.filter(({ id }) => store.enabledExtensionIds.includes(id))
-			.flatMap(
-				(definition) =>
-					definition.statusBar?.({
-						store,
-						projectPath: store.selectedProjectPath,
-					}) ?? [],
-			)
+		extensionCatalog
+			.statusItems()
 			// The overview and Git inspector already show the branch.
-			.filter(({ id }) => id !== 'git.branch'),
+			.filter(({ value }) => value.id !== 'git.branch'),
 	);
+
+	/**
+	 * A status item with a view opens it where the extension put it: an
+	 * inspector tab is brought forward, a modal one is opened as a dialog.
+	 */
+	function openStatusView(extensionId: string, viewId: string) {
+		const summary = extensionCatalog.viewSummary(extensionId, viewId);
+		if (!summary) return;
+		const id = `${extensionId}.${viewId}`;
+		if (summary.value.placement === 'modal') {
+			layout.openExtensionView = id;
+			return;
+		}
+		layout.activeInspectorTab = id;
+		if (!layout.rightVisible) layout.toggleRight();
+	}
 </script>
 
 <!-- The window has no native decorations, so the bar itself moves it. -->
@@ -131,16 +141,16 @@
 					{status.request.text}
 				</span>
 			{/each}
-			{#each statusBarItems as item (item.id)}
-				{@const Icon = item.icon}
+			{#each statusBarItems as { extensionId, value: item } (`${extensionId}.${item.id}`)}
+				{@const Icon = extensionIcon(item.icon)}
 				<button
 					type="button"
 					data-ui="status-bar-item"
 					data-tone={item.tone ?? 'default'}
-					disabled={!item.onClick}
-					onclick={item.onClick}
+					disabled={!item.view}
+					onclick={() => item.view && openStatusView(extensionId, item.view)}
 				>
-					{#if Icon}<Icon size={13} />{/if}
+					{#if hasExtensionIcon(item.icon)}<Icon size={13} />{/if}
 					{item.label}
 				</button>
 			{/each}

@@ -94,7 +94,11 @@ export type PiSessionFactory = (
 ) => Promise<PiSessionLike>;
 
 export interface PiSessionCallbacks {
-	confirmStopPlayMode(projectPath: string): Promise<boolean>;
+	confirm(
+		projectPath: string,
+		kind: string,
+		options?: { title?: string; message?: string },
+	): Promise<boolean>;
 	extensionUi: PiExtensionUiRuntime;
 }
 

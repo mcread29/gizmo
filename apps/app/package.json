@@ -8,11 +8,11 @@
 		"check": "svelte-check --tsconfig ./tsconfig.json",
 		"dev": "vite",
 		"preview": "vite preview",
-		"test": "vitest run",
-		"extension:build": "node --experimental-strip-types ../../packages/extension-build/src/cli.ts"
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@gizmo/design": "workspace:*",
+		"@gizmo/extension-api": "workspace:*",
 		"@gizmo/protocol": "workspace:*",
 		"@gizmo/ui": "workspace:*",
 		"@json-render/core": "0.20.0",
@@ -26,7 +26,6 @@
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
-		"@gizmo/extension-build": "workspace:*",
 		"@sveltejs/vite-plugin-svelte": "latest",
 		"@testing-library/jest-dom": "latest",
 		"@testing-library/svelte": "latest",

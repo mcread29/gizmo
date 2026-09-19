@@ -15,7 +15,7 @@ type InnerAgentEvent = AgentEvent extends infer Event
 	: never;
 
 export class GatedResumeClient extends InvalidEventClient {
-	#listener?: AgentEventListener;
+	#listeners = new Set<AgentEventListener>();
 	#eventId = 0;
 	#gate?: { id: string; promise: Promise<void>; release: () => void };
 
@@ -58,12 +58,13 @@ export class GatedResumeClient extends InvalidEventClient {
 	}
 
 	emit(sessionId: string, event: InnerAgentEvent): void {
-		this.#listener?.({
+		const message = {
 			...event,
 			sessionId,
 			protocolVersion,
 			eventId: ++this.#eventId,
-		} as AgentEvent);
+		} as AgentEvent;
+		for (const listener of this.#listeners) listener(message);
 	}
 
 	/** The event id the next emit will carry, for setting the cutoff. */
@@ -78,7 +79,8 @@ export class GatedResumeClient extends InvalidEventClient {
 
 	/** A server heartbeat; `lastEventId` defaults to the newest id emitted. */
 	heartbeat(lastEventId = this.#eventId): void {
-		this.#listener?.({ protocolVersion, type: 'heartbeat', lastEventId });
+		for (const listener of this.#listeners)
+			listener({ protocolVersion, type: 'heartbeat', lastEventId });
 	}
 
 	async connect() {}
@@ -102,7 +104,9 @@ export class GatedResumeClient extends InvalidEventClient {
 		return 'session-a';
 	}
 	subscribe(listener: AgentEventListener) {
-		this.#listener = listener;
-		return () => (this.#listener = undefined);
+		this.#listeners.add(listener);
+		return () => {
+			this.#listeners.delete(listener);
+		};
 	}
 }

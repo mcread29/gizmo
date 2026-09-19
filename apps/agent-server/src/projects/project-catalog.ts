@@ -6,7 +6,7 @@ import {
 	type StoredProject,
 	type WorkspaceIntegration,
 } from '@gizmo/protocol';
-import { registeredExtensions } from '../extensions/registry';
+import { extensionsForWorkspace } from '../extensions/registry';
 import { GlobalResourceStore } from '../resources/global-resource-settings';
 import { defaultDataDir } from '../sessions/session-repository';
 import { AsyncMutex } from './async-mutex';
@@ -53,7 +53,7 @@ export class ProjectCatalog {
 	async detect(projectPath: string): Promise<ProjectDomains> {
 		await requireDirectory(projectPath);
 		return {
-			domains: registeredExtensions().map(({ id, name }) => ({
+			domains: extensionsForWorkspace(projectPath).map(({ id, name }) => ({
 				id,
 				name,
 				root: '.',

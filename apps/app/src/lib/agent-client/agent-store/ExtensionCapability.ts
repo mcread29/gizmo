@@ -1,5 +1,5 @@
 import type { ProjectConfig } from '@gizmo/protocol';
-import { installWebExtensions } from '../../extensions/runtime/install';
+import { extensionUi } from '../../extensions/extension-ui.svelte';
 import type { AgentClient } from '../AgentClient';
 import type { AgentStore } from '../AgentStore.svelte';
 import { errorMessage } from './shared';
@@ -27,7 +27,8 @@ export class ExtensionCapability {
 				);
 			}
 		}
-		diagnostics.push(...(await installWebExtensions(this.client)));
+		// The UI is data now: re-fetch the descriptors the server just rebuilt.
+		await extensionUi.refresh();
 		const store = this.store;
 		if (store.connection !== 'connected') return diagnostics;
 		await Promise.all([store.refreshResources(), store.refreshProjects()]);

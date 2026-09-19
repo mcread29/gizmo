@@ -1,3 +1,4 @@
+import { viewSchema } from '@gizmo/extension-api';
 import { Type, type Static } from 'typebox';
 import { eventEnvelope } from './envelopes';
 import {
@@ -92,8 +93,11 @@ export const agentEventSchema = Type.Union([
 			...eventEnvelope,
 			type: Type.Literal('confirmation.requested'),
 			confirmationId: Type.String({ minLength: 1 }),
-			kind: Type.Literal('stop_play_mode_for_compile'),
+			/** Extension-defined; the client shows `title`/`message` when given. */
+			kind: Type.String({ minLength: 1, maxLength: 160 }),
 			projectPath: Type.String({ minLength: 1 }),
+			title: Type.Optional(Type.String({ maxLength: 200 })),
+			message: Type.Optional(Type.String({ maxLength: 2_000 })),
 		},
 		{ additionalProperties: false },
 	),
@@ -151,10 +155,36 @@ export const agentEventSchema = Type.Union([
 		},
 		{ additionalProperties: false },
 	),
+	/** A view this connection opened has new content. */
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('extension.view.updated'),
+			projectPath: Type.String({ minLength: 1 }),
+			extensionId: Type.String({ minLength: 1, maxLength: 128 }),
+			viewId: Type.String({ minLength: 1, maxLength: 160 }),
+			viewSessionId: Type.Optional(Type.String({ minLength: 1 })),
+			view: viewSchema,
+		},
+		{ additionalProperties: false },
+	),
+	/**
+	 * An extension's status items or commands changed; clients re-fetch
+	 * `extensions.ui` for the workspace (or every workspace when unset).
+	 */
+	Type.Object(
+		{
+			...eventEnvelope,
+			type: Type.Literal('extensions.ui.changed'),
+			extensionId: Type.String({ minLength: 1, maxLength: 128 }),
+			projectPath: Type.Optional(Type.String({ minLength: 1 })),
+		},
+		{ additionalProperties: false },
+	),
 	/**
 	 * The server reloaded its extension catalog (an explicit reload, a
 	 * registry change, or the dev file watcher). Broadcast to every
-	 * connection so each tab re-fetches web bundles and descriptors.
+	 * connection so each tab re-fetches descriptors and UI contributions.
 	 */
 	Type.Object(
 		{

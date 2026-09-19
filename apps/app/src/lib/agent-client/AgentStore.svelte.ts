@@ -28,12 +28,15 @@ export class AgentStore extends AgentStoreState {
 	readonly #resources: ResourceCapability;
 	readonly #sessions: SessionCapability;
 	readonly #runtime: SessionRuntimeCapability;
+	/** The transport itself, for surfaces that talk to it directly (views). */
+	readonly client: AgentClient;
 
 	constructor(
 		client: AgentClient,
 		options: { allowUnscopedSessions?: boolean } = {},
 	) {
 		super();
+		this.client = client;
 		this.#projects = new ProjectCapability(this, client);
 		this.#runtime = new SessionRuntimeCapability(this, client);
 		this.#sessions = new SessionCapability(

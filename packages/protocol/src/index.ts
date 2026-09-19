@@ -1,5 +1,5 @@
 export * from './core';
-export * from './display';
+export * from '@gizmo/extension-api/display-schema';
 export * from './errors';
 export * from './events';
 export * from './extensions';

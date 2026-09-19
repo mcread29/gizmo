@@ -36,6 +36,7 @@
 	bind:open={sessions.commandPaletteOpen}
 	initialMode={sessions.commandPaletteMode}
 	{store}
+	{layout}
 	onSelectWorkspace={(projectPath) => {
 		sessions.commandPaletteOpen = false;
 		onOpenWorkspace(projectPath);

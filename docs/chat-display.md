@@ -95,7 +95,6 @@ tool-result rendering rather than executing arbitrary UI code.
 ## Extension catalogs
 
 Any tool, not only `display`, may return a `gizmoDisplay` envelope in its
-details. An extension tool can name a catalog its web bundle registers under
-`displayCatalogs` (`"catalog": "<extensionId>/<name>"`); element types are then
-whatever that registry defines, and the host checks only the tree shape and
-size. See `docs/extensions.md`, "Display catalogs".
+details. An extension tool may instead return `gizmoView(view)`, a block view
+from `@gizmo/extension-api` that the host renders with the same components as
+extension panels. Both are validated by the host. See `docs/extensions.md`.

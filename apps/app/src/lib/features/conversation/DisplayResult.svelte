@@ -5,21 +5,31 @@
 		Renderer,
 		type ComponentRegistry,
 	} from '@json-render/svelte';
-	import { extension } from '../../extensions/registry.svelte';
 	import DisplayElement from './DisplayElement.svelte';
 	import { displayCatalog } from './display-catalog';
+	import ViewRenderer from '../../extensions/view/ViewRenderer.svelte';
+	import { appIntentHost } from '../../extensions/view/intents';
 
-	let { display }: { display: DisplayEnvelope } = $props();
-	let spec = $derived({
-		root: display.spec.root,
-		elements: Object.fromEntries(
-			Object.entries(display.spec.elements).map(([key, node]) => [
-				key,
-				{ ...node, props: { ...node.props } },
-			]),
-		),
+	let {
+		display,
+		projectPath,
+	}: { display: DisplayEnvelope; projectPath?: string } = $props();
+	let spec = $derived.by(() => {
+		if ('view' in display) return undefined;
+		return {
+			root: display.spec.root,
+			elements: Object.fromEntries(
+				Object.entries(display.spec.elements).map(([key, node]) => [
+					key,
+					{ ...node, props: { ...node.props } },
+				]),
+			),
+		};
 	});
-	const builtin = {
+	// A card has no open view on the server, so only the host's own intents
+	// can run; switching threads from a transcript card is not one of them.
+	let host = $derived(appIntentHost(projectPath, () => {}));
+	const registry = {
 		Heading: DisplayElement,
 		Text: DisplayElement,
 		Card: DisplayElement,
@@ -30,36 +40,16 @@
 		Divider: DisplayElement,
 	} satisfies ComponentRegistry &
 		Record<keyof typeof displayCatalog.data.components, typeof DisplayElement>;
-
-	// A catalog names the extension and registry that render this spec. The
-	// web extension registry is reactive, so a bundle that arrives (or is
-	// reloaded) after the card mounted still renders it.
-	let catalog = $derived('catalog' in display ? display.catalog : undefined);
-	let registry = $derived.by((): ComponentRegistry | undefined => {
-		if (!catalog) return builtin;
-		const slash = catalog.indexOf('/');
-		const found = extension(catalog.slice(0, slash))?.displayCatalogs?.[
-			catalog.slice(slash + 1)
-		];
-		if (!found) return undefined;
-		// Every element type must be known to the registry; json-render would
-		// otherwise render nothing for it silently.
-		const types = new Set(
-			Object.values(display.spec.elements).map(({ type }) => type),
-		);
-		return [...types].every((type) => type in found) ? found : undefined;
-	});
 </script>
 
 <div data-ui="display-result">
-	{#if display.title}<h3>{display.title}</h3>{/if}
-	{#if registry}
-		<JsonUIProvider><Renderer {spec} {registry} /></JsonUIProvider>
+	{#if 'view' in display}
+		<ViewRenderer view={display.view} {projectPath} {host} readonly />
 	{:else}
-		<p class="missing">
-			This card needs the "{catalog}" display catalog, which no installed
-			extension provides.
-		</p>
+		{#if display.title}<h3>{display.title}</h3>{/if}
+		{#if spec}
+			<JsonUIProvider><Renderer {spec} {registry} /></JsonUIProvider>
+		{/if}
 	{/if}
 </div>
 
@@ -75,9 +65,5 @@
 		margin: 0;
 		font-size: var(--text-base);
 		font-weight: 600;
-	}
-	.missing {
-		margin: 0;
-		color: var(--color-text-muted);
 	}
 </style>

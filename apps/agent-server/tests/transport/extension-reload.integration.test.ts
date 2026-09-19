@@ -56,6 +56,7 @@ it('reloads source over the socket and broadcasts the same generation to two cli
 				generation: result.generation,
 				extensions: result.extensions,
 			}),
+		uiChanged: () => {},
 	});
 	const address = server.server.address() as { port: number };
 	const sockets = [0, 1].map(
@@ -77,7 +78,6 @@ it('reloads source over the socket and broadcasts the same generation to two cli
 			protocolVersion,
 			requestId: 'reload',
 			type: 'extensions.reload',
-			rebuild: false,
 		}),
 	);
 	await expect

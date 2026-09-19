@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { AgentStore } from '../../../src/lib/agent-client/AgentStore.svelte.ts';
 import { FakeAgentClient } from '../../../src/lib/agent-client/FakeAgentClient';
-import { registerWebExtensions } from '../../../src/lib/extensions/registry.svelte.ts';
 
 describe('AgentStore', () => {
 	it('discovers projects and keeps per-session transcripts', async () => {
-		registerWebExtensions([{ id: 'unity', hasProjectStatus: true }]);
 		const store = new AgentStore(new FakeAgentClient({ latencyMs: 0 }));
 		await store.connect();
 		const firstSession = store.sessionId!;

@@ -171,6 +171,7 @@
 
 			<WorkspaceInspector
 				{store}
+				{layout}
 				hidden={!layout.rightVisible}
 				tabOrder={layout.inspectorTabOrder}
 				onReorderTabs={(ids) => (layout.inspectorTabOrder = ids)}

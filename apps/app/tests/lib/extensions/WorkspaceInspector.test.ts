@@ -1,36 +1,49 @@
-import type { ExtensionDescriptor } from '@gizmo/protocol';
-import { render } from '@testing-library/svelte';
+import { render, waitFor } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
+import type { ViewSummary } from '@gizmo/extension-api';
 import type { AgentStore } from '../../../src/lib/agent-client';
-import TestExtensionPanel from './fixtures/TestExtensionPanel.svelte';
 import WorkspaceInspector from '../../../src/lib/extensions/WorkspaceInspector.svelte';
-import { registerWebExtensions } from '../../../src/lib/extensions/registry.svelte.ts';
+import { extensionUi } from '../../../src/lib/extensions/extension-ui.svelte.ts';
+import { WorkspaceLayout } from '../../../src/lib/features/shell/workspace.svelte.ts';
+import { extensionUiFixture } from './fixtures/ui.ts';
 
-function store(projectExtensions: ExtensionDescriptor[]): AgentStore {
+function store(): AgentStore {
 	return {
 		messages: [],
-		projectExtensions,
-		enabledExtensionIds: projectExtensions.map(({ id }) => id),
 		selectedProjectPath: '/projects/game',
-		projectOpening: {},
-		invokeProjectExtension: async () => ({}),
+		sessionId: undefined,
+		// Views talk to the transport directly; nothing here opens one.
+		client: {
+			subscribe: () => () => {},
+			openExtensionView: async () => undefined,
+			closeExtensionView: async () => {},
+		},
 	} as unknown as AgentStore;
 }
 
+function view(id: string, label: string): ViewSummary {
+	return { id, label, scope: 'workspace', placement: 'inspector' };
+}
+
 describe('WorkspaceInspector', () => {
-	it('shows static tabs only for enabled extensions', async () => {
-		registerWebExtensions([
-			{
-				id: 'git',
-				inspectorTabs: () => [tab('git.panel', 'Changes')],
-			},
-			{
-				id: 'activity',
-				inspectorTabs: () => [tab('activity.panel', 'Activity')],
-			},
-		]);
+	it('renders one tab per contributed inspector view', async () => {
+		extensionUi.extensions = [
+			extensionUiFixture('git', { views: [view('changes', 'Changes')] }),
+			extensionUiFixture('activity', {
+				views: [
+					view('panel', 'Activity'),
+					{
+						id: 'about',
+						label: 'About',
+						scope: 'workspace',
+						placement: 'modal',
+					},
+				],
+			}),
+		];
 		const inspector = render(WorkspaceInspector, {
-			store: store([descriptor('git', 'Git')]),
+			store: store(),
+			layout: new WorkspaceLayout(),
 			hidden: false,
 		});
 
@@ -38,51 +51,18 @@ describe('WorkspaceInspector', () => {
 			await inspector.findByRole('tab', { name: 'Changes' }),
 		).toBeInTheDocument();
 		expect(
-			inspector.queryByRole('tab', { name: 'Activity' }),
-		).not.toBeInTheDocument();
-		inspector.unmount();
-	});
-
-	it('renders every project runtime as a peer inspector tab', async () => {
-		const disposeSubagents = vi.fn();
-		const disposeWorkflows = vi.fn();
-		registerWebExtensions([
-			runtimeExtension(
-				'subagents',
-				'subagents.panel',
-				'Subagents',
-				disposeSubagents,
-			),
-			runtimeExtension(
-				'workflows',
-				'workflows.panel',
-				'Workflows',
-				disposeWorkflows,
-			),
-		]);
-		const inspector = render(WorkspaceInspector, {
-			store: store([
-				descriptor('subagents', 'Subagents'),
-				descriptor('workflows', 'Workflows'),
-			]),
-			hidden: false,
-		});
-
-		expect(
-			await inspector.findByRole('tab', { name: 'Subagents' }),
+			await inspector.findByRole('tab', { name: 'Activity' }),
 		).toBeInTheDocument();
-		expect(
-			await inspector.findByRole('tab', { name: 'Workflows' }),
-		).toBeInTheDocument();
+		// A modal view is not an inspector tab.
+		expect(inspector.queryByRole('tab', { name: 'About' })).toBeNull();
 		inspector.unmount();
-		expect(disposeSubagents).toHaveBeenCalledOnce();
-		expect(disposeWorkflows).toHaveBeenCalledOnce();
 	});
 
 	it('owns the empty inspector state when no enabled extension contributes UI', () => {
-		registerWebExtensions([]);
+		extensionUi.extensions = [];
 		const inspector = render(WorkspaceInspector, {
-			store: store([]),
+			store: store(),
+			layout: new WorkspaceLayout(),
 			hidden: false,
 		});
 
@@ -93,38 +73,22 @@ describe('WorkspaceInspector', () => {
 	});
 });
 
-function runtimeExtension(
-	id: string,
-	tabId: string,
-	label: string,
-	dispose = () => {},
-) {
-	return {
-		id,
-		apiVersion: 1,
-		activate: () => ({
-			inspectorTabs: [tab(tabId, label)],
-			dispose,
-		}),
-	};
-}
-
-function tab(id: string, label: string) {
-	return {
-		id,
-		label,
-		component: TestExtensionPanel,
-		props: {},
-	};
-}
-
-function descriptor(id: string, name: string): ExtensionDescriptor {
-	return {
-		id,
-		name,
-		version: '0.1.0',
-		apiVersion: 1,
-		capabilities: [],
-		operations: [],
-	};
-}
+it('updates the tab badge without reopening the view', async () => {
+	extensionUi.extensions = [
+		extensionUiFixture('git', { views: [view('changes', 'Changes')] }),
+	];
+	const active = store();
+	const open = vi.fn(async () => ({ title: 'Changes', badge: 3, blocks: [] }));
+	active.client.openExtensionView = open;
+	const inspector = render(WorkspaceInspector, {
+		store: active,
+		layout: new WorkspaceLayout(),
+		hidden: false,
+	});
+	await waitFor(() =>
+		expect(inspector.getByRole('tab', { name: /Changes/ })).toHaveTextContent(
+			'3',
+		),
+	);
+	expect(open).toHaveBeenCalledTimes(1);
+});

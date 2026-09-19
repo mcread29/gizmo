@@ -148,13 +148,6 @@ export const projectRequestSchemas = [
 	Type.Object(
 		{
 			...envelope,
-			type: Type.Literal('extensions.web'),
-		},
-		{ additionalProperties: false },
-	),
-	Type.Object(
-		{
-			...envelope,
 			type: Type.Literal('project.extension.invoke'),
 			projectPath: Type.String({ minLength: 1 }),
 			extensionId: Type.String({ minLength: 1, maxLength: 128 }),

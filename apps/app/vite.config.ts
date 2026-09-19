@@ -66,6 +66,9 @@ export default defineConfig({
 		},
 	},
 	test: {
+		// Svelte + jsdom workers are large; keep local runs safe on shared hosts.
+		maxWorkers: 1,
+		execArgv: ['--max-old-space-size=1024'],
 		environment: 'jsdom',
 		include: ['tests/**/*.test.ts'],
 		setupFiles: ['./tests/setup.ts'],

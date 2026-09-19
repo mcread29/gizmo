@@ -1,262 +1,172 @@
 # Extensions
 
-Gizmo ships no extensions. Every extension is installed from one registry —
-Gizmo's own `gizmo-registry` repository — as a normal Pi extension. An
-extension may also export optional, generic Gizmo integration capabilities and
-a paired browser bundle for panels, project services, commands, status, and
-tool-result presentation.
+Gizmo ships no extensions. An extension is a Pi extension written in
+TypeScript that the server evaluates as-is; nothing is compiled, on the
+user's machine or anywhere else. Whatever an extension shows in the Gizmo UI
+is data described by `@gizmo/extension-api`, and the host renders it with its
+own components. The design and its trade-off are recorded in
+[extension-api.md](extension-api.md); this page describes what exists.
 
-Unity, Git, Svelte, Activity, Ask User, and Skill Authoring live in that
-standalone repository. Linking one catalog entry installs the Pi backend and
-its Gizmo browser integration together; the Gizmo application repository
-contains no first-party extension source.
+## The contract: `@gizmo/extension-api`
 
-## Contracts
+`packages/extension-api` is the one public package in the workspace. It
+depends on TypeBox only; Pi's types are an optional peer. An extension file
+default-exports its Pi factory and exports a named `gizmoExtension`:
 
-Two small interfaces, one per side, mirror each other:
+```ts
+import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import { defineExtension, gizmoView } from '@gizmo/extension-api';
 
-- **Server** — `GizmoServerExtension` (`@gizmo/extensions`): `id`, `name`,
-  plus optional `systemPrompt`/`createTools` (active wherever the extension is
-  enabled), optional `list`/`invoke` (live RPC-style
-  operations the web UI can call), and optional `createProjectService`
-  (a running external process with status/watch/open/revert). Project
-  services are registered by extension id; since protocol v26, status/open
-  requests name both the workspace and the extension, and the server routes
-  each request directly to that extension's service. Status payloads are
-  opaque extension-owned data: core never interprets them, so each
-  extension ships the schema, validation, parsing, and errors for its own
-  payloads (see Unity's `unity-wire.ts` in the gizmo-registry repository).
-- **Client** — `GizmoWebExtension` (`apps/app/src/lib/extensions/types.ts`):
-  `id`, plus optional `dialog`/`settings`/`hasProjectStatus`, optional
-  `apiVersion`/`activate` (matched against a server-reported descriptor to
-  activate live operations; the context it receives exposes `projectPath`,
-  a live `sessionId` for the open thread, and `invoke`, so an extension that
-  keeps per-thread state can pass the thread along in its invoke input), optional `inspectorTabs`/`commands`/`statusBar`
-  (peer workspace-inspector tabs, commands, and titlebar indicators shown only
-  while the extension is active), and
-  optional `labels`/`iconFor`/`consoleEntriesKey`/`parametersFor`/`resultFor`/
-  `diagnosticsComponent` (tool-result presentation).
+export default function (pi: ExtensionAPI) {
+	pi.registerTool({/* ... */});
+}
 
-Every field is optional. An extension contributes whatever it actually has;
-it never has to implement capabilities it doesn't need.
+export const gizmoExtension = defineExtension({
+	id: 'notes',
+	name: 'Notes',
+	views: {
+		recent: {
+			label: 'Recent notes',
+			open(context) {
+				const push = () => context.update(render(context.workspacePath));
+				push();
+				const timer = setInterval(push, 1000);
+				return {
+					action: async (event) => {
+						/* handle event.actionId */
+					},
+					dispose: () => clearInterval(timer),
+				};
+			},
+		},
+	},
+});
+```
 
-A registry extension always default-exports its Pi factory from
-`pi-extension.ts`. It may additionally export a named `gizmoExtension` object
-for generic host capabilities. Its browser entry exports `gizmoWebExtension`.
+`defineExtension` is an identity function that gives authors inference. Every
+field but `id` and `name` is optional:
+
+- **Agent-side** — `systemPrompt`, `createTools(context)`, `list`/`invoke`
+  (RPC operations), `createProjectService` (a running external process with
+  status/watch/open/revert; requests name the extension and are routed to
+  its service), `packageRoot` for shipped skills and prompts, `dispose`.
+- **UI** — `views`, `statusItems(context)`, `commands(context)` with
+  `runCommand`, `settings` (a list of typed fields the host renders as a
+  form and stores on the client), and `toolPresentation` (`labels`, `icons`,
+  and `parameters` for tool cards). `activate(host)` hands the extension
+  `host.uiChanged()` so it can ask clients to re-read its status items and
+  commands when its own state changes.
+- **Confirmations** — `context.confirm(kind, { title, message })` asks the
+  user through the host's dialog; the answer is a boolean.
+
+A **view** is `{ title, status?, badge?, blocks, actions? }` built from
+blocks: `heading`, `text`, `markdown`, `keyValue`, `metric`, `list`,
+`table`, `tree`, `progress`, `log`, `code`, `diff`, `section`, `divider`.
+Actions may ask for confirmation, take an input, or carry a selection; a
+block may also carry a host intent (`openFile`, `openDiff`, `openThread`).
+A view's `scope` is `workspace` or `thread` (the latter receives the open
+thread's `sessionId`), and its `placement` is `inspector` or `modal`. Views
+are size-bounded (`maxViewBytes`) and validated by the host with the same
+TypeBox schemas the extension was typed against; an invalid update is dropped
+with a warning rather than rendered.
+
+Tool results use the same machinery: `gizmoDisplay(spec, { title })` for a
+json-render card, or `gizmoView(view)` for a block view, both stored in the
+tool result's `details` and read back with `readDisplayResult`.
+
+The package is published on its own; its major is the extension API version
+(`extensionApiVersion`). The app reports the major it supports and the
+registry's release branch is named after it (see below).
+
+### One copy of the API in the process
+
+The server loads extensions through jiti with an `alias` that maps
+`@gizmo/extension-api` to the copy inside the running Gizmo. A hand-written
+extension needs no install to run; `npm i -D @gizmo/extension-api` is for
+editor types and the extension's own tests. Every payload is validated
+against the schemas the host renders, never against something an extension
+bundled. The module cache is off, so a rescan re-evaluates the extension's
+module graph from disk; that is what makes reload-in-place possible.
+
+## Where extensions come from
+
+| Source                | Directory                                       | Trust                                                                           |
+| --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| Registry              | linked into `~/.pi/agent/extensions/<id>`       | Trusted; the user chose to link it.                                             |
+| Global user extension | `~/.pi/agent/extensions/<name>/` or `<name>.ts` | Trusted, the same as Pi.                                                        |
+| Project-local         | `<workspace>/.pi/extensions/`                   | Pi's project-trust decision for that workspace. Offered to that workspace only. |
+
+Registry and global extensions are the global catalog. Project-local
+extensions are tagged with their workspace, never shadow a global id (a
+clash is logged and the local one dropped), and are scanned for every
+trusted project in the catalog at startup, on reload, and when a project
+that has a `.pi/extensions` directory is added or removed. Pi's own
+`.pi/extensions` discovery reads the same directory, so a project has one
+place for both.
+
+Enablement uses Pi's enabled/disabled directories. Workspace `piExtensions`
+overrides can disable an enabled extension for that workspace; legacy
+`gizmoExtensions` overrides migrate on the next edit and legacy global
+opt-outs migrate at server startup.
 
 ## The extension registry
 
-There is exactly one registry, and it is fixed: `gizmo-registry`. Nobody adds
-or removes registries, and no setting names a URL — **Settings → Extensions**
-browses a catalog and links or unlinks entries from it. Gizmo clones the
-repository into `~/.gizmo/registries/gizmo-registry/` the first time the
-catalog is asked for, runs its declared build command, and remembers the
-commit. The bootstrap is idempotent and shared between concurrent callers; if
-the clone fails, `registry.status` reports the error rather than leaving a
-half-installed directory behind. `registry.update` pulls, rebuilds, re-syncs
-every linked extension, and reloads.
+There is exactly one registry, `gizmo-registry`, and no setting names a URL.
+Gizmo clones its `v<extensionApiVersion>` branch into
+`~/.gizmo/registries/gizmo-registry/` the first time the catalog is asked
+for, runs `pnpm install --frozen-lockfile` when the registry has a lockfile,
+and remembers the commit. The registry's `gizmo.registry.json` declares
+`gizmoApiVersion`; a registry declaring another major is refused before
+anything is linked. The bootstrap is idempotent and shared between concurrent
+callers; a failed clone is reported by `registry.status` rather than left
+half-installed.
 
-The registry's `gizmo.registry.json` declares its extension directory, optional
-install command (`build`, typically `pnpm install --frozen-lockfile`), and
-catalog. Each extension is a directory containing `index.ts`,
-`pi-extension.ts`, and optionally `src/web/index.ts`. Gizmo directory-links the
-extension into `~/.pi/agent/extensions/` so relative imports and registry
-dependencies resolve correctly, and **builds the browser bundle itself** from
-`src/web/index.ts` into `~/.pi/agent/extension-web/<id>.web.js` as part of the
-same unit. The registry repository is independent of the Gizmo application
-repository, so users download only extension source.
+- `registry.link` / `registry.unlink` directory-link an extension into Pi's
+  extension directory, so relative imports and registry dependencies
+  resolve, then reload.
+- `registry.update` fetches the branch tip, checks the manifest, reinstalls
+  dependencies, re-syncs every linked extension (disabled links stay
+  disabled), and reloads. `updateAvailable` compares the clone's HEAD with
+  the remote branch without touching the clone.
+- `registry.reset` unlinks everything the registry installed, removes the
+  clone, and forgets the state. Hand-written extensions are never touched.
 
-## Discovery
+## How the UI reads an extension
 
-### Manifest and enablement
-
-An extension may declare `gizmo.json` with `apiVersion: 1`, a boolean `web`,
-and a `capabilities` array of identifiers. The manifest is optional; several
-registry extensions have none. Linking validates it before changing installed
-files, so an unsupported API version is refused with the previous link intact.
-A false `web` skips the browser build and removes stale bundles.
-
-Extensions use Pi's enabled/disabled directories for both their backend and
-browser integration. Workspace `piExtensions` overrides can disable an enabled
-extension for that workspace. Legacy paired `gizmoExtensions` overrides remain
-effective until the next edit migrates them, and legacy global opt-outs migrate
-at server startup. Updating the registry preserves disabled links; unlinking
-removes either location.
-
-### Server: linked Pi extensions
-
-At startup, Gizmo scans Pi's global extension directory. Each linked
-`pi-extension.ts` is loaded by Pi through its default export. If the same file
-also exports a named `gizmoExtension`, Gizmo registers those generic host
-capabilities without knowing what the extension does. Linked extensions are the
-whole catalog: there is no configured list beside them and no separate
-compatibility check, so every Pi extension on disk is a Gizmo extension.
-
-Both loaders read the files through jiti with the module cache off, so every
-scan re-evaluates the extension's whole module graph from disk. That is what
-makes an in-place reload possible (see "Reloading" below); native `import()`
-would pin the first graph for the life of the process.
-
-### Client: runtime-loaded bundles
-
-Vite — like any bundler — resolves import specifiers by static analysis at
-build time, so the app's own build can never see a plugin installed later. The
-way around it is to build the plugin separately and load it through a genuine
-runtime `import(url)`, which the JS engine resolves itself.
-
-**Building.** `@gizmo/extension-build` (`packages/extension-build`) compiles
-an extension's `src/web` entry into one standalone ES module with no remaining
-imports. The agent-server runs it in a child process when an extension is
-linked, when a registry updates, and on every reload; `pnpm --filter
-@gizmo/app extension:build <dir>` runs the same builder by hand. Gizmo owning
-the build is what keeps the shared-module contract below honest: a registry no
-longer carries its own copy of the builder that can drift.
-
-The one thing a plugin must _not_ bundle is the Svelte runtime: two copies do
-not share context or a reactivity graph, so a plugin carrying its own would
-render but never update. Those specifiers are rewritten to read from a global
-the host publishes (`__gizmoHostModules__`, see
-`apps/app/src/lib/extensions/runtime/host-modules.ts`) rather than left
-external and resolved through an import map — import-map support varies across
-browsers, a global does not. The list of
-names to re-export is read from the installed Svelte package at build time, so
-it tracks the version in use; names that are reserved words (`if`, `await`,
-`try`) are renamed in the export clause. The host also shares the pinned
-json-render modules described below, plus `@gizmo/design/format` and
-`@gizmo/design/highlight`. Host design CSS imports are omitted because the app
-already includes those styles. Other components and icons are bundled normally.
-
-### json-render for web extensions
-
-Gizmo provides `@json-render/core` and `@json-render/svelte` at exactly `0.20.0`,
-plus `zod` at `4.4.3`. These are host dependencies, not extension registrations.
-Extensions define their own component catalogs, renderers, and action handlers.
-
-Use these imports in an extension's browser code:
-
-```ts
-import { defineCatalog } from '@json-render/core';
-import { defineRegistry, Renderer } from '@json-render/svelte';
-import { schema } from '@json-render/svelte/schema';
-import { z } from 'zod';
-```
-
-Gizmo's builder rewrites those four specifiers to use the host's modules, so
-an extension never bundles its own json-render or Zod.
-
-**Display catalogs.** A web extension can register json-render component
-registries under `displayCatalogs`:
-
-```ts
-export const gizmoWebExtension = {
-	id: 'search-and-scrape',
-	displayCatalogs: { results: { ResultList, Result } },
-};
-```
-
-A tool then returns a card as data instead of the extension shipping a bespoke
-result component. On the server, `gizmoDisplay(spec, { catalog:
-'search-and-scrape/results', title })` from `@gizmo/extensions` builds the
-`details` envelope; the tool card renders it with the named registry through
-the host's shared renderer. The host validates the tree and JSON budget
-(`parseCatalogDisplaySpec`); prop shapes are the extension's own. A catalog no
-installed extension provides falls back to the ordinary tool result.
-`gizmoDisplay` validates the envelope on the server and accepts a `validateNode`
-callback for extension-specific property validation.
-`resultFor` remains for genuinely interactive results.
-
-For local type checking, extension repositories should install the same exact
-versions as development dependencies:
-
-```sh
-pnpm add -D -E @json-render/core@0.20.0 @json-render/svelte@0.20.0 zod@4.4.3
-```
-
-Only the listed specifiers are shared. Other subpaths are not part of this
-contract. Backend Pi extensions still need their own dependencies; browser host
-modules are not available in Node. When upgrading json-render, update both pins,
-review `packages/extension-build/src/json-render-exports.ts`, and run the
-extension builder tests. The tests check that the renderer export list matches
-the installed version.
-
-### Bundle delivery
-
-**Delivering.** Linking places browser companions under
-`~/.pi/agent/extension-web/`, outside Pi's backend auto-discovery directory.
-This prevents Pi from trying to execute Svelte browser code as an extension.
-The server returns those bundles over the existing agent WebSocket in response
-to `extensions.web`.
-
-**Loading.** `runtime/load-web-extension.ts` turns the source into a blob URL
-and imports it. A bundle must export `gizmoWebExtension`, and its `id` must
-match the id it was served as — otherwise an extension could impersonate
-another. One failing bundle is reported and skipped rather than taking the
-whole extension surface down.
-
-**Validation.** Past that identity check, the loaded object comes from code
-Gizmo does not control. Every optional field is checked against the shape
-`GizmoWebExtension` promises — `dialog`/`settings`/`activate`/etc. must
-actually be functions, `labels` must be a string-to-string record, and so on
-— and a field that fails is dropped individually rather than the whole
-bundle: a plugin with one malformed field loses just that capability, with a
-diagnostic naming it, instead of surfacing a raw `TypeError` deep inside a
-Svelte render (or failing to load at all over one bad field).
-
-**Runtime isolation.** The published host-module set
-(`__gizmoHostModules__`) is `Object.freeze`d and defined non-writable and
-non-configurable on `globalThis`. A loaded plugin still runs in the main
-page — this is not a sandbox — but it cannot swap the shared Svelte runtime
-for one it controls and hand a poisoned module to every other extension
-sharing the same global. Real code-execution isolation (an iframe sandbox,
-or hash-pinning a bundle so a silently updated dependency cannot swap code
-under an id already trusted) is future work, not yet done.
-
-**CSP.** Importing a blob URL as a module requires `script-src 'self' blob:`
-in whatever CSP the app is served under. A bare `default-src 'self'` (with no
-`script-src`) blocked it; both the block and the fix were confirmed in a real
-Chromium against the exact CSP strings. This does loosen the policy — it is
-the cost of loading third-party UI code at all, and is why bundles arrive only
-from extensions the user explicitly linked from a registry.
-
-_Not verified:_ the blob-import path was confirmed in Chromium, not in WebKit.
-
-**No built-ins.** `registry.svelte.ts` starts empty. Every browser integration
-arrives through `extensions.web`; duplicate ids are de-duplicated at runtime.
-The registry is reactive, so extensions that arrive after first render still
-reach the UI.
+Clients ask `extensions.ui` for the descriptors of every extension enabled in
+a workspace: views, status items, commands, settings fields, tool
+presentation, and whether it has a project service. A view is opened with
+`extension.view.open`, which returns the first `View` and subscribes the
+connection to `extension.view.updated` events; `extension.view.action`
+delivers a clicked action and returns `{ status, message? }`;
+`extension.view.close` releases it. A view instance is shared by every
+connection that has it open and disposed when the last one closes, or when
+the socket drops. `extension.command.run` runs a command; a command or status
+item may instead name a view to open. `extensions.ui.changed` tells clients to
+re-read one extension's descriptors.
 
 ## Reloading without a restart
 
 `extensions.reload` (Settings → Extensions → Reload extensions, or `/reload`
-in the composer) reloads every linked extension in place:
+in the composer) reloads every extension in place:
 
-1. web bundles rebuild from source for every linked extension with a web
-   entry;
-2. the server catalog rescans: each previously linked `gizmoExtension` gets
-   `dispose()` if it defines one, then the module graph re-evaluates from disk;
-3. project services are recreated from the new catalog
-   (`ProjectServiceRegistry.replace`), the old ones disposed, and live
-   status watches re-subscribed;
-4. every idle Pi runtime reloads (Pi clears its own extension cache on
-   `session.reload`, so it re-reads the same files). A session mid-turn is
-   deferred and reloads when its turn settles; compaction also defers reload.
-   The explicit extension-path array is refreshed so newly linked and removed
-   extensions affect resident runtimes;
-5. an `extensions.reloaded` event is broadcast, so **every** connected tab
-   re-fetches bundles and descriptors.
+1. open views are disposed; the server catalog rescans, calling `dispose()`
+   on each previous `gizmoExtension` and re-evaluating the module graph from
+   disk;
+2. project services are recreated from the new catalog, the old ones
+   disposed, and live status watches re-subscribed;
+3. every idle Pi runtime reloads. A session mid-turn is deferred and reloads
+   when its turn settles; compaction also defers reload;
+4. an `extensions.reloaded` event is broadcast, so every connected tab
+   re-fetches descriptors and reopens its views.
 
-Registry link, unlink, and update run the same reload. In development
+Registry link, unlink, update, and reset run the same reload. In development
 `GIZMO_EXTENSION_WATCH=1` makes the agent-server follow every linked
-extension to its registry source: an edit under `src/web` rebuilds that bundle
-and notifies clients; any other edit runs the full reload. The dev runner
-excludes the extension directories from `tsx watch` so an edit there never
-restarts the process and kills a live thread. Because the module graph is
-re-evaluated rather than unloaded, an extension that starts timers, sockets,
-or child processes must implement `dispose` or they leak across reloads.
-
-Web builds replace installed bundles only after success. Failed builds retain
-the previous version and return diagnostics. Reloads arriving during a scan
-queue another pass so subsequent edits are not lost.
+extension to its registry source and reload on any edit; the dev runner
+excludes those directories from `tsx watch` so an edit never restarts the
+process and kills a live thread. Because the module graph is re-evaluated
+rather than unloaded, an extension that starts timers, sockets, or child
+processes must implement `dispose` or they leak across reloads.
 
 ## Tool policy: Pi's `defaultTools` setting
 
@@ -345,7 +255,7 @@ ambient package loading, instead passing `additionalSkillPaths`/
 ships skills rides this existing Pi mechanism rather than a parallel Gizmo
 `skillsPath` convention and a second resource-discovery system.
 
-A `GizmoServerExtension` may set `packageRoot` to its own package directory.
+A `GizmoExtension` may set `packageRoot` to its own package directory.
 `apps/agent-server/src/resources/extension-resources.ts` then resolves the
 skill and prompt directories that package ships, using Pi's own convention:
 
@@ -365,18 +275,28 @@ stays disabled until enabled through the normal resource catalog, exactly
 like a skill found on disk. It never starts influencing sessions on its
 own.
 
-Pi extensions are the unit of installation. A registry entry always supplies
-a normal `(pi: ExtensionAPI) => ...` extension and may additionally expose
-Gizmo host capabilities and a browser bundle. Gizmo does not maintain a
-separate built-in extension catalog.
-
 ## Summary
 
-- One fixed registry, `gizmo-registry`, is cloned and built locally on demand.
-- Selected extension directories are linked into Pi's extension directory.
-- Browser bundles are linked separately so Pi never executes browser imports.
-- Optional named `gizmoExtension` exports provide generic server capabilities.
-- Optional `gizmoWebExtension` bundles are loaded over the agent connection.
+- One fixed registry, pinned to the branch for this extension API major,
+  cloned on demand; no build step anywhere.
+- `@gizmo/extension-api` is the whole contract: agent capabilities and UI as
+  data, validated by the host.
+- Extensions come from the registry, `~/.pi/agent/extensions`, or a trusted
+  workspace's `.pi/extensions`.
 - Built-in tool availability remains Pi's `defaultTools` setting.
-- Extension-specific prompts, tools, skills, services, tests, and UI live with
-  their registry artifacts.
+
+## Migration status and current limits
+
+Extensions now use server-rendered view data throughout the registry. The host
+supplies the API to both the Gizmo integration loader and Pi's independent
+extension loader, including extensions outside the Gizmo checkout.
+
+The registry currently uses a sibling-checkout link for API development and
+tests; a published API dependency is still needed for standalone contributor
+checkouts. Package publishing and the app installer remain separate release work.
+
+The Activity entry has no view until the host exposes a tool-activity data source.
+Inputs support text, multiline, and select; combobox suggestions, per-row actions,
+and expanding truncated tool output are not part of this API. Git uses selection
+plus actions and provides an inline diff; the generic `openDiff` intent currently
+opens the file in the configured editor.

@@ -1,6 +1,8 @@
-import type { ProjectServiceRegistry } from '@gizmo/extensions';
+import type { ProjectServiceRegistry } from '@gizmo/extension-api';
 import type { AgentRequest } from '@gizmo/protocol';
 import type { ExtensionHostService } from '../extensions/extension-host-service';
+import type { ExtensionUiService } from '../extensions/extension-ui-service';
+import { handleExtensionUiRequest } from './extension-ui-request-handler';
 import { MemoryService } from '../memory/memory-service';
 import type { PiAgentService } from '../sessions/pi-agent-service';
 import {
@@ -21,6 +23,7 @@ export interface RequestServices {
 	agent: PiAgentService;
 	projectServices: ProjectServiceRegistry;
 	extensions: ExtensionHostService;
+	ui: ExtensionUiService;
 	watchCoordinator: ProjectWatchCoordinator;
 }
 
@@ -33,8 +36,17 @@ const memory = new MemoryService();
 export async function routeRequest(
 	services: RequestServices,
 	request: AgentRequest,
+	/** The connection making the request; views are owned by it. */
+	owner: object = services,
 ): Promise<RouteResult> {
 	switch (request.type) {
+		case 'extensions.ui':
+		case 'extension.view.open':
+		case 'extension.view.close':
+		case 'extension.view.action':
+		case 'extension.command.run':
+			return handleExtensionUiRequest(services.ui, owner, request);
+
 		case 'providers.list':
 		case 'providers.import-pi-auth':
 		case 'attachment.read':
@@ -74,6 +86,7 @@ export async function routeRequest(
 		case 'registry.update':
 		case 'registry.link':
 		case 'registry.unlink':
+		case 'registry.reset':
 		case 'extensions.reload':
 		case 'tools.policy.get':
 		case 'tools.policy.global.set':
@@ -94,7 +107,6 @@ export async function routeRequest(
 		case 'project.watch':
 		case 'project.open':
 		case 'project.extensions':
-		case 'extensions.web':
 		case 'project.extension.invoke':
 		case 'git.commit-message':
 		case 'file.revert':

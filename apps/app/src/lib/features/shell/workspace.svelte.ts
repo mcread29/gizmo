@@ -12,7 +12,7 @@ import {
 	type ExtensionSettings,
 	type PanelName,
 } from '../../app-settings';
-import type { ExtensionSettingsContext } from '../../extensions/types';
+import type { ExtensionSettingsContext } from '../../extensions/settings';
 import {
 	currentViewportWidth,
 	inspectorMode,
@@ -46,6 +46,14 @@ export class WorkspaceLayout {
 	inspectorTabOrder = $state<string[]>([]);
 	agentUrl = $state('');
 	titleModel = $state('');
+
+	/**
+	 * The modal extension view on screen, as `<extensionId>.<viewId>`. Not
+	 * persisted: a dialog should not be waiting when the app reopens.
+	 */
+	openExtensionView = $state<string | undefined>(undefined);
+	/** The inspector tab on screen, so a status item can bring one forward. */
+	activeInspectorTab = $state<string | undefined>(undefined);
 
 	viewportWidth = $state(currentViewportWidth());
 	leftDrawerOpen = $state(false);

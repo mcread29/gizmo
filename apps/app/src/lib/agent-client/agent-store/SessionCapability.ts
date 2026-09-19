@@ -87,7 +87,7 @@ export class SessionCapability {
 			]);
 		} catch (error) {
 			if (this.#selectionVersion !== selectionVersion) return;
-			this.#restoreSelection(previous);
+			Object.assign(this.store, previous);
 			store.error = { kind: 'session', message: errorMessage(error) };
 		}
 	}
@@ -161,7 +161,7 @@ export class SessionCapability {
 				store.sessionId === sessionId &&
 				this.#selectionVersion === selectionVersion
 			) {
-				this.#restoreSelection(previous);
+				Object.assign(this.store, previous);
 				store.error = { kind: 'session', message: errorMessage(error) };
 			}
 		} finally {
@@ -255,10 +255,14 @@ export class SessionCapability {
 		} else if (event.type === 'confirmation.requested') {
 			store.pendingConfirmations.push(event);
 			return;
-		} else if (event.type.startsWith('extension.ui.')) return;
+		} else if (
+			event.type.startsWith('extension.ui.') ||
+			event.type === 'extension.view.updated' ||
+			event.type === 'extensions.ui.changed'
+		)
+			return; // View surfaces subscribe directly; keep these out of transcripts.
 		else if (event.type === 'extensions.reloaded') {
-			// The server already reloaded; every tab re-fetches bundles and
-			// descriptors so the change shows without a page reload.
+			// Refresh contributions after the server reloads extensions.
 			void store.reloadExtensions({ server: false });
 			return;
 		}
@@ -292,9 +296,5 @@ export class SessionCapability {
 			projectServiceErrors: store.projectServiceErrors,
 			usage: store.usage,
 		};
-	}
-
-	#restoreSelection(selection: SessionSelection) {
-		Object.assign(this.store, selection);
 	}
 }

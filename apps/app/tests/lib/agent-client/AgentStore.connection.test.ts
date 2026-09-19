@@ -2,19 +2,20 @@ import { describe, expect, it, vi } from 'vitest';
 import { AgentStore } from '../../../src/lib/agent-client/AgentStore.svelte.ts';
 import { FakeAgentClient } from '../../../src/lib/agent-client/FakeAgentClient';
 import { InvalidEventClient } from './agent-store-invalid-client';
+import { extensionUi } from '../../../src/lib/extensions/extension-ui.svelte.ts';
 
 describe('AgentStore', () => {
-	it('loads runtime web extensions after connecting', async () => {
-		const client = new FakeAgentClient({
-			latencyMs: 0,
-			webExtensionBundles: { bundles: [], diagnostics: [] },
-		});
-		const listBundles = vi.spyOn(client, 'listWebExtensionBundles');
+	it('loads the extension UI catalog after connecting', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const listUi = vi.spyOn(client, 'listExtensionUi');
 		const store = new AgentStore(client);
 
 		await store.connect();
+		// The catalog is fetched from an effect, which runs on a microtask.
+		await Promise.resolve();
 
-		expect(listBundles).toHaveBeenCalledOnce();
+		expect(listUi).toHaveBeenCalled();
+		expect(extensionUi.extensions.length).toBeGreaterThan(0);
 	});
 
 	it('surfaces malformed transport events without breaking connection setup', async () => {

@@ -1,5 +1,5 @@
 import type { ProjectConfig, WorkspaceIntegration } from '@gizmo/protocol';
-import { registeredExtensions } from '../extensions/registry';
+import { extensionsForWorkspace } from '../extensions/registry';
 import { GlobalResourceStore } from '../resources/global-resource-settings';
 import { ProjectConfigStore } from './project-config-store';
 import { listPiExtensions } from '../resources/pi-global-resources';
@@ -39,7 +39,7 @@ export class ProjectIntegrationResolver {
 			piById.has(id)
 				? (piOverrides.get(id) ?? overrides.get(id) ?? piById.get(id)!.enabled)
 				: (overrides.get(id) ?? !globallyDisabled.has(id));
-		const integrations = registeredExtensions()
+		const integrations = extensionsForWorkspace(projectPath)
 			.filter(({ id }) => enabledFor(id))
 			.map(({ id }) => ({ id, root: '.' }));
 		// UI-only companions also need enablement ids, even without a server integration.

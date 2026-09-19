@@ -1,6 +1,6 @@
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
-import type { GizmoServerExtension } from '@gizmo/extensions';
+import type { GizmoServerExtension } from '@gizmo/extension-api';
 import { isPathWithin } from '../path-utils';
 
 export interface ExtensionResourceRoots {

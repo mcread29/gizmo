@@ -1,3 +1,4 @@
+import { ensureExtensionApiResolution } from '../extensions/extension-api-runtime';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { ComposerCommand, CompactionPolicy } from '@gizmo/protocol';
@@ -32,6 +33,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 	sessionManager,
 	callbacks,
 ) => {
+	ensureExtensionApiResolution();
 	const {
 		createAgentSessionFromServices,
 		createAgentSessionServices,
@@ -46,12 +48,10 @@ export const createDefaultPiSession: PiSessionFactory = async (
 	const modelRuntime = piWebMode ? undefined : await gizmoModelRuntime();
 	const settingsManager = SettingsManager.create(cwd, agentDir);
 	let getSkillCommands: () => ComposerCommand[] = () => [];
-	const confirm = (kind: string): Promise<boolean> => {
-		if (kind !== 'stop_play_mode_for_compile') {
-			throw new Error(`Unsupported confirmation: ${kind}`);
-		}
-		return callbacks.confirmStopPlayMode(cwd);
-	};
+	const confirm = (
+		kind: string,
+		options?: { title?: string; message?: string },
+	): Promise<boolean> => callbacks.confirm(cwd, kind, options);
 	const activeExtensions = await activateExtensions(
 		{ workspacePath: cwd, confirm },
 		(options.integrations ?? []).filter(({ id }) =>

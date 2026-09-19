@@ -8,7 +8,6 @@ export const registryCatalogEntrySchema = Type.Object(
 		linked: Type.Boolean(),
 		/** Present when the extension is linked into the Pi extensions dir. */
 		entry: Type.Optional(Type.String({ minLength: 1 })),
-		web: Type.Optional(Type.String({ minLength: 1 })),
 	},
 	{ additionalProperties: false },
 );

@@ -24,6 +24,9 @@ function context(hasUI = true) {
 }
 const execute = createDisplayTool().execute;
 
+const specOf = (envelope: ReturnType<typeof readDisplayResult>) =>
+	envelope && 'spec' in envelope ? envelope.spec : undefined;
+
 describe('display tool', () => {
 	it('completes immediately without input, including in headless mode', async () => {
 		const { ctx, ui } = context(false);
@@ -73,7 +76,7 @@ describe('display tool', () => {
 		await Promise.resolve();
 		expect(settled).toBe(false);
 		expect(
-			readDisplayResult(normalizeToolResult(update.mock.calls[0]?.[0]))?.spec,
+			specOf(readDisplayResult(normalizeToolResult(update.mock.calls[0]?.[0]))),
 		).toEqual(spec);
 		expect(ui.input).toHaveBeenCalledWith('Name?', 'Name', {
 			signal: controller.signal,
@@ -92,7 +95,7 @@ describe('display tool', () => {
 				text: 'Display input response: {"status":"submitted","value":"Ada"}',
 			},
 		]);
-		expect(readDisplayResult(normalizeToolResult(result))?.spec).toEqual(spec);
+		expect(specOf(readDisplayResult(normalizeToolResult(result)))).toEqual(spec);
 	});
 
 	it.each([true, false])(
@@ -169,7 +172,7 @@ describe('display tool', () => {
 		controller.abort();
 		const result = await pending;
 		expect(result.details).toMatchObject({ response: { status: 'cancelled' } });
-		expect(readDisplayResult(normalizeToolResult(result))?.spec).toEqual(spec);
+		expect(specOf(readDisplayResult(normalizeToolResult(result)))).toEqual(spec);
 	});
 
 	it('does not open an already-aborted dialog', async () => {

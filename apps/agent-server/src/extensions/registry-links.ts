@@ -3,53 +3,37 @@ import { join } from 'node:path';
 import {
 	extensionsDir,
 	disabledExtensionsDir,
-	extensionWebDir,
 	readRegistryManifest,
 	registryCloneDir,
 	registryExtensionsDir,
 	type RegistryManifest,
 } from './registry-storage';
-import { buildExtensionWebBundle, hasWebEntry } from './web-build';
-import {
-	readExtensionManifest,
-	validateExtensionId,
-} from './extension-manifest';
 
-interface LinkedExtension {
-	entry: string;
-	web?: string;
+export function validateExtensionId(id: string): void {
+	if (!/^[a-z0-9][a-z0-9.-]*$/i.test(id)) {
+		throw new Error(`Invalid extension id: ${id}`);
+	}
 }
 
+/** Links a registry extension into Pi's extensions directory and returns the link. */
 export async function syncExtension(
 	clone: string,
 	manifest: RegistryManifest,
 	id: string,
-): Promise<LinkedExtension> {
+): Promise<string> {
 	validateExtensionId(id);
-	const sourceDir = registryExtensionsDir(clone, manifest);
-	const dir = join(sourceDir, id);
-	const metadata = await readExtensionManifest(dir);
-	const entrySource = join(dir, 'index.ts');
-	await readFile(entrySource); // throws with a clear ENOENT when absent
+	const dir = join(registryExtensionsDir(clone, manifest), id);
+	await readFile(join(dir, 'index.ts')); // throws with a clear ENOENT when absent
 	const disabled = await lstat(join(disabledExtensionsDir(), id)).then(
 		() => true,
 		() => false,
 	);
 	const root = disabled ? disabledExtensionsDir() : extensionsDir();
 	const entry = join(root, id);
-	const web = join(extensionWebDir(), `${id}.web.js`);
-	// Gizmo builds the browser bundle itself whenever the extension ships a web
-	// entry; `web: false` in the manifest opts out.
-	const buildsWeb = metadata?.web !== false && (await hasWebEntry(dir));
-	if (buildsWeb) await buildExtensionWebBundle(dir, web);
-	await Promise.all([
-		mkdir(root, { recursive: true }),
-		mkdir(extensionWebDir(), { recursive: true }),
-		rm(entry, { recursive: true, force: true }),
-		...(buildsWeb ? [] : [rm(web, { force: true })]),
-	]);
+	await mkdir(root, { recursive: true });
+	await rm(entry, { recursive: true, force: true });
 	await symlink(dir, entry, 'junction');
-	return buildsWeb ? { entry, web } : { entry };
+	return entry;
 }
 
 export function unlinkExtension(id: string): Promise<void> {
@@ -57,7 +41,6 @@ export function unlinkExtension(id: string): Promise<void> {
 	return Promise.all([
 		rm(join(extensionsDir(), id), { recursive: true, force: true }),
 		rm(join(disabledExtensionsDir(), id), { recursive: true, force: true }),
-		rm(join(extensionWebDir(), `${id}.web.js`), { force: true }),
 	]).then(() => undefined);
 }
 

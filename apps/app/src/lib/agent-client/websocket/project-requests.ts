@@ -2,10 +2,14 @@ import {
 	parseExtensions,
 	parseProjectConfig,
 	parseProjectDomains,
+	parseActionResult,
+	parseExtensionsUi,
 	parseStoredProjects,
-	parseWebExtensionBundles,
+	parseViewResult,
 	parseWorkspaceDirectoryListing,
 } from '@gizmo/protocol';
+import type { ActionEvent } from '@gizmo/extension-api';
+import type { ExtensionViewAddress } from '../AgentClient';
 import { SessionRequests } from './session-requests';
 
 export class ProjectRequests extends SessionRequests {
@@ -126,9 +130,59 @@ export class ProjectRequests extends SessionRequests {
 		return parseExtensions(response.result);
 	}
 
-	async listWebExtensionBundles() {
-		const response = await this.request({ type: 'extensions.web' });
-		return parseWebExtensionBundles(response.result);
+	async listExtensionUi(projectPath: string, sessionId?: string) {
+		const response = await this.request({
+			type: 'extensions.ui',
+			projectPath,
+			...(sessionId ? { sessionId } : {}),
+		});
+		return parseExtensionsUi(response.result).extensions;
+	}
+
+	async openExtensionView(
+		address: ExtensionViewAddress,
+		settings?: Record<string, unknown>,
+	) {
+		const response = await this.request({
+			type: 'extension.view.open',
+			...addressFields(address),
+			...(settings ? { settings } : {}),
+		});
+		return parseViewResult(response.result).view;
+	}
+
+	async closeExtensionView(address: ExtensionViewAddress) {
+		await this.request({
+			type: 'extension.view.close',
+			...addressFields(address),
+		});
+	}
+
+	async runExtensionViewAction(
+		address: ExtensionViewAddress,
+		event: ActionEvent,
+	) {
+		const response = await this.request({
+			type: 'extension.view.action',
+			...addressFields(address),
+			event,
+		});
+		return parseActionResult(response.result);
+	}
+
+	async runExtensionCommand(
+		projectPath: string,
+		extensionId: string,
+		commandId: string,
+		sessionId?: string,
+	) {
+		await this.request({
+			type: 'extension.command.run',
+			projectPath,
+			extensionId,
+			commandId,
+			...(sessionId ? { sessionId } : {}),
+		});
 	}
 
 	async invokeProjectExtension(
@@ -146,4 +200,19 @@ export class ProjectRequests extends SessionRequests {
 		});
 		return response.result;
 	}
+}
+
+/** `sessionId` is optional on the wire; an explicit `undefined` is rejected. */
+function addressFields({
+	projectPath,
+	extensionId,
+	viewId,
+	sessionId,
+}: ExtensionViewAddress) {
+	return {
+		projectPath,
+		extensionId,
+		viewId,
+		...(sessionId ? { sessionId } : {}),
+	};
 }

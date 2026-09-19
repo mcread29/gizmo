@@ -6,7 +6,7 @@ import {
 	ProjectServiceRegistry,
 	type ProjectService,
 	type ProjectStatus,
-} from '@gizmo/extensions';
+} from '@gizmo/extension-api';
 import {
 	createAgentWebSocketServer,
 	type AgentWebSocketServer,

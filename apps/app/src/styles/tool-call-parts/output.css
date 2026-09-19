@@ -84,18 +84,6 @@
 	line-height: 1.5;
 }
 
-[data-ui='tool-errors'] {
-	padding: 10px;
-	border-radius: var(--radius-sm);
-	background: var(--color-danger-soft);
-}
-
-[data-ui='tool-diagnostics'] {
-	padding: 10px;
-	border-radius: var(--radius-sm);
-	background: var(--color-warning-soft);
-}
-
 [data-ui='tool-actions'] {
 	display: flex;
 	justify-content: flex-end;

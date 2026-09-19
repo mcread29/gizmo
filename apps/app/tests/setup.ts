@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/svelte';
 import { afterEach } from 'vitest';
-import { registerWebExtensions } from '../src/lib/extensions/registry.svelte.ts';
+import { extensionUi } from '../src/lib/extensions/extension-ui.svelte.ts';
 
 class ResizeObserverMock implements ResizeObserver {
 	disconnect() {}
@@ -97,7 +97,8 @@ if (!globalThis.localStorage) {
  */
 afterEach(async () => {
 	cleanup();
-	registerWebExtensions([]);
+	extensionUi.detach();
+	extensionUi.extensions = [];
 	if (!document.body.getAttribute('style')?.includes('overflow')) return;
 	await new Promise((resolve) => setTimeout(resolve, 30));
 });

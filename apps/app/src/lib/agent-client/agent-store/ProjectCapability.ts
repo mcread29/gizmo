@@ -3,7 +3,7 @@ import type {
 	StoredProject,
 	WorkspaceDirectoryListing,
 } from '@gizmo/protocol';
-import { extension } from '../../extensions/registry.svelte';
+import { extensionUi } from '../../extensions/extension-ui.svelte';
 import type { AgentClient } from '../AgentClient';
 import type { AgentStore } from '../AgentStore.svelte';
 import { errorMessage } from './shared';
@@ -11,7 +11,7 @@ import { errorMessage } from './shared';
 /** Extensions with a live project process, in enabled order. */
 function statusExtensionIds(store: AgentStore): string[] {
 	return store.enabledExtensionIds.filter(
-		(id) => extension(id)?.hasProjectStatus,
+		(id) => extensionUi.hasProjectService(id),
 	);
 }
 

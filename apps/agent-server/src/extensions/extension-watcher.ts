@@ -1,9 +1,8 @@
 import { watch, type FSWatcher } from 'node:fs';
 import { readdir, realpath } from 'node:fs/promises';
-import { join, relative, sep } from 'node:path';
-import { notifyExtensionsChanged, reloadExtensions } from './extension-reload';
+import { join } from 'node:path';
+import { reloadExtensions } from './extension-reload';
 import { extensionsDir } from './registry-storage';
-import { rebuildLinkedWebBundles } from './web-build';
 
 const debounceMs = 400;
 const ignoredSegments = new Set(['node_modules', '.git', 'dist']);
@@ -14,15 +13,13 @@ export interface ExtensionWatcher {
 
 /**
  * Opt-in development watcher (`GIZMO_EXTENSION_WATCH=1`): follows every
- * linked extension to its registry source and reloads in place on change.
- * An edit under `src/web` only rebuilds that bundle and tells clients; any
- * other edit runs the full reload, so server code re-evaluates and idle Pi
- * runtimes restart. Neither restarts the process.
+ * linked extension to its registry source and reloads in place on change,
+ * so server code re-evaluates and idle Pi runtimes restart. The process is
+ * never restarted.
  */
 export function startExtensionWatcher(): ExtensionWatcher | undefined {
 	if (process.env.GIZMO_EXTENSION_WATCH !== '1') return undefined;
 	const watchers = new Map<string, FSWatcher>();
-	const pendingWeb = new Set<string>();
 	let pendingFull = false;
 	let timer: NodeJS.Timeout | undefined;
 	let closed = false;
@@ -32,20 +29,14 @@ export function startExtensionWatcher(): ExtensionWatcher | undefined {
 		timer = undefined;
 		if (closed || flushing) return;
 		flushing = true;
-		const full = pendingFull;
-		const web = [...pendingWeb];
 		pendingFull = false;
-		pendingWeb.clear();
 		try {
-			if (full) await reloadExtensions();
-			else if (web.length) {
-				notifyExtensionsChanged(await rebuildLinkedWebBundles(web));
-			}
+			await reloadExtensions();
 		} catch (error) {
 			console.error('Extension watcher reload failed:', error);
 		} finally {
 			flushing = false;
-			if (!closed && (pendingFull || pendingWeb.size)) schedule();
+			if (!closed && pendingFull) schedule();
 		}
 		if (!closed) await syncWatchers();
 	};
@@ -56,15 +47,11 @@ export function startExtensionWatcher(): ExtensionWatcher | undefined {
 		timer.unref?.();
 	};
 
-	const onChange = (id: string, root: string, file: string | null) => {
+	const onChange = (file: string | null) => {
 		if (!file) return;
 		const segments = file.split(/[\\/]/);
 		if (segments.some((segment) => ignoredSegments.has(segment))) return;
-		const inWeb = relative(root, join(root, file)).startsWith(
-			`src${sep}web${sep}`,
-		);
-		if (inWeb) pendingWeb.add(id);
-		else pendingFull = true;
+		pendingFull = true;
 		schedule();
 	};
 
@@ -89,7 +76,7 @@ export function startExtensionWatcher(): ExtensionWatcher | undefined {
 			try {
 				const root = await realpath(join(extensionsDir(), id));
 				const watcher = watch(root, { recursive: true }, (_event, file) =>
-					onChange(id, root, file),
+					onChange(file),
 				);
 				watcher.on('error', () => {
 					watcher.close();

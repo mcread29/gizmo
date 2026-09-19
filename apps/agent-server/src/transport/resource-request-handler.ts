@@ -1,6 +1,7 @@
 import type { AgentRequest } from '@gizmo/protocol';
 import {
 	registryLink,
+	registryReset,
 	registryStatus,
 	registryUnlink,
 	registryUpdate,
@@ -26,6 +27,7 @@ type ResourceRequestType =
 	| 'registry.update'
 	| 'registry.link'
 	| 'registry.unlink'
+	| 'registry.reset'
 	| 'extensions.reload'
 	| 'tools.policy.get'
 	| 'tools.policy.global.set'
@@ -101,9 +103,11 @@ export async function handleResourceRequest(
 			return { result: await registryLink(request.id) };
 		case 'registry.unlink':
 			return { result: await registryUnlink(request.id) };
+		case 'registry.reset':
+			return { result: await registryReset() };
 		case 'extensions.reload':
 			return {
-				result: await reloadExtensions({ rebuild: request.rebuild ?? true }),
+				result: await reloadExtensions(),
 			};
 		case 'tools.policy.get':
 			return {

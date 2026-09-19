@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CommandContribution } from '../../../extensions/types';
+	import type { CommandContribution } from '../../../extensions/commands';
 	import RootCommandList from './RootCommandList.svelte';
 	import type { CommandPaletteMode, WorkspacePaletteStore } from './types';
 	import WorkspaceBrowser from './WorkspaceBrowser.svelte';

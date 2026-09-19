@@ -11,28 +11,19 @@ import { registeredExtensions } from './registry';
  * can trigger the same reload the `extensions.reload` request runs.
  */
 export interface ExtensionReloadHooks {
-	/**
-	 * Rebuilds the web bundles of linked extensions: only `ids` when given,
-	 * otherwise the stale ones, or every one when forced.
-	 */
-	rebuildWebBundles?(
-		ids: readonly string[] | undefined,
-		force: boolean,
-	): Promise<string[]>;
 	/** Recreates project services from the current catalog and re-watches. */
 	refreshProjectServices(): Promise<void> | void;
 	/** Reloads idle Pi runtimes; defers streaming ones. */
 	reloadSessions(): Promise<{ reloaded: string[]; pending: string[] }>;
 	/** Tells every connected client the catalog changed. */
 	broadcast(result: ExtensionReloadResult): void;
+	/** Tells clients an extension's status items or commands changed. */
+	uiChanged(extensionId: string, projectPath?: string): void;
 }
 
 let hooks: ExtensionReloadHooks | undefined;
-type ReloadOptions = { rebuild?: boolean | readonly string[] };
 let tail: Promise<unknown> = Promise.resolve();
-let queued:
-	| { options: ReloadOptions; result: Promise<ExtensionReloadResult> }
-	| undefined;
+let queued: Promise<ExtensionReloadResult> | undefined;
 
 export function configureExtensionReload(next: ExtensionReloadHooks): void {
 	hooks = next;
@@ -43,51 +34,29 @@ export function configureExtensionReload(next: ExtensionReloadHooks): void {
  * from disk, rebuilds project services, reloads Pi runtimes, and broadcasts.
  * Callers queued before a pass starts share it. Requests arriving during a
  * pass queue another, so edits made after its scan are never lost. Before
- * hooks are configured (tests, or
- * a server that has not finished booting) only the catalog rescans.
+ * hooks are configured (tests, or a server that has not finished booting)
+ * only the catalog rescans.
  */
-/**
- * `rebuild`: `undefined` rebuilds bundles whose source changed, `true` forces
- * every bundle, `false` skips the build, an id list rebuilds exactly those.
- */
-export function reloadExtensions(
-	options: ReloadOptions = {},
-): Promise<ExtensionReloadResult> {
-	if (queued) {
-		queued.options.rebuild = mergeRebuild(
-			queued.options.rebuild,
-			options.rebuild,
-		);
-		return queued.result;
-	}
-	const next = {
-		options: { ...options },
-		result: undefined as unknown as Promise<ExtensionReloadResult>,
-	};
-	next.result = tail.then(() => {
+export function reloadExtensions(): Promise<ExtensionReloadResult> {
+	if (queued) return queued;
+	const next = tail.then(() => {
 		queued = undefined;
-		return runReload(next.options);
+		return runReload();
 	});
 	queued = next;
-	tail = next.result.catch(() => {});
-	return next.result;
+	tail = next.catch(() => {});
+	return next;
 }
 
-function mergeRebuild(
-	a: ReloadOptions['rebuild'],
-	b: ReloadOptions['rebuild'],
-): ReloadOptions['rebuild'] {
-	if (a === true || b === true) return true;
-	if (a === false) return b;
-	if (b === false) return a;
-	if (a === undefined || b === undefined) {
-		// A targeted rebuild plus a stale scan must honor both requests.
-		return Array.isArray(a) || Array.isArray(b) ? true : undefined;
-	}
-	return [...new Set([...a, ...b])];
+/** What `activate(host)` calls; a no-op until the transport is wired. */
+export function notifyExtensionUiChanged(
+	extensionId: string,
+	projectPath?: string,
+): void {
+	hooks?.uiChanged(extensionId, projectPath);
 }
 
-/** Tells clients bundles changed without touching server-side code. */
+/** Tells clients the catalog changed without touching server-side code. */
 export function notifyExtensionsChanged(diagnostics: string[] = []): void {
 	hooks?.broadcast({
 		generation: extensionCatalogGeneration(),
@@ -98,29 +67,8 @@ export function notifyExtensionsChanged(diagnostics: string[] = []): void {
 	});
 }
 
-async function runReload(options: {
-	rebuild?: boolean | readonly string[];
-}): Promise<ExtensionReloadResult> {
+async function runReload(): Promise<ExtensionReloadResult> {
 	const diagnostics: string[] = [];
-	const rebuild = options.rebuild;
-	if (
-		rebuild !== false &&
-		hooks?.rebuildWebBundles &&
-		(typeof rebuild !== 'object' || rebuild.length)
-	) {
-		try {
-			diagnostics.push(
-				...(await hooks.rebuildWebBundles(
-					typeof rebuild === 'object' ? rebuild : undefined,
-					rebuild === true,
-				)),
-			);
-		} catch (error) {
-			diagnostics.push(
-				`Web bundle rebuild failed: ${error instanceof Error ? error.message : String(error)}`,
-			);
-		}
-	}
 	const extensions = await rescanExtensionCatalog();
 	let reloaded: string[] = [];
 	let pending: string[] = [];

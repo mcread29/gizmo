@@ -1,3 +1,11 @@
+import {
+	extensionUiSchema,
+	type ExtensionUi,
+	viewSchema,
+	type View,
+	actionResultSchema,
+	type ActionResult,
+} from '@gizmo/extension-api';
 import { Type, type TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 import { toolPolicySchema, type ToolPolicy } from './core';
@@ -7,8 +15,6 @@ import { agentEventSchema, type AgentEvent } from './events';
 import {
 	extensionsSchema,
 	type Extensions,
-	webExtensionBundlesSchema,
-	type WebExtensionBundles,
 	extensionReloadResultSchema,
 	type ExtensionReloadResult,
 } from './extensions';
@@ -121,11 +127,22 @@ export const parseAgentModelCatalog = parser<AgentModelCatalog>(
 	agentModelCatalogSchema,
 );
 export const parseExtensions = parser<Extensions>(extensionsSchema);
+export const extensionsUiSchema = Type.Object(
+	{ extensions: Type.Array(extensionUiSchema) },
+	{ additionalProperties: false },
+);
+export const parseExtensionsUi = parser<{ extensions: ExtensionUi[] }>(
+	extensionsUiSchema,
+);
+export const parseViewResult = parser<{ view?: View }>(
+	Type.Object(
+		{ view: Type.Optional(viewSchema) },
+		{ additionalProperties: false },
+	),
+);
+export const parseActionResult = parser<ActionResult>(actionResultSchema);
 export const parseExtensionReloadResult = parser<ExtensionReloadResult>(
 	extensionReloadResultSchema,
-);
-export const parseWebExtensionBundles = parser<WebExtensionBundles>(
-	webExtensionBundlesSchema,
 );
 export const parseFileRevertResult = parser<FileRevertResult>(
 	fileRevertResultSchema,

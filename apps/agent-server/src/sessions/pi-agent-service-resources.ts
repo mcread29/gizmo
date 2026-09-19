@@ -66,13 +66,13 @@ export class PiAgentServiceResources extends PiAgentServiceCore {
 
 	async setGlobalExtension(extensionId: string, enabled: boolean) {
 		await setPiExtensionEnabled(extensionId, enabled);
-		await reloadExtensions({ rebuild: false });
+		await reloadExtensions();
 		return this.context.resources.list();
 	}
 
 	async setGlobalGizmoExtension(extensionId: string, enabled: boolean) {
 		await this.context.resources.setGlobalGizmoExtension(extensionId, enabled);
-		await reloadExtensions({ rebuild: false });
+		await reloadExtensions();
 		return this.context.resources.list();
 	}
 

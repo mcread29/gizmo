@@ -8,8 +8,9 @@ import { configuredOrigins } from './server-config';
 import {
 	ProjectServiceRegistry,
 	type GizmoServerExtension,
-} from '@gizmo/extensions';
+} from '@gizmo/extension-api';
 import { ExtensionHostService } from './extensions/extension-host-service';
+import { ExtensionUiService } from './extensions/extension-ui-service';
 import {
 	configureExtensionCatalog,
 	rescanExtensionCatalog,
@@ -17,20 +18,30 @@ import {
 import { configureExtensionReload } from './extensions/extension-reload';
 import { startExtensionWatcher } from './extensions/extension-watcher';
 import { migrateExtensionEnablement } from './extensions/migrate-enablement';
-import { rebuildLinkedWebBundles } from './extensions/web-build';
 import { piAgentDir } from './resources/pi-global-resources';
 import { registeredExtensions } from './extensions/registry';
 import { ProjectCatalog } from './projects/project-catalog';
+import { workspaceTrusted } from './projects/project-trust';
 
 await restoreDesktopEnvironment();
 await migrateExtensionEnablement();
 
 const piWebMode = process.env.GIZMO_PI_WEB === '1';
-configureExtensionCatalog({ linkedDir: join(piAgentDir(), 'extensions') });
+const projects = new ProjectCatalog();
+configureExtensionCatalog({
+	linkedDir: join(piAgentDir(), 'extensions'),
+	// Every registered project the user has trusted may carry its own
+	// extensions under `.pi/extensions`; they are offered to that project only.
+	workspaces: async () => {
+		const trusted: string[] = [];
+		for (const { path } of await projects.list())
+			if (await workspaceTrusted(path)) trusted.push(path);
+		return trusted;
+	},
+});
 // Registry link/unlink rescans through the same helper, so the catalog the
 // rest of the server reads is always the boot scan or a later rescan of it.
 const extensions = await rescanExtensionCatalog();
-const projects = new ProjectCatalog();
 
 // One project service per extension id; requests name the extension they
 // belong to and are routed directly to its service. The registry is rebuilt
@@ -58,6 +69,10 @@ const agentServer = await createAgentWebSocketServer({
 			async (workspacePath) =>
 				(await projects.integrationsFor(workspacePath)).map(({ id }) => id),
 		),
+	createExtensionUi: (emit) =>
+		new ExtensionUiService(registeredExtensions, emit, async (workspacePath) =>
+			(await projects.integrationsFor(workspacePath)).map(({ id }) => id),
+		),
 	createProjectServices: () => projectServices,
 	...(allowedOrigins?.length ? { allowedOrigins } : {}),
 });
@@ -65,8 +80,8 @@ const agentServer = await createAgentWebSocketServer({
 // Registry actions, the `extensions.reload` request, and the optional file
 // watcher all run this same in-place reload instead of restarting.
 configureExtensionReload({
-	rebuildWebBundles: (ids, force) => rebuildLinkedWebBundles(ids, { force }),
 	refreshProjectServices: async () => {
+		await agentServer.services.ui.reset();
 		projectServices.replace(projectServiceEntries(registeredExtensions()));
 		await agentServer.services.watchCoordinator.refresh();
 	},
@@ -76,6 +91,12 @@ configureExtensionReload({
 			type: 'extensions.reloaded',
 			generation: result.generation,
 			extensions: result.extensions,
+		}),
+	uiChanged: (extensionId, projectPath) =>
+		agentServer.services.agent.events.emit('server', {
+			type: 'extensions.ui.changed',
+			extensionId,
+			...(projectPath ? { projectPath } : {}),
 		}),
 });
 const extensionWatcher = startExtensionWatcher();

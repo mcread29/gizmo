@@ -18,7 +18,7 @@ export async function handleRequestMessage(
 	}
 
 	try {
-		const result = await routeRequest(services, parsed.request);
+		const result = await routeRequest(services, parsed.request, socket);
 		sendSuccess(socket, parsed.request.requestId, result);
 	} catch (error) {
 		sendError(socket, parsed.request.requestId, 'request_failed', error);

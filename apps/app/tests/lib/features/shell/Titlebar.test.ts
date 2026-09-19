@@ -1,22 +1,11 @@
 import { render } from '@testing-library/svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { AgentIdentity } from '@gizmo/protocol';
 import type { AgentStore } from '../../../../src/lib/agent-client';
-import type { GizmoWebExtension } from '../../../../src/lib/extensions/types';
+import { extensionUi } from '../../../../src/lib/extensions/extension-ui.svelte.ts';
+import { extensionUiFixture } from '../../extensions/fixtures/ui.ts';
 import { WorkspaceLayout } from '../../../../src/lib/features/shell/workspace.svelte.ts';
 import TitlebarTestHost from './fixtures/TitlebarTestHost.svelte';
-
-const fakeExtension: GizmoWebExtension = {
-	id: 'fake',
-	statusBar: () => [
-		{ id: 'fake.status', label: 'main (2)', tone: 'accent' },
-		{ id: 'git.branch', label: 'pi-web' },
-	],
-};
-
-vi.mock('../../../../src/lib/extensions/registry.svelte', () => ({
-	webExtensions: () => [fakeExtension],
-}));
 
 const agent: AgentIdentity = { name: 'Gizmo' } as AgentIdentity;
 
@@ -31,6 +20,16 @@ function store(): AgentStore {
 
 describe('Titlebar', () => {
 	it("renders an extension's contributed status bar item", () => {
+		// `git.branch` is the app's own status item; an extension claiming it
+		// must not draw a second one.
+		extensionUi.extensions = [
+			extensionUiFixture('fake', {
+				statusItems: [
+					{ id: 'fake.status', label: 'main (2)', tone: 'accent' },
+					{ id: 'git.branch', label: 'pi-web' },
+				],
+			}),
+		];
 		const result = render(TitlebarTestHost, {
 			agent,
 			layout: new WorkspaceLayout(),

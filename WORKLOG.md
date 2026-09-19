@@ -1,5 +1,30 @@
 # Work log
 
+## 2026-09-19 — Extensions render through the host
+
+- Replaced executable browser extensions with `@gizmo/extension-api`: bounded
+  view blocks, actions, intents, commands, settings, status items, and tool cards.
+  The host renders every surface; the registry no longer builds Svelte bundles.
+- Added the server view lifecycle and transport, global and trusted workspace
+  discovery, and API resolution for both Gizmo's loader and Pi's own loader.
+  Workspace-local views and tools resolve within their own workspace.
+- Pinned the managed registry to the API-major branch, use frozen dependency
+  installs, reject incompatible updates before changing the checkout, and make
+  reset remove the clone without recreating it.
+- Finished the client migration, including confirmation dialogs and saved Unity
+  compile policies. Separated inspector badge state from view identity to fix an
+  infinite reopen loop found by the app integration suite. Updated test clients
+  to support the UI's additional event subscribers.
+- Run workspace checks/tests sequentially and app tests with one worker and a
+  1 GiB worker heap. Final validation uses a separate 2 GiB systemd memory limit
+  after an unrestricted earlier run exhausted this shared host's memory.
+- Validation: root `pnpm check` and `pnpm test` pass (603 tests); all 227 app
+  tests pass. A temporary real registry link served Git Changes over WebSocket:
+  open, refresh, stage, cancel revert, revert, and close all passed. Svelte
+  analysis found no actionable issues; highlighted HTML uses escaped output.
+- Documented current API limits and the migration. Installer implementation,
+  package publishing, and optional API additions remain separate work.
+
 ## 2026-09-19 — One registry (protocol v30)
 
 - Extensions come from exactly one registry, Gizmo's own `gizmo-registry`.

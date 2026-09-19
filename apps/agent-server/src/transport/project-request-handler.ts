@@ -1,16 +1,9 @@
-import type { ProjectService, ProjectServiceRegistry } from '@gizmo/extensions';
+import type { ProjectService, ProjectServiceRegistry } from '@gizmo/extension-api';
 import type { AgentRequest } from '@gizmo/protocol';
 import type { ExtensionHostService } from '../extensions/extension-host-service';
-import { registeredExtensions } from '../extensions/registry';
-import { extensionWebDir } from '../extensions/registry-manager';
-import {
-	piExtensionWebBundles,
-	webExtensionBundles,
-} from '../extensions/web-bundles';
 import type { PiAgentService } from '../sessions/pi-agent-service';
 import type { ProjectWatchCoordinator } from './project-watch-coordinator';
 import type { RouteResult } from './request-router';
-import { listPiExtensions } from '../resources/pi-global-resources';
 
 type ProjectRequestType =
 	| 'project.list'
@@ -26,7 +19,6 @@ type ProjectRequestType =
 	| 'project.watch'
 	| 'project.open'
 	| 'project.extensions'
-	| 'extensions.web'
 	| 'project.extension.invoke'
 	| 'git.commit-message'
 	| 'file.revert';
@@ -130,38 +122,6 @@ export async function handleProjectRequest(
 					extensions: await extensions.list(request.projectPath),
 				},
 			};
-		case 'extensions.web': {
-			const installed = await listPiExtensions();
-			/*
-			 * One bundle list serves every workspace, so a globally disabled
-			 * extension still has to ship if any workspace switches it on —
-			 * the client shows tabs only for the open workspace's extensions.
-			 * Withholding it here left such a workspace enabling an extension
-			 * whose UI could never arrive.
-			 */
-			const enabledSomewhere = new Set(
-				(await agent.listProjects()).flatMap(({ integrations }) =>
-					integrations.map(({ id }) => id),
-				),
-			);
-			const disabled = new Set(
-				installed
-					.filter(({ enabled }) => !enabled)
-					.map(({ id }) => id)
-					.filter((id) => !enabledSomewhere.has(id)),
-			);
-			// Browser companions are kept outside Pi's backend extension directory.
-			const pi = await piExtensionWebBundles([extensionWebDir()]);
-			const gizmo = await webExtensionBundles(registeredExtensions());
-			return {
-				result: {
-					bundles: [...gizmo.bundles, ...pi.bundles].filter(
-						({ id }) => !disabled.has(id),
-					),
-					diagnostics: [...gizmo.diagnostics, ...pi.diagnostics],
-				},
-			};
-		}
 		case 'project.extension.invoke':
 			return {
 				result: await extensions.invoke(

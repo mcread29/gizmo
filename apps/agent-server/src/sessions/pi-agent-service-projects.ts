@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { reloadExtensions } from '../extensions/extension-reload';
 import { PiAgentServiceResources } from './pi-agent-service-resources';
 
 /** Project catalog commands. */
@@ -18,8 +21,13 @@ export class PiAgentServiceProjects extends PiAgentServiceResources {
 		return this.context.projects.search(query, root);
 	}
 
-	addProject(projectPath: string) {
-		return this.context.projects.add(projectPath);
+	async addProject(projectPath: string) {
+		const project = await this.context.projects.add(projectPath);
+		// A project that brings its own extensions joins the catalog now, not
+		// at the next restart.
+		if (existsSync(join(project.path, '.pi', 'extensions')))
+			await reloadExtensions();
+		return project;
 	}
 
 	setProjectGizmoExtension(
@@ -46,8 +54,10 @@ export class PiAgentServiceProjects extends PiAgentServiceResources {
 		);
 	}
 
-	removeProject(projectPath: string) {
-		return this.context.projects.remove(projectPath);
+	async removeProject(projectPath: string) {
+		await this.context.projects.remove(projectPath);
+		if (existsSync(join(projectPath, '.pi', 'extensions')))
+			await reloadExtensions();
 	}
 
 	reorderProjects(paths: string[]) {

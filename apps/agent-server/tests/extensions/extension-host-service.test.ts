@@ -1,7 +1,7 @@
 import type { ExtensionDescriptor } from '@gizmo/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import { ExtensionHostService } from '../../src/extensions/extension-host-service';
-import type { GizmoServerExtension } from '@gizmo/extensions';
+import type { GizmoServerExtension } from '@gizmo/extension-api';
 
 const descriptor: ExtensionDescriptor = {
 	id: 'com.example.notes',

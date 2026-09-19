@@ -52,5 +52,6 @@ export function attachAgentConnection(
 	socket.once('close', () => {
 		clearInterval(heartbeat);
 		unsubscribe();
+		resources.ui.release(socket);
 	});
 }

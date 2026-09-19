@@ -1,11 +1,8 @@
 import type { DigestOverride, DigestSettings } from '@gizmo/protocol';
-import {
-	type ComposerCommand,
-	type ExtensionUiRequest,
-	type WebExtensionBundles,
-} from '@gizmo/protocol';
+import { type ComposerCommand, type ExtensionUiRequest } from '@gizmo/protocol';
 import type { AgentClient } from './AgentClient';
 import { FakeExtensionCapability } from './fake-client/extensions';
+import { FakeExtensionUiCapability } from './fake-client/extension-ui';
 import { FakeMemoryCapability } from './fake-client/memory';
 import { FakeProjectCapability } from './fake-client/projects';
 import { FakePromptCapability } from './fake-client/prompt-stream';
@@ -24,7 +21,6 @@ export interface FakeAgentClientOptions {
 	latencyMs?: number;
 	editorOpen?: boolean;
 	commands?: ComposerCommand[];
-	webExtensionBundles?: WebExtensionBundles;
 }
 
 /** Stable demo-client entry point; fake behavior lives in capability modules. */
@@ -66,8 +62,8 @@ export class FakeAgentClient implements AgentClient {
 	readonly #projects: FakeProjectCapability;
 	readonly #resources: FakeResourceCapability;
 	readonly #extensions: FakeExtensionCapability;
+	readonly #extensionUi: FakeExtensionUiCapability;
 	readonly extensionUiResponses: ExtensionUiResolution[];
-	listWebExtensionBundles?: AgentClient['listWebExtensionBundles'];
 
 	constructor(options: FakeAgentClientOptions = {}) {
 		this.#state = new FakeClientState({
@@ -82,10 +78,8 @@ export class FakeAgentClient implements AgentClient {
 		this.#projects = new FakeProjectCapability(this.#state);
 		this.#resources = new FakeResourceCapability(this.#state, this.#projects);
 		this.#extensions = new FakeExtensionCapability(this.#state);
+		this.#extensionUi = new FakeExtensionUiCapability(this.#state);
 		this.extensionUiResponses = this.#state.extensionUiResponses;
-		if (options.webExtensionBundles) {
-			this.listWebExtensionBundles = async () => options.webExtensionBundles!;
-		}
 	}
 
 	listProviders: AgentClient['listProviders'] = () =>
@@ -215,6 +209,18 @@ export class FakeAgentClient implements AgentClient {
 		this.#projects.open(projectPath, extensionId);
 	listProjectExtensions: AgentClient['listProjectExtensions'] = () =>
 		this.#extensions.listProjectExtensions();
+	listExtensionUi: AgentClient['listExtensionUi'] = (projectPath) =>
+		this.#extensionUi.list(projectPath);
+	openExtensionView: AgentClient['openExtensionView'] = (address) =>
+		this.#extensionUi.open(address);
+	closeExtensionView: AgentClient['closeExtensionView'] = () =>
+		this.#extensionUi.close();
+	runExtensionViewAction: AgentClient['runExtensionViewAction'] = (
+		address,
+		event,
+	) => this.#extensionUi.action(address, event);
+	runExtensionCommand: AgentClient['runExtensionCommand'] = () =>
+		this.#extensionUi.runCommand();
 	invokeProjectExtension: AgentClient['invokeProjectExtension'] = (
 		projectPath,
 		extensionId,

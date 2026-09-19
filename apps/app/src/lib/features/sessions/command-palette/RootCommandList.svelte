@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CommandContribution } from '../../../extensions/types';
+	import type { CommandContribution } from '../../../extensions/commands';
 	import {
 		FolderOpen,
 		Plus,

@@ -1,19 +1,24 @@
 <script lang="ts">
+	import type { View } from '@gizmo/extension-api';
 	import type { AgentStore } from '../agent-client';
 	import { Tabs, applyOrder } from '../components';
 	import PanelToggle from '../features/shell/PanelToggle.svelte';
-	import { activateProjectExtensions, webExtensions } from './registry.svelte';
-	import type { WebExtensionRuntime } from './types';
+	import type { WorkspaceLayout } from '../features/shell/workspace.svelte';
+	import ExtensionViewPanel from './ExtensionViewPanel.svelte';
+	import { extensionUi } from './extension-ui.svelte';
 	import { workspaceNameFromPath } from './workspace-label';
 
 	let {
 		store,
+		layout,
 		hidden,
 		onCollapse,
 		tabOrder = [],
 		onReorderTabs,
 	}: {
 		store: AgentStore;
+		/** Holds the client-local settings a view is opened with. */
+		layout: WorkspaceLayout;
 		hidden: boolean;
 		/** Saved tab ids, applied ahead of contribution order. */
 		tabOrder?: string[];
@@ -26,61 +31,46 @@
 	let workspaceName = $derived(
 		workspaceNameFromPath(projectPath) ?? 'Select a workspace',
 	);
-	let extensionRuntimes = $state<WebExtensionRuntime[]>([]);
 
-	$effect(() => {
-		const descriptors = store.projectExtensions.filter(({ id }) =>
-			store.enabledExtensionIds.includes(id),
-		);
-		const runtimes = projectPath
-			? activateProjectExtensions(descriptors, {
-					projectPath,
-					get sessionId() {
-						return store.sessionId;
-					},
-					invoke: (extensionId, operation, input) =>
-						store.invokeProjectExtension(
-							projectPath,
-							extensionId,
-							operation,
-							input,
-						),
-				})
-			: [];
-		extensionRuntimes = runtimes;
-		return () => runtimes.forEach((runtime) => runtime.dispose());
-	});
+	/** The latest view per tab, for the badge the tab shows. */
+	let views = $state<Record<string, View | undefined>>({});
 
-	// Every enabled extension contributes peer tabs to the app-owned inspector.
-	// Runtime tabs use the same route as static tabs; neither can own the shell.
+	// Every enabled extension contributes peer tabs to the app-owned inspector;
+	// none of them can own the shell.
 	let tabs = $derived(
 		applyOrder(
-			[
-				...webExtensions()
-					.filter(({ id }) => store.enabledExtensionIds.includes(id))
-					.flatMap(
-						(definition) =>
-							definition.inspectorTabs?.({
-								store,
-								projectPath,
-								toolActivity: store.messages.flatMap(({ tools }) => tools),
-							}) ?? [],
-					),
-				...extensionRuntimes.flatMap((runtime) => runtime.inspectorTabs),
-			],
+			extensionUi.inspectorViews(),
 			tabOrder,
-			(tab) => tab.id,
-		).map((tab) => ({
-			value: tab.id,
-			label: tab.label,
-			shortLabel: tab.shortLabel,
-			badge: tab.badge,
-			badgeTone: tab.badgeTone,
-			component: tab.component,
-			props: tab.props,
+			({ extensionId, value }) => `${extensionId}.${value.id}`,
+		).map(({ extensionId, value }) => {
+			const id = `${extensionId}.${value.id}`;
+			return {
+				value: id,
+				label: value.label,
+				shortLabel: value.shortLabel,
+				extensionId,
+				viewId: value.id,
+				// A thread-scoped view is opened for the thread on screen.
+				sessionId: value.scope === 'thread' ? store.sessionId : undefined,
+			};
+		}),
+	);
+	let tabItems = $derived(
+		tabs.map((tab) => ({
+			...tab,
+			badge: views[tab.value]?.badge,
+			badgeTone: views[tab.value]?.badgeTone,
 		})),
 	);
 	let defaultTab = $derived(tabs[0]?.value);
+
+	// The active tab lives in the layout so a titlebar status item can bring
+	// its view forward; it falls back whenever the current one goes away.
+	$effect(() => {
+		const active = layout.activeInspectorTab;
+		if (active && tabs.some(({ value }) => value === active)) return;
+		layout.activeInspectorTab = defaultTab;
+	});
 </script>
 
 <aside
@@ -96,20 +86,30 @@
 	</div>
 
 	{#key projectPath}
-		{#if tabs.length}
+		{#if tabs.length && projectPath}
 			<Tabs
 				variant="subtab"
 				lazy
-				items={tabs}
-				value={defaultTab}
+				items={tabItems}
+				bind:value={
+					() => layout.activeInspectorTab ?? defaultTab ?? '',
+					(value) => (layout.activeInspectorTab = value)
+				}
 				reorderable={Boolean(onReorderTabs)}
 				onReorder={onReorderTabs}
 			>
 				{#snippet children(value)}
 					{@const tab = tabs.find((candidate) => candidate.value === value)!}
-					{@const Panel = tab.component}
 					<div data-ui="inspector-panel" data-panel={value}>
-						<Panel {...tab.props} {store} {projectPath} />
+						<ExtensionViewPanel
+							{store}
+							projectPath={projectPath!}
+							extensionId={tab.extensionId}
+							viewId={tab.viewId}
+							sessionId={tab.sessionId}
+							settings={layout.extensionSettings[tab.extensionId]}
+							onViewChange={(view) => (views[tab.value] = view)}
+						/>
 					</div>
 				{/snippet}
 			</Tabs>

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { readDisplayResult, type ToolCallView } from '@gizmo/protocol';
 	import DisplayResult from './DisplayResult.svelte';
-	import { hasDisplayCatalog } from '../../extensions/display-catalog';
 	import {
 		Check,
 		CircleCheck,
@@ -9,9 +8,9 @@
 		CircleX,
 		Copy,
 		FileCode2,
-		PlugZap,
 		Terminal,
 	} from '@lucide/svelte';
+	import { extensionIcon } from '../../extensions/icons';
 	import { Button } from '../../components';
 	import { copyToClipboard } from '../../clipboard';
 	import { toasts } from '../../toasts.svelte';
@@ -22,7 +21,6 @@
 		stringValue,
 	} from '@gizmo/design/format';
 	import { toolIcon, toolLabel } from './tool-labels';
-	import { webExtensions as toolPresentationPlugins } from '../../extensions/registry.svelte';
 	import { toolSummary } from './tool-summary';
 
 	interface Props {
@@ -49,16 +47,21 @@
 	let pinned = $state(false);
 
 	let resultText = $derived(formatToolResult(tool.result));
+	let icon = $derived(toolIcon(tool.name));
 	// Any tool may return a `gizmoDisplay` envelope, not only the built-in
-	// display tool: an extension tool describes its card as data and names the
-	// catalog its web bundle registers.
+	// display tool: an extension tool describes its card as data, either as a
+	// json-render spec or as a view the host renders with the same blocks an
+	// inspector tab uses.
 	let display = $derived.by(() => {
 		if (tool.status === 'error' || !hasDisplay(tool.result)) return undefined;
-		const parsed = readDisplayResult(tool.result);
-		return parsed && hasDisplayCatalog(parsed) ? parsed : undefined;
+		return readDisplayResult(tool.result);
 	});
 	let summary = $derived(
-		tool.name === 'display' ? display?.title : toolSummary(tool.input),
+		tool.name === 'display'
+			? display && 'title' in display
+				? display.title
+				: undefined
+			: toolSummary(tool.input),
 	);
 	let errors = $derived(readArray(tool.result, 'errors'));
 	/** The failure, carried on the card's one line so a crashed run does not
@@ -82,16 +85,6 @@
 		tool.status === 'running'
 			? tool.statusText
 			: (errorExcerpt ?? summary ?? tool.statusText),
-	);
-	let consoleEntriesKey = $derived(
-		toolPresentationPlugins()
-			.map((plugin) => plugin.consoleEntriesKey?.(tool.name))
-			.find((key) => key !== undefined) ?? 'consoleEntries',
-	);
-	let consoleEntries = $derived(readArray(tool.result, consoleEntriesKey));
-	let diagnosticsComponent = $derived(
-		toolPresentationPlugins().find((plugin) => plugin.diagnosticsComponent)
-			?.diagnosticsComponent,
 	);
 
 	$effect(() => {
@@ -154,12 +147,15 @@
 			open = !open;
 		}}
 	>
-		{#if toolIcon(tool.name) === 'unity'}
-			<PlugZap size={15} />
-		{:else if toolIcon(tool.name) === 'file'}
+		<!-- `file`/`shell` are the app's own; anything else is a lucide name
+		     an extension asked for. -->
+		{#if icon === 'file'}
 			<FileCode2 size={15} />
-		{:else}
+		{:else if icon === 'shell'}
 			<Terminal size={15} />
+		{:else}
+			{@const Icon = extensionIcon(icon)}
+			<Icon size={15} />
 		{/if}
 		<strong>{toolLabel(tool.name)}</strong>
 		<small
@@ -177,21 +173,7 @@
 
 	{#if open && !display}
 		<div data-ui="tool-content">
-			<ToolResult {tool} {projectPath} {consoleEntries} {errors} />
-
-			{#if errors.length && diagnosticsComponent}
-				{@const Diagnostics = diagnosticsComponent}
-				<div data-ui="tool-errors">
-					<Diagnostics {errors} {projectPath} />
-				</div>
-			{/if}
-
-			{#if consoleEntries.length && diagnosticsComponent}
-				{@const Diagnostics = diagnosticsComponent}
-				<div data-ui="tool-diagnostics">
-					<Diagnostics errors={consoleEntries} {projectPath} />
-				</div>
-			{/if}
+			<ToolResult {tool} {projectPath} />
 
 			{#if resultText}
 				<div data-ui="tool-actions">
@@ -205,5 +187,5 @@
 </details>
 
 {#if display}
-	<DisplayResult {display} />
+	<DisplayResult {display} {projectPath} />
 {/if}

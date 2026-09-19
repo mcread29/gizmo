@@ -120,15 +120,18 @@ export const resourcesRequestSchemas = [
 		},
 		{ additionalProperties: false },
 	),
+	/** Unlinks everything from the registry and removes its clone. */
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('registry.reset'),
+		},
+		{ additionalProperties: false },
+	),
 	Type.Object(
 		{
 			...envelope,
 			type: Type.Literal('extensions.reload'),
-			/**
-			 * Web bundle rebuild before reloading: omitted rebuilds bundles whose
-			 * source changed, true forces every bundle, false skips the build.
-			 */
-			rebuild: Type.Optional(Type.Boolean()),
 		},
 		{ additionalProperties: false },
 	),

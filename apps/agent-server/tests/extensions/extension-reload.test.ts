@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ProjectServiceRegistry, type ProjectService } from '@gizmo/extensions';
+import { ProjectServiceRegistry, type ProjectService } from '@gizmo/extension-api';
 import {
 	configureExtensionReload,
 	notifyExtensionsChanged,
@@ -30,43 +30,35 @@ describe('ProjectServiceRegistry.replace', () => {
 });
 
 describe('reloadExtensions', () => {
-	it('queues edits received after the current reload has started', async () => {
+	it('queues a reload requested after the current one has started', async () => {
 		let release!: () => void;
 		const gate = new Promise<void>((resolve) => {
 			release = resolve;
 		});
-		const rebuild = vi.fn(async () => {
-			if (rebuild.mock.calls.length === 1) await gate;
-			return [];
+		const refresh = vi.fn(async () => {
+			if (refresh.mock.calls.length === 1) await gate;
 		});
 		const broadcast = vi.fn();
 		configureExtensionReload({
-			rebuildWebBundles: rebuild,
-			refreshProjectServices: () => {},
+			refreshProjectServices: refresh,
 			reloadSessions: async () => ({ reloaded: [], pending: [] }),
 			broadcast,
+			uiChanged: () => {},
 		});
-		const first = reloadExtensions({ rebuild: ['git'] });
-		await vi.waitFor(() => expect(rebuild).toHaveBeenCalledTimes(1));
-		const second = reloadExtensions({ rebuild: ['unity'] });
+		const first = reloadExtensions();
+		await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+		const second = reloadExtensions();
 		expect(second).not.toBe(first);
 		release();
 		await Promise.all([first, second]);
-		expect(rebuild.mock.calls).toEqual([
-			[['git'], false],
-			[['unity'], false],
-		]);
+		expect(refresh).toHaveBeenCalledTimes(2);
 		expect(broadcast).toHaveBeenCalledTimes(2);
 	});
 
-	it('rebuilds, refreshes services, reloads sessions, and broadcasts once', async () => {
+	it('refreshes services, reloads sessions, and broadcasts once', async () => {
 		const calls: string[] = [];
 		const broadcast = vi.fn();
 		configureExtensionReload({
-			rebuildWebBundles: async (ids, force) => {
-				calls.push(`rebuild ${ids ? ids.join(',') : force ? 'all' : 'stale'}`);
-				return ['warn'];
-			},
 			refreshProjectServices: () => {
 				calls.push('services');
 			},
@@ -75,61 +67,49 @@ describe('reloadExtensions', () => {
 				return { reloaded: ['a'], pending: ['b'] };
 			},
 			broadcast,
+			uiChanged: () => {},
 		});
 
 		const [first, second] = await Promise.all([
-			reloadExtensions({ rebuild: true }),
-			reloadExtensions({ rebuild: true }),
+			reloadExtensions(),
+			reloadExtensions(),
 		]);
 		// Concurrent callers share one pass.
 		expect(first).toBe(second);
-		expect(calls).toEqual(['rebuild all', 'services', 'sessions']);
+		expect(calls).toEqual(['services', 'sessions']);
 		expect(first).toMatchObject({
 			reloadedSessions: ['a'],
 			pendingSessions: ['b'],
-			diagnostics: ['warn'],
+			diagnostics: [],
 		});
 		expect(broadcast).toHaveBeenCalledTimes(1);
-
-		await reloadExtensions({ rebuild: ['git'] });
-		expect(calls.at(-3)).toBe('rebuild git');
-		await reloadExtensions();
-		expect(calls.at(-3)).toBe('rebuild stale');
-		calls.length = 0;
-		await reloadExtensions({ rebuild: false });
-		expect(calls).toEqual(['services', 'sessions']);
-		calls.length = 0;
-		await reloadExtensions({ rebuild: [] });
-		expect(calls).toEqual(['services', 'sessions']);
 	});
 
 	it('keeps going when a hook fails and reports it as a diagnostic', async () => {
 		const broadcast = vi.fn();
 		configureExtensionReload({
-			rebuildWebBundles: async () => {
-				throw new Error('vite exploded');
-			},
 			refreshProjectServices: () => {
 				throw new Error('no services');
 			},
 			reloadSessions: async () => ({ reloaded: [], pending: [] }),
 			broadcast,
+			uiChanged: () => {},
 		});
 		const result = await reloadExtensions();
 		expect(result.diagnostics).toEqual([
-			'Web bundle rebuild failed: vite exploded',
 			'Project services did not refresh: no services',
 		]);
 		expect(broadcast).toHaveBeenCalledWith(result);
 	});
 
-	it('notifies clients of a bundle-only change without reloading sessions', () => {
+	it('notifies clients of a catalog change without reloading sessions', () => {
 		const broadcast = vi.fn();
 		const reloadSessions = vi.fn();
 		configureExtensionReload({
 			refreshProjectServices: () => {},
 			reloadSessions,
 			broadcast,
+			uiChanged: () => {},
 		});
 		notifyExtensionsChanged(['rebuilt']);
 		expect(reloadSessions).not.toHaveBeenCalled();

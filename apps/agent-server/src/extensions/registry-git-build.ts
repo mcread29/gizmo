@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
-import { dirname } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 function exec(command: string, args: string[], cwd: string): Promise<string> {
 	return new Promise((resolve, reject) => {
@@ -10,18 +11,36 @@ function exec(command: string, args: string[], cwd: string): Promise<string> {
 	});
 }
 
-export function cloneRegistry(url: string, clone: string) {
+export function cloneRegistry(url: string, clone: string, ref: string) {
 	// git creates the target itself; it is spawned from the parent directory,
 	// which the caller has already made.
 	return exec(
 		'git',
-		['clone', '--depth', '1', url, clone],
+		['clone', '--depth', '1', '--branch', ref, url, clone],
 		dirname(clone),
 	).then(() => undefined);
 }
 
-export function pullRegistry(clone: string) {
-	return exec('git', ['pull', '--ff-only'], clone).then(() => undefined);
+/**
+ * Moves the managed clone to the tip of `ref`. The clone is never edited by
+ * hand, so a detached checkout of what was fetched is all it needs; this
+ * also carries a clone made before branches were pinned onto the right one.
+ */
+export async function pullRegistry(
+	clone: string,
+	ref: string,
+	validate?: (manifest: import('./registry-storage').RegistryManifest) => void,
+) {
+	await exec('git', ['fetch', '--depth', '1', 'origin', ref], clone);
+	if (validate) {
+		const manifest = await exec(
+			'git',
+			['show', 'FETCH_HEAD:gizmo.registry.json'],
+			clone,
+		);
+		validate(JSON.parse(manifest));
+	}
+	await exec('git', ['checkout', '--detach', '-q', 'FETCH_HEAD'], clone);
 }
 
 export async function registryCommit(clone: string) {
@@ -33,11 +52,15 @@ export async function registryCommit(clone: string) {
 }
 
 /** Checks the source without changing the managed clone or its refs. */
-export async function registryUpdateAvailable(clone: string) {
+export async function registryUpdateAvailable(clone: string, ref = 'HEAD') {
 	try {
 		const [local, remote] = await Promise.all([
 			exec('git', ['rev-parse', 'HEAD'], clone),
-			exec('git', ['ls-remote', 'origin', 'HEAD'], clone),
+			exec(
+				'git',
+				['ls-remote', 'origin', ref === 'HEAD' ? 'HEAD' : `refs/heads/${ref}`],
+				clone,
+			),
 		]);
 		const remoteCommit = remote.trim().split(/\s+/)[0];
 		return Boolean(remoteCommit) && local.trim() !== remoteCommit;
@@ -47,16 +70,24 @@ export async function registryUpdateAvailable(clone: string) {
 	}
 }
 
-export function buildRegistry(command: string, cwd: string): Promise<void> {
-	return new Promise((resolve, reject) => {
+/**
+ * Installs the registry's server-side dependencies. There is nothing to
+ * build: extensions are TypeScript the host evaluates as-is. A registry
+ * without a lockfile has no dependencies and is left alone.
+ */
+export async function installRegistryDependencies(
+	clone: string,
+): Promise<void> {
+	if (!existsSync(join(clone, 'pnpm-lock.yaml'))) return;
+	await new Promise<void>((resolve, reject) => {
 		execFile(
-			command,
+			'pnpm install --frozen-lockfile --ignore-scripts',
 			{
-				cwd,
+				cwd: clone,
 				shell: true,
 				windowsHide: true,
-				// Registry builds are spawned without a terminal. Package managers
-				// use CI to choose their non-interactive, deterministic behavior.
+				// Spawned without a terminal. Package managers use CI to choose
+				// their non-interactive, deterministic behavior.
 				env: { ...process.env, CI: process.env.CI || 'true' },
 			},
 			(error, stdout, stderr) => {

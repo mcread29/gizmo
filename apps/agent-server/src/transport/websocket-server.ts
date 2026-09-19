@@ -1,11 +1,13 @@
-import { ProjectServiceRegistry } from '@gizmo/extensions';
+import { ProjectServiceRegistry } from '@gizmo/extension-api';
 import {
 	WebSocketServer,
 	type VerifyClientCallbackSync,
 	type WebSocket,
 } from 'ws';
 import { ExtensionHostService } from '../extensions/extension-host-service';
+import { ExtensionUiService } from '../extensions/extension-ui-service';
 import { PiAgentService } from '../sessions/pi-agent-service';
+import type { ExtensionUiEmitters } from '../extensions/extension-ui-service';
 import {
 	ProjectWatchCoordinator,
 	type ProjectEmitters,
@@ -26,6 +28,7 @@ export interface AgentWebSocketServerOptions {
 	createService?: () => PiAgentService;
 	createProjectServices?: () => ProjectServiceRegistry;
 	createExtensionHost?: () => ExtensionHostService;
+	createExtensionUi?: (emit: ExtensionUiEmitters) => ExtensionUiService;
 	/** Heartbeat cadence per connection; tests shorten it. */
 	heartbeatIntervalMs?: number;
 }
@@ -86,12 +89,25 @@ export async function createAgentWebSocketServer(
 		extensions,
 		emit,
 	);
+	const uiEmit: ExtensionUiEmitters = {
+		viewUpdated: ({ projectPath, extensionId, viewId, sessionId }, view) =>
+			agent.events.emit('server', {
+				type: 'extension.view.updated',
+				projectPath,
+				extensionId,
+				viewId,
+				...(sessionId ? { viewSessionId: sessionId } : {}),
+				view,
+			}),
+	};
+	const ui =
+		options.createExtensionUi?.(uiEmit) ?? new ExtensionUiService([], uiEmit);
 
 	server.on('connection', (socket) => {
 		sockets.add(socket);
 		attachAgentConnection(
 			socket,
-			{ agent, projectServices, extensions, watchCoordinator },
+			{ agent, projectServices, extensions, ui, watchCoordinator },
 			options.heartbeatIntervalMs === undefined
 				? {}
 				: { heartbeatIntervalMs: options.heartbeatIntervalMs },
@@ -106,7 +122,7 @@ export async function createAgentWebSocketServer(
 
 	return {
 		server,
-		services: { agent, projectServices, extensions, watchCoordinator },
+		services: { agent, projectServices, extensions, ui, watchCoordinator },
 		close: () =>
 			new Promise<void>((resolve, reject) => {
 				// Detach clients first so nothing races the disposals below. Their
@@ -127,6 +143,7 @@ export async function createAgentWebSocketServer(
 						() => agent.dispose(),
 						() => projectServices.dispose(),
 						() => extensions.dispose(),
+						() => ui.dispose(),
 					]) {
 						try {
 							await disposeOne();

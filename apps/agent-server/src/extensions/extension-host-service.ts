@@ -1,5 +1,5 @@
 import type { ExtensionDescriptor } from '@gizmo/protocol';
-import type { GizmoServerExtension } from '@gizmo/extensions';
+import type { GizmoServerExtension } from '@gizmo/extension-api';
 
 type ExtensionProvider = GizmoServerExtension &
 	Required<Pick<GizmoServerExtension, 'list' | 'invoke'>>;

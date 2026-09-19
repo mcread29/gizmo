@@ -16,6 +16,7 @@ import {
 	type ToolPolicy,
 } from '@gizmo/protocol';
 import type { DigestOverride, DigestSettings } from '@gizmo/protocol';
+import type { ActionResult, ExtensionUi, View } from '@gizmo/extension-api';
 import type {
 	AgentClient,
 	AgentEventListener,
@@ -29,7 +30,7 @@ const emptyCatalog: ResourceCatalog = {
 };
 
 export class InvalidEventClient implements AgentClient {
-	#listener?: AgentEventListener;
+	#listeners = new Set<AgentEventListener>();
 	// The memory layer is not exercised by these connection/replay tests; the
 	// stubs exist only to satisfy the interface.
 	async memoryStatus() {
@@ -92,7 +93,8 @@ export class InvalidEventClient implements AgentClient {
 		return { sessions: [] };
 	}
 	async createSession(_options?: SessionOptions) {
-		this.#listener?.({ type: 'not-in-the-protocol' });
+		for (const listener of this.#listeners)
+			listener({ type: 'not-in-the-protocol' });
 		return 'session-1';
 	}
 	async resumeSession(_sessionId: string): Promise<SessionSnapshot> {
@@ -243,6 +245,17 @@ export class InvalidEventClient implements AgentClient {
 		target,
 		content,
 	) => ({ target, path: '/instructions.md', content, exists: true });
+	async listExtensionUi(): Promise<ExtensionUi[]> {
+		return [];
+	}
+	async openExtensionView(): Promise<View | undefined> {
+		return undefined;
+	}
+	async closeExtensionView(): Promise<void> {}
+	async runExtensionViewAction(): Promise<ActionResult> {
+		return { status: 'succeeded' };
+	}
+	async runExtensionCommand(): Promise<void> {}
 	async setGlobalExtension(): Promise<ResourceCatalog> {
 		return emptyCatalog;
 	}
@@ -271,8 +284,10 @@ export class InvalidEventClient implements AgentClient {
 		throw new Error('No selected project');
 	}
 	subscribe(listener: AgentEventListener) {
-		this.#listener = listener;
-		return () => (this.#listener = undefined);
+		this.#listeners.add(listener);
+		return () => {
+			this.#listeners.delete(listener);
+		};
 	}
 	subscribeDisconnect() {
 		return () => {};

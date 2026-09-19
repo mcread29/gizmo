@@ -4,7 +4,7 @@ import type {
 	ActiveExtensions,
 	ExtensionContext,
 	GizmoServerExtension,
-} from '@gizmo/extensions';
+} from '@gizmo/extension-api';
 import { isPathWithin } from '../path-utils';
 
 let extensions: readonly GizmoServerExtension[] = [];
@@ -21,17 +21,30 @@ export function registeredExtensions(): readonly GizmoServerExtension[] {
 	return extensions;
 }
 
+/** Global extensions plus the ones a workspace keeps under `.pi/extensions`. */
+export function extensionsForWorkspace(
+	workspacePath: string,
+): readonly GizmoServerExtension[] {
+	const workspace = resolve(workspacePath);
+	return extensions.filter(
+		({ workspaceRoot }) =>
+			workspaceRoot === undefined || resolve(workspaceRoot) === workspace,
+	);
+}
+
 /**
  * Lists globally installed Gizmo extensions. Enablement is global by default
  * (installed means on) with per-workspace overrides; opening a workspace never
  * probes its contents.
  */
 export function installedGizmoExtensions() {
-	return registeredExtensions().map(({ id, name }) => ({
-		id,
-		name,
-		root: '.',
-	}));
+	return registeredExtensions()
+		.filter(({ workspaceRoot }) => workspaceRoot === undefined)
+		.map(({ id, name }) => ({
+			id,
+			name,
+			root: '.',
+		}));
 }
 
 export async function activateExtensions(
@@ -40,7 +53,9 @@ export async function activateExtensions(
 ): Promise<ActiveExtensions> {
 	if (!integrations.length) return { extensions: [], tools: [] };
 	const active = integrations.map((integration) => {
-		const extension = extensions.find(({ id }) => id === integration.id);
+		const extension = extensionsForWorkspace(context.workspacePath).find(
+			({ id }) => id === integration.id,
+		);
 		if (!extension) throw new Error(`Unknown integration: ${integration.id}`);
 		const workspacePath = resolve(context.workspacePath);
 		const integrationPath = resolve(workspacePath, integration.root);

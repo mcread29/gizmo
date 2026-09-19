@@ -9,6 +9,7 @@
 @import './styles/inspector.css';
 @import './styles/dialogs.css';
 @import './styles/extension-ui.css';
+@import './styles/extension-view.css';
 @import './styles/settings.css';
 @import './styles/feedback.css';
 @import './styles/gallery.css';

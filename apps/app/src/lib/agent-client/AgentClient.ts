@@ -28,9 +28,22 @@ import type {
 	ProviderStatus,
 	Extensions,
 	ExtensionUiResponse,
-	WebExtensionBundles,
 	ExtensionReloadResult,
 } from '@gizmo/protocol';
+import type {
+	ActionEvent,
+	ActionResult,
+	ExtensionUi,
+	View,
+} from '@gizmo/extension-api';
+
+/** Which view of which extension, in which workspace and (maybe) thread. */
+export interface ExtensionViewAddress {
+	projectPath: string;
+	extensionId: string;
+	viewId: string;
+	sessionId?: string;
+}
 
 export type AgentEventListener = (event: unknown) => void;
 export type AgentDisconnectListener = (error: Error) => void;
@@ -191,12 +204,35 @@ export interface AgentClient {
 	): Promise<unknown>;
 	openProject(projectPath: string, extensionId: string): Promise<unknown>;
 	listProjectExtensions(projectPath: string): Promise<Extensions>;
-	/** Standalone web-extension bundles to load at runtime, if the client supports them. */
-	listWebExtensionBundles?(): Promise<WebExtensionBundles>;
+	/** What the workspace's enabled extensions contribute to the UI. */
+	listExtensionUi(
+		projectPath: string,
+		sessionId?: string,
+	): Promise<ExtensionUi[]>;
+	/**
+	 * Opens (or joins) a view. The answer is its latest content, if the
+	 * extension pushed any; everything after arrives as
+	 * `extension.view.updated` events until the view is closed.
+	 */
+	openExtensionView(
+		address: ExtensionViewAddress,
+		settings?: Record<string, unknown>,
+	): Promise<View | undefined>;
+	closeExtensionView(address: ExtensionViewAddress): Promise<void>;
+	runExtensionViewAction(
+		address: ExtensionViewAddress,
+		event: ActionEvent,
+	): Promise<ActionResult>;
+	runExtensionCommand(
+		projectPath: string,
+		extensionId: string,
+		commandId: string,
+		sessionId?: string,
+	): Promise<void>;
 	/**
 	 * Asks the server to reload every linked extension in place: server code
-	 * re-evaluates, web bundles rebuild, idle Pi runtimes reload. Optional
-	 * because the demo client has nothing to reload.
+	 * re-evaluates, idle Pi runtimes reload. Optional because the demo client
+	 * has nothing to reload.
 	 */
 	reloadExtensions?(): Promise<ExtensionReloadResult>;
 	invokeProjectExtension(

@@ -1,10 +1,16 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { extensionApiVersion } from '@gizmo/extension-api';
 import { piAgentDir } from '../resources/pi-global-resources';
 import { defaultDataDir } from '../sessions/session-repository';
 
 /** The one registry Gizmo installs extensions from. */
 export const registryUrl = 'https://github.com/mcread29/gizmo-registry.git';
+/**
+ * The registry branch this build follows: one per extension API major, so
+ * an app on API 1 never pulls an extension written against API 2.
+ */
+export const registryRef = `v${extensionApiVersion}`;
 
 /** What Gizmo remembers about its clone between runs. */
 export interface InstalledState {
@@ -16,7 +22,8 @@ export interface InstalledState {
 export interface RegistryManifest {
 	extensionsDir?: string;
 	extensions?: { id: string; name?: string; description?: string }[];
-	build?: string;
+	/** The extension API major the registry's extensions are written for. */
+	gizmoApiVersion?: number;
 }
 
 /** Registry source is Gizmo-managed state, never part of Pi discovery. */
@@ -25,7 +32,6 @@ export const registryCloneDir = () => join(registryHome(), 'gizmo-registry');
 export const extensionsDir = () => join(piAgentDir(), 'extensions');
 export const disabledExtensionsDir = () =>
 	join(piAgentDir(), 'extensions-disabled');
-export const extensionWebDir = () => join(piAgentDir(), 'extension-web');
 
 const installedManifestFile = () => join(registryHome(), 'installed.json');
 
@@ -96,7 +102,9 @@ export async function readRegistryManifest(
 		) as RegistryManifest;
 		return {
 			...(parsed.extensionsDir ? { extensionsDir: parsed.extensionsDir } : {}),
-			...(parsed.build ? { build: parsed.build } : {}),
+			...(typeof parsed.gizmoApiVersion === 'number'
+				? { gizmoApiVersion: parsed.gizmoApiVersion }
+				: {}),
 			...(Array.isArray(parsed.extensions)
 				? { extensions: parsed.extensions }
 				: {}),

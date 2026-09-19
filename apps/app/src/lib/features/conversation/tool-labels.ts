@@ -1,4 +1,4 @@
-import { webExtensions as toolPresentationPlugins } from '../../extensions/registry.svelte';
+import { extensionUi } from '../../extensions/extension-ui.svelte';
 
 const baseLabels: Record<string, string> = {
 	read: 'Read file',
@@ -6,27 +6,17 @@ const baseLabels: Record<string, string> = {
 	write: 'Write file',
 };
 
-// Read per call rather than built once: extensions can be installed after
-// this module is first evaluated.
-function labels(): Record<string, string> {
-	return Object.assign(
-		{},
-		baseLabels,
-		...toolPresentationPlugins().map((plugin) => plugin.labels ?? {}),
-	);
-}
-
 export function toolLabel(name: string): string {
-	return labels()[name] ?? name;
+	// Read per call rather than built once: the catalog is re-fetched whenever
+	// the workspace or the server's extensions change.
+	return extensionUi.labelFor(name) ?? baseLabels[name] ?? name;
 }
 
 export type ToolIcon = 'file' | 'shell' | string;
 
 export function toolIcon(name: string): ToolIcon {
-	for (const plugin of toolPresentationPlugins()) {
-		const icon = plugin.iconFor?.(name);
-		if (icon) return icon;
-	}
+	const contributed = extensionUi.iconFor(name);
+	if (contributed) return contributed;
 	if (name === 'read' || name === 'edit' || name === 'write') return 'file';
 	return 'shell';
 }

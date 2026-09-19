@@ -1,8 +1,13 @@
-import type { GizmoServerExtension } from '@gizmo/extensions';
-import { loadLinkedExtensionIntegrations } from './load-extensions';
+import type { GizmoServerExtension } from '@gizmo/extension-api';
+import {
+	loadLinkedExtensionIntegrations,
+	loadWorkspaceExtensionIntegrations,
+} from './load-extensions';
+import { notifyExtensionUiChanged } from './extension-reload';
 import { registerExtensions, registeredExtensions } from './registry';
 
 let linkedDir: string | undefined;
+let workspaces: (() => Promise<string[]>) | undefined;
 let linked: readonly GizmoServerExtension[] = [];
 let generation = 0;
 
@@ -12,8 +17,14 @@ let generation = 0;
  */
 export function configureExtensionCatalog(options: {
 	linkedDir: string;
+	/**
+	 * Workspaces whose `.pi/extensions` are scanned too; only trusted
+	 * workspaces should be returned. Omitted scans none.
+	 */
+	workspaces?: () => Promise<string[]>;
 }): void {
 	linkedDir = options.linkedDir;
+	workspaces = options.workspaces;
 }
 
 /** Increments on every rescan; clients use it to tell reloads apart. */
@@ -37,10 +48,41 @@ export async function rescanExtensionCatalog(): Promise<
 > {
 	if (!linkedDir) return registeredExtensions();
 	await disposeExtensions(linked);
-	linked = await loadLinkedExtensionIntegrations(linkedDir);
+	const global = await loadLinkedExtensionIntegrations(linkedDir);
+	const local: GizmoServerExtension[] = [];
+	for (const workspace of (await workspaces?.()) ?? []) {
+		local.push(...(await loadWorkspaceExtensionIntegrations(workspace)));
+	}
+	const taken = new Set(global.map(({ id }) => id));
+	// A workspace extension never shadows a global one: the global id is
+	// what every workspace's enablement refers to.
+	linked = [
+		...global,
+		...local.filter((extension) => {
+			if (!taken.has(extension.id)) return true;
+			console.warn(
+				`Workspace extension "${extension.id}" in ${extension.workspaceRoot} is shadowed by a global extension of the same id`,
+			);
+			return false;
+		}),
+	];
+	await activateExtensions(linked);
 	registerExtensions(linked);
 	generation += 1;
 	return linked;
+}
+
+async function activateExtensions(extensions: readonly GizmoServerExtension[]) {
+	for (const extension of extensions) {
+		try {
+			await extension.activate?.({
+				uiChanged: (workspacePath) =>
+					notifyExtensionUiChanged(extension.id, workspacePath),
+			});
+		} catch (error) {
+			console.warn(`Extension "${extension.id}" failed to activate:`, error);
+		}
+	}
 }
 
 async function disposeExtensions(extensions: readonly GizmoServerExtension[]) {
