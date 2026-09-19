@@ -1,0 +1,4 @@
+[submodule "extensions/registry"]
+	path = extensions/registry
+	url = git@github.com:mcread29/gizmo-registry.git
+	branch = main
