@@ -87,6 +87,14 @@ export class FakeProjectCapability {
 		return this.config(projectPath);
 	}
 
+	async setExtensionPaths(projectPath: string, paths: string[]) {
+		this.state.assertProject(projectPath);
+		if (paths.length)
+			this.state.projectExtensionPaths.set(projectPath, [...paths]);
+		else this.state.projectExtensionPaths.delete(projectPath);
+		return this.config(projectPath);
+	}
+
 	async remove(projectPath: string) {
 		const index = this.state.projects.findIndex(
 			({ path }) => path === projectPath,
@@ -168,6 +176,13 @@ export class FakeProjectCapability {
 						piExtensions: [...this.state.piOverrides.get(projectPath)!].map(
 							([id, enabled]) => ({ id, enabled }),
 						),
+					}
+				: {}),
+			...(this.state.projectExtensionPaths.get(projectPath)?.length
+				? {
+						piExtensionPaths: [
+							...this.state.projectExtensionPaths.get(projectPath)!,
+						],
 					}
 				: {}),
 		};

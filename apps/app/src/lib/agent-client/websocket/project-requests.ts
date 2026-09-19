@@ -80,6 +80,15 @@ export class ProjectRequests extends SessionRequests {
 		return parseProjectConfig(response.result);
 	}
 
+	async setProjectExtensionPaths(projectPath: string, paths: string[]) {
+		const response = await this.request({
+			type: 'project.extension-paths.set',
+			projectPath,
+			paths,
+		});
+		return parseProjectConfig(response.result);
+	}
+
 	async removeProject(projectPath: string) {
 		await this.request({ type: 'project.remove', projectPath });
 	}

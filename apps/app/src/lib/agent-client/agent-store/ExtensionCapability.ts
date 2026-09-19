@@ -75,6 +75,24 @@ export class ExtensionCapability {
 		return config;
 	}
 
+	/**
+	 * Replaces the workspace's explicit extension paths. The server already
+	 * reloads as part of the change, so only client state refreshes here.
+	 */
+	async setProjectExtensionPaths(
+		projectPath: string,
+		paths: string[],
+	): Promise<ProjectConfig> {
+		const config = await this.client.setProjectExtensionPaths(
+			projectPath,
+			paths,
+		);
+		if (projectPath === this.store.selectedProjectPath) {
+			await this.reloadExtensions({ server: false });
+		}
+		return config;
+	}
+
 	async loadProjectExtensions() {
 		const store = this.store;
 		if (store.connection !== 'connected' || !store.selectedProjectPath) return;

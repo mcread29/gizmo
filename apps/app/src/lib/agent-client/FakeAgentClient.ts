@@ -147,6 +147,10 @@ export class FakeAgentClient implements AgentClient {
 		extensionId,
 		enabled,
 	) => this.#projects.setPiExtension(projectPath, extensionId, enabled);
+	setProjectExtensionPaths: AgentClient['setProjectExtensionPaths'] = (
+		projectPath,
+		paths,
+	) => this.#projects.setExtensionPaths(projectPath, paths);
 	removeProject: AgentClient['removeProject'] = (projectPath) =>
 		this.#projects.remove(projectPath);
 	reorderProjects: AgentClient['reorderProjects'] = (paths) =>

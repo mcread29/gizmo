@@ -49,6 +49,7 @@ export class FakeClientState {
 	readonly skillOverrides = new Map<string, Map<string, boolean>>();
 	readonly gizmoOverrides = new Map<string, Map<string, boolean>>();
 	readonly piOverrides = new Map<string, Map<string, boolean>>();
+	readonly projectExtensionPaths = new Map<string, string[]>();
 	readonly disabledGizmoGlobally = new Set<string>();
 	readonly projectToolPolicies = new Map<string, string[]>();
 	readonly extensionUiResponses: ExtensionUiResolution[] = [];

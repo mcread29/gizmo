@@ -84,6 +84,30 @@ describe('AgentStore', () => {
 		expect(store.enabledExtensionIds).toContain('svelte');
 	});
 
+	it('stores explicit project extension paths and clears them again', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const store = new AgentStore(client);
+		await store.connect();
+
+		const config = await store.setProjectExtensionPaths(
+			'/projects/ThirdPersonSandbox',
+			['/projects/ThirdPersonSandbox/tools/helper.ts'],
+		);
+		expect(config.piExtensionPaths).toEqual([
+			'/projects/ThirdPersonSandbox/tools/helper.ts',
+		]);
+		const detected = await client.detectProject('/projects/ThirdPersonSandbox');
+		expect(detected.config?.piExtensionPaths).toEqual([
+			'/projects/ThirdPersonSandbox/tools/helper.ts',
+		]);
+
+		const cleared = await store.setProjectExtensionPaths(
+			'/projects/ThirdPersonSandbox',
+			[],
+		);
+		expect(cleared.piExtensionPaths).toBeUndefined();
+	});
+
 	it('loads extensions for the active project', async () => {
 		const client = new FakeAgentClient({ latencyMs: 0 });
 		const listExtensions = vi

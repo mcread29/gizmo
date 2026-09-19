@@ -203,6 +203,9 @@ export class AgentStore extends AgentStoreState {
 			enabled,
 		);
 	}
+	setProjectExtensionPaths(projectPath: string, paths: string[]) {
+		return this.#extensions.setProjectExtensionPaths(projectPath, paths);
+	}
 	loadProjectExtensions() {
 		return this.#extensions.loadProjectExtensions();
 	}

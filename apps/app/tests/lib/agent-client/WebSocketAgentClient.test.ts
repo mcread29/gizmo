@@ -279,6 +279,33 @@ describe('WebSocketAgentClient', () => {
 		});
 	});
 
+	it('sends project extension paths and validates the returned config', async () => {
+		const { client, socket } = await createConnectedClient();
+
+		const setting = client.setProjectExtensionPaths('/projects/game', [
+			'/projects/game/tools/helper.ts',
+		]);
+		expect(socket.sent[0]).toMatchObject({
+			type: 'project.extension-paths.set',
+			projectPath: '/projects/game',
+			paths: ['/projects/game/tools/helper.ts'],
+		});
+		socket.receive({
+			protocolVersion,
+			requestId: 'request-1',
+			type: 'response.success',
+			result: {
+				version: 1,
+				piExtensionPaths: ['/projects/game/tools/helper.ts'],
+			},
+		});
+
+		await expect(setting).resolves.toEqual({
+			version: 1,
+			piExtensionPaths: ['/projects/game/tools/helper.ts'],
+		});
+	});
+
 	it('reports an unexpected connection close', async () => {
 		const { client, socket } = await createConnectedClient();
 		let disconnectError: Error | undefined;

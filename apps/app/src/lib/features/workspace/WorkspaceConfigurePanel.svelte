@@ -8,6 +8,7 @@
 	import ConfigureSectionHeading from './configure/ConfigureSectionHeading.svelte';
 	import GizmoExtensionOverridesSection from './configure/GizmoExtensionOverridesSection.svelte';
 	import PiExtensionOverridesSection from './configure/PiExtensionOverridesSection.svelte';
+	import ProjectExtensionPathsSection from './configure/ProjectExtensionPathsSection.svelte';
 	import RemoveWorkspaceSection from './configure/RemoveWorkspaceSection.svelte';
 	import WorkspaceSkillsSection from './configure/WorkspaceSkillsSection.svelte';
 	import WorkspaceToolPolicySection from './configure/WorkspaceToolPolicySection.svelte';
@@ -124,6 +125,13 @@
 			config={setup.config}
 			{busyExtension}
 			onBusy={(id) => (busyExtension = id)}
+			onReapply={(work) => void reapply(work)}
+		/>
+
+		<ProjectExtensionPathsSection
+			{store}
+			workspacePath={project.path}
+			config={setup.config}
 			onReapply={(work) => void reapply(work)}
 		/>
 

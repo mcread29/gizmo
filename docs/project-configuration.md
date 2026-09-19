@@ -72,6 +72,7 @@ thread. Configure contains:
 
 - Gizmo extension rows with inherit/override switches;
 - Pi extension rows with the same model;
+- project extension paths, with add/remove (absolute file or directory);
 - skill overrides, resolved per workspace;
 - the built-in tool override (via `.pi/settings.json`);
 - extension-specific settings and workspace removal.

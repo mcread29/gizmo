@@ -213,6 +213,9 @@ export class InvalidEventClient implements AgentClient {
 	async setProjectPiExtension(): Promise<ProjectConfig> {
 		return { version: 1 };
 	}
+	async setProjectExtensionPaths(): Promise<ProjectConfig> {
+		return { version: 1 };
+	}
 	async setGlobalGizmoExtension(): Promise<ResourceCatalog> {
 		return emptyCatalog;
 	}

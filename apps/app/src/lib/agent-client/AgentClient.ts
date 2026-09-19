@@ -153,6 +153,11 @@ export interface AgentClient {
 		extensionId: string,
 		enabled: boolean | null,
 	): Promise<ProjectConfig>;
+	/** Replaces the workspace's explicit Pi extension paths. */
+	setProjectExtensionPaths(
+		projectPath: string,
+		paths: string[],
+	): Promise<ProjectConfig>;
 	removeProject(projectPath: string): Promise<void>;
 	/** Persists the sidebar order; resolves with the catalog in that order. */
 	reorderProjects(paths: string[]): Promise<StoredProject[]>;

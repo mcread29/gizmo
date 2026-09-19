@@ -20,6 +20,12 @@
 - Validation: agent-server `tsc` + protocol `tsc` pass; 354 agent-server and
   15 protocol tests pass, including new migration, single-location, catalog,
   loader, and project-paths cases.
+- Follow-up: deleted the migrated `~/.pi/agent/extensions{,-disabled}`
+  leftovers (both dirs now empty; `~/.pi` untouched otherwise), and added the
+  Configure screen section for project extension paths: `AgentClient`,
+  websocket + fake clients, store passthrough, and a list/add/remove UI
+  backed by `project.extension-paths.set`. App `tsc` passes, 229 app tests
+  pass.
 
 ## 2026-09-19 — Extensions render through the host
 
