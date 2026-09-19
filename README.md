@@ -56,6 +56,11 @@ that ignored directory. The agent server runs under `tsx watch`, so edits to
 `apps/agent-server` or any package it imports (`protocol`, `extensions`) restart
 it in place and the browser reconnects; Vite hot-reloads the app as usual.
 
+That is the *dev* server, which you own. The live one at
+<https://gizmo.genge.init0.link> is run by a scheduled task instead, and must
+not be started by hand — `pnpm web:server:status` reports whether it is up, and
+[docs/web-server.md](docs/web-server.md) covers how to restart it.
+
 Pi Web keeps Gizmo's thread, workspace, settings, Git, and extension UI. New
 threads use Pi's standard built-in tools and discover the resources configured
 under `~/.pi/agent`: packages, extensions, skills, prompt templates, context

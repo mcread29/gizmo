@@ -8,6 +8,10 @@ import {
 	stopProcessTree,
 	waitForPort,
 } from './lib/managed-daemon';
+import {
+	refuseSupervisedVerb,
+	reportSupervisedStatus,
+} from './lib/supervised';
 
 const root = join(__dirname, '..');
 const runtimeDirectory = join(root, '.gizmo-web');
@@ -100,11 +104,26 @@ async function runManagedServer(logFile: string) {
 	}
 }
 
-createDaemon({
+const daemon = createDaemon({
 	label: 'Gizmo Web',
 	root,
 	runtimeDirectory,
 	runnerScript: join(root, 'scripts', 'web-server.ts'),
 	urls: webHosts.map((host) => `http://${host}:${webPort}`),
 	run: runManagedServer,
-}).run('Usage: pnpm web:server <start|stop|restart|status>');
+});
+
+// Only `run` still goes through the daemon, because `run` is what the
+// supervisor invokes. The lifecycle verbs it also provides are handled here
+// instead: this server is not ours to start or stop any more.
+const verb = process.argv[2];
+if (verb === 'status') {
+	void reportSupervisedStatus([
+		{ port: agentPort, label: 'agent server' },
+		{ port: webPort, label: 'web app' },
+	]);
+} else if (verb === 'start' || verb === 'stop' || verb === 'restart') {
+	refuseSupervisedVerb(verb);
+} else {
+	daemon.run('Usage: pnpm web:server <run|status>');
+}
