@@ -7,7 +7,6 @@ import {
 	readRegistryManifest,
 	registryCloneDir,
 	registryExtensionsDir,
-	type InstalledRegistry,
 	type RegistryManifest,
 } from './registry-storage';
 import { buildExtensionWebBundle, hasWebEntry } from './web-build';
@@ -39,6 +38,8 @@ export async function syncExtension(
 	const root = disabled ? disabledExtensionsDir() : extensionsDir();
 	const entry = join(root, id);
 	const web = join(extensionWebDir(), `${id}.web.js`);
+	// Gizmo builds the browser bundle itself whenever the extension ships a web
+	// entry; `web: false` in the manifest opts out.
 	const buildsWeb = metadata?.web !== false && (await hasWebEntry(dir));
 	if (buildsWeb) await buildExtensionWebBundle(dir, web);
 	await Promise.all([
@@ -46,25 +47,9 @@ export async function syncExtension(
 		mkdir(extensionWebDir(), { recursive: true }),
 		rm(entry, { recursive: true, force: true }),
 		...(buildsWeb ? [] : [rm(web, { force: true })]),
-		// Remove artifacts installed by the old flat-file layout.
-		rm(join(extensionsDir(), `${id}.ts`), { force: true }),
-		rm(join(extensionsDir(), `${id}.web.js`), { force: true }),
 	]);
 	await symlink(dir, entry, 'junction');
-	if (metadata?.web === false) return { entry };
-
-	// Gizmo builds the browser bundle itself when the extension has a web
-	// entry; a registry that only ships a prebuilt bundle is linked as before.
-	if (buildsWeb) {
-		return { entry, web };
-	}
-	const webSource = join(sourceDir, `${id}.web.js`);
-	const hasWeb = await readFile(webSource)
-		.then(() => true)
-		.catch(() => false);
-	if (!hasWeb) return { entry };
-	await symlink(webSource, web, 'file');
-	return { entry, web };
+	return buildsWeb ? { entry, web } : { entry };
 }
 
 export function unlinkExtension(id: string): Promise<void> {
@@ -72,17 +57,14 @@ export function unlinkExtension(id: string): Promise<void> {
 	return Promise.all([
 		rm(join(extensionsDir(), id), { recursive: true, force: true }),
 		rm(join(disabledExtensionsDir(), id), { recursive: true, force: true }),
-		rm(join(extensionsDir(), `${id}.ts`), { force: true }),
 		rm(join(extensionWebDir(), `${id}.web.js`), { force: true }),
-		// Clean up bundles installed before the dedicated web directory existed.
-		rm(join(extensionsDir(), `${id}.web.js`), { force: true }),
 	]).then(() => undefined);
 }
 
-export async function refreshLinked(registry: InstalledRegistry) {
-	const clone = registryCloneDir(registry.name);
+export async function refreshLinked(linked: readonly string[]) {
+	const clone = registryCloneDir();
 	const manifest = await readRegistryManifest(clone);
-	for (const id of registry.linked) {
+	for (const id of linked) {
 		try {
 			await syncExtension(clone, manifest, id);
 		} catch (error) {

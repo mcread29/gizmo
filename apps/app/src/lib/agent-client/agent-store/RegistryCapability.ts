@@ -53,34 +53,16 @@ export class RegistryCapability {
 		}
 	}
 
-	async registryAdd(url: string) {
-		this.store.registryBusy = true;
-		this.store.registryError = undefined;
-		try {
-			this.store.registryStatus = await this.client.registryAdd(url);
-			return true;
-		} catch (error) {
-			this.store.registryError = errorMessage(error);
-			return false;
-		} finally {
-			this.store.registryBusy = false;
-		}
+	registryUpdate() {
+		return this.#registryAction(() => this.client.registryUpdate());
 	}
 
-	registryUpdate(registry: string) {
-		return this.#registryAction(() => this.client.registryUpdate(registry));
+	registryLink(id: string) {
+		return this.#registryAction(() => this.client.registryLink(id));
 	}
 
-	registryRemove(registry: string) {
-		return this.#registryAction(() => this.client.registryRemove(registry));
-	}
-
-	registryLink(registry: string, id: string) {
-		return this.#registryAction(() => this.client.registryLink(registry, id));
-	}
-
-	registryUnlink(registry: string, id: string) {
-		return this.#registryAction(() => this.client.registryUnlink(registry, id));
+	registryUnlink(id: string) {
+		return this.#registryAction(() => this.client.registryUnlink(id));
 	}
 
 	async #registryAction(action: () => Promise<RegistryStatus>) {

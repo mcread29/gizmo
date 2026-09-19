@@ -1,26 +1,8 @@
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { GizmoServerExtension } from '@gizmo/extensions';
 import { createJiti } from 'jiti';
 import { readExtensionManifest } from './extension-manifest';
-
-interface ExtensionsConfig {
-	extensions: string[];
-}
-
-/** Loads transitional package-based extensions from Gizmo's config. */
-export async function loadServerExtensions(
-	configPath: string,
-): Promise<GizmoServerExtension[]> {
-	const config = await readConfig(configPath);
-	const loaded = await Promise.all(
-		config.extensions.map((specifier) => loadExtension(specifier)),
-	);
-	return loaded.filter(
-		(extension): extension is GizmoServerExtension => extension !== undefined,
-	);
-}
 
 /** Extension ids become map keys and file-path components; keep them tame. */
 const extensionIdPattern = /^[a-z0-9][a-z0-9.-]*$/i;
@@ -39,16 +21,12 @@ export async function loadLinkedExtensionIntegrations(
 	} catch {
 		return [];
 	}
-	const paths = entries.flatMap((entry) => {
-		if (entry.isFile()) {
-			return entry.name.endsWith('.ts')
-				? [join(extensionsDir, entry.name)]
-				: [];
-		}
-		return entry.isDirectory() || entry.isSymbolicLink()
+	// Registry extensions are always directories, linked in as junctions.
+	const paths = entries.flatMap((entry) =>
+		entry.isDirectory() || entry.isSymbolicLink()
 			? [join(extensionsDir, entry.name, 'index.ts')]
-			: [];
-	});
+			: [],
+	);
 	// Every scan gets its own jiti instance with the module cache off, exactly
 	// as Pi loads the same files: the whole extension graph re-evaluates from
 	// disk, so a reload after an edit runs the new code. Native `import()`
@@ -94,22 +72,6 @@ async function loadLinkedIntegration(
 	}
 }
 
-async function loadExtension(
-	specifier: string,
-): Promise<GizmoServerExtension | undefined> {
-	try {
-		const module: unknown = await import(`${specifier}/server`);
-		return validateExtension(
-			(module as { gizmoExtension?: GizmoServerExtension }).gizmoExtension,
-			specifier,
-			packageRoot(specifier),
-		);
-	} catch (error) {
-		console.warn(`Failed to load extension "${specifier}":`, error);
-		return undefined;
-	}
-}
-
 function validateExtension(
 	extension: GizmoServerExtension | undefined,
 	source: string,
@@ -126,28 +88,4 @@ function validateExtension(
 		return undefined;
 	}
 	return { ...extension, ...(root ? { packageRoot: root } : {}) };
-}
-
-function packageRoot(specifier: string): string | undefined {
-	if (specifier.startsWith('.')) return undefined;
-	try {
-		const entry = fileURLToPath(import.meta.resolve(`${specifier}/server`));
-		return dirname(dirname(dirname(entry)));
-	} catch {
-		return undefined;
-	}
-}
-
-async function readConfig(path: string): Promise<ExtensionsConfig> {
-	try {
-		const raw = await readFile(path, 'utf8');
-		const parsed: unknown = JSON.parse(raw);
-		const extensions =
-			parsed !== null && typeof parsed === 'object' && 'extensions' in parsed
-				? (parsed as { extensions: unknown }).extensions
-				: undefined;
-		return { extensions: Array.isArray(extensions) ? extensions : [] };
-	} catch {
-		return { extensions: [] };
-	}
 }

@@ -121,22 +121,23 @@ export class InvalidEventClient implements AgentClient {
 	async abort() {}
 	async resolveExtensionUi() {}
 	async registryStatus(): Promise<RegistryStatus> {
-		return { home: '/registry', registries: [] };
-	}
-	async registryAdd(): Promise<RegistryStatus> {
-		return { home: '/registry', registries: [] };
+		return this.#registry();
 	}
 	async registryUpdate(): Promise<RegistryStatus> {
-		return { home: '/registry', registries: [] };
-	}
-	async registryRemove(): Promise<RegistryStatus> {
-		return { home: '/registry', registries: [] };
+		return this.#registry();
 	}
 	async registryLink(): Promise<RegistryStatus> {
-		return { home: '/registry', registries: [] };
+		return this.#registry();
 	}
 	async registryUnlink(): Promise<RegistryStatus> {
-		return { home: '/registry', registries: [] };
+		return this.#registry();
+	}
+	#registry(): RegistryStatus {
+		return {
+			home: '/registry',
+			url: 'https://github.com/mcread29/gizmo-registry.git',
+			extensions: [],
+		};
 	}
 	async resolveConfirmation() {}
 	async deleteSession() {}

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
@@ -27,12 +27,13 @@ afterEach(async () => {
 
 it('reloads source over the socket and broadcasts the same generation to two clients without restarting', async () => {
 	root = await mkdtemp(join(tmpdir(), 'gizmo-reload-wire-'));
-	const source = join(root, 'fixture.ts');
+	const source = join(root, 'fixture', 'index.ts');
+	await mkdir(join(root, 'fixture'));
 	await writeFile(
 		source,
 		`export const gizmoExtension = { id: 'fixture', name: 'before' };`,
 	);
-	configureExtensionCatalog({ configured: [], linkedDir: root });
+	configureExtensionCatalog({ linkedDir: root });
 	await rescanExtensionCatalog();
 	const events = new AgentEventHub();
 	server = await createAgentWebSocketServer({

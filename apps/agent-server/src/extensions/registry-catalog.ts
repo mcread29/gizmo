@@ -1,6 +1,6 @@
 import { lstat, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { RegistryStatus } from '@gizmo/protocol';
+import type { RegistryCatalogEntry } from '@gizmo/protocol';
 import { readExtensionManifest } from './extension-manifest';
 import {
 	extensionsDir,
@@ -9,14 +9,13 @@ import {
 	readRegistryManifest,
 	registryCloneDir,
 	registryExtensionsDir,
-	type InstalledRegistry,
 } from './registry-storage';
 
-/** Builds the catalog for one registry: available extensions + link state. */
-export async function catalogFor(
-	registry: InstalledRegistry,
-): Promise<RegistryStatus['registries'][number]['extensions']> {
-	const clone = registryCloneDir(registry.name);
+/** Builds the catalog: the registry's extensions plus their link state. */
+export async function registryCatalog(
+	linked: readonly string[],
+): Promise<RegistryCatalogEntry[]> {
+	const clone = registryCloneDir();
 	const manifest = await readRegistryManifest(clone);
 	const dir = registryExtensionsDir(clone, manifest);
 	let entries;
@@ -28,16 +27,16 @@ export async function catalogFor(
 	const meta = new Map(
 		(manifest.extensions ?? []).map((extension) => [extension.id, extension]),
 	);
-	const catalog: RegistryStatus['registries'][number]['extensions'] = [];
+	const catalog: RegistryCatalogEntry[] = [];
 	for (const entry of entries) {
 		if (!entry.isDirectory()) continue;
 		const id = entry.name;
 		// Unsupported extensions must remain visible so users can unlink them.
 		const metadata = await readExtensionManifest(join(dir, id), false);
-		const linked = registry.linked.includes(id);
+		const isLinked = linked.includes(id);
 		let extensionEntry: string | undefined;
 		let web: string | undefined;
-		if (linked) {
+		if (isLinked) {
 			const disabled = join(disabledExtensionsDir(), id);
 			extensionEntry = await lstat(disabled).then(
 				() => disabled,
@@ -50,7 +49,7 @@ export async function catalogFor(
 			id,
 			name: meta.get(id)?.name ?? id,
 			description: meta.get(id)?.description,
-			linked,
+			linked: isLinked,
 			...(extensionEntry ? { entry: extensionEntry } : {}),
 			...(web ? { web } : {}),
 		});

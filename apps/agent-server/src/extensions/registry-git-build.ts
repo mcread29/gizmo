@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { dirname } from 'node:path';
 
 function exec(command: string, args: string[], cwd: string): Promise<string> {
 	return new Promise((resolve, reject) => {
@@ -9,22 +10,14 @@ function exec(command: string, args: string[], cwd: string): Promise<string> {
 	});
 }
 
-export function registryName(url: string) {
-	const stem = url
-		.replaceAll('\\', '/')
-		.replace(/\.git$/, '')
-		.split('/')
-		.pop()!
-		.toLowerCase()
-		.replace(/[^a-z0-9-]+/g, '-');
-	return stem || 'registry';
-}
-
-export function cloneRegistry(url: string, clone: string, cwd: string) {
-	// cwd must exist at spawn time — git creates the target itself.
-	return exec('git', ['clone', '--depth', '1', url, clone], cwd).then(
-		() => undefined,
-	);
+export function cloneRegistry(url: string, clone: string) {
+	// git creates the target itself; it is spawned from the parent directory,
+	// which the caller has already made.
+	return exec(
+		'git',
+		['clone', '--depth', '1', url, clone],
+		dirname(clone),
+	).then(() => undefined);
 }
 
 export function pullRegistry(clone: string) {

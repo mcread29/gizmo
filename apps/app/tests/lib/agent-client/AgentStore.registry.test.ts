@@ -9,7 +9,7 @@ describe('AgentStore registry actions', () => {
 		await store.connect();
 		const reload = vi.spyOn(store, 'reloadExtensions');
 
-		await expect(store.registryLink('registry', 'codex')).resolves.toBe(true);
+		await expect(store.registryLink('codex')).resolves.toBe(true);
 
 		expect(reload).toHaveBeenCalledTimes(1);
 		expect(store.registryError).toBeUndefined();
@@ -22,7 +22,7 @@ describe('AgentStore registry actions', () => {
 		vi.spyOn(store, 'reloadExtensions').mockRejectedValue(new Error('boom'));
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-		await expect(store.registryUnlink('registry', 'codex')).resolves.toBe(true);
+		await expect(store.registryUnlink('codex')).resolves.toBe(true);
 
 		expect(store.registryError).toBeUndefined();
 		expect(warn).toHaveBeenCalled();
@@ -36,7 +36,7 @@ describe('AgentStore registry actions', () => {
 		vi.spyOn(client, 'registryLink').mockRejectedValue(new Error('no such'));
 		const reload = vi.spyOn(store, 'reloadExtensions');
 
-		await expect(store.registryLink('registry', 'codex')).resolves.toBe(false);
+		await expect(store.registryLink('codex')).resolves.toBe(false);
 
 		expect(reload).not.toHaveBeenCalled();
 		expect(store.registryError).toBe('no such');

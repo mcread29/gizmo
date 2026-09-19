@@ -32,22 +32,6 @@ export async function listPiExtensions(): Promise<PiExtensionResource[]> {
 	return [...enabled, ...disabled].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Pi extensions that can run in Gizmo, excluding extensions marked as TUI-only. */
-export async function listGizmoCompatiblePiExtensions() {
-	return filterGizmoCompatiblePiExtensions(await listPiExtensions());
-}
-
-export async function filterGizmoCompatiblePiExtensions(
-	extensions: readonly PiExtensionResource[],
-) {
-	const compatibility = await Promise.all(
-		extensions.map((extension) =>
-			supportsGizmoRuntime(extension.path, extension.kind),
-		),
-	);
-	return extensions.filter((_, index) => compatibility[index]);
-}
-
 /**
  * Paths of the Pi extensions a workspace runs: the globally enabled ones it
  * does not switch off, plus any it switches on. Without the second set an
@@ -58,37 +42,13 @@ export async function enabledPiExtensionPaths(
 	disabled?: ReadonlySet<string>,
 	enabled?: ReadonlySet<string>,
 ) {
-	return (await listGizmoCompatiblePiExtensions())
+	return (await listPiExtensions())
 		.filter((extension) =>
 			enabled?.has(extension.id)
 				? true
 				: extension.enabled && !disabled?.has(extension.id),
 		)
 		.map((extension) => extension.path);
-}
-
-/**
- * Pi extensions may opt out of Gizmo's RPC runtime with explicit sidecar
- * metadata. Directory extensions use `.gizmo.json`; single-file extensions use
- * `<filename>.gizmo.json`. Missing or malformed metadata remains compatible.
- */
-export async function supportsGizmoRuntime(
-	path: string,
-	kind: PiExtensionResource['kind'],
-) {
-	const metadataPath =
-		kind === 'directory' ? join(path, '.gizmo.json') : `${path}.gizmo.json`;
-	try {
-		const metadata: unknown = JSON.parse(await readFile(metadataPath, 'utf8'));
-		return !(
-			metadata !== null &&
-			typeof metadata === 'object' &&
-			'runtime' in metadata &&
-			(metadata as { runtime?: unknown }).runtime === 'tui'
-		);
-	} catch {
-		return true;
-	}
 }
 
 export async function setPiExtensionEnabled(id: string, enabled: boolean) {

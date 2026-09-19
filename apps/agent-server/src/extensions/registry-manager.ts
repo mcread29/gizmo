@@ -1,12 +1,11 @@
 import type { RegistryStatus } from '@gizmo/protocol';
 import { reloadExtensions } from './extension-reload';
-import { catalogFor } from './registry-catalog';
+import { registryCatalog } from './registry-catalog';
 import {
 	buildRegistry,
 	cloneRegistry,
 	pullRegistry,
 	registryCommit,
-	registryName,
 	registryUpdateAvailable,
 } from './registry-git-build';
 import {
@@ -16,135 +15,117 @@ import {
 } from './registry-links';
 import {
 	ensureRegistryHome,
-	readInstalledRegistries,
+	readInstalledState,
 	readRegistryManifest,
 	registryCloneDir,
 	registryCloneExists,
-	registryHome,
+	registryUrl,
 	removeRegistryClone,
-	writeInstalledRegistries,
-	type InstalledRegistry,
+	writeInstalledState,
 } from './registry-storage';
 
 export { extensionWebDir } from './registry-storage';
 
 /**
- * Extension registries are cloned and built in Gizmo-managed storage. Linking
- * exposes a registry extension to Pi while browser bundles remain in a
- * separate host-only directory.
+ * Gizmo installs extensions from exactly one registry: its own `gizmo-registry`
+ * repository, cloned and built in Gizmo-managed storage. Linking exposes a
+ * registry extension to Pi while browser bundles stay in a host-only directory.
  */
 export async function registryStatus(): Promise<RegistryStatus> {
-	const registries = await readInstalledRegistries();
+	await ensureClone();
+	const clone = registryCloneDir();
+	const installed = await readInstalledState();
+	const [extensions, updateAvailable] = await Promise.all([
+		registryCatalog(installed.linked),
+		registryUpdateAvailable(clone),
+	]);
 	return {
-		home: registryHome(),
-		registries: await Promise.all(
-			registries.map(async (registry) => {
-				const clone = registryCloneDir(registry.name);
-				const [extensions, updateAvailable] = await Promise.all([
-					catalogFor(registry),
-					registryUpdateAvailable(clone),
-				]);
-				return {
-					name: registry.name,
-					url: registry.url,
-					...(registry.commit ? { commit: registry.commit } : {}),
-					...(updateAvailable ? { updateAvailable: true } : {}),
-					addedAt: registry.addedAt,
-					extensions,
-				};
-			}),
-		),
+		home: clone,
+		url: registryUrl,
+		...(installed.commit ? { commit: installed.commit } : {}),
+		...(updateAvailable ? { updateAvailable: true } : {}),
+		extensions,
 	};
 }
 
-export async function registryAdd(url: string): Promise<RegistryStatus> {
-	const name = registryName(url);
-	const clone = registryCloneDir(name);
-	if (await registryCloneExists(clone)) {
-		throw new Error(`A registry named "${name}" already exists`);
-	}
-
-	await ensureRegistryHome();
-	try {
-		await cloneRegistry(url, clone, registryHome());
-		const manifest = await readRegistryManifest(clone);
-		if (manifest.build) await buildRegistry(manifest.build, clone);
-	} catch (error) {
-		await removeRegistryClone(clone);
-		throw error;
-	}
-
-	const registries = await readInstalledRegistries();
-	registries.push({
-		name,
-		url,
-		commit: await registryCommit(clone),
-		addedAt: Date.now(),
-		linked: [],
-		extensions: [],
-	});
-	await writeInstalledRegistries(registries);
-	return registryStatus();
-}
-
-export async function registryUpdate(name: string): Promise<RegistryStatus> {
-	const registries = await readInstalledRegistries();
-	const registry = findRegistry(registries, name);
-	const clone = registryCloneDir(name);
+export async function registryUpdate(): Promise<RegistryStatus> {
+	const clone = registryCloneDir();
+	await ensureClone();
 	await pullRegistry(clone);
 	const manifest = await readRegistryManifest(clone);
 	if (manifest.build) await buildRegistry(manifest.build, clone);
-	registry.commit = await registryCommit(clone);
-	await refreshLinked(registry);
-	await writeInstalledRegistries(registries);
+	const installed = await readInstalledState();
+	await refreshLinked(installed.linked);
+	await writeInstalledState({
+		...installed,
+		...commitField(await registryCommit(clone)),
+	});
 	// A full reload: linked extensions re-evaluate from disk, project services
 	// are recreated, idle Pi runtimes reload, and every client is told.
 	await reloadExtensions();
 	return registryStatus();
 }
 
-export async function registryRemove(name: string): Promise<RegistryStatus> {
-	const registries = await readInstalledRegistries();
-	const registry = findRegistry(registries, name);
-	for (const id of registry.linked) await unlinkExtension(id);
-	await removeRegistryClone(registryCloneDir(name));
-	await writeInstalledRegistries(
-		registries.filter((candidate) => candidate.name !== name),
-	);
+export async function registryLink(id: string): Promise<RegistryStatus> {
+	await ensureClone();
+	const installed = await readInstalledState();
+	if (!installed.linked.includes(id)) installed.linked.push(id);
+	const clone = registryCloneDir();
+	await syncExtension(clone, await readRegistryManifest(clone), id);
+	await writeInstalledState(installed);
 	await reloadExtensions();
 	return registryStatus();
 }
 
-export async function registryLink(
-	name: string,
-	id: string,
-): Promise<RegistryStatus> {
-	const registries = await readInstalledRegistries();
-	const registry = findRegistry(registries, name);
-	if (!registry.linked.includes(id)) registry.linked.push(id);
-	const clone = registryCloneDir(name);
-	const manifest = await readRegistryManifest(clone);
-	await syncExtension(clone, manifest, id);
-	await writeInstalledRegistries(registries);
-	await reloadExtensions();
-	return registryStatus();
-}
-
-export async function registryUnlink(
-	name: string,
-	id: string,
-): Promise<RegistryStatus> {
-	const registries = await readInstalledRegistries();
-	const registry = findRegistry(registries, name);
-	registry.linked = registry.linked.filter((linked) => linked !== id);
+export async function registryUnlink(id: string): Promise<RegistryStatus> {
+	const installed = await readInstalledState();
+	installed.linked = installed.linked.filter((linked) => linked !== id);
 	await unlinkExtension(id);
-	await writeInstalledRegistries(registries);
+	await writeInstalledState(installed);
 	await reloadExtensions();
 	return registryStatus();
 }
 
-function findRegistry(registries: InstalledRegistry[], name: string) {
-	const registry = registries.find((candidate) => candidate.name === name);
-	if (!registry) throw new Error(`Registry "${name}" does not exist`);
-	return registry;
+let bootstrap: Promise<void> | undefined;
+
+/**
+ * Clones and builds the registry the first time it is needed. Concurrent
+ * callers share one attempt; a failed attempt is not cached, so the next call
+ * tries again rather than leaving the catalog permanently empty.
+ */
+function ensureClone(): Promise<void> {
+	bootstrap ??= cloneOnce().finally(() => {
+		bootstrap = undefined;
+	});
+	return bootstrap;
+}
+
+async function cloneOnce(): Promise<void> {
+	const clone = registryCloneDir();
+	if (await registryCloneExists(clone)) return;
+	await ensureRegistryHome();
+	try {
+		// A half-written clone from an interrupted attempt would make git refuse
+		// to write into the directory at all.
+		await removeRegistryClone(clone);
+		await cloneRegistry(registryUrl, clone);
+		const manifest = await readRegistryManifest(clone);
+		if (manifest.build) await buildRegistry(manifest.build, clone);
+	} catch (error) {
+		await removeRegistryClone(clone);
+		throw new Error(
+			`Could not install the extension registry from ${registryUrl}: ${
+				error instanceof Error ? error.message : String(error)
+			}`,
+		);
+	}
+	const installed = await readInstalledState();
+	await writeInstalledState({
+		...installed,
+		...commitField(await registryCommit(clone)),
+	});
+}
+
+function commitField(commit: string | undefined) {
+	return commit ? { commit } : {};
 }

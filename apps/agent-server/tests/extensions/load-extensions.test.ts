@@ -1,4 +1,11 @@
-import { access, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+	access,
+	mkdir,
+	mkdtemp,
+	rm,
+	symlink,
+	writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -15,15 +22,17 @@ describe('loadLinkedExtensionIntegrations', () => {
 	it('reloads changed transitive source without restarting the process', async () => {
 		const root = await mkdtemp(join(tmpdir(), 'gizmo-reload-'));
 		paths.push(root);
+		const dir = join(root, 'fixture');
+		await mkdir(dir);
 		await writeFile(
-			join(root, 'index.ts'),
+			join(dir, 'index.ts'),
 			`import { name } from './name'; export const gizmoExtension = { id: 'fixture', name };`,
 		);
-		await writeFile(join(root, 'name.ts'), `export const name = 'before';`);
+		await writeFile(join(dir, 'name.ts'), `export const name = 'before';`);
 		expect((await loadLinkedExtensionIntegrations(root))[0]?.name).toBe(
 			'before',
 		);
-		await writeFile(join(root, 'name.ts'), `export const name = 'after';`);
+		await writeFile(join(dir, 'name.ts'), `export const name = 'after';`);
 		expect((await loadLinkedExtensionIntegrations(root))[0]?.name).toBe(
 			'after',
 		);
@@ -50,8 +59,9 @@ describe('loadLinkedExtensionIntegrations', () => {
 		const root = await mkdtemp(join(tmpdir(), 'gizmo-linked-extension-'));
 		paths.push(root);
 		const marker = join(root, 'executed');
+		await mkdir(join(root, 'plain'));
 		await writeFile(
-			join(root, 'plain.ts'),
+			join(root, 'plain', 'index.ts'),
 			`import { writeFileSync } from 'node:fs';\nwriteFileSync(${JSON.stringify(marker)}, 'yes');\nexport default function () {}\n`,
 		);
 

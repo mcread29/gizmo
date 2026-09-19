@@ -26,22 +26,6 @@
 	text-transform: uppercase;
 }
 
-[data-ui='text-input'] {
-	min-width: 0;
-	width: 220px;
-	padding: 7px 9px;
-	border: 1px solid var(--color-border-strong);
-	border-radius: var(--radius-sm);
-	background: var(--color-surface-soft);
-	color: var(--color-text);
-	font-size: var(--text-xs);
-}
-
-[data-ui='text-input']:focus-visible {
-	outline: none;
-	box-shadow: var(--focus-ring);
-}
-
 /*
  * Segmented controls sit beside a field's label, so they have to stay a row:
  * `[data-ui='setting-field'] > div` otherwise stacks them into a grid.

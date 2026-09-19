@@ -10,7 +10,7 @@ import { Type, type Static } from 'typebox';
  * v27: `session.unsent` returns messages a run died before delivering, and
  * `message.completed` carries `interrupted` for a turn that stopped short.
  */
-export const protocolVersion = 29 as const;
+export const protocolVersion = 30 as const;
 
 const sessionTitleLimit = 48;
 

@@ -7,7 +7,7 @@ import {
 	extensionResourceRoots,
 	linkedExtensionResourceRoots,
 } from './extension-resources';
-import { listGizmoCompatiblePiExtensions } from './pi-global-resources';
+import { listPiExtensions } from './pi-global-resources';
 import {
 	adoptPiResources,
 	existingDirectories,
@@ -58,7 +58,7 @@ export async function discoverResources(
 			existingDirectories(roots.prompts),
 			existingFiles(roots.agentsFiles),
 			extensionResourceRoots(registeredExtensions()),
-			listGizmoCompatiblePiExtensions(),
+			listPiExtensions(),
 		]);
 	const fromLinkedExtensions = await linkedExtensionResourceRoots(
 		piExtensions

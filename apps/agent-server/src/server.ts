@@ -16,7 +16,6 @@ import {
 } from './extensions/extension-catalog';
 import { configureExtensionReload } from './extensions/extension-reload';
 import { startExtensionWatcher } from './extensions/extension-watcher';
-import { loadServerExtensions } from './extensions/load-extensions';
 import { migrateExtensionEnablement } from './extensions/migrate-enablement';
 import { rebuildLinkedWebBundles } from './extensions/web-build';
 import { piAgentDir } from './resources/pi-global-resources';
@@ -26,24 +25,10 @@ import { ProjectCatalog } from './projects/project-catalog';
 await restoreDesktopEnvironment();
 await migrateExtensionEnablement();
 
-// Dev runs with the package dir as cwd; fall back to the repo root so a
-// missing local config does not silently disable every extension.
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const extensionsConfigPath =
-	process.env.GIZMO_EXTENSIONS_CONFIG ??
-	resolve(process.cwd(), 'gizmo.extensions.json');
 const piWebMode = process.env.GIZMO_PI_WEB === '1';
-const configuredExtensions = await loadServerExtensions(
-	existsSync(extensionsConfigPath)
-		? extensionsConfigPath
-		: resolve(repoRoot, 'gizmo.extensions.json'),
-);
-configureExtensionCatalog({
-	configured: configuredExtensions,
-	linkedDir: join(piAgentDir(), 'extensions'),
-});
+configureExtensionCatalog({ linkedDir: join(piAgentDir(), 'extensions') });
 // Registry link/unlink rescans through the same helper, so the catalog the
-// rest of the server reads is always the boot merge or a later rescan of it.
+// rest of the server reads is always the boot scan or a later rescan of it.
 const extensions = await rescanExtensionCatalog();
 const projects = new ProjectCatalog();
 

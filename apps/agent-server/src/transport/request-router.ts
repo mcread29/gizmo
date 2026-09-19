@@ -71,9 +71,7 @@ export async function routeRequest(
 		case 'resources.extension.global':
 		case 'resources.gizmo-extension.global':
 		case 'registry.status':
-		case 'registry.add':
 		case 'registry.update':
-		case 'registry.remove':
 		case 'registry.link':
 		case 'registry.unlink':
 		case 'extensions.reload':

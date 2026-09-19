@@ -1,5 +1,17 @@
 # Work log
 
+## 2026-09-19 — One registry (protocol v30)
+
+- Extensions come from exactly one registry, Gizmo's own `gizmo-registry`.
+  `registry.add`/`registry.remove` are gone and `RegistryStatus` is flat;
+  `registry.status` clones and builds the repository on first use. Installed
+  state is a single `{ linked, commit }` file that still reads the old
+  `registries[]` format, so an existing install keeps what it linked.
+- The Pi-compatibility machinery went with it: no `gizmo.extensions.json`
+  config, no `.gizmo.json` `runtime: 'tui'` opt-out, no prebuilt `<id>.web.js`
+  fallback, and no single-file extensions. Every extension is a directory
+  Gizmo builds the web bundle for itself.
+
 ## 2026-09-16 — Thread tells its own story: queue, compaction, follow, cards
 
 - Pending steering is a row in the thread. Pi's `queue_update` is forwarded

@@ -100,24 +100,7 @@ export const resourcesRequestSchemas = [
 	Type.Object(
 		{
 			...envelope,
-			type: Type.Literal('registry.add'),
-			url: Type.String({ minLength: 1, maxLength: 2_000 }),
-		},
-		{ additionalProperties: false },
-	),
-	Type.Object(
-		{
-			...envelope,
 			type: Type.Literal('registry.update'),
-			registry: Type.String({ minLength: 1, maxLength: 200 }),
-		},
-		{ additionalProperties: false },
-	),
-	Type.Object(
-		{
-			...envelope,
-			type: Type.Literal('registry.remove'),
-			registry: Type.String({ minLength: 1, maxLength: 200 }),
 		},
 		{ additionalProperties: false },
 	),
@@ -125,7 +108,6 @@ export const resourcesRequestSchemas = [
 		{
 			...envelope,
 			type: Type.Literal('registry.link'),
-			registry: Type.String({ minLength: 1, maxLength: 200 }),
 			id: Type.String({ minLength: 1, maxLength: 200 }),
 		},
 		{ additionalProperties: false },
@@ -134,7 +116,6 @@ export const resourcesRequestSchemas = [
 		{
 			...envelope,
 			type: Type.Literal('registry.unlink'),
-			registry: Type.String({ minLength: 1, maxLength: 200 }),
 			id: Type.String({ minLength: 1, maxLength: 200 }),
 		},
 		{ additionalProperties: false },

@@ -2,16 +2,45 @@ import type {
 	InstructionFile,
 	InstructionTarget,
 	ResourceCatalog,
+	RegistryCatalogEntry,
 	RegistryStatus,
 } from '@gizmo/protocol';
 import { fakeAgentsFiles, fakeDomains, fakePrompts } from './fixtures';
 import type { FakeProjectCapability } from './projects';
 import type { FakeClientState } from './state';
 
-const emptyRegistry = (): RegistryStatus => ({
-	home: '/home/dev/.gizmo/registries',
-	registries: [],
-});
+const fakeRegistryExtensions = (): RegistryCatalogEntry[] => [
+	{
+		id: 'unity',
+		name: 'Unity',
+		description: 'Editor bridge and play controls',
+		linked: true,
+	},
+	{
+		id: 'svelte',
+		name: 'Svelte',
+		description: 'Component and route awareness',
+		linked: true,
+	},
+	{
+		id: 'git',
+		name: 'Git',
+		description: 'Branches, diffs, and commits',
+		linked: true,
+	},
+	{
+		id: 'ask-user',
+		name: 'Ask the user',
+		description: 'Multiple-choice questions with a native chat card',
+		linked: false,
+	},
+	{
+		id: 'codex',
+		name: 'Codex',
+		description: 'Hand a task to a second coding agent',
+		linked: false,
+	},
+];
 
 export class FakeResourceCapability {
 	constructor(
@@ -91,48 +120,37 @@ export class FakeResourceCapability {
 		return `${workspacePath ?? '/home/dev/project'}/AGENTS.md`;
 	}
 
-	async registryStatus() {
-		return emptyRegistry();
-	}
+	/** The one registry: Gizmo's extension repository, cloned locally. */
+	#registry: RegistryStatus = {
+		home: '/home/dev/.gizmo/registry',
+		url: 'https://github.com/mcread29/gizmo-registry.git',
+		commit: 'a1b2c3d',
+		extensions: fakeRegistryExtensions(),
+	};
 
-	async registryAdd(url: string): Promise<RegistryStatus> {
-		return {
-			home: '/home/dev/.gizmo/registries',
-			registries: [
-				{
-					name: url
-						.split('/')
-						.pop()!
-						.replace(/\.git$/, ''),
-					url,
-					addedAt: Date.now(),
-					extensions: [
-						{
-							id: 'ask-user',
-							name: 'Ask the user',
-							description: 'Multiple-choice questions with a native chat card',
-							linked: false,
-						},
-					],
-				},
-			],
-		};
+	async registryStatus() {
+		return this.#registry;
 	}
 
 	async registryUpdate() {
-		return emptyRegistry();
+		this.#registry = { ...this.#registry, updateAvailable: false };
+		return this.#registry;
 	}
 
-	async registryRemove() {
-		return emptyRegistry();
+	async registryLink(id: string) {
+		return this.#setLinked(id, true);
 	}
 
-	async registryLink() {
-		return emptyRegistry();
+	async registryUnlink(id: string) {
+		return this.#setLinked(id, false);
 	}
 
-	async registryUnlink() {
-		return emptyRegistry();
+	#setLinked(id: string, linked: boolean): RegistryStatus {
+		const extensions = this.#registry.extensions.map((extension) =>
+			extension.id === id ? { ...extension, linked } : extension,
+		);
+		this.#registry = { ...this.#registry, extensions };
+		return this.#registry;
 	}
 
 	async setGlobalGizmoExtension(extensionId: string, enabled: boolean) {

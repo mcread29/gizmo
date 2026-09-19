@@ -231,20 +231,14 @@ export class AgentStore extends AgentStoreState {
 	refreshRegistry() {
 		return this.#registry.refreshRegistry();
 	}
-	registryAdd(url: string) {
-		return this.#registry.registryAdd(url);
+	registryUpdate() {
+		return this.#registry.registryUpdate();
 	}
-	registryUpdate(registry: string) {
-		return this.#registry.registryUpdate(registry);
+	registryLink(id: string) {
+		return this.#registry.registryLink(id);
 	}
-	registryRemove(registry: string) {
-		return this.#registry.registryRemove(registry);
-	}
-	registryLink(registry: string, id: string) {
-		return this.#registry.registryLink(registry, id);
-	}
-	registryUnlink(registry: string, id: string) {
-		return this.#registry.registryUnlink(registry, id);
+	registryUnlink(id: string) {
+		return this.#registry.registryUnlink(id);
 	}
 	refreshResources(workspacePath?: string) {
 		return this.#resources.refreshResources(workspacePath);

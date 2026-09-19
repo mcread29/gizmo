@@ -12,7 +12,6 @@ vi.mock('../../src/resources/pi-global-resources', async (original) => ({
 		typeof import('../../src/resources/pi-global-resources')
 	>()),
 	listPiExtensions: async () => [],
-	listGizmoCompatiblePiExtensions: async () => [],
 }));
 
 const svelteExtension: GizmoServerExtension = {

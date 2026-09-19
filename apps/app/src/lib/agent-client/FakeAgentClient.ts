@@ -177,16 +177,12 @@ export class FakeAgentClient implements AgentClient {
 		this.#resources.setGlobalExtension();
 	registryStatus: AgentClient['registryStatus'] = () =>
 		this.#resources.registryStatus();
-	registryAdd: AgentClient['registryAdd'] = (url) =>
-		this.#resources.registryAdd(url);
 	registryUpdate: AgentClient['registryUpdate'] = () =>
 		this.#resources.registryUpdate();
-	registryRemove: AgentClient['registryRemove'] = () =>
-		this.#resources.registryRemove();
-	registryLink: AgentClient['registryLink'] = () =>
-		this.#resources.registryLink();
-	registryUnlink: AgentClient['registryUnlink'] = () =>
-		this.#resources.registryUnlink();
+	registryLink: AgentClient['registryLink'] = (id) =>
+		this.#resources.registryLink(id);
+	registryUnlink: AgentClient['registryUnlink'] = (id) =>
+		this.#resources.registryUnlink(id);
 	readSkill: AgentClient['readSkill'] = (path) =>
 		this.#resources.readSkill(path);
 	writeSkill: AgentClient['writeSkill'] = (path, content) =>

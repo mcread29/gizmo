@@ -10,7 +10,7 @@ import {
 import type { PiAgentService } from '../sessions/pi-agent-service';
 import type { ProjectWatchCoordinator } from './project-watch-coordinator';
 import type { RouteResult } from './request-router';
-import { listGizmoCompatiblePiExtensions } from '../resources/pi-global-resources';
+import { listPiExtensions } from '../resources/pi-global-resources';
 
 type ProjectRequestType =
 	| 'project.list'
@@ -131,7 +131,7 @@ export async function handleProjectRequest(
 				},
 			};
 		case 'extensions.web': {
-			const installed = await listGizmoCompatiblePiExtensions();
+			const installed = await listPiExtensions();
 			/*
 			 * One bundle list serves every workspace, so a globally disabled
 			 * extension still has to ship if any workspace switches it on —

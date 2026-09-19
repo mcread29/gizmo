@@ -1,8 +1,6 @@
 import type { AgentRequest } from '@gizmo/protocol';
 import {
-	registryAdd,
 	registryLink,
-	registryRemove,
 	registryStatus,
 	registryUnlink,
 	registryUpdate,
@@ -25,9 +23,7 @@ type ResourceRequestType =
 	| 'resources.extension.global'
 	| 'resources.gizmo-extension.global'
 	| 'registry.status'
-	| 'registry.add'
 	| 'registry.update'
-	| 'registry.remove'
 	| 'registry.link'
 	| 'registry.unlink'
 	| 'extensions.reload'
@@ -99,20 +95,12 @@ export async function handleResourceRequest(
 			};
 		case 'registry.status':
 			return { result: await registryStatus() };
-		case 'registry.add':
-			return { result: await registryAdd(request.url) };
 		case 'registry.update':
-			return { result: await registryUpdate(request.registry) };
-		case 'registry.remove':
-			return { result: await registryRemove(request.registry) };
+			return { result: await registryUpdate() };
 		case 'registry.link':
-			return {
-				result: await registryLink(request.registry, request.id),
-			};
+			return { result: await registryLink(request.id) };
 		case 'registry.unlink':
-			return {
-				result: await registryUnlink(request.registry, request.id),
-			};
+			return { result: await registryUnlink(request.id) };
 		case 'extensions.reload':
 			return {
 				result: await reloadExtensions({ rebuild: request.rebuild ?? true }),

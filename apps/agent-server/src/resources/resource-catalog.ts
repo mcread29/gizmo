@@ -3,10 +3,7 @@ import type { ResourceCatalog, SkillResource } from '@gizmo/protocol';
 import { registeredExtensions } from '../extensions/registry';
 import { ProjectCatalog } from '../projects/project-catalog';
 import { GlobalResourceStore } from './global-resource-settings';
-import {
-	listGizmoCompatiblePiExtensions,
-	setPiExtensionEnabled,
-} from './pi-global-resources';
+import { listPiExtensions, setPiExtensionEnabled } from './pi-global-resources';
 import {
 	discoverResources,
 	type DiscoveredSkill,
@@ -46,7 +43,7 @@ export class ResourceCatalogService {
 		const installed = new Set(settings.installedSkills);
 		const enabledGlobally = new Set(settings.enabledSkills);
 		const globallyDisabled = new Set(settings.disabledGizmoExtensions);
-		const extensions = await listGizmoCompatiblePiExtensions();
+		const extensions = await listPiExtensions();
 		return {
 			...(path ? { workspacePath: path } : {}),
 			extensions,
@@ -118,11 +115,7 @@ export class ResourceCatalogService {
 		extensionId: string,
 		enabled: boolean,
 	): Promise<ResourceCatalog> {
-		if (
-			(await listGizmoCompatiblePiExtensions()).some(
-				({ id }) => id === extensionId,
-			)
-		) {
+		if ((await listPiExtensions()).some(({ id }) => id === extensionId)) {
 			await setPiExtensionEnabled(extensionId, enabled);
 			return this.list();
 		}

@@ -2,7 +2,7 @@ import type { ProjectConfig, WorkspaceIntegration } from '@gizmo/protocol';
 import { registeredExtensions } from '../extensions/registry';
 import { GlobalResourceStore } from '../resources/global-resource-settings';
 import { ProjectConfigStore } from './project-config-store';
-import { listGizmoCompatiblePiExtensions } from '../resources/pi-global-resources';
+import { listPiExtensions } from '../resources/pi-global-resources';
 
 export interface ResolvedProjectIntegrations {
 	config: ProjectConfig;
@@ -24,7 +24,7 @@ export class ProjectIntegrationResolver {
 		const globallyDisabled = new Set(
 			(await this.global.read()).disabledGizmoExtensions,
 		);
-		const pi = await listGizmoCompatiblePiExtensions();
+		const pi = await listPiExtensions();
 		const piById = new Map(pi.map((extension) => [extension.id, extension]));
 		const piOverrides = new Map(
 			(config.piExtensions ?? []).map(({ id, enabled }) => [id, enabled]),

@@ -1,14 +1,15 @@
 # Extensions
 
-Gizmo ships no extensions. Every extension is installed from a user-selected
-Git registry as a normal Pi extension. An extension may also export optional,
-generic Gizmo integration capabilities and a paired browser bundle for panels,
-project services, commands, status, and tool-result presentation.
+Gizmo ships no extensions. Every extension is installed from one registry —
+Gizmo's own `gizmo-registry` repository — as a normal Pi extension. An
+extension may also export optional, generic Gizmo integration capabilities and
+a paired browser bundle for panels, project services, commands, status, and
+tool-result presentation.
 
-Unity, Git, Svelte, Activity, Ask User, and Skill Authoring live in the
-standalone `gizmo-registry` repository. Linking one catalog entry installs the
-Pi backend and its Gizmo browser integration together; Gizmo contains no
-static extension registry or first-party extension source.
+Unity, Git, Svelte, Activity, Ask User, and Skill Authoring live in that
+standalone repository. Linking one catalog entry installs the Pi backend and
+its Gizmo browser integration together; the Gizmo application repository
+contains no first-party extension source.
 
 ## Contracts
 
@@ -43,48 +44,53 @@ A registry extension always default-exports its Pi factory from
 `pi-extension.ts`. It may additionally export a named `gizmoExtension` object
 for generic host capabilities. Its browser entry exports `gizmoWebExtension`.
 
-## Git extension registries
+## The extension registry
 
-Gizmo ships no Pi extensions. Users add Git registry repositories in
-**Settings → Extensions**. Gizmo clones each repository once under
-`~/.gizmo/registries/`, runs its declared build command, and links selected
-extension directories into `~/.pi/agent/extensions/`.
+There is exactly one registry, and it is fixed: `gizmo-registry`. Nobody adds
+or removes registries, and no setting names a URL — **Settings → Extensions**
+browses a catalog and links or unlinks entries from it. Gizmo clones the
+repository into `~/.gizmo/registries/gizmo-registry/` the first time the
+catalog is asked for, runs its declared build command, and remembers the
+commit. The bootstrap is idempotent and shared between concurrent callers; if
+the clone fails, `registry.status` reports the error rather than leaving a
+half-installed directory behind. `registry.update` pulls, rebuilds, re-syncs
+every linked extension, and reloads.
 
-A registry's `gizmo.registry.json` declares its extension directory, optional
+The registry's `gizmo.registry.json` declares its extension directory, optional
 install command (`build`, typically `pnpm install --frozen-lockfile`), and
-catalog. Each extension directory contains `index.ts`, `pi-extension.ts`, and
-may contain `src/web/index.ts`. Gizmo directory-links the extension into Pi so
-relative imports and registry dependencies resolve correctly, and **builds the
-browser bundle itself** from `src/web/index.ts` into
-`~/.pi/agent/extension-web/<id>.web.js` as part of the same unit. A registry
-that ships a prebuilt sibling `<id>.web.js` and no web entry is still linked
-the old way. Registry repositories are independent of the Gizmo application
+catalog. Each extension is a directory containing `index.ts`,
+`pi-extension.ts`, and optionally `src/web/index.ts`. Gizmo directory-links the
+extension into `~/.pi/agent/extensions/` so relative imports and registry
+dependencies resolve correctly, and **builds the browser bundle itself** from
+`src/web/index.ts` into `~/.pi/agent/extension-web/<id>.web.js` as part of the
+same unit. The registry repository is independent of the Gizmo application
 repository, so users download only extension source.
 
 ## Discovery
 
 ### Manifest and enablement
 
-Registry extensions may declare `gizmo.json` with `apiVersion: 1`, a boolean
-`web`, and a `capabilities` array of identifiers. Linking validates the manifest
-before changing installed files; unsupported API versions are refused. A false
-`web` skips the browser build and removes stale bundles. Legacy Pi extensions
-without this sidecar remain compatible.
+An extension may declare `gizmo.json` with `apiVersion: 1`, a boolean `web`,
+and a `capabilities` array of identifiers. The manifest is optional; several
+registry extensions have none. Linking validates it before changing installed
+files, so an unsupported API version is refused with the previous link intact.
+A false `web` skips the browser build and removes stale bundles.
 
-Paired extensions use Pi's enabled/disabled directories for both their backend
-and browser integration. Workspace `piExtensions` overrides can disable an
-enabled extension for that workspace. Legacy paired `gizmoExtensions` overrides
-remain effective until the next edit migrates them, and legacy global opt-outs
-migrate at server startup. Package-only integrations retain compatibility controls.
-Updating a registry preserves disabled links; unlinking removes either location.
+Extensions use Pi's enabled/disabled directories for both their backend and
+browser integration. Workspace `piExtensions` overrides can disable an enabled
+extension for that workspace. Legacy paired `gizmoExtensions` overrides remain
+effective until the next edit migrates them, and legacy global opt-outs migrate
+at server startup. Updating the registry preserves disabled links; unlinking
+removes either location.
 
 ### Server: linked Pi extensions
 
 At startup, Gizmo scans Pi's global extension directory. Each linked
 `pi-extension.ts` is loaded by Pi through its default export. If the same file
 also exports a named `gizmoExtension`, Gizmo registers those generic host
-capabilities without knowing what the extension does. Linked extensions take
-precedence over the now-empty transitional `gizmo.extensions.json` config.
+capabilities without knowing what the extension does. Linked extensions are the
+whole catalog: there is no configured list beside them and no separate
+compatibility check, so every Pi extension on disk is a Gizmo extension.
 
 Both loaders read the files through jiti with the module cache off, so every
 scan re-evaluates the extension's whole module graph from disk. That is what
@@ -366,7 +372,7 @@ separate built-in extension catalog.
 
 ## Summary
 
-- User-curated Git registries are cloned and built locally.
+- One fixed registry, `gizmo-registry`, is cloned and built locally on demand.
 - Selected extension directories are linked into Pi's extension directory.
 - Browser bundles are linked separately so Pi never executes browser imports.
 - Optional named `gizmoExtension` exports provide generic server capabilities.

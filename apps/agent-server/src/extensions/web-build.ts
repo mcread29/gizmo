@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { readExtensionManifest } from './extension-manifest';
 import {
 	extensionWebDir,
-	readInstalledRegistries,
+	readInstalledState,
 	readRegistryManifest,
 	registryCloneDir,
 	registryExtensionsDir,
@@ -66,45 +66,42 @@ export async function buildExtensionWebBundle(
  * Rebuilds the browser bundle of every linked registry extension that has a
  * web entry (or only `ids`, when given). Returns diagnostics rather than
  * throwing: one extension failing to build must not block the reload of the
- * others. Extensions with no web entry are left alone, so a registry that
- * still ships prebuilt bundles keeps working.
+ * others. Extensions with no web entry are left alone.
  */
 export async function rebuildLinkedWebBundles(
 	ids?: readonly string[],
 	options: { force?: boolean } = {},
 ): Promise<string[]> {
 	const diagnostics: string[] = [];
-	for (const registry of await readInstalledRegistries()) {
-		const clone = registryCloneDir(registry.name);
-		const manifest = await readRegistryManifest(clone);
-		const sourceDir = registryExtensionsDir(clone, manifest);
-		for (const id of registry.linked) {
-			if (ids && !ids.includes(id)) continue;
-			const extensionDir = join(sourceDir, id);
-			const outFile = join(extensionWebDir(), `${id}.web.js`);
-			try {
-				if ((await readExtensionManifest(extensionDir))?.web === false) {
-					await rm(outFile, { force: true });
-					continue;
-				}
-			} catch (error) {
-				diagnostics.push(String(error));
+	const clone = registryCloneDir();
+	const manifest = await readRegistryManifest(clone);
+	const sourceDir = registryExtensionsDir(clone, manifest);
+	for (const id of (await readInstalledState()).linked) {
+		if (ids && !ids.includes(id)) continue;
+		const extensionDir = join(sourceDir, id);
+		const outFile = join(extensionWebDir(), `${id}.web.js`);
+		try {
+			if ((await readExtensionManifest(extensionDir))?.web === false) {
+				await rm(outFile, { force: true });
 				continue;
 			}
-			if (!(await hasWebEntry(extensionDir))) continue;
-			// A build takes seconds per extension; skip the ones whose source
-			// has not changed since the installed bundle was written.
-			if (!options.force && !ids && (await bundleFresh(extensionDir, outFile)))
-				continue;
-			try {
-				await buildExtensionWebBundle(extensionDir, outFile);
-			} catch (error) {
-				diagnostics.push(
-					`Web bundle for "${id}" failed to build: ${
-						error instanceof Error ? error.message : String(error)
-					}`,
-				);
-			}
+		} catch (error) {
+			diagnostics.push(String(error));
+			continue;
+		}
+		if (!(await hasWebEntry(extensionDir))) continue;
+		// A build takes seconds per extension; skip the ones whose source
+		// has not changed since the installed bundle was written.
+		if (!options.force && !ids && (await bundleFresh(extensionDir, outFile)))
+			continue;
+		try {
+			await buildExtensionWebBundle(extensionDir, outFile);
+		} catch (error) {
+			diagnostics.push(
+				`Web bundle for "${id}" failed to build: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			);
 		}
 	}
 	return diagnostics;

@@ -159,11 +159,9 @@ export interface AgentClient {
 		enabled: boolean,
 	): Promise<ResourceCatalog>;
 	registryStatus(): Promise<RegistryStatus>;
-	registryAdd(url: string): Promise<RegistryStatus>;
-	registryUpdate(registry: string): Promise<RegistryStatus>;
-	registryRemove(registry: string): Promise<RegistryStatus>;
-	registryLink(registry: string, id: string): Promise<RegistryStatus>;
-	registryUnlink(registry: string, id: string): Promise<RegistryStatus>;
+	registryUpdate(): Promise<RegistryStatus>;
+	registryLink(id: string): Promise<RegistryStatus>;
+	registryUnlink(id: string): Promise<RegistryStatus>;
 	readSkill(path: string): Promise<SkillFile>;
 	writeSkill(path: string, content: string): Promise<SkillFile>;
 	readInstructions(

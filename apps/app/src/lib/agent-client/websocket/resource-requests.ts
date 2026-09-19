@@ -88,42 +88,18 @@ export class ResourceRequests extends ProjectRequests {
 		return parseRegistryStatus(response.result);
 	}
 
-	async registryAdd(url: string) {
-		const response = await this.request({ type: 'registry.add', url });
+	async registryUpdate() {
+		const response = await this.request({ type: 'registry.update' });
 		return parseRegistryStatus(response.result);
 	}
 
-	async registryUpdate(registry: string) {
-		const response = await this.request({
-			type: 'registry.update',
-			registry,
-		});
+	async registryLink(id: string) {
+		const response = await this.request({ type: 'registry.link', id });
 		return parseRegistryStatus(response.result);
 	}
 
-	async registryRemove(registry: string) {
-		const response = await this.request({
-			type: 'registry.remove',
-			registry,
-		});
-		return parseRegistryStatus(response.result);
-	}
-
-	async registryLink(registry: string, id: string) {
-		const response = await this.request({
-			type: 'registry.link',
-			registry,
-			id,
-		});
-		return parseRegistryStatus(response.result);
-	}
-
-	async registryUnlink(registry: string, id: string) {
-		const response = await this.request({
-			type: 'registry.unlink',
-			registry,
-			id,
-		});
+	async registryUnlink(id: string) {
+		const response = await this.request({ type: 'registry.unlink', id });
 		return parseRegistryStatus(response.result);
 	}
 
