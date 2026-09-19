@@ -1,5 +1,3 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { reloadExtensions } from '../extensions/extension-reload';
 import { PiAgentServiceResources } from './pi-agent-service-resources';
 
@@ -22,12 +20,7 @@ export class PiAgentServiceProjects extends PiAgentServiceResources {
 	}
 
 	async addProject(projectPath: string) {
-		const project = await this.context.projects.add(projectPath);
-		// A project that brings its own extensions joins the catalog now, not
-		// at the next restart.
-		if (existsSync(join(project.path, '.pi', 'extensions')))
-			await reloadExtensions();
-		return project;
+		return this.context.projects.add(projectPath);
 	}
 
 	setProjectGizmoExtension(
@@ -54,10 +47,24 @@ export class PiAgentServiceProjects extends PiAgentServiceResources {
 		);
 	}
 
+	/**
+	 * Replaces the project's explicit extension paths, then reloads so the
+	 * catalog and idle runtimes pick them up without a restart.
+	 */
+	async setProjectExtensionPaths(projectPath: string, paths: string[]) {
+		const config = await this.context.projects.setProjectExtensionPaths(
+			projectPath,
+			paths,
+		);
+		await reloadExtensions();
+		return config;
+	}
+
 	async removeProject(projectPath: string) {
+		const paths =
+			await this.context.projects.projectExtensionPathsFor(projectPath);
 		await this.context.projects.remove(projectPath);
-		if (existsSync(join(projectPath, '.pi', 'extensions')))
-			await reloadExtensions();
+		if (paths.length) await reloadExtensions();
 	}
 
 	reorderProjects(paths: string[]) {

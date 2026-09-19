@@ -85,6 +85,8 @@ export type PiSessionRuntimeOptions = SessionOptions & {
 	disabledPiExtensions?: readonly string[];
 	/** Pi extension ids this workspace enables despite the global state. */
 	enabledPiExtensions?: readonly string[];
+	/** Explicit per-project Pi extension paths from the workspace's config. */
+	projectExtensionPaths?: readonly string[];
 };
 
 export type PiSessionFactory = (

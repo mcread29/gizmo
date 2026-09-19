@@ -15,7 +15,7 @@ export function validateExtensionId(id: string): void {
 	}
 }
 
-/** Links a registry extension into Pi's extensions directory and returns the link. */
+/** Links a registry extension into Gizmo's extensions directory and returns the link. */
 export async function syncExtension(
 	clone: string,
 	manifest: RegistryManifest,
@@ -31,7 +31,10 @@ export async function syncExtension(
 	const root = disabled ? disabledExtensionsDir() : extensionsDir();
 	const entry = join(root, id);
 	await mkdir(root, { recursive: true });
-	await rm(entry, { recursive: true, force: true });
+	// One location per extension: a stale entry on the other side would
+	// otherwise leave the same id both enabled and disabled.
+	await rm(join(extensionsDir(), id), { recursive: true, force: true });
+	await rm(join(disabledExtensionsDir(), id), { recursive: true, force: true });
 	await symlink(dir, entry, 'junction');
 	return entry;
 }

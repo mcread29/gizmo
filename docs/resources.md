@@ -67,10 +67,11 @@ one of Pi's own discovery locations disabled (`noSkills`, `noPromptTemplates`,
 decides what exists. A skill's scope is its location: inside the open workspace
 is project scope, anything else is global.
 
-Global Pi extensions are listed from `~/.pi/agent/extensions`. Disabling one
-moves its top-level file or directory to `~/.pi/agent/extensions-disabled`;
-enabling it moves it back. This applies the state to Pi itself rather than only
-hiding the extension in Gizmo. Reload active runtimes after changing it.
+Global Pi extensions are listed from Gizmo's own `~/.gizmo/extensions`.
+Disabling one moves its top-level file or directory to
+`~/.gizmo/extensions-disabled`; enabling it moves it back. One location per
+extension is enforced: a stale duplicate resolves to the enabled entry.
+Reload active runtimes after changing it.
 
 A skill's ID is `<scope>/<name>`, so a project skill never collides with a
 global skill of the same name.

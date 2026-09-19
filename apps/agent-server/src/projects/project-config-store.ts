@@ -1,5 +1,5 @@
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 import {
 	type ExtensionOverride,
 	type ProjectConfig,
@@ -107,11 +107,22 @@ function normalizeConfig(input: unknown): ProjectConfig {
 	}));
 	const gizmoExtensions = overrides(candidate.gizmoExtensions);
 	const piExtensions = overrides(candidate.piExtensions);
+	const piExtensionPaths = [
+		...new Set(
+			(Array.isArray(candidate.piExtensionPaths)
+				? candidate.piExtensionPaths
+				: []
+			).filter(
+				(path): path is string => typeof path === 'string' && path.length > 0,
+			),
+		),
+	].sort();
 	return {
 		version: 1,
 		...(gizmoExtensions.length ? { gizmoExtensions } : {}),
 		...(piExtensions.length ? { piExtensions } : {}),
 		...(skills.length ? { skills } : {}),
+		...(piExtensionPaths.length ? { piExtensionPaths } : {}),
 	};
 }
 
@@ -128,6 +139,16 @@ async function validateConfig(config: ProjectConfig) {
 	const piIds = new Set((await listPiExtensions()).map(({ id }) => id));
 	for (const { id } of config.piExtensions ?? []) {
 		if (!piIds.has(id)) throw new Error(`Unknown Pi extension: ${id}`);
+	}
+	for (const path of config.piExtensionPaths ?? []) {
+		if (!isAbsolute(path)) {
+			throw new Error(`Pi extension path must be absolute: ${path}`);
+		}
+		try {
+			await stat(path);
+		} catch {
+			throw new Error(`Pi extension path does not exist: ${path}`);
+		}
 	}
 }
 

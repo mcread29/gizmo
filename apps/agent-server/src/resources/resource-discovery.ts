@@ -33,7 +33,10 @@ export interface Discovery {
 	diagnostics: string[];
 }
 
-export type Discover = (workspacePath?: string) => Promise<Discovery>;
+export type Discover = (
+	workspacePath?: string,
+	projectExtensionPaths?: readonly string[],
+) => Promise<Discovery>;
 
 /**
  * Walks every resource root — managed global directories, the workspace, and
@@ -42,6 +45,7 @@ export type Discover = (workspacePath?: string) => Promise<Discovery>;
  */
 export async function discoverResources(
 	workspacePath?: string,
+	projectExtensionPaths: readonly string[] = [],
 ): Promise<Discovery> {
 	const { DefaultResourceLoader, getAgentDir, SettingsManager } =
 		await import('@earendil-works/pi-coding-agent');
@@ -65,10 +69,14 @@ export async function discoverResources(
 			.filter((extension) => extension.enabled)
 			.map((extension) => extension.path),
 	);
+	const fromProjectExtensions = await linkedExtensionResourceRoots(
+		projectExtensionPaths,
+	);
 	const allSkillDirs = [
 		...skillDirs,
 		...fromExtensions.skills,
 		...fromLinkedExtensions.skills,
+		...fromProjectExtensions.skills,
 	];
 	const canonicalSkillDirs = await Promise.all(
 		allSkillDirs.map(async (source) => ({
@@ -93,6 +101,7 @@ export async function discoverResources(
 			...promptDirs,
 			...fromExtensions.prompts,
 			...fromLinkedExtensions.prompts,
+			...fromProjectExtensions.prompts,
 		],
 	});
 	await loader.reload();

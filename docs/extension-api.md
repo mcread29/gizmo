@@ -95,19 +95,20 @@ command's `run` is an action id.
 
 Three places, one loader:
 
-| Source                | Directory                                                        | Trust                                                                                                      |
-| --------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Registry              | linked into `~/.pi/agent/extensions/<id>` as today               | Trusted; the user chose to link it.                                                                        |
-| Global user extension | `~/.pi/agent/extensions/<name>/` or `<name>.ts`, written by hand | Trusted, same as Pi.                                                                                       |
-| Project-local         | `<workspace>/.pi/extensions/`                                    | Pi's project-trust decision for that workspace, and `defaultProjectTrust`. Loaded only for that workspace. |
+| Source                | Directory                                                  | Trust                                                                          |
+| --------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Registry              | linked into `~/.gizmo/extensions/<id>`                     | Trusted; the user chose to link it.                                            |
+| Global user extension | `~/.gizmo/extensions/<name>/` or `<name>.ts`, written by hand | Trusted; Gizmo owns the directory.                                           |
+| Project-local         | explicit paths in the workspace's `.gizmo/config.json` (`piExtensionPaths`) | Trusted; the user listed each path. Loaded only for that workspace. |
 
 Global and registry extensions are the global catalog, rescanned on reload as
-today. Project-local ones are scanned when a workspace is opened or its
-runtime is reloaded, and their panels, tools, and cards are available only in
-that workspace. Pi already discovers `.pi/extensions` for its own purposes;
-Gizmo reads the same directory so a project has one place for both.
+today. Project-local ones are named explicitly in the project's Gizmo config,
+so nothing is discovered from the workspace directory itself, and their
+panels, tools, and cards are available only in that workspace. `~/.pi` is
+left entirely to the Pi CLI; on first boot after the move, registry links are
+re-created in the new directory and hand-written globals imported as copies.
 
-A single file is enough for a small extension: `~/.pi/agent/extensions/notes.ts`
+A single file is enough for a small extension: `~/.gizmo/extensions/notes.ts`
 that default-exports a Pi factory and exports `gizmoExtension`. Directories
 with a `package.json` are for extensions with dependencies.
 
@@ -117,7 +118,7 @@ The host always supplies the package. jiti loads extensions with an `alias`
 that maps `@gizmo/extension-api` to the copy inside the running Gizmo, so:
 
 - A hand-written extension needs no `npm install` to run. `npm i -D
-@gizmo/extension-api` in `~/.pi/agent` or the project is only for editor
+@gizmo/extension-api` next to the extension is only for editor
   types and for running the extension's own tests.
 - There is exactly one version of the schemas in the process, and it is the
   host's. A payload is validated against what the host renders, never against
@@ -173,6 +174,7 @@ name; that is checked before the first publish.
 4. Move Changes into the host; drop Git's web code.
 5. Port Unity: console as a `log` block with filters, settings as a schema
    form, the dialog as a modal `View`.
-6. Delete everything under "What is removed", scan `.pi/extensions` per
-   workspace, publish `@gizmo/extension-api@1.0.0`, cut the registry's `v1`
-   branch, and rewrite [extensions.md](extensions.md) to describe this.
+6. Delete everything under "What is removed", read explicit project
+   extension paths per workspace, publish `@gizmo/extension-api@1.0.0`, cut
+   the registry's `v1` branch, and rewrite [extensions.md](extensions.md) to
+   describe this.

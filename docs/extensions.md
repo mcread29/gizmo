@@ -92,22 +92,22 @@ module graph from disk; that is what makes reload-in-place possible.
 
 | Source                | Directory                                       | Trust                                                                           |
 | --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------- |
-| Registry              | linked into `~/.pi/agent/extensions/<id>`       | Trusted; the user chose to link it.                                             |
-| Global user extension | `~/.pi/agent/extensions/<name>/` or `<name>.ts` | Trusted, the same as Pi.                                                        |
-| Project-local         | `<workspace>/.pi/extensions/`                   | Pi's project-trust decision for that workspace. Offered to that workspace only. |
+| Registry              | linked into `~/.gizmo/extensions/<id>`          | Trusted; the user chose to link it.                                             |
+| Global user extension | `~/.gizmo/extensions/<name>/` or `<name>.ts`    | Trusted; Gizmo owns the directory.                                              |
+| Project-local         | explicit paths in `.gizmo/config.json` (`piExtensionPaths`) | Trusted; the user listed each path. Offered to that workspace only. |
 
 Registry and global extensions are the global catalog. Project-local
-extensions are tagged with their workspace, never shadow a global id (a
-clash is logged and the local one dropped), and are scanned for every
-trusted project in the catalog at startup, on reload, and when a project
-that has a `.pi/extensions` directory is added or removed. Pi's own
-`.pi/extensions` discovery reads the same directory, so a project has one
-place for both.
+extensions are named explicitly in each project's Gizmo config — nothing is
+discovered from the workspace directory itself — rescanned at startup and on
+reload alongside the globals. A project extension never shadows a global id
+(a clash is logged and the local one dropped).
 
-Enablement uses Pi's enabled/disabled directories. Workspace `piExtensions`
-overrides can disable an enabled extension for that workspace; legacy
-`gizmoExtensions` overrides migrate on the next edit and legacy global
-opt-outs migrate at server startup.
+Enablement uses Gizmo's own enabled/disabled directories. Workspace
+`piExtensions` overrides can disable an enabled extension for that workspace;
+legacy `gizmoExtensions` overrides migrate on the next edit and legacy global
+opt-outs migrate at server startup. On the first boot after the move from
+`~/.pi/agent`, registry links are re-created in the new directories and
+hand-written globals imported as copies; `~/.pi` is left to the Pi CLI.
 
 ## The extension registry
 
@@ -121,7 +121,7 @@ anything is linked. The bootstrap is idempotent and shared between concurrent
 callers; a failed clone is reported by `registry.status` rather than left
 half-installed.
 
-- `registry.link` / `registry.unlink` directory-link an extension into Pi's
+- `registry.link` / `registry.unlink` directory-link an extension into Gizmo's
   extension directory, so relative imports and registry dependencies
   resolve, then reload.
 - `registry.update` fetches the branch tip, checks the manifest, reinstalls
@@ -281,8 +281,8 @@ own.
   cloned on demand; no build step anywhere.
 - `@gizmo/extension-api` is the whole contract: agent capabilities and UI as
   data, validated by the host.
-- Extensions come from the registry, `~/.pi/agent/extensions`, or a trusted
-  workspace's `.pi/extensions`.
+- Extensions come from the registry, `~/.gizmo/extensions`, or a workspace's
+  explicit `piExtensionPaths`.
 - Built-in tool availability remains Pi's `defaultTools` setting.
 
 ## Migration status and current limits

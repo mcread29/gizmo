@@ -1,5 +1,26 @@
 # Work log
 
+## 2026-09-19 — Gizmo-owned extension directories, explicit project paths
+
+- Moved the link farm out of Pi's home directory: registry and hand-written
+  extensions now live in `~/.gizmo/extensions` (`extensions-disabled` beside
+  it). The two path definitions (`registry-storage.ts`, `pi-global-resources.ts`)
+  collapsed into one; `~/.pi` is left entirely to the Pi CLI.
+- One location per extension is enforced: linking clears the other side, and
+  listing resolves a stale duplicate to the enabled entry.
+- First boot migrates once and idempotently: registry links are re-created in
+  the new directories (keeping their enabled side, old links removed) and
+  hand-written globals imported as real copies, originals untouched.
+- Project-local magic-dir scanning (`.pi/extensions` + trust gating) is gone.
+  Workspaces name explicit extension paths in `.gizmo/config.json`
+  (`piExtensionPaths`, via `project.extension-paths.set`); sessions, reload,
+  skill/prompt discovery, and the server catalog all read them. Session
+  creation is otherwise unchanged (`noExtensions` + explicit paths already
+  keeps Pi defaults out).
+- Validation: agent-server `tsc` + protocol `tsc` pass; 354 agent-server and
+  15 protocol tests pass, including new migration, single-location, catalog,
+  loader, and project-paths cases.
+
 ## 2026-09-19 — Extensions render through the host
 
 - Replaced executable browser extensions with `@gizmo/extension-api`: bounded

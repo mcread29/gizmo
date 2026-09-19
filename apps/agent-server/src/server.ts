@@ -1,7 +1,5 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { createAgentWebSocketServer } from './transport/websocket-server';
 import { configuredOrigins } from './server-config';
@@ -18,26 +16,22 @@ import {
 import { configureExtensionReload } from './extensions/extension-reload';
 import { startExtensionWatcher } from './extensions/extension-watcher';
 import { migrateExtensionEnablement } from './extensions/migrate-enablement';
-import { piAgentDir } from './resources/pi-global-resources';
+import { migrateExtensionDirs } from './extensions/migrate-extension-dirs';
+import { extensionsDir } from './extensions/registry-storage';
 import { registeredExtensions } from './extensions/registry';
 import { ProjectCatalog } from './projects/project-catalog';
-import { workspaceTrusted } from './projects/project-trust';
 
 await restoreDesktopEnvironment();
+await migrateExtensionDirs();
 await migrateExtensionEnablement();
 
 const piWebMode = process.env.GIZMO_PI_WEB === '1';
 const projects = new ProjectCatalog();
 configureExtensionCatalog({
-	linkedDir: join(piAgentDir(), 'extensions'),
-	// Every registered project the user has trusted may carry its own
-	// extensions under `.pi/extensions`; they are offered to that project only.
-	workspaces: async () => {
-		const trusted: string[] = [];
-		for (const { path } of await projects.list())
-			if (await workspaceTrusted(path)) trusted.push(path);
-		return trusted;
-	},
+	linkedDir: extensionsDir(),
+	// Project extensions are explicit paths in each project's Gizmo config,
+	// loaded only for that project.
+	projectExtensions: () => projects.projectExtensionPaths(),
 });
 // Registry link/unlink rescans through the same helper, so the catalog the
 // rest of the server reads is always the boot scan or a later rescan of it.

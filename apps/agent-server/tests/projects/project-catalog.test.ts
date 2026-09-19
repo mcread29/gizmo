@@ -277,6 +277,49 @@ describe('ProjectCatalog', () => {
 			new ProjectCatalog(data).setSkill(project, 'global/review', true),
 		).rejects.toThrow('not registered');
 	});
+
+	it('stores explicit per-project extension paths and reports them back', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		const extension = join(project, 'tools', 'helper.ts');
+		await mkdir(join(project, 'tools'), { recursive: true });
+		await writeFile(extension, 'export default () => {};');
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project);
+
+		expect(await catalog.projectExtensionPathsFor(project)).toEqual([]);
+		await catalog.setProjectExtensionPaths(project, [extension]);
+		expect(await catalog.projectExtensionPathsFor(project)).toEqual([
+			extension,
+		]);
+		expect(
+			JSON.parse(
+				await readFile(join(project, '.gizmo', 'config.json'), 'utf8'),
+			),
+		).toMatchObject({ piExtensionPaths: [extension] });
+		expect(await catalog.projectExtensionPaths()).toEqual([
+			{ workspaceRoot: project, paths: [extension] },
+		]);
+
+		// Clearing removes the section so the project inherits everything.
+		await catalog.setProjectExtensionPaths(project, []);
+		expect(await catalog.projectExtensionPathsFor(project)).toEqual([]);
+		expect(await catalog.projectExtensionPaths()).toEqual([]);
+	});
+
+	it('refuses extension paths that are relative or missing', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project);
+
+		await expect(
+			catalog.setProjectExtensionPaths(project, ['relative/ext.ts']),
+		).rejects.toThrow('must be absolute');
+		await expect(
+			catalog.setProjectExtensionPaths(project, [join(project, 'missing.ts')]),
+		).rejects.toThrow('does not exist');
+	});
 });
 
 async function temporary(prefix: string) {

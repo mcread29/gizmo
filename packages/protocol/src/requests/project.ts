@@ -67,6 +67,16 @@ export const projectRequestSchemas = [
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('project.extension-paths.set'),
+			projectPath: Type.String({ minLength: 1 }),
+			/** Explicit Pi extension paths; empty clears them. */
+			paths: Type.Array(Type.String({ minLength: 1, maxLength: 1024 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('project.remove'),
 			projectPath: Type.String({ minLength: 1 }),
 		},

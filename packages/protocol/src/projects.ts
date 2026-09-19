@@ -31,6 +31,14 @@ export const projectConfigSchema = Type.Object(
 		piExtensions: Type.Optional(Type.Array(extensionOverrideSchema)),
 		/** Overrides of each skill's global enablement. */
 		skills: Type.Optional(Type.Array(projectSkillSchema)),
+		/**
+		 * Explicit Pi extension entry paths (files or directories) loaded
+		 * only for this workspace's sessions. Listing a path is the opt-in;
+		 * nothing is discovered from the workspace directory itself.
+		 */
+		piExtensionPaths: Type.Optional(
+			Type.Array(Type.String({ minLength: 1, maxLength: 1024 })),
+		),
 	},
 	{ additionalProperties: false },
 );

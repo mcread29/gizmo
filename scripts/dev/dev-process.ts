@@ -188,21 +188,17 @@ export async function waitForExit(pid: number, timeoutMilliseconds: number) {
 }
 
 /**
- * Globs tsx must not watch: Pi's extension directory (junctions into registry
- * clones) and the registry clones themselves. Forward slashes on every
- * platform, which is what tsx's glob matcher expects.
+ * Globs tsx must not watch: Gizmo's extension directories (junctions into
+ * registry clones) and the registry clones themselves. Forward slashes on
+ * every platform, which is what tsx's glob matcher expects.
  */
 export function excludedWatchPaths(): string[] {
 	const slashes = (path: string) => path.replaceAll('\\', '/');
 	const home = slashes(homedir());
-	const agentDir = slashes(
-		process.env.PI_CODING_AGENT_DIR?.replace(/^~(?=$|[\\/])/, home) ??
-			`${home}/.pi/agent`,
-	);
 	const dataDir = slashes(process.env.GIZMO_DATA_DIR ?? `${home}/.gizmo`);
 	return [
-		`${agentDir}/extensions/**`,
-		`${agentDir}/extensions-disabled/**`,
+		`${dataDir}/extensions/**`,
+		`${dataDir}/extensions-disabled/**`,
 		`${dataDir}/registries/**`,
 	];
 }

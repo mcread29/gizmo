@@ -22,20 +22,38 @@ export async function loadLinkedExtensionIntegrations(
 }
 
 /**
- * Loads the Gizmo integrations a workspace keeps under `.pi/extensions`, the
- * same place Pi looks. Each is tagged with the workspace so it is offered
- * nowhere else. Callers check Pi's project trust before calling.
+ * Loads the Gizmo integrations named by a project's explicit extension
+ * paths. Each is tagged with the workspace so it is offered nowhere else.
+ * Paths are listed in the project's Gizmo config; nothing is discovered
+ * from the workspace directory itself. Missing entries are skipped quietly,
+ * like an absent extensions directory.
  */
-export async function loadWorkspaceExtensionIntegrations(
-	workspacePath: string,
+export async function loadProjectExtensionIntegrations(
+	paths: readonly string[],
+	workspaceRoot: string,
 ): Promise<GizmoServerExtension[]> {
-	const loaded = await loadExtensionsFrom(
-		join(workspacePath, '.pi', 'extensions'),
-	);
-	return loaded.map((extension) => ({
-		...extension,
-		workspaceRoot: workspacePath,
-	}));
+	ensureExtensionApiResolution();
+	const jiti = createJiti(import.meta.url, {
+		moduleCache: false,
+		alias: extensionApiAliases,
+	});
+	const loaded: GizmoServerExtension[] = [];
+	for (const path of paths) {
+		const extension = await loadLinkedIntegration(resolveEntry(path), (file) =>
+			jiti.import(file),
+		);
+		if (extension) loaded.push({ ...extension, workspaceRoot });
+	}
+	return loaded;
+}
+
+/**
+ * Maps an explicit extension path to its entry file: a directory means its
+ * `index.ts`, a file means itself. Mirrors the layout the linked-directory
+ * scan accepts.
+ */
+function resolveEntry(path: string): string {
+	return /\.[cm]?[jt]s$/.test(path) ? path : join(path, 'index.ts');
 }
 
 async function loadExtensionsFrom(

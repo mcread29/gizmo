@@ -32,12 +32,20 @@ export class SessionCatalogService {
 				: await this.#projects.integrationsFor(cwd));
 		const { disabled: disabledPiExtensions, enabled: enabledPiExtensions } =
 			await this.#projects.piExtensionOverridesFor(cwd);
+		const projectExtensionPaths =
+			await this.#projects.projectExtensionPathsFor(cwd);
 		const manager = await this.#repository.create(cwd);
 		const sessionId = manager.getSessionId();
 		try {
 			const callbacks = this.#pool.callbacks(sessionId);
 			const session = await this.#factory(
-				{ cwd, integrations, disabledPiExtensions, enabledPiExtensions },
+				{
+					cwd,
+					integrations,
+					disabledPiExtensions,
+					enabledPiExtensions,
+					projectExtensionPaths,
+				},
 				manager,
 				callbacks,
 			);
@@ -100,6 +108,9 @@ export class SessionCatalogService {
 			workspacePath
 				? await this.#projects.piExtensionOverridesFor(workspacePath)
 				: { disabled: [], enabled: [] };
+		const projectExtensionPaths = workspacePath
+			? await this.#projects.projectExtensionPathsFor(workspacePath)
+			: [];
 		snapshot.session.integrations = integrations;
 		// Events emitted by activation or re-announcement follow this cutoff.
 		snapshot.lastEventId = this.#pool.events.lastEventId;
@@ -112,6 +123,7 @@ export class SessionCatalogService {
 					integrations,
 					disabledPiExtensions,
 					enabledPiExtensions,
+					projectExtensionPaths,
 				},
 				manager,
 				callbacks,

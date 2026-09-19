@@ -1,7 +1,6 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { extensionApiVersion } from '@gizmo/extension-api';
-import { piAgentDir } from '../resources/pi-global-resources';
 import { defaultDataDir } from '../sessions/session-repository';
 
 /** The one registry Gizmo installs extensions from. */
@@ -29,9 +28,13 @@ export interface RegistryManifest {
 /** Registry source is Gizmo-managed state, never part of Pi discovery. */
 export const registryHome = () => join(defaultDataDir(), 'registries');
 export const registryCloneDir = () => join(registryHome(), 'gizmo-registry');
-export const extensionsDir = () => join(piAgentDir(), 'extensions');
+/**
+ * The link farm Gizmo owns: registry extensions are linked here so Pi loads
+ * them through explicit paths. `~/.pi` stays entirely with the Pi CLI.
+ */
+export const extensionsDir = () => join(defaultDataDir(), 'extensions');
 export const disabledExtensionsDir = () =>
-	join(piAgentDir(), 'extensions-disabled');
+	join(defaultDataDir(), 'extensions-disabled');
 
 const installedManifestFile = () => join(registryHome(), 'installed.json');
 

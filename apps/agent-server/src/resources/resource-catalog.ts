@@ -32,7 +32,10 @@ export class ResourceCatalogService {
 
 	async list(workspacePath?: string): Promise<ResourceCatalog> {
 		const path = workspacePath ? resolve(workspacePath) : undefined;
-		const discovery = await this.#discover(path);
+		const discovery = await this.#discover(
+			path,
+			path ? await this.#projects.projectExtensionPathsFor(path) : [],
+		);
 		const settings = await this.#register(discovery.skills);
 		const overrides = new Map(
 			(await this.#projects.skillsFor(path)).map(({ id, enabled }) => [

@@ -8,28 +8,35 @@ import {
 	stat,
 	writeFile,
 } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import type { PiExtensionResource } from '@gizmo/protocol';
+import {
+	disabledExtensionsDir,
+	extensionsDir,
+} from '../extensions/registry-storage';
 
-const home = homedir();
-const agentDir = process.env.PI_CODING_AGENT_DIR
-	? process.env.PI_CODING_AGENT_DIR.replace(/^~(?=$|[\\/])/, home)
-	: join(home, '.pi', 'agent');
-/** The Pi agent directory extensions and UI bundles are discovered from. */
-export function piAgentDir(): string {
-	return agentDir;
-}
-
-const enabledRoot = join(agentDir, 'extensions');
-const disabledRoot = join(agentDir, 'extensions-disabled');
-
+/**
+ * The globally installed Pi extensions: everything linked into Gizmo's own
+ * extension directories. The single location per extension is enforced by the
+ * link and enablement helpers; listing keeps the enabled entry if a stale
+ * duplicate ever appears on both sides.
+ */
 export async function listPiExtensions(): Promise<PiExtensionResource[]> {
 	const [enabled, disabled] = await Promise.all([
-		discoverExtensionEntries(enabledRoot, true),
-		discoverExtensionEntries(disabledRoot, false),
+		discoverExtensionEntries(extensionsDir(), true),
+		discoverExtensionEntries(disabledExtensionsDir(), false),
 	]);
-	return [...enabled, ...disabled].sort((a, b) => a.name.localeCompare(b.name));
+	const byId = new Map<string, PiExtensionResource>();
+	for (const extension of [...disabled, ...enabled]) {
+		const previous = byId.get(extension.id);
+		if (previous && previous.enabled !== extension.enabled) {
+			console.warn(
+				`Pi extension "${extension.id}" exists in both extension directories; using the ${extension.enabled ? 'enabled' : 'disabled'} entry at ${extension.path}`,
+			);
+		}
+		byId.set(extension.id, extension);
+	}
+	return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
@@ -57,8 +64,8 @@ export async function setPiExtensionEnabled(id: string, enabled: boolean) {
 	);
 	if (!entry) throw new Error(`Unknown Pi extension: ${id}`);
 	if (entry.enabled === enabled) return listPiExtensions();
-	const sourceRoot = entry.enabled ? enabledRoot : disabledRoot;
-	const targetRoot = enabled ? enabledRoot : disabledRoot;
+	const sourceRoot = entry.enabled ? extensionsDir() : disabledExtensionsDir();
+	const targetRoot = enabled ? extensionsDir() : disabledExtensionsDir();
 	const source = safeChild(sourceRoot, entry.path);
 	const target = join(targetRoot, basename(source));
 	await mkdir(targetRoot, { recursive: true });

@@ -27,9 +27,14 @@ const configuredOrigins = (process.env.GIZMO_WEB_ORIGINS ?? '')
 	.split(',')
 	.map((origin) => origin.trim())
 	.filter(Boolean);
-const origins = configuredOrigins.length
-	? configuredOrigins
-	: webHosts.map((host) => `http://${host}:${webPort}`);
+// The page is served on every webHost (localhost, tailnet IPs and names),
+// so all of those origins must be allowed even when extra public origins
+// are configured; otherwise direct (non-Caddy) browsing gets a rejected
+// socket. Configured origins are added, never substituted.
+const origins = [
+	...webHosts.map((host) => `http://${host}:${webPort}`),
+	...configuredOrigins,
+].filter((origin, index, all) => all.indexOf(origin) === index);
 
 async function runManagedServer(logFile: string) {
 	const logDescriptor = openSync(logFile, 'a');

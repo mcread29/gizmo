@@ -28,14 +28,18 @@ overrides:
 	"version": 1,
 	"gizmoExtensions": [{ "id": "svelte", "enabled": false }],
 	"piExtensions": [{ "id": "notes", "enabled": false }],
-	"skills": [{ "id": "global/review", "enabled": true }]
+	"skills": [{ "id": "global/review", "enabled": true }],
+	"piExtensionPaths": ["/absolute/path/to/project-extension.ts"]
 }
 ```
 
 An absent section, or an absent row within it, means "inherit the global
-setting". Built-in tool overrides are the exception: they are written to the
-workspace's `.pi/settings.json`, the same file `pi` itself reads, so Pi's
-project-trust rules apply.
+setting". `piExtensionPaths` is the exception that is not an override: it
+names Pi extension files or directories loaded only for this workspace's
+sessions, managed with `project.extension-paths.set`. Nothing is discovered
+from the workspace directory itself. Built-in tool overrides are the other
+exception: they are written to the workspace's `.pi/settings.json`, the same
+file `pi` itself reads, so Pi's project-trust rules apply.
 
 A legacy `.gizmo/profiles.json` from the retired profile system is migrated
 once: the active profile's extension list becomes an explicit per-workspace

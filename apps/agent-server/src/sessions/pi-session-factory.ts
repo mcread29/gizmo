@@ -89,6 +89,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 			journalExtensionPath(),
 			displayExtensionPath(),
 			...piExtensions,
+			...(options.projectExtensionPaths ?? []),
 		],
 		noSkills: true,
 		additionalSkillPaths: skillPaths,

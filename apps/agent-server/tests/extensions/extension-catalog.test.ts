@@ -1,4 +1,4 @@
-import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -79,5 +79,33 @@ export const gizmoExtension = { id: 'edited', name: label, dispose() { globalThi
 		await rescanExtensionCatalog();
 		expect(registeredExtensions().map(({ name }) => name)).toEqual(['Second']);
 		expect(disposed).toEqual(['First']);
+	});
+
+	it('loads explicit project extension paths tagged with their workspace', async () => {
+		const linkedDir = await mkdtemp(join(tmpdir(), 'gizmo-linked-'));
+		const workspace = await mkdtemp(join(tmpdir(), 'gizmo-workspace-'));
+		paths.push(linkedDir, workspace);
+		const entry = join(workspace, 'tools', 'helper.ts');
+		await mkdir(join(workspace, 'tools'), { recursive: true });
+		await writeFile(
+			entry,
+			`export default function () {}\nexport const gizmoExtension = { id: 'helper', name: 'Helper' };\n`,
+		);
+		configureExtensionCatalog({
+			linkedDir,
+			projectExtensions: async () => [
+				{ workspaceRoot: workspace, paths: [entry] },
+			],
+		});
+
+		await rescanExtensionCatalog();
+		expect(registeredExtensions()).toEqual([
+			expect.objectContaining({ id: 'helper', workspaceRoot: workspace }),
+		]);
+
+		// Clearing the paths drops the extension without touching globals.
+		configureExtensionCatalog({ linkedDir });
+		await rescanExtensionCatalog();
+		expect(registeredExtensions()).toEqual([]);
 	});
 });

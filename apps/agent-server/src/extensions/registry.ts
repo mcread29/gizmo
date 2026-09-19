@@ -21,7 +21,7 @@ export function registeredExtensions(): readonly GizmoServerExtension[] {
 	return extensions;
 }
 
-/** Global extensions plus the ones a workspace keeps under `.pi/extensions`. */
+/** Global extensions plus the ones a workspace names in its Gizmo config. */
 export function extensionsForWorkspace(
 	workspacePath: string,
 ): readonly GizmoServerExtension[] {

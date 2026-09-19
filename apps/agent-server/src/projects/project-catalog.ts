@@ -181,6 +181,43 @@ export class ProjectCatalog {
 		}));
 	}
 
+	/**
+	 * Replaces the project's explicit Pi extension paths. An empty list
+	 * clears them; listing a path opts the workspace into loading it.
+	 */
+	async setProjectExtensionPaths(
+		projectPath: string,
+		paths: readonly string[],
+	): Promise<ProjectConfig> {
+		return this.#updateConfig(projectPath, (config) => {
+			const next = { ...config };
+			if (paths.length) next.piExtensionPaths = [...new Set(paths)].sort();
+			else delete next.piExtensionPaths;
+			return next;
+		});
+	}
+
+	/** Explicit Pi extension paths of one workspace. */
+	async projectExtensionPathsFor(projectPath: string): Promise<string[]> {
+		return (await this.configFor(projectPath)).piExtensionPaths ?? [];
+	}
+
+	/**
+	 * Every registered project's explicit extension paths, for the catalog
+	 * scan. Only registered projects can carry paths, so nothing is ever
+	 * discovered from a workspace directory itself.
+	 */
+	async projectExtensionPaths(): Promise<
+		{ workspaceRoot: string; paths: string[] }[]
+	> {
+		const entries: { workspaceRoot: string; paths: string[] }[] = [];
+		for (const { path } of await this.#catalog.read()) {
+			const paths = (await this.configFor(path)).piExtensionPaths ?? [];
+			if (paths.length) entries.push({ workspaceRoot: path, paths });
+		}
+		return entries;
+	}
+
 	/** Gizmo extensions effectively enabled for new sessions. */
 	async integrationsFor(
 		projectPath: string | undefined,

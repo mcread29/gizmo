@@ -63,3 +63,20 @@ it('rejects an extension without an entry before changing the installed link', a
 		true,
 	);
 });
+
+it('leaves a single location when a stale entry sits on the other side', async () => {
+	await mkdir(join(paths.enabled, 'fixture'), { recursive: true });
+	await writeFile(join(paths.enabled, 'fixture', 'index.ts'), 'stale copy');
+	await symlink(source, join(paths.disabled, 'fixture'), 'junction');
+
+	expect(await syncExtension(root, {}, 'fixture')).toBe(
+		join(paths.disabled, 'fixture'),
+	);
+	// The stale enabled copy is gone, so the id is disabled exactly once.
+	await expect(lstat(join(paths.enabled, 'fixture'))).rejects.toMatchObject({
+		code: 'ENOENT',
+	});
+	expect((await lstat(join(paths.disabled, 'fixture'))).isSymbolicLink()).toBe(
+		true,
+	);
+});

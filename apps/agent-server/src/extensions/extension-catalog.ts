@@ -1,13 +1,14 @@
 import type { GizmoServerExtension } from '@gizmo/extension-api';
 import {
 	loadLinkedExtensionIntegrations,
-	loadWorkspaceExtensionIntegrations,
+	loadProjectExtensionIntegrations,
 } from './load-extensions';
 import { notifyExtensionUiChanged } from './extension-reload';
 import { registerExtensions, registeredExtensions } from './registry';
 
 let linkedDir: string | undefined;
-let workspaces: (() => Promise<string[]>) | undefined;
+let projectEntries:
+	(() => Promise<{ workspaceRoot: string; paths: string[] }[]>) | undefined;
 let linked: readonly GizmoServerExtension[] = [];
 let generation = 0;
 
@@ -18,13 +19,15 @@ let generation = 0;
 export function configureExtensionCatalog(options: {
 	linkedDir: string;
 	/**
-	 * Workspaces whose `.pi/extensions` are scanned too; only trusted
-	 * workspaces should be returned. Omitted scans none.
+	 * Explicit per-project extension paths from each project's Gizmo config.
+	 * Omitted loads no project extensions.
 	 */
-	workspaces?: () => Promise<string[]>;
+	projectExtensions?: () => Promise<
+		{ workspaceRoot: string; paths: string[] }[]
+	>;
 }): void {
 	linkedDir = options.linkedDir;
-	workspaces = options.workspaces;
+	projectEntries = options.projectExtensions;
 }
 
 /** Increments on every rescan; clients use it to tell reloads apart. */
@@ -50,8 +53,10 @@ export async function rescanExtensionCatalog(): Promise<
 	await disposeExtensions(linked);
 	const global = await loadLinkedExtensionIntegrations(linkedDir);
 	const local: GizmoServerExtension[] = [];
-	for (const workspace of (await workspaces?.()) ?? []) {
-		local.push(...(await loadWorkspaceExtensionIntegrations(workspace)));
+	for (const { workspaceRoot, paths } of (await projectEntries?.()) ?? []) {
+		local.push(
+			...(await loadProjectExtensionIntegrations(paths, workspaceRoot)),
+		);
 	}
 	const taken = new Set(global.map(({ id }) => id));
 	// A workspace extension never shadows a global one: the global id is

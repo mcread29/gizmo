@@ -3,6 +3,7 @@ import { refreshExtensionPaths } from '../../src/sessions/extension-reload-paths
 
 const dependencies = vi.hoisted(() => ({
 	overrides: vi.fn(async () => ({ disabled: ['off'], enabled: ['on'] })),
+	projectPaths: vi.fn(async () => ['/workspace/.gizmo/project-ext']),
 	paths: vi.fn(
 		async (_disabled: ReadonlySet<string>, _enabled: ReadonlySet<string>) => [
 			'new-extension',
@@ -12,6 +13,7 @@ const dependencies = vi.hoisted(() => ({
 vi.mock('../../src/projects/project-catalog', () => ({
 	ProjectCatalog: class {
 		piExtensionOverridesFor = dependencies.overrides;
+		projectExtensionPathsFor = dependencies.projectPaths;
 	},
 }));
 vi.mock('../../src/resources/pi-global-resources', () => ({
@@ -22,7 +24,11 @@ it('refreshes the retained Pi loader array with current workspace enablement', a
 	const paths = ['builtin', 'removed-extension'];
 	const retained = paths;
 	await refreshExtensionPaths(paths, ['builtin'], '/workspace');
-	expect(retained).toEqual(['builtin', 'new-extension']);
+	expect(retained).toEqual([
+		'builtin',
+		'new-extension',
+		'/workspace/.gizmo/project-ext',
+	]);
 	expect(dependencies.overrides).toHaveBeenCalledWith('/workspace');
 	// Both directions reach the loader: what the workspace switches off, and
 	// what it switches on despite the global state.

@@ -9,7 +9,10 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { loadLinkedExtensionIntegrations } from '../../src/extensions/load-extensions';
+import {
+	loadLinkedExtensionIntegrations,
+	loadProjectExtensionIntegrations,
+} from '../../src/extensions/load-extensions';
 
 const paths: string[] = [];
 afterEach(async () => {
@@ -67,5 +70,49 @@ describe('loadLinkedExtensionIntegrations', () => {
 
 		await expect(loadLinkedExtensionIntegrations(root)).resolves.toEqual([]);
 		await expect(access(marker)).rejects.toMatchObject({ code: 'ENOENT' });
+	});
+});
+
+describe('loadProjectExtensionIntegrations', () => {
+	it('loads explicit file and directory paths tagged with the workspace', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'gizmo-workspace-'));
+		paths.push(workspace);
+		const file = join(workspace, 'helper.ts');
+		const dir = join(workspace, 'tools', 'extra');
+		await mkdir(dir, { recursive: true });
+		await writeFile(
+			file,
+			`export default function () {}\nexport const gizmoExtension = { id: 'helper', name: 'Helper' };\n`,
+		);
+		await writeFile(
+			join(dir, 'index.ts'),
+			`export default function () {}\nexport const gizmoExtension = { id: 'extra', name: 'Extra' };\n`,
+		);
+
+		await expect(
+			loadProjectExtensionIntegrations([file, dir], workspace),
+		).resolves.toEqual([
+			expect.objectContaining({ id: 'helper', workspaceRoot: workspace }),
+			expect.objectContaining({ id: 'extra', workspaceRoot: workspace }),
+		]);
+	});
+
+	it('skips missing paths without failing the rest', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'gizmo-workspace-'));
+		paths.push(workspace);
+		const file = join(workspace, 'helper.ts');
+		await writeFile(
+			file,
+			`export default function () {}\nexport const gizmoExtension = { id: 'helper', name: 'Helper' };\n`,
+		);
+
+		await expect(
+			loadProjectExtensionIntegrations(
+				[join(workspace, 'missing.ts'), file],
+				workspace,
+			),
+		).resolves.toEqual([
+			expect.objectContaining({ id: 'helper', workspaceRoot: workspace }),
+		]);
 	});
 });

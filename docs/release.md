@@ -74,14 +74,14 @@ plus one service entry. `GIZMO_DATA_DIR` still relocates the whole thing.
   logs/web.log            supervisor + server output
   sessions/               (existing) threads
   registries/             (existing) registry clone and installed.json
+  extensions/             links Gizmo made, recorded in installed.json
+  extensions-disabled/    globally disabled extensions
   ...                     (existing) auth, settings, memory
-~/.pi/agent/
-  extensions/<id>         links Gizmo made, recorded in installed.json
 ```
 
-`~/.pi/agent` is Pi's, shared with the Pi CLI. Gizmo only ever adds and
-removes the links it recorded; it never deletes that directory or the
-extensions a user wrote there by hand.
+`~/.pi/agent` is Pi's, shared with the Pi CLI. Gizmo keeps nothing there;
+hand-written extensions live in `~/.gizmo/extensions`, where both Gizmo and
+the Pi CLI are out of each other's way.
 
 A `source` install has no `releases/`; `current` points at the checkout.
 
@@ -298,13 +298,13 @@ today; `update` waits on the ports and reports.
 
 ```sh
 gizmo uninstall          # stop and unregister the service, remove ~/.gizmo/app
-gizmo uninstall --purge  # also remove ~/.gizmo entirely and Gizmo's links in ~/.pi/agent
+gizmo uninstall --purge  # also remove ~/.gizmo entirely
 ```
 
 Without `--purge`, sessions, settings, memory, and linked extensions survive,
 and reinstalling picks them up. The CLI lists what `--purge` will delete and
-asks for a `y` unless `--yes` is passed. It never removes `~/.pi/agent` or
-anything in it that is not recorded in `installed.json`.
+asks for a `y` unless `--yes` is passed. It never touches `~/.pi/agent`:
+that directory belongs to the Pi CLI, and Gizmo keeps nothing in it.
 
 If the `gizmo` shim is gone, the same steps by hand are:
 
@@ -312,8 +312,9 @@ If the `gizmo` shim is gone, the same steps by hand are:
    `launchctl bootout gui/$UID ~/Library/LaunchAgents/link.init0.gizmo.plist`,
    or `schtasks /Delete /TN "Gizmo Web" /F`.
 2. Remove `tailscale serve` if it was enabled: `tailscale serve --bg off`.
-3. Delete `~/.gizmo` and the links under `~/.pi/agent/extensions` and
-   `~/.pi/agent/extensions-disabled` whose targets are inside `~/.gizmo`.
+3. Delete `~/.gizmo`. Hand-written global and project-local extensions are the user's
+   own files and stay where they are; anything left under `~/.pi/agent` belongs
+   to the Pi CLI.
 
 ## Migrating the current live instance
 

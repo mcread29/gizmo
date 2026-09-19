@@ -23,8 +23,8 @@ Status: continued 2026-09-17. Reloading, host-owned builds, contributed display 
   command (`pnpm install --frozen-lockfile && pnpm build`). The registry's
   `scripts/build-extensions.ts` compiles every `extensions/<id>/src/web/index.ts`
   into a sibling `extensions/<id>.web.js`.
-- `registry.link` creates a junction `~/.pi/agent/extensions/<id>` pointing at
-  `extensions/<id>/` and a file symlink `~/.pi/agent/extension-web/<id>.web.js`.
+- `registry.link` creates a junction `~/.gizmo/extensions/<id>` pointing at
+  `extensions/<id>/` and a file symlink `~/.gizmo/extension-web/<id>.web.js`.
   `registry.update` pulls, rebuilds, re-links, and rescans.
 - Enabling/disabling a Pi extension moves the junction between `extensions/`
   and `extensions-disabled/` (`pi-global-resources.ts`).
@@ -131,7 +131,7 @@ Structural issues:
 ### Phase 1: stop the restarts, add an explicit reload (server)
 
 1. **Exclude extension trees from tsx watch.** In `dev-process.ts` add
-   `--ignore` globs for `~/.pi/agent/extensions/**` and
+   `--ignore` globs for `~/.gizmo/extensions/**` and
    `~/.gizmo/registries/**`. tsx watch supports `--ignore`. This alone stops
    the thread-killing restarts; reload becomes an explicit operation.
 2. **Load Gizmo integrations through jiti, not native `import()`.**

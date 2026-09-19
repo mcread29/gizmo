@@ -1,4 +1,7 @@
-import type { ProjectService, ProjectServiceRegistry } from '@gizmo/extension-api';
+import type {
+	ProjectService,
+	ProjectServiceRegistry,
+} from '@gizmo/extension-api';
 import type { AgentRequest } from '@gizmo/protocol';
 import type { ExtensionHostService } from '../extensions/extension-host-service';
 import type { PiAgentService } from '../sessions/pi-agent-service';
@@ -13,6 +16,7 @@ type ProjectRequestType =
 	| 'project.add'
 	| 'project.gizmo-extension.set'
 	| 'project.pi-extension.set'
+	| 'project.extension-paths.set'
 	| 'project.remove'
 	| 'project.reorder'
 	| 'project.status'
@@ -66,6 +70,12 @@ export async function handleProjectRequest(
 					request.extensionId,
 					request.enabled,
 				),
+			};
+		case 'project.extension-paths.set':
+			return {
+				result: await agent.setProjectExtensionPaths(request.projectPath, [
+					...request.paths,
+				]),
 			};
 		case 'project.remove':
 			await agent.removeProject(request.projectPath);
