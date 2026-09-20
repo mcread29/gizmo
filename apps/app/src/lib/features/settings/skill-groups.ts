@@ -1,7 +1,13 @@
 import type { SkillResource } from '@gizmo/protocol';
 
-export type SkillFilter = 'all' | 'on' | 'off';
+export type SkillFilter = 'all' | 'on' | 'off' | 'overridden';
 export type SkillSort = 'name' | 'status' | 'directory';
+/**
+ * Which "on" the library reads. The global library edits the default every
+ * workspace starts from; a workspace library shows the effective state, which
+ * is that default unless the workspace overrode it.
+ */
+export type SkillScope = 'global' | 'workspace';
 
 export interface SkillDirectoryGroup {
 	source: string;
@@ -48,12 +54,16 @@ export function matchingSkills(
 	query: string,
 	filter: SkillFilter,
 	sort: SkillSort,
+	scope: SkillScope = 'global',
 ): SkillResource[] {
 	const term = query.trim().toLowerCase();
+	const on = (skill: SkillResource) =>
+		scope === 'workspace' ? skill.enabled : skill.enabledGlobally;
 	return skills
 		.filter((skill) => {
-			if (filter === 'on' && !skill.enabledGlobally) return false;
-			if (filter === 'off' && skill.enabledGlobally) return false;
+			if (filter === 'on' && !on(skill)) return false;
+			if (filter === 'off' && on(skill)) return false;
+			if (filter === 'overridden' && skill.override === undefined) return false;
 			return (
 				!term ||
 				skill.name.toLowerCase().includes(term) ||
@@ -62,10 +72,7 @@ export function matchingSkills(
 		})
 		.sort((a, b) => {
 			if (sort === 'status') {
-				return (
-					Number(b.enabledGlobally) - Number(a.enabledGlobally) ||
-					a.name.localeCompare(b.name)
-				);
+				return Number(on(b)) - Number(on(a)) || a.name.localeCompare(b.name);
 			}
 			if (sort === 'directory') {
 				return (

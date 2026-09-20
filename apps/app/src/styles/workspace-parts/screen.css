@@ -1,0 +1,138 @@
+/* The workspace screen sits where a thread would, with the shell around it. */
+[data-ui='workspace-screen'] {
+	grid-area: conversation;
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	min-width: 0;
+	min-height: 0;
+	background: var(--color-canvas);
+}
+
+[data-ui='workspace-screen-header'] {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-4);
+	/*
+	 * The same row height as the conversation and inspector headers, so the
+	 * tab strip below starts level with the inspector's own tab strip.
+	 */
+	min-height: var(--header-row-h);
+	/* No bottom border: the folder tab strip below carries the shelf line. */
+	padding: var(--space-2) var(--space-5);
+}
+
+/*
+ * The title/path column must be allowed to shrink below its content — the
+ * path has no break opportunities, so its min-content is the whole string
+ * and would otherwise push the New thread button out under the inspector.
+ */
+[data-ui='workspace-screen-header'] > div {
+	min-width: 0;
+}
+
+/*
+ * Overview / Configure render as folder tabs sitting on the header's bottom
+ * edge. Both tabs are outlined; the unselected ones share the header's canvas
+ * fill, the selected one lifts to a raised fill and blends over the shelf line.
+ */
+[data-ui='tabs'][data-variant='folder'] > [data-ui='tabs-list'] {
+	display: flex;
+	min-height: var(--header-shelf-h);
+	gap: var(--space-1);
+	padding: 0 var(--space-5);
+	background: transparent;
+	border-bottom: 1px solid var(--color-border);
+}
+
+[data-ui='tabs'][data-variant='folder'] [data-ui='tabs-trigger'] {
+	position: relative;
+	bottom: -1px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 7px var(--space-4);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+	background: var(--color-canvas);
+	color: var(--color-text-muted);
+	font-size: var(--text-sm);
+	font-weight: 550;
+	cursor: pointer;
+}
+
+[data-ui='tabs'][data-variant='folder'] [data-ui='tabs-trigger']:hover {
+	color: var(--color-text);
+}
+
+[data-ui='tabs'][data-variant='folder']
+	[data-ui='tabs-trigger'][data-state='active'] {
+	border-color: var(--color-border-strong);
+	border-bottom-color: var(--color-surface-raised);
+	background: var(--color-surface-raised);
+	color: var(--color-text);
+}
+
+[data-ui='workspace-screen-header'] h1 {
+	margin: 0;
+	font-size: var(--text-lg);
+}
+
+/* New thread and the overflow menu are one action group on the header's end. */
+[data-ui='workspace-screen-actions'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
+[data-ui='workspace-path'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.4 var(--font-mono);
+}
+
+[data-ui='workspace-path'] > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/*
+ * The tabs are the screen's second row, so they have to be a column that ends
+ * in one scrolling panel; without this the panel sizes to its content and a
+ * long tab runs off the bottom of the window instead of scrolling.
+ */
+[data-ui='workspace-screen'] > [data-ui='tabs'] {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+[data-ui='workspace-screen']
+	> [data-ui='tabs']
+	> [data-ui='tabs-content']:not([hidden]) {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+}
+
+[data-ui='workspace-screen']
+	> [data-ui='tabs']
+	> [data-ui='tabs-content']
+	> [data-ui='scroll-area'] {
+	flex: 1;
+	min-height: 0;
+}
+
+[data-ui='workspace-screen-body'] {
+	padding: var(--space-5) clamp(20px, 4vw, 48px);
+}
+
+[data-ui='workspace-screen-body'] > * {
+	width: min(920px, 100%);
+	margin-inline: auto;
+}

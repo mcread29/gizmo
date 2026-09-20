@@ -21,7 +21,12 @@ export type SettingsPage = (typeof settingsPages)[number];
 export const defaultSettingsPage: SettingsPage = 'appearance';
 
 /** A workspace screen shows one workspace; its tabs are addressable too. */
-export const workspaceTabs = ['overview', 'configure'] as const;
+export const workspaceTabs = [
+	'overview',
+	'instructions',
+	'skills',
+	'extensions',
+] as const;
 
 export type WorkspaceTab = (typeof workspaceTabs)[number];
 
@@ -51,9 +56,7 @@ export function locationFromHash(hash: string): AppLocation {
 			route,
 			page: defaultSettingsPage,
 			...(encoded ? { workspacePath: decode(encoded) } : {}),
-			tab: workspaceTabs.includes(tab as WorkspaceTab)
-				? (tab as WorkspaceTab)
-				: defaultWorkspaceTab,
+			tab: workspaceTab(tab) ?? defaultWorkspaceTab,
 		};
 	}
 	return {
@@ -64,6 +67,14 @@ export function locationFromHash(hash: string): AppLocation {
 				: defaultSettingsPage,
 		tab: defaultWorkspaceTab,
 	};
+}
+
+/** The one Configure tab became three pages; old links land on the first. */
+function workspaceTab(name: string | undefined): WorkspaceTab | undefined {
+	if (name === 'configure') return 'instructions';
+	return workspaceTabs.includes(name as WorkspaceTab)
+		? (name as WorkspaceTab)
+		: undefined;
 }
 
 /** Resources merged into Agent; old links still land there. */

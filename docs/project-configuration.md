@@ -67,17 +67,29 @@ toggle affects threads created afterwards.
 
 ## UI workflow
 
-Opening a workspace shows its Overview and Configure tabs without creating a
-thread. Configure contains:
+Opening a workspace shows it without creating a thread, on four tabs:
 
-- Gizmo extension rows with inherit/override switches;
-- Pi extension rows with the same model;
-- project extension paths, with add/remove (absolute file or directory);
-- skill overrides, resolved per workspace;
-- the built-in tool override (via `.pi/settings.json`);
-- extension-specific settings and workspace removal.
+- **Overview** — a read-only answer to "how is this set up": a stat row
+  (skills on, extensions on, built-in tools, AGENTS.md size) that links into
+  the tab that edits each, an "Overridden here" list naming only the items
+  that depart from global, each revertable in place with **Use global**, and
+  the workspace's recent threads.
+- **Instructions & tools** — the workspace `AGENTS.md`, and the built-in tool
+  override (via `.pi/settings.json`).
+- **Skills** — skill overrides resolved per workspace, searchable and
+  filterable by on/off/overridden, grouped by source directory.
+- **Extensions** — Pi extension rows with inherit/override switches, project
+  extension paths with add/remove (absolute file or directory), and
+  extension-specific settings. Gizmo extension rows appear only for installs
+  that still carry them.
 
-Every change applies immediately — there is no separate Save step.
+Removing the workspace lives in the `…` menu beside **New thread**, not on a
+tab. `#workspace/<path>/configure` links from before the split land on
+Instructions & tools.
+
+Every change applies immediately — there is no separate Save step. `AGENTS.md`
+is the exception: it has Save and Revert, and leaving the tab with unsaved
+text asks before discarding it.
 
 ## Adding an extension
 

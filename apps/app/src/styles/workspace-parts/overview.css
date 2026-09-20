@@ -1,0 +1,235 @@
+[data-ui='workspace-home'] {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: var(--space-5);
+	min-height: 0;
+}
+
+[data-ui='workspace-home'] > * {
+	min-width: 0;
+	width: min(920px, 100%);
+	margin-inline: auto;
+}
+
+/*
+ * The configuration answers, read-only, at the top of Overview: four numbers
+ * that each open the tab that changes them.
+ */
+[data-ui='workspace-summary'] {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-lg);
+}
+
+[data-ui='workspace-stat'] {
+	display: grid;
+	gap: 2px;
+	padding: var(--space-3) var(--space-4);
+	border: 0;
+	/* A hairline between cards that survives wrapping into a second row. */
+	box-shadow:
+		inset -1px 0 0 var(--color-border),
+		inset 0 -1px 0 var(--color-border);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='workspace-stat']:hover {
+	background: var(--color-surface-raised);
+}
+
+[data-ui='workspace-stat'] strong {
+	font-size: var(--text-md);
+}
+
+[data-ui='workspace-stat'] span {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='workspace-override-list'] {
+	display: grid;
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-lg);
+}
+
+[data-ui='workspace-override-row'] {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--space-2);
+	padding-right: var(--space-3);
+	border-bottom: 1px solid var(--color-border);
+	background: var(--color-surface-soft);
+}
+
+[data-ui='workspace-override-row']:last-child {
+	border-bottom: 0;
+}
+
+[data-ui='workspace-override-open'] {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--space-3);
+	min-width: 0;
+	padding: 10px var(--space-2) 10px var(--space-4);
+	border: 0;
+	background: none;
+	color: var(--color-text);
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='workspace-override-open'] > span {
+	display: grid;
+	min-width: 0;
+	gap: 3px;
+}
+
+[data-ui='workspace-override-open'] strong,
+[data-ui='workspace-override-open'] small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='workspace-override-open'] strong {
+	font-size: var(--text-sm);
+}
+
+[data-ui='workspace-override-open'] small {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='workspace-override-row']:hover {
+	background: var(--color-surface-raised);
+}
+
+/*
+ * The workspace skills library reuses the search, filter and sort controls
+ * from Settings, but stands on the page rather than inside a scrolling aside,
+ * so it carries no divider of its own.
+ */
+[data-ui='workspace-skills-toolbar'] {
+	display: grid;
+	gap: var(--space-2);
+	margin-bottom: var(--space-3);
+}
+
+[data-ui='workspace-skills-toolbar'] [data-ui='segmented'] {
+	width: fit-content;
+}
+
+[data-ui='workspace-recent'] {
+	margin-top: var(--space-2);
+}
+
+[data-ui='workspace-dashboard-section-heading'] {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--space-3);
+	margin-bottom: var(--space-3);
+}
+
+[data-ui='workspace-dashboard-section-heading'] h3 {
+	margin: 0;
+	font-size: var(--text-md);
+}
+
+[data-ui='workspace-dashboard-section-heading'] span {
+	overflow: hidden;
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='workspace-recent-list'] {
+	display: grid;
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-lg);
+}
+
+[data-ui='workspace-empty'] {
+	display: grid;
+	justify-items: center;
+	gap: var(--space-2);
+	padding: var(--space-8) var(--space-4);
+	border: 1px dashed var(--color-border);
+	border-radius: var(--radius-lg);
+	color: var(--color-text-muted);
+	text-align: center;
+}
+
+[data-ui='workspace-empty'] strong {
+	color: var(--color-text);
+	font-size: var(--text-sm);
+}
+
+[data-ui='workspace-empty'] span {
+	font-size: var(--text-xs);
+}
+
+[data-ui='workspace-empty'] button {
+	margin-top: var(--space-2);
+}
+
+[data-ui='workspace-recent-list'] button {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--space-3);
+	min-width: 0;
+	padding: 12px var(--space-4);
+	border: 0;
+	border-bottom: 1px solid var(--color-border);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='workspace-recent-list'] button:last-child {
+	border-bottom: 0;
+}
+
+[data-ui='workspace-recent-list'] button:hover {
+	background: var(--color-surface-raised);
+}
+
+[data-ui='workspace-recent-list'] button > span {
+	display: grid;
+	min-width: 0;
+	gap: 3px;
+}
+
+[data-ui='workspace-recent-list'] strong,
+[data-ui='workspace-recent-list'] small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='workspace-recent-list'] strong {
+	font-size: var(--text-sm);
+}
+
+[data-ui='workspace-recent-list'] small {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+@media (max-width: 560px) {
+	[data-ui='workspace-home'] {
+		padding: var(--space-5) var(--space-4);
+	}
+}

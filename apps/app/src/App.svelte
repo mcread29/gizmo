@@ -220,7 +220,7 @@
 		{store}
 		version={agent.version}
 		{settingsGuard}
-		onShowWorkspaceSettings={(path) => showWorkspace(path, 'configure')}
+		onShowWorkspaceSettings={(path) => showWorkspace(path, 'instructions')}
 	/>
 
 	<DiscardChangesDialog guard={settingsGuard} />

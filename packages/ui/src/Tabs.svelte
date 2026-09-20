@@ -27,7 +27,10 @@
 		/**
 		 * Reports the newly selected tab. Pass this with a plain `value` to drive
 		 * the tabs from state that already lives elsewhere — a route, say — rather
-		 * than binding and then syncing the two copies back together.
+		 * than binding and then syncing the two copies back together. Passing it
+		 * also hands over control: the selection only moves when that state does,
+		 * so an owner that refuses a change keeps the strip and the panel on the
+		 * tab the user is still looking at.
 		 */
 		onValueChange?: (value: string) => void;
 		items: TabItem[];
@@ -78,6 +81,12 @@
 		drop = undefined;
 	}
 
+	/** See `onValueChange`: with an owner, a click is a request, not a move. */
+	function select(next: string) {
+		if (onValueChange) onValueChange(next);
+		else value = next;
+	}
+
 	let mounted = $state(new Set(value ? [value] : []));
 
 	$effect(() => {
@@ -86,7 +95,11 @@
 	});
 </script>
 
-<Tabs.Root bind:value {onValueChange} data-ui="tabs" data-variant={variant}>
+<Tabs.Root
+	bind:value={() => value ?? '', select}
+	data-ui="tabs"
+	data-variant={variant}
+>
 	<Tabs.List data-ui="tabs-list">
 		{#each items as item (item.value)}
 			<Tabs.Trigger

@@ -16,16 +16,6 @@
 	font-size: var(--text-2xs);
 }
 
-/* Skill group label sits above each grouped skill card. */
-[data-ui='config-skill-group'] {
-	margin: 0;
-	color: var(--color-text-faint);
-	font-size: var(--text-2xs);
-	font-weight: 600;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-}
-
 /*
  * Segmented controls sit beside a field's label, so they have to stay a row:
  * `[data-ui='setting-field'] > div` otherwise stacks them into a grid.

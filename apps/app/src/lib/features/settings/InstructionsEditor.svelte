@@ -12,6 +12,7 @@
 		description,
 		onSaved,
 		workbench = false,
+		dirty = $bindable(false),
 	}: {
 		store: AgentStore;
 		target: InstructionTarget;
@@ -20,6 +21,12 @@
 		description: string;
 		onSaved?: () => void;
 		workbench?: boolean;
+		/**
+		 * Reported outward so a screen can guard navigation away from unsaved
+		 * edits. Bindable rather than derived internally: the owner needs to
+		 * read it, and clearing it is how a discard confirmation takes effect.
+		 */
+		dirty?: boolean;
 	} = $props();
 
 	let path = $state('');
@@ -29,8 +36,17 @@
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state<string>();
-	let dirty = $derived(content !== savedContent);
 	let lineCount = $derived(content ? content.split(/\r?\n/).length : 0);
+
+	/*
+	 * `dirty` is the owner's handle on the draft: a screen that guards
+	 * navigation clears it when the user picks Discard, and that has to
+	 * actually discard. Without this the editor kept the abandoned text with
+	 * Save greyed out, because nothing considered it unsaved any more.
+	 */
+	$effect(() => {
+		if (!dirty && content !== savedContent) content = savedContent;
+	});
 
 	onMount(async () => {
 		error = undefined;
@@ -39,6 +55,7 @@
 			path = file.path;
 			content = file.content;
 			savedContent = file.content;
+			dirty = false;
 			exists = file.exists;
 		} catch (cause) {
 			error = cause instanceof Error ? cause.message : String(cause);
@@ -52,6 +69,7 @@
 		error = undefined;
 		if (await store.writeInstructions(target, content, workspacePath)) {
 			savedContent = content;
+			dirty = false;
 			exists = true;
 			onSaved?.();
 		} else {
@@ -85,6 +103,7 @@
 					disabled={loading || saving || !dirty}
 					onclick={() => {
 						content = savedContent;
+						dirty = false;
 					}}>Revert</Button
 				>
 				<Button
@@ -102,6 +121,7 @@
 				value={content}
 				oninput={(event) => {
 					content = event.currentTarget.value;
+					dirty = content !== savedContent;
 				}}
 				aria-label={`${title} Markdown`}
 				spellcheck="false"

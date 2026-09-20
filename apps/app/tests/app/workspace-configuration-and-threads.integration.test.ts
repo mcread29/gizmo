@@ -15,11 +15,11 @@ describe('workspace configuration and thread sidebar', () => {
 		);
 
 		expect(await findByRole('main', { name: 'Workspace' })).toBeInTheDocument();
-		expect(location.hash).toContain('/configure');
+		expect(location.hash).toContain('/instructions');
 
-		// Installed extensions are listed on the Configure tab, inheriting the
+		// Installed extensions are listed on the Extensions tab, inheriting the
 		// global state until this workspace overrides them.
-		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
+		await fireEvent.click(await findByRole('tab', { name: 'Extensions' }));
 		expect(
 			(await findAllByText('Inherits global · on')).length,
 		).toBeGreaterThan(0);
@@ -32,7 +32,7 @@ describe('workspace configuration and thread sidebar', () => {
 			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
 		);
 		await findByRole('main', { name: 'Workspace' });
-		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
+		await fireEvent.click(await findByRole('tab', { name: 'Skills' }));
 
 		// On globally, so the workspace switch starts on and can be turned off.
 		const skill = await findByRole('switch', {
@@ -57,7 +57,7 @@ describe('workspace configuration and thread sidebar', () => {
 			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
 		);
 		await findByRole('main', { name: 'Workspace' });
-		await fireEvent.click(await findByRole('tab', { name: 'Configure' }));
+		await fireEvent.click(await findByRole('tab', { name: 'Extensions' }));
 
 		// The workspace turns Unity off despite the global switch being on.
 		await fireEvent.click(
@@ -88,6 +88,76 @@ describe('workspace configuration and thread sidebar', () => {
 				),
 			).not.toHaveAttribute('data-changed'),
 		);
+	});
+
+	it('reverts a skill override from the workspace overview', async () => {
+		const { findByRole, findByText, getByRole, queryByText } = renderApp();
+		await findByRole('button', { name: 'Model' });
+		await fireEvent.click(
+			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
+		);
+		await findByRole('main', { name: 'Workspace' });
+		await fireEvent.click(await findByRole('tab', { name: 'Skills' }));
+		await fireEvent.click(
+			await findByRole('switch', { name: 'svelte-code-writer enabled' }),
+		);
+		await findByText('Off here');
+
+		// Overview names the departure without making you open the tab again.
+		await fireEvent.click(getByRole('tab', { name: 'Overview' }));
+		const row = (await findByText('Off here · on globally')).closest(
+			'[data-ui="workspace-override-row"]',
+		)!;
+		await fireEvent.click(
+			within(row as HTMLElement).getByRole('button', { name: 'Use global' }),
+		);
+
+		await waitFor(() =>
+			expect(queryByText('Off here · on globally')).toBeNull(),
+		);
+		await findByText(
+			'Nothing is overridden — this workspace follows your global settings.',
+		);
+	});
+
+	it('asks before leaving an unsaved AGENTS.md', async () => {
+		const { findByRole, getByRole } = renderApp();
+		await findByRole('button', { name: 'Model' });
+		await fireEvent.click(
+			await findByRole('button', { name: 'ThirdPersonSandbox settings' }),
+		);
+		await findByRole('main', { name: 'Workspace' });
+
+		const editor = await findByRole('textbox', { name: 'AGENTS.md Markdown' });
+		await fireEvent.input(editor, { target: { value: 'Draft guidance' } });
+
+		// Cancelling keeps both the tab and the draft.
+		await fireEvent.click(getByRole('tab', { name: 'Skills' }));
+		const dialog = await findByRole('dialog', {
+			name: 'Discard unsaved changes?',
+		});
+		await fireEvent.click(
+			within(dialog).getByRole('button', { name: 'Cancel' }),
+		);
+		expect(location.hash).toContain('/instructions');
+		expect(
+			await findByRole('textbox', { name: 'AGENTS.md Markdown' }),
+		).toHaveValue('Draft guidance');
+
+		// Discarding leaves, and drops the draft rather than stranding it
+		// behind a disabled Save button.
+		await fireEvent.click(getByRole('tab', { name: 'Skills' }));
+		await fireEvent.click(
+			within(
+				await findByRole('dialog', { name: 'Discard unsaved changes?' }),
+			).getByRole('button', { name: 'Discard' }),
+		);
+		await waitFor(() => expect(location.hash).toContain('/skills'));
+
+		await fireEvent.click(getByRole('tab', { name: 'Instructions & tools' }));
+		expect(
+			await findByRole('textbox', { name: 'AGENTS.md Markdown' }),
+		).toHaveValue('');
 	});
 
 	it('shows only a header row for a workspace without threads', async () => {
@@ -189,7 +259,7 @@ describe('workspace configuration and thread sidebar', () => {
 		});
 
 		// The thread's own controls live on the shelf row, beside its title,
-		// where the workspace screen puts Overview/Configure.
+		// where the workspace screen puts its own tab strip.
 		const treeButton = getByRole('button', { name: 'Tree' });
 		expect(treeButton.closest('[data-ui="conversation-shelf"]')).not.toBeNull();
 		await fireEvent.click(treeButton);
@@ -201,3 +271,4 @@ describe('workspace configuration and thread sidebar', () => {
 		expect(getByText(/Every turn is kept.*alternate path/)).toBeVisible();
 	});
 });
+
