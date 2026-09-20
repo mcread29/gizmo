@@ -57,5 +57,10 @@ function address(request: {
 	sessionId?: string;
 }) {
 	const { projectPath, extensionId, viewId, sessionId } = request;
-	return { projectPath, extensionId, viewId, ...(sessionId ? { sessionId } : {}) };
+	return {
+		projectPath,
+		extensionId,
+		viewId,
+		...(sessionId ? { sessionId } : {}),
+	};
 }

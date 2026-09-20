@@ -39,7 +39,11 @@ export class FactStore {
 		await mkdir(this.#dir, { recursive: true });
 		const file = join(this.#dir, fileName(entry.segment));
 		const temporary = `${file}.tmp`;
-		await writeFile(temporary, `${JSON.stringify(entry, null, '\t')}\n`, 'utf8');
+		await writeFile(
+			temporary,
+			`${JSON.stringify(entry, null, '\t')}\n`,
+			'utf8',
+		);
 		await rename(temporary, file);
 	}
 

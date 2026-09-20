@@ -54,15 +54,16 @@ export interface SegmentFacts {
  * per-segment files disjoint and mergeable between machines.
  */
 export function currentFacts(segments: readonly SegmentFacts[]): JournalFact[] {
-	const ordered = [...segments].sort((a, b) => a.segment.localeCompare(b.segment));
+	const ordered = [...segments].sort((a, b) =>
+		a.segment.localeCompare(b.segment),
+	);
 	const retired = new Set<string>();
 	for (const entry of ordered)
 		for (const fact of entry.facts)
 			for (const id of fact.supersedes) retired.add(id);
 	const live: JournalFact[] = [];
 	for (const entry of ordered)
-		for (const fact of entry.facts)
-			if (!retired.has(fact.id)) live.push(fact);
+		for (const fact of entry.facts) if (!retired.has(fact.id)) live.push(fact);
 	return live;
 }
 
@@ -88,7 +89,10 @@ export function factHistory(
  * a filename.
  */
 export function normalizeSubject(subject: string): string {
-	return subject.toLowerCase().replace(/[\s_-]+/g, ' ').trim();
+	return subject
+		.toLowerCase()
+		.replace(/[\s_-]+/g, ' ')
+		.trim();
 }
 
 /** The text a fact contributes to search. */

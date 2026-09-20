@@ -103,10 +103,10 @@ export const settingsFieldSchema = Type.Union([
 			key: identifier,
 			label,
 			description: Type.Optional(Type.String({ maxLength: 1_000 })),
-			options: Type.Array(
-				Type.Object({ value: label, label }, strict),
-				{ minItems: 1, maxItems: 100 },
-			),
+			options: Type.Array(Type.Object({ value: label, label }, strict), {
+				minItems: 1,
+				maxItems: 100,
+			}),
 		},
 		strict,
 	),
@@ -161,7 +161,9 @@ export interface ViewContext {
 
 export interface ViewHandle {
 	/** An action the user ran; absent means the view has none. */
-	action?(event: ActionEvent): ActionResult | void | Promise<ActionResult | void>;
+	action?(
+		event: ActionEvent,
+	): ActionResult | void | Promise<ActionResult | void>;
 	dispose(): void | Promise<void>;
 }
 

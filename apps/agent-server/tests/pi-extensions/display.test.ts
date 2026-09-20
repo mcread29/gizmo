@@ -95,7 +95,9 @@ describe('display tool', () => {
 				text: 'Display input response: {"status":"submitted","value":"Ada"}',
 			},
 		]);
-		expect(specOf(readDisplayResult(normalizeToolResult(result)))).toEqual(spec);
+		expect(specOf(readDisplayResult(normalizeToolResult(result)))).toEqual(
+			spec,
+		);
 	});
 
 	it.each([true, false])(
@@ -172,7 +174,9 @@ describe('display tool', () => {
 		controller.abort();
 		const result = await pending;
 		expect(result.details).toMatchObject({ response: { status: 'cancelled' } });
-		expect(specOf(readDisplayResult(normalizeToolResult(result)))).toEqual(spec);
+		expect(specOf(readDisplayResult(normalizeToolResult(result)))).toEqual(
+			spec,
+		);
 	});
 
 	it('does not open an already-aborted dialog', async () => {

@@ -86,7 +86,9 @@ export class JournalIndex {
 		try {
 			const db = this.#open();
 			const indexed = new Map<string, number>();
-			for (const row of db.prepare('SELECT segment, bytes FROM state').all() as {
+			for (const row of db
+				.prepare('SELECT segment, bytes FROM state')
+				.all() as {
 				segment: string;
 				bytes: number;
 			}[]) {
@@ -178,7 +180,5 @@ function insert(
  * scan instead of index.
  */
 function matchExpression(terms: readonly string[]): string {
-	return terms
-		.map((term) => `"${term.replace(/"/g, '""')}"*`)
-		.join(' OR ');
+	return terms.map((term) => `"${term.replace(/"/g, '""')}"*`).join(' OR ');
 }

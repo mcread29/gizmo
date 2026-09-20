@@ -142,7 +142,10 @@ function changesView(): View {
 				id: 'open',
 				label: 'Open file',
 				selection: { blockId: 'files', required: true },
-				intent: { kind: 'openFile', target: { kind: 'selection', blockId: 'files' } },
+				intent: {
+					kind: 'openFile',
+					target: { kind: 'selection', blockId: 'files' },
+				},
 			},
 		],
 	};

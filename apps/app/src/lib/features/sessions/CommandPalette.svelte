@@ -33,8 +33,9 @@
 	}: Props = $props();
 
 	let extensionCommands = $derived(
-		extensionUi.commands().map(
-			({ extensionId, value }): CommandContribution => ({
+		extensionUi
+			.commands()
+			.map(({ extensionId, value }): CommandContribution => ({
 				id: `${extensionId}.${value.id}`,
 				label: value.label,
 				keywords: value.keywords,
@@ -42,8 +43,7 @@
 					? { icon: extensionIcon(value.icon) }
 					: {}),
 				run: () => runCommand(extensionId, value.id, value.view),
-			}),
-		),
+			})),
 	);
 
 	/** A command either opens one of its extension's views or runs server-side. */

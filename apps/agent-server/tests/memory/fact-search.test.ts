@@ -16,7 +16,11 @@ function fact(id: string, subject: string, statement: string): JournalFact {
 const facts = [
 	fact('0001#1', 'digest model', 'The digest model is minimax-m3.'),
 	fact('0002#1', 'journal format', 'Segments are markdown with frontmatter.'),
-	fact('0003#1', 'deployment', 'The web server is restarted through the supervisor.'),
+	fact(
+		'0003#1',
+		'deployment',
+		'The web server is restarted through the supervisor.',
+	),
 ];
 
 describe('searchFacts', () => {

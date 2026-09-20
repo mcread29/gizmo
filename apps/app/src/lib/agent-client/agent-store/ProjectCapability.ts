@@ -10,8 +10,8 @@ import { errorMessage } from './shared';
 
 /** Extensions with a live project process, in enabled order. */
 function statusExtensionIds(store: AgentStore): string[] {
-	return store.enabledExtensionIds.filter(
-		(id) => extensionUi.hasProjectService(id),
+	return store.enabledExtensionIds.filter((id) =>
+		extensionUi.hasProjectService(id),
 	);
 }
 

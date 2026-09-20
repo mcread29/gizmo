@@ -5,7 +5,10 @@ export type {
 } from './sessions/pi-agent-service';
 export { createAgentWebSocketServer } from './transport/websocket-server';
 export { ExtensionHostService } from './extensions/extension-host-service';
-export type { GizmoServerExtension, ProjectService } from '@gizmo/extension-api';
+export type {
+	GizmoServerExtension,
+	ProjectService,
+} from '@gizmo/extension-api';
 export type {
 	AgentWebSocketServer,
 	AgentWebSocketServerOptions,

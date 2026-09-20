@@ -189,7 +189,8 @@ export class ExtensionUiStore {
 
 	hasProjectService(extensionId: string): boolean {
 		return this.extensions.some(
-			(extension) => extension.id === extensionId && extension.hasProjectService,
+			(extension) =>
+				extension.id === extensionId && extension.hasProjectService,
 		);
 	}
 }

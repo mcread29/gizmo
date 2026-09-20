@@ -40,7 +40,8 @@ export function runIntent(
 	}
 	const path = intentPath(intent, pathOf);
 	if (!path) return;
-	if (intent.kind === 'openFile') host.openFile(path, intent.line, intent.column);
+	if (intent.kind === 'openFile')
+		host.openFile(path, intent.line, intent.column);
 	else host.openDiff(path);
 }
 

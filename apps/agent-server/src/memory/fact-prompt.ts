@@ -19,9 +19,7 @@ export function relevantFacts(
 	limit = 40,
 ): JournalFact[] {
 	const terms = new Set(
-		termsOf(
-			[digest.summary, ...digest.decisions, ...digest.files].join(' '),
-		),
+		termsOf([digest.summary, ...digest.decisions, ...digest.files].join(' ')),
 	);
 	const scored = facts.map((fact) => {
 		const subject = new Set(termsOf(fact.subject));

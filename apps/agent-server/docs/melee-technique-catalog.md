@@ -22,12 +22,12 @@ These definitions are proposed project vocabulary, not claims of universal commu
 
 ## Proposed division of control
 
-| Layer | Responsibilities | Must not do |
-| --- | --- | --- |
-| Jev | Choose technique family, spacing goal, aerial timing intent, combo route, risk budget, and conditional follow-ups | Send individual frame inputs or assume an unconfirmed hit |
-| Local tactical selector | Check legality, remaining vulnerability, geometry, observed contact, recovery resources, and safe alternatives | Follow a stale plan into a missed combo or death |
-| Technique executor | Perform state-gated jump, turn, aerial, drift, fast-fall, landing, and cancel inputs | Treat a button press as proof the move happened |
-| Player profile | Set strategic preferences and a separate execution-capability configuration | Invent “measured” player reaction times or error rates |
+| Layer                   | Responsibilities                                                                                                  | Must not do                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Jev                     | Choose technique family, spacing goal, aerial timing intent, combo route, risk budget, and conditional follow-ups | Send individual frame inputs or assume an unconfirmed hit |
+| Local tactical selector | Check legality, remaining vulnerability, geometry, observed contact, recovery resources, and safe alternatives    | Follow a stale plan into a missed combo or death          |
+| Technique executor      | Perform state-gated jump, turn, aerial, drift, fast-fall, landing, and cancel inputs                              | Treat a button press as proof the move happened           |
+| Player profile          | Set strategic preferences and a separate execution-capability configuration                                       | Invent “measured” player reaction times or error rates    |
 
 Jev can request a route before an opening. Tight follow-ups must branch locally using that route, rather than wait for another network response. Defensive reactions and recovery overrides remain local.
 
@@ -62,19 +62,19 @@ on_whiff: reset
 
 These are proposed bot competencies. The character documents supply the move-specific mechanics and applications.
 
-| Ability | What the bot must recognize or execute |
-| --- | --- |
-| Action-state literacy | Startup, active frames, endlag, hitstun, shieldstun, landing lag, invulnerability, and actionable transitions |
-| Movement control | Dash versus run, turnaround, jump height, drift, wavedash distance, and platform landing |
-| Spacing | Effective hitbox reach rather than center-to-center distance alone; opponent counterattack range |
-| Aerial timing | Rising versus late aerial, fast-fall eligibility, hitlag-adjusted landing and L-cancel timing |
-| Contact recognition | Distinguish hit, shield, clank, and whiff before choosing a continuation |
-| Combo recognition | Reachability under current percent, knockback, DI, stage geometry, and available resources |
-| Defense | Shield options, DI, SDI, ASDI, crouch cancel, tech choices, and escape routes where applicable |
-| Recovery planning | Jump conservation, ledge occupancy, recovery move reach, wall geometry, and landing exposure |
-| Opponent modeling | Habits in shield, DI, tech direction, recovery, jumps, and responses to pressure |
-| Adaptation | Update plans when evidence contradicts the expected response; do not label every escape an execution failure |
-| Risk management | Prefer guaranteed damage, position, or a kill according to stocks, clock, and recovery cost |
+| Ability                | What the bot must recognize or execute                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Action-state literacy  | Startup, active frames, endlag, hitstun, shieldstun, landing lag, invulnerability, and actionable transitions        |
+| Movement control       | Dash versus run, turnaround, jump height, drift, wavedash distance, and platform landing                             |
+| Spacing                | Effective hitbox reach rather than center-to-center distance alone; opponent counterattack range                     |
+| Aerial timing          | Rising versus late aerial, fast-fall eligibility, hitlag-adjusted landing and L-cancel timing                        |
+| Contact recognition    | Distinguish hit, shield, clank, and whiff before choosing a continuation                                             |
+| Combo recognition      | Reachability under current percent, knockback, DI, stage geometry, and available resources                           |
+| Defense                | Shield options, DI, SDI, ASDI, crouch cancel, tech choices, and escape routes where applicable                       |
+| Recovery planning      | Jump conservation, ledge occupancy, recovery move reach, wall geometry, and landing exposure                         |
+| Opponent modeling      | Habits in shield, DI, tech direction, recovery, jumps, and responses to pressure                                     |
+| Adaptation             | Update plans when evidence contradicts the expected response; do not label every escape an execution failure         |
+| Risk management        | Prefer guaranteed damage, position, or a kill according to stocks, clock, and recovery cost                          |
 | Information discipline | Use an explicitly chosen observation/reaction-delay model; never inspect future frames or opponent controller intent |
 
 ## Style and ability are independent

@@ -33,16 +33,23 @@ export class MemoryService {
 
 	async status(workspacePath: string): Promise<MemoryStatus> {
 		const factStore = new FactStore(workspacePath);
-		const [segments, digested, facts, factSegments, settings, defaults, overridden] =
-			await Promise.all([
-				new JournalStore(workspacePath).list(),
-				new DigestStore(workspacePath).segments(),
-				factStore.current(),
-				factStore.segments(),
-				this.#settings.read(workspacePath),
-				this.#settings.readDefault(),
-				this.#settings.isOverridden(workspacePath),
-			]);
+		const [
+			segments,
+			digested,
+			facts,
+			factSegments,
+			settings,
+			defaults,
+			overridden,
+		] = await Promise.all([
+			new JournalStore(workspacePath).list(),
+			new DigestStore(workspacePath).segments(),
+			factStore.current(),
+			factStore.segments(),
+			this.#settings.read(workspacePath),
+			this.#settings.readDefault(),
+			this.#settings.isOverridden(workspacePath),
+		]);
 		const active = this.#running.get(workspacePath);
 		return {
 			segments: segments.length,

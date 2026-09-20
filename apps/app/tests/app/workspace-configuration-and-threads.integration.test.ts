@@ -271,4 +271,3 @@ describe('workspace configuration and thread sidebar', () => {
 		expect(getByText(/Every turn is kept.*alternate path/)).toBeVisible();
 	});
 });
-

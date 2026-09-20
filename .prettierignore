@@ -7,3 +7,7 @@ milestones.md
 
 # Append-only conversation transcripts; preserve captured formatting.
 .gizmo/memory/journal/
+
+# A separate repository with its own formatting; `pnpm format` must not
+# reach into it.
+extensions/registry

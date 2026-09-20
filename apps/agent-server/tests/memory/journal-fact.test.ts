@@ -16,7 +16,12 @@ function entry(segment: string, facts: unknown[]): SegmentFacts {
 	};
 }
 
-function fact(id: string, subject: string, statement: string, supersedes: string[] = []) {
+function fact(
+	id: string,
+	subject: string,
+	statement: string,
+	supersedes: string[] = [],
+) {
 	const segment = id.split('#')[0] ?? id;
 	return { id, segment, at: '', subject, statement, supersedes };
 }
@@ -24,8 +29,12 @@ function fact(id: string, subject: string, statement: string, supersedes: string
 describe('currentFacts', () => {
 	it('keeps every fact when nothing supersedes anything', () => {
 		const live = currentFacts([
-			entry('0001', [fact('0001#1', 'digest model', 'The digest model is minimax-m3.')]),
-			entry('0002', [fact('0002#1', 'journal format', 'Segments are markdown.')]),
+			entry('0001', [
+				fact('0001#1', 'digest model', 'The digest model is minimax-m3.'),
+			]),
+			entry('0002', [
+				fact('0002#1', 'journal format', 'Segments are markdown.'),
+			]),
 		]);
 		expect(live.map((f) => f.id)).toEqual(['0001#1', '0002#1']);
 	});
@@ -33,12 +42,18 @@ describe('currentFacts', () => {
 	/** The whole reason the tier exists. */
 	it('drops a fact a later segment retires', () => {
 		const live = currentFacts([
-			entry('0001', [fact('0001#1', 'digest model', 'The digest model is minimax-m3.')]),
+			entry('0001', [
+				fact('0001#1', 'digest model', 'The digest model is minimax-m3.'),
+			]),
 			entry('0009', [
-				fact('0009#1', 'digest model', 'The digest model is glm-5.3.', ['0001#1']),
+				fact('0009#1', 'digest model', 'The digest model is glm-5.3.', [
+					'0001#1',
+				]),
 			]),
 		]);
-		expect(live.map((f) => f.statement)).toEqual(['The digest model is glm-5.3.']);
+		expect(live.map((f) => f.statement)).toEqual([
+			'The digest model is glm-5.3.',
+		]);
 	});
 
 	/**
@@ -47,8 +62,12 @@ describe('currentFacts', () => {
 	 */
 	it('keeps two facts on one subject when neither retires the other', () => {
 		const live = currentFacts([
-			entry('0001', [fact('0001#1', 'digests', 'Digests are one file per segment.')]),
-			entry('0002', [fact('0002#1', 'digests', 'Digest files are named by segment id.')]),
+			entry('0001', [
+				fact('0001#1', 'digests', 'Digests are one file per segment.'),
+			]),
+			entry('0002', [
+				fact('0002#1', 'digests', 'Digest files are named by segment id.'),
+			]),
 		]);
 		expect(live).toHaveLength(2);
 	});
@@ -94,7 +113,9 @@ describe('factHistory', () => {
 
 describe('normalizeSubject', () => {
 	it('treats model-written spellings of one subject as the same', () => {
-		expect(normalizeSubject('Digest Model')).toBe(normalizeSubject('digest-model'));
+		expect(normalizeSubject('Digest Model')).toBe(
+			normalizeSubject('digest-model'),
+		);
 		expect(normalizeSubject(' journal  index ')).toBe('journal index');
 	});
 });
@@ -130,7 +151,9 @@ describe('parseFacts', () => {
 	it('drops superseded ids the model was never shown', () => {
 		const parsed = parseFacts(
 			JSON.stringify({
-				facts: [{ subject: 'a', statement: 'New.', supersedes: ['0001#1', '9999#1'] }],
+				facts: [
+					{ subject: 'a', statement: 'New.', supersedes: ['0001#1', '9999#1'] },
+				],
 			}),
 			'0007',
 			'test/model',
@@ -162,7 +185,11 @@ describe('parseFacts', () => {
 	it('skips entries missing a subject or a statement', () => {
 		const parsed = parseFacts(
 			JSON.stringify({
-				facts: [{ subject: 'a' }, { statement: 'b' }, { subject: 'c', statement: 'Real.' }],
+				facts: [
+					{ subject: 'a' },
+					{ statement: 'b' },
+					{ subject: 'c', statement: 'Real.' },
+				],
 			}),
 			'0007',
 			'test/model',
@@ -172,6 +199,8 @@ describe('parseFacts', () => {
 	});
 
 	it('returns undefined when the answer is not facts at all', () => {
-		expect(parseFacts('I cannot help with that.', '0007', 'm', known)).toBeUndefined();
+		expect(
+			parseFacts('I cannot help with that.', '0007', 'm', known),
+		).toBeUndefined();
 	});
 });

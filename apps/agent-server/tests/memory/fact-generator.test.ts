@@ -9,7 +9,11 @@ import type { SegmentFacts } from '../../src/memory/journal-fact';
 
 const model = { provider: 'test', id: 'model' };
 
-function digest(segment: string, summary: string, decisions: string[] = []): JournalDigest {
+function digest(
+	segment: string,
+	summary: string,
+	decisions: string[] = [],
+): JournalDigest {
 	return {
 		segment,
 		at: '',
@@ -83,7 +87,13 @@ describe('generateFacts', () => {
 			model,
 			async () =>
 				JSON.stringify({
-					facts: [{ subject: 'digest model', statement: 'Now glm-5.3.', supersedes: ['0001#1'] }],
+					facts: [
+						{
+							subject: 'digest model',
+							statement: 'Now glm-5.3.',
+							supersedes: ['0001#1'],
+						},
+					],
 				}),
 		);
 		expect(entry?.facts[0]?.supersedes).toEqual([]);
@@ -93,7 +103,11 @@ describe('generateFacts', () => {
 describe('buildFacts', () => {
 	it('processes digests oldest first', async () => {
 		const seen: string[] = [];
-		const { store } = stores([digest('0003', 'c'), digest('0001', 'a'), digest('0002', 'b')]);
+		const { store } = stores([
+			digest('0003', 'c'),
+			digest('0001', 'a'),
+			digest('0002', 'b'),
+		]);
 		await buildFacts(store, model, async (_system, prompt) => {
 			seen.push(prompt.match(/Summary: (\w)/)?.[1] ?? '?');
 			return '{"facts":[]}';
@@ -115,13 +129,22 @@ describe('buildFacts', () => {
 			if (prompt.includes('Summary: Set')) {
 				expect(prompt).toContain('nothing on record yet');
 				return JSON.stringify({
-					facts: [{ subject: 'digest model', statement: 'The digest model is minimax-m3.' }],
+					facts: [
+						{
+							subject: 'digest model',
+							statement: 'The digest model is minimax-m3.',
+						},
+					],
 				});
 			}
 			expect(prompt).toContain('0001#1');
 			return JSON.stringify({
 				facts: [
-					{ subject: 'digest model', statement: 'The digest model is glm-5.3.', supersedes: ['0001#1'] },
+					{
+						subject: 'digest model',
+						statement: 'The digest model is glm-5.3.',
+						supersedes: ['0001#1'],
+					},
 				],
 			});
 		});
@@ -135,10 +158,16 @@ describe('buildFacts', () => {
 		]);
 		const result = await buildFacts(store, model, async (_system, prompt) =>
 			prompt.includes('nothing on record yet')
-				? JSON.stringify({ facts: [{ subject: 'digest model', statement: 'Old.' }] })
+				? JSON.stringify({
+						facts: [{ subject: 'digest model', statement: 'Old.' }],
+					})
 				: JSON.stringify({
 						facts: [
-							{ subject: 'digest model', statement: 'New.', supersedes: ['0001#1'] },
+							{
+								subject: 'digest model',
+								statement: 'New.',
+								supersedes: ['0001#1'],
+							},
 						],
 					}),
 		);
@@ -160,11 +189,17 @@ describe('buildFacts', () => {
 		const result = await buildFacts(store, model, async (_system, prompt) =>
 			prompt.includes('nothing on record yet')
 				? JSON.stringify({
-						facts: [{ subject: 'digest model', statement: 'It is minimax-m3.' }],
+						facts: [
+							{ subject: 'digest model', statement: 'It is minimax-m3.' },
+						],
 					})
 				: JSON.stringify({
 						facts: [
-							{ subject: 'digest model', statement: 'Gone.', supersedes: ['0001#1'] },
+							{
+								subject: 'digest model',
+								statement: 'Gone.',
+								supersedes: ['0001#1'],
+							},
 						],
 					}),
 		);
@@ -172,7 +207,10 @@ describe('buildFacts', () => {
 	});
 
 	it('resumes rather than restarting', async () => {
-		const { store, written } = stores([digest('0001', 'a'), digest('0002', 'b')]);
+		const { store, written } = stores([
+			digest('0001', 'a'),
+			digest('0002', 'b'),
+		]);
 		written.push({ segment: '0001', at: '', model: 'test/model', facts: [] });
 		const complete = vi.fn(async () => '{"facts":[]}');
 		const result = await buildFacts(store, model, complete);
@@ -190,11 +228,19 @@ describe('buildFacts', () => {
 
 	it('keeps what it finished when aborted', async () => {
 		const controller = new AbortController();
-		const { store, written } = stores([digest('0001', 'a'), digest('0002', 'b')]);
-		const result = await buildFacts(store, model, async () => {
-			controller.abort();
-			return '{"facts":[]}';
-		}, { signal: controller.signal });
+		const { store, written } = stores([
+			digest('0001', 'a'),
+			digest('0002', 'b'),
+		]);
+		const result = await buildFacts(
+			store,
+			model,
+			async () => {
+				controller.abort();
+				return '{"facts":[]}';
+			},
+			{ signal: controller.signal },
+		);
 		expect(result.aborted).toBe(true);
 		expect(result.processed).toBe(1);
 		expect(written).toHaveLength(1);
@@ -203,12 +249,18 @@ describe('buildFacts', () => {
 	it('counts a failed segment and carries on', async () => {
 		const onFailure = vi.fn();
 		const { store } = stores([digest('0001', 'a'), digest('0002', 'b')]);
-		const result = await buildFacts(store, model, async (_s, prompt) =>
-			prompt.includes('Summary: a') ? 'not json' : '{"facts":[]}',
+		const result = await buildFacts(
+			store,
+			model,
+			async (_s, prompt) =>
+				prompt.includes('Summary: a') ? 'not json' : '{"facts":[]}',
 			{ onFailure },
 		);
 		expect(result.failed).toBe(1);
 		expect(result.processed).toBe(1);
-		expect(onFailure).toHaveBeenCalledWith('0001', expect.stringContaining('not json'));
+		expect(onFailure).toHaveBeenCalledWith(
+			'0001',
+			expect.stringContaining('not json'),
+		);
 	});
 });

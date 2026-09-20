@@ -41,7 +41,7 @@
 	</article>
 {:else}
 	<p data-ui="settings-empty">
-		Nothing stands yet. Facts are derived from digests, so digest this
-		workspace first.
+		Nothing stands yet. Facts are derived from digests, so digest this workspace
+		first.
 	</p>
 {/each}

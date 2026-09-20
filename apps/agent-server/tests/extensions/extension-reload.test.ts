@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ProjectServiceRegistry, type ProjectService } from '@gizmo/extension-api';
+import {
+	ProjectServiceRegistry,
+	type ProjectService,
+} from '@gizmo/extension-api';
 import {
 	configureExtensionReload,
 	notifyExtensionsChanged,

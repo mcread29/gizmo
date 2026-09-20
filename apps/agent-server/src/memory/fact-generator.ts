@@ -29,11 +29,7 @@ export async function generateFacts(
 	const shown = relevantFacts(digest, known);
 	let raw: string;
 	try {
-		raw = await complete(
-			factSystemPrompt,
-			factPrompt(digest, shown),
-			signal,
-		);
+		raw = await complete(factSystemPrompt, factPrompt(digest, shown), signal);
 	} catch (error) {
 		onFailure?.(error instanceof Error ? error.message : String(error));
 		return;
@@ -43,7 +39,8 @@ export async function generateFacts(
 	// retire facts on the strength of a guess.
 	const citable = new Set(shown.map((fact) => fact.id));
 	const entry = parseFacts(raw, digest.segment, formatModelRef(model), citable);
-	if (!entry) onFailure?.(`The model did not answer with facts: ${preview(raw)}`);
+	if (!entry)
+		onFailure?.(`The model did not answer with facts: ${preview(raw)}`);
 	return entry;
 }
 

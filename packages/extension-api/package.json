@@ -13,7 +13,10 @@
 		".": "./src/index.ts",
 		"./display-schema": "./src/display-schema.ts"
 	},
-	"files": ["src", "README.md"],
+	"files": [
+		"src",
+		"README.md"
+	],
 	"scripts": {
 		"check": "tsc -p tsconfig.json",
 		"test": "vitest run"
@@ -25,7 +28,9 @@
 		"@earendil-works/pi-coding-agent": ">=0.84.0"
 	},
 	"peerDependenciesMeta": {
-		"@earendil-works/pi-coding-agent": { "optional": true }
+		"@earendil-works/pi-coding-agent": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@earendil-works/pi-coding-agent": "^0.84.4",

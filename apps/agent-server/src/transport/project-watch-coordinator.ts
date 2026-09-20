@@ -1,5 +1,8 @@
 import type { ExtensionDescriptor } from '@gizmo/protocol';
-import type { ProjectService, ProjectServiceRegistry } from '@gizmo/extension-api';
+import type {
+	ProjectService,
+	ProjectServiceRegistry,
+} from '@gizmo/extension-api';
 import type { ExtensionHostService } from '../extensions/extension-host-service';
 
 export interface ProjectEmitters {

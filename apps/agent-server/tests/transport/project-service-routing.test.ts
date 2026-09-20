@@ -4,7 +4,10 @@ import { protocolVersion as PROTOCOL_VERSION } from '@gizmo/protocol';
 import { AgentEventHub } from '../../src/sessions/agent-event-hub';
 import type { AgentEventListener } from '../../src/sessions/pi-agent-types';
 import type { PiAgentService } from '../../src/sessions/pi-agent-service';
-import { ProjectServiceRegistry, type ProjectService } from '@gizmo/extension-api';
+import {
+	ProjectServiceRegistry,
+	type ProjectService,
+} from '@gizmo/extension-api';
 import {
 	createAgentWebSocketServer,
 	type AgentWebSocketServer,
