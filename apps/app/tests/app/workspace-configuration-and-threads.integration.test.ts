@@ -15,7 +15,12 @@ describe('workspace configuration and thread sidebar', () => {
 		);
 
 		expect(await findByRole('main', { name: 'Workspace' })).toBeInTheDocument();
-		expect(location.hash).toContain('/instructions');
+		// Instructions and the tool policy are part of Overview now, so the
+		// settings button lands on the default tab.
+		expect(location.hash).not.toContain('/instructions');
+		expect(
+			await findByRole('textbox', { name: 'AGENTS.md Markdown' }),
+		).toBeInTheDocument();
 
 		// Installed extensions are listed on the Extensions tab, inheriting the
 		// global state until this workspace overrides them.
@@ -139,7 +144,7 @@ describe('workspace configuration and thread sidebar', () => {
 		await fireEvent.click(
 			within(dialog).getByRole('button', { name: 'Cancel' }),
 		);
-		expect(location.hash).toContain('/instructions');
+		expect(location.hash).not.toContain('/skills');
 		expect(
 			await findByRole('textbox', { name: 'AGENTS.md Markdown' }),
 		).toHaveValue('Draft guidance');
@@ -154,7 +159,7 @@ describe('workspace configuration and thread sidebar', () => {
 		);
 		await waitFor(() => expect(location.hash).toContain('/skills'));
 
-		await fireEvent.click(getByRole('tab', { name: 'Instructions & tools' }));
+		await fireEvent.click(getByRole('tab', { name: 'Overview' }));
 		expect(
 			await findByRole('textbox', { name: 'AGENTS.md Markdown' }),
 		).toHaveValue('');

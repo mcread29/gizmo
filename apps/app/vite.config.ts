@@ -1,15 +1,23 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vitest/config';
 
+/*
+ * Both ports are configurable so a dev server can run beside an installed
+ * Gizmo service — which holds 8787 — rather than only instead of it.
+ */
+const agentPort = Number(process.env.GIZMO_PORT ?? 8787);
+const devPort = Number(process.env.GIZMO_DEV_PORT ?? 5173);
+
 export default defineConfig({
 	plugins: [svelte()],
 	clearScreen: false,
 	server: {
 		host: process.env.GIZMO_DEV_HOST || false,
+		port: devPort,
 		strictPort: true,
 		proxy: {
 			'/agent': {
-				target: 'ws://127.0.0.1:8787',
+				target: `ws://127.0.0.1:${agentPort}`,
 				ws: true,
 			},
 		},

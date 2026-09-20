@@ -9,7 +9,6 @@
 	import WorkspaceActionsMenu from './WorkspaceActionsMenu.svelte';
 	import WorkspaceExtensionsPanel from './WorkspaceExtensionsPanel.svelte';
 	import WorkspaceHome from './WorkspaceHome.svelte';
-	import WorkspaceInstructionsPanel from './WorkspaceInstructionsPanel.svelte';
 	import WorkspaceSkillsPanel from './WorkspaceSkillsPanel.svelte';
 	import { WorkspaceConfiguration } from './workspace-config.svelte';
 
@@ -41,7 +40,6 @@
 
 	const tabs = [
 		{ value: 'overview', label: 'Overview' },
-		{ value: 'instructions', label: 'Instructions & tools' },
 		{ value: 'skills', label: 'Skills' },
 		{ value: 'extensions', label: 'Extensions' },
 	];
@@ -75,8 +73,8 @@
 	 */
 	function selectTab(value: string) {
 		if (value === tab) return;
-		// AGENTS.md is the one editor here with a Save step, so leaving its tab
-		// is the only navigation that can drop work.
+		// AGENTS.md is the one editor here with a Save step, and it lives on
+		// Overview, so leaving a tab is the only navigation that can drop work.
 		guard.guard('Discard the unsaved changes to AGENTS.md?', () =>
 			onSelectTab(value as WorkspaceTab),
 		);
@@ -137,19 +135,14 @@
 								{store}
 								workspacePath={project.path}
 								{configuration}
+								{guard}
 								{onSelectTab}
 								{onOpenThread}
 								onNewThread={() => onNewThread(project.path)}
 							/>
 						{:else if configuration.config}
 							<div data-ui="workspace-configure">
-								{#if value === 'instructions'}
-									<WorkspaceInstructionsPanel
-										{store}
-										workspacePath={project.path}
-										{guard}
-									/>
-								{:else if value === 'skills'}
+								{#if value === 'skills'}
 									<WorkspaceSkillsPanel
 										{store}
 										workspacePath={project.path}

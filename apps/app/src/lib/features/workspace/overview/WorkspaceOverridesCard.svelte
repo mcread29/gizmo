@@ -31,6 +31,20 @@
 		}),
 	);
 
+	/*
+	 * The tools override is edited further down this same page now, so its row
+	 * scrolls to that section instead of asking for a tab that is already open.
+	 */
+	function open(override: WorkspaceOverride) {
+		if (override.tab !== 'overview') {
+			onSelectTab(override.tab);
+			return;
+		}
+		document
+			.querySelector('[data-ui="workspace-configure"]')
+			?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	}
+
 	function revert(override: WorkspaceOverride) {
 		if (override.kind === 'tools') {
 			void store.setProjectToolPolicy(workspacePath, null);
@@ -75,7 +89,7 @@
 				<div data-ui="workspace-override-row">
 					<button
 						data-ui="workspace-override-open"
-						onclick={() => onSelectTab(override.tab)}
+						onclick={() => open(override)}
 					>
 						<span>
 							<strong>{override.name}</strong>

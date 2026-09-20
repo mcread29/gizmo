@@ -12,29 +12,6 @@
 
 	let { store, workspacePath, configuration, onSelectTab }: Props = $props();
 
-	let agentsLines = $state<number>();
-	let agentsExists = $state<boolean>();
-
-	// The other three numbers are already in the store; this one is a file, so
-	// Overview reads it once rather than sending you to the tab to find out
-	// whether the workspace has instructions at all.
-	$effect(() => {
-		let current = true;
-		agentsLines = undefined;
-		agentsExists = undefined;
-		void store
-			.readInstructions('project-agents', workspacePath)
-			.then((file) => {
-				if (!current) return;
-				agentsExists = file.exists;
-				agentsLines = file.content ? file.content.split(/\r?\n/).length : 0;
-			})
-			.catch(() => {});
-		return () => {
-			current = false;
-		};
-	});
-
 	let skills = $derived(
 		store.resources?.workspacePath === workspacePath
 			? (store.resources?.skills ?? []).filter((skill) => skill.installed)
@@ -63,6 +40,8 @@
 		}).length,
 	);
 
+	// The instructions and the tool policy are on this page now, so the row is
+	// exactly the two counts that still live on a tab of their own.
 	let stats = $derived([
 		{
 			tab: 'skills' as const,
@@ -73,21 +52,6 @@
 			tab: 'extensions' as const,
 			label: 'Extensions on',
 			value: `${extensionsOn} of ${extensions.length}`,
-		},
-		{
-			tab: 'instructions' as const,
-			label: 'Built-in tools',
-			value: store.toolPolicy?.project ? 'Overridden' : 'Inherit global',
-		},
-		{
-			tab: 'instructions' as const,
-			label: 'AGENTS.md',
-			value:
-				agentsExists === undefined
-					? '—'
-					: agentsExists
-						? `${agentsLines} lines`
-						: 'Not created',
 		},
 	]);
 </script>

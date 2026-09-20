@@ -62,12 +62,6 @@
 	white-space: nowrap;
 }
 
-[data-ui='inspector-header'] h2 {
-	margin: 0;
-	font-size: var(--text-md);
-	font-weight: 650;
-}
-
 /* Identical to the workspace screen's title: the same thing, named the same. */
 [data-ui='conversation-header'] h1 {
 	margin: 0;

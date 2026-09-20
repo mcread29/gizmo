@@ -3,7 +3,9 @@
 	import type { AgentStore } from '../../agent-client';
 	import { Button } from '../../components';
 	import type { WorkspaceTab } from '../../router.svelte';
+	import type { UnsavedChangesGuard } from '../settings/unsaved-changes.svelte';
 	import { formatSessionTime, threadTitle } from '../sessions/session-groups';
+	import WorkspaceInstructionsPanel from './WorkspaceInstructionsPanel.svelte';
 	import WorkspaceOverridesCard from './overview/WorkspaceOverridesCard.svelte';
 	import WorkspaceSummaryCard from './overview/WorkspaceSummaryCard.svelte';
 	import type { WorkspaceConfiguration } from './workspace-config.svelte';
@@ -12,6 +14,7 @@
 		store: AgentStore;
 		workspacePath: string;
 		configuration: WorkspaceConfiguration;
+		guard: UnsavedChangesGuard;
 		onSelectTab: (tab: WorkspaceTab) => void;
 		onOpenThread: (sessionId: string) => void;
 		onNewThread: () => void;
@@ -21,6 +24,7 @@
 		store,
 		workspacePath,
 		configuration,
+		guard,
 		onSelectTab,
 		onOpenThread,
 		onNewThread,
@@ -80,4 +84,15 @@
 			</div>
 		{/if}
 	</section>
+
+	<!--
+		The instructions and the tool policy apply to everything the agent does
+		here, so they read as the bottom of the same page rather than a tab you
+		had to know to open. AGENTS.md is the only editor with a Save step: its
+		dirty flag feeds the screen's guard, which asks before a tab change drops
+		the draft.
+	-->
+	<div data-ui="workspace-configure">
+		<WorkspaceInstructionsPanel {store} {workspacePath} {guard} />
+	</div>
 </div>

@@ -15,8 +15,8 @@
 
 <!--
 	The two settings that apply to everything the agent does here, and the only
-	tab with a Save step: the editor's dirty flag feeds the screen's guard so
-	leaving asks before dropping the draft.
+	editor with a Save step: the dirty flag feeds the screen's guard so leaving
+	asks before dropping the draft.
 -->
 <InstructionsEditor
 	{store}

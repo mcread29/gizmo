@@ -108,10 +108,13 @@ describe('AppRouter', () => {
 		);
 	});
 
-	it('lands old Configure links on the first of its three tabs', () => {
+	it('lands old Configure and Instructions links on Overview', () => {
 		expect(
 			locationFromHash('#workspace/%2Fhome%2Fdev%2Frepo/configure'),
-		).toMatchObject({ workspacePath: '/home/dev/repo', tab: 'instructions' });
+		).toMatchObject({ workspacePath: '/home/dev/repo', tab: 'overview' });
+		expect(
+			locationFromHash('#workspace/%2Fhome%2Fdev%2Frepo/instructions').tab,
+		).toBe('overview');
 		expect(
 			locationFromHash('#workspace/%2Fhome%2Fdev%2Frepo/nonsense').tab,
 		).toBe('overview');

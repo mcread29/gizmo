@@ -6,7 +6,6 @@
 	import type { WorkspaceLayout } from '../features/shell/workspace.svelte';
 	import ExtensionViewPanel from './ExtensionViewPanel.svelte';
 	import { extensionUi } from './extension-ui.svelte';
-	import { workspaceNameFromPath } from './workspace-label';
 
 	let {
 		store,
@@ -28,9 +27,6 @@
 	} = $props();
 
 	let projectPath = $derived(store.selectedProjectPath);
-	let workspaceName = $derived(
-		workspaceNameFromPath(projectPath) ?? 'Select a workspace',
-	);
 
 	/** The latest view per tab, for the badge the tab shows. */
 	let views = $state<Record<string, View | undefined>>({});
@@ -78,12 +74,17 @@
 	aria-label="Workspace inspector"
 	inert={hidden || undefined}
 >
-	<div data-ui="inspector-header">
-		<div><h2>{workspaceName}</h2></div>
-		{#if onCollapse}
+	<!--
+		The workspace is already named in the titlebar and on the screen beside
+		this one, so the header carries nothing but the collapse control — and
+		is absent entirely where the rail owns that, leaving the tab strip as
+		the panel's first row.
+	-->
+	{#if onCollapse}
+		<div data-ui="inspector-header">
 			<PanelToggle side="right" expanded onToggle={onCollapse} />
-		{/if}
-	</div>
+		</div>
+	{/if}
 
 	{#key projectPath}
 		{#if tabs.length && projectPath}

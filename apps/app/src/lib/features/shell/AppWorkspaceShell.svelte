@@ -124,8 +124,7 @@
 					: undefined}
 				onOpenWorkspacePicker={() => sessions.openCommandPalette('workspace')}
 				onOpenWorkspace={(projectPath) => onShowWorkspace(projectPath)}
-				onOpenWorkspaceSettings={(projectPath) =>
-					onShowWorkspace(projectPath, 'instructions')}
+				onOpenWorkspaceSettings={(projectPath) => onShowWorkspace(projectPath)}
 				onNewThread={(projectPath) => void onStartThread(projectPath)}
 				onOpenThread={(sessionId) => void onOpenThread(sessionId)}
 			/>

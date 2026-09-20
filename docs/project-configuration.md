@@ -67,14 +67,13 @@ toggle affects threads created afterwards.
 
 ## UI workflow
 
-Opening a workspace shows it without creating a thread, on four tabs:
+Opening a workspace shows it without creating a thread, on three tabs:
 
-- **Overview** — a read-only answer to "how is this set up": a stat row
-  (skills on, extensions on, built-in tools, AGENTS.md size) that links into
-  the tab that edits each, an "Overridden here" list naming only the items
-  that depart from global, each revertable in place with **Use global**, and
-  the workspace's recent threads.
-- **Instructions & tools** — the workspace `AGENTS.md`, and the built-in tool
+- **Overview** — how this workspace is set up, and everything that applies to
+  all of it: a two-stat row (skills on, extensions on) that links into the tab
+  that edits each, an "Overridden here" list naming only the items that depart
+  from global, each revertable in place with **Use global**, the workspace's
+  recent threads, and then the workspace `AGENTS.md` and the built-in tool
   override (via `.pi/settings.json`).
 - **Skills** — skill overrides resolved per workspace, searchable and
   filterable by on/off/overridden, grouped by source directory.

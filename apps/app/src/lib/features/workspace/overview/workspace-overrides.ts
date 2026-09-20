@@ -90,7 +90,7 @@ export function workspaceOverrides({
 			globally: toolPolicy.global
 				? `${toolPolicy.global.length} allowed globally`
 				: 'Pi defaults globally',
-			tab: 'instructions',
+			tab: 'overview',
 		});
 	}
 

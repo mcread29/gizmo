@@ -21,12 +21,7 @@ export type SettingsPage = (typeof settingsPages)[number];
 export const defaultSettingsPage: SettingsPage = 'appearance';
 
 /** A workspace screen shows one workspace; its tabs are addressable too. */
-export const workspaceTabs = [
-	'overview',
-	'instructions',
-	'skills',
-	'extensions',
-] as const;
+export const workspaceTabs = ['overview', 'skills', 'extensions'] as const;
 
 export type WorkspaceTab = (typeof workspaceTabs)[number];
 
@@ -69,9 +64,9 @@ export function locationFromHash(hash: string): AppLocation {
 	};
 }
 
-/** The one Configure tab became three pages; old links land on the first. */
+/** Configure, then Instructions & tools, both folded into Overview. */
 function workspaceTab(name: string | undefined): WorkspaceTab | undefined {
-	if (name === 'configure') return 'instructions';
+	if (name === 'configure' || name === 'instructions') return 'overview';
 	return workspaceTabs.includes(name as WorkspaceTab)
 		? (name as WorkspaceTab)
 		: undefined;
