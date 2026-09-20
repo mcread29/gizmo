@@ -1,5 +1,34 @@
 # Work log
 
+## 2026-09-20 — v0.1.5: workspace configuration gathers memory; the registry catches up
+
+- Workspace instructions are no longer their own screen. Configuration, tools
+  and instructions sit together on Overview, and the old instructions route
+  redirects there rather than 404ing. The summary card lost the block it was
+  duplicating from the overrides card. Vite's and the agent server's ports are
+  configurable instead of hard-coded.
+- Memory moved the same way. Settings keeps the global digest defaults; the
+  per-workspace overrides, coverage, facts and saved memories are now part of
+  workspace configuration, with `WorkspaceMemoryPanel` reading them over three
+  new memory requests and an integration test covering the round trip.
+- The registry submodule advanced three commits, so a release finally carries a
+  pointer to all of it:
+  - Unity tools build per workspace instead of reading the agent server's own
+    process directory, which had them acting on the wrong project whenever a
+    second thread was open; and the compile tracker normalises paths to
+    project-relative, so the same file written absolute and relative stops
+    looking like two pending compiles.
+  - `subagent_spawn` takes a `tier` (base, mid, strong) and a
+    `reasoning_effort` rather than a fixed model. A subagent that fails is
+    retried on the next tier up, carrying a compacted summary of how far the
+    failed attempt got. `/subagents tiers` picks the model and effort per tier
+    from the models the configured providers actually report, and spawning
+    stays disabled until all three are set. The tool card and the Subagents tab
+    both show the tier and any escalations.
+  - The hand-written Pi-era extensions that had accumulated in `~/.gizmo`
+    alongside the registry links are recorded at `local/` in the registry with
+    the reason they left, and the data directory now holds only the links.
+
 ## 2026-09-19 — Installable releases: the `gizmo` CLI, services, packaging
 
 - `~/.gizmo/web.json` is now the whole web configuration (`agentPort`,
