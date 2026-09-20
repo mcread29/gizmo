@@ -43,6 +43,8 @@ export const logsDir = () => join(dataDir(), 'logs');
 export const webLogFile = () => join(logsDir(), 'web.log');
 
 export const webConfigFile = () => join(dataDir(), 'web.json');
+/** Where `gizmo run` records its own pid, so `service stop` can end the tree. */
+export const webPidFile = () => join(dataDir(), 'web.pid');
 
 /** Written into every release tarball; absent from a `source` install. */
 export const releaseManifestFile = (root = appRoot) =>

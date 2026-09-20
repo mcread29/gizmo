@@ -47,8 +47,7 @@ export async function isSourceInstall(root = appRoot): Promise<boolean> {
  */
 export async function adoptCurrentTree(root = appRoot): Promise<string> {
 	await pointCurrent(root);
-	const pruned = await pruneReleases();
-	for (const path of pruned) console.log(`Removed old release ${path}`);
+	await pruneOldReleases();
 	console.log(`current -> ${root}`);
 	return (await currentVersion()) ?? root;
 }
@@ -67,10 +66,25 @@ export async function installRelease(requested?: string): Promise<string> {
 	await rm(archive, { force: true });
 	run('pnpm', ['install', '--frozen-lockfile'], target);
 	await pointCurrent(target);
-	const pruned = await pruneReleases();
-	for (const path of pruned) console.log(`Removed old release ${path}`);
 	console.log(`current -> ${target}`);
 	return version;
+}
+
+/**
+ * Runs after the new server is up: on Windows the old release's directory
+ * is locked for as long as its process runs, so pruning before the restart
+ * fails with EBUSY. A locked directory is reported, not fatal; the next
+ * update gets it.
+ */
+async function pruneOldReleases() {
+	try {
+		for (const path of await pruneReleases())
+			console.log(`Removed old release ${path}`);
+	} catch (error) {
+		console.log(
+			`Could not remove an old release yet: ${(error as Error).message}`,
+		);
+	}
 }
 
 function updateSourceCheckout(root: string) {
@@ -92,6 +106,7 @@ export async function updateCommand(requested?: string) {
 	}
 	restartService();
 	await waitUntilHealthy();
+	await pruneOldReleases();
 }
 
 export async function rollbackCommand() {

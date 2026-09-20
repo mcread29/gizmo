@@ -77,6 +77,16 @@ The task runs as `S4U`, the no-window, no-stored-password logon type. An
 open a console window at every login and take the server down with it the first
 time someone closed that window.
 
+Stop the task through `gizmo service stop`, not `schtasks /End`. End only
+terminates the `cmd.exe` it launched; the node processes under it keep running
+and keep the ports, so the next start fails while the old code carries on
+serving. `gizmo run` records its pid in `~/.gizmo/web.pid` and `service stop`
+ends that whole tree.
+
+The task points at `~/.gizmo/app/current`, not at one release folder, so
+`gizmo update` and `gizmo rollback` take effect on the next restart without
+re-registering anything.
+
 ## Restarting it
 
 ```

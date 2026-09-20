@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { readFileSync, rmSync } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir, userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -12,7 +13,8 @@ import {
 	windowsTaskXml,
 	type ServiceCommand,
 } from './service-definition';
-import { serviceRoot, webLogFile, windowsLauncher } from './paths';
+import { stopProcessTree } from '../lib/web-process';
+import { serviceRoot, webLogFile, webPidFile, windowsLauncher } from './paths';
 
 export type Platform = 'linux' | 'darwin' | 'win32';
 
@@ -186,11 +188,35 @@ export function startService() {
 	]);
 }
 
+/**
+ * `schtasks /End` terminates only the `cmd.exe` it launched; the node tree
+ * under it lives on, keeps the ports, and makes the next start fail while
+ * the health wait still reports "Up". The pid `gizmo run` recorded is ended
+ * with its whole tree, after checking it is still a node process, so a stale
+ * file after a crash cannot take down whatever inherited the number.
+ */
+function endRecordedTree() {
+	let pid: number;
+	try {
+		pid = Number(readFileSync(webPidFile(), 'utf8').trim());
+	} catch {
+		return;
+	}
+	const listed = run('tasklist.exe', ['/FI', `PID eq ${String(pid)}`, '/NH'], {
+		quiet: true,
+	});
+	if (Number.isInteger(pid) && /node\.exe/i.test(listed.output)) {
+		stopProcessTree(pid);
+	}
+	rmSync(webPidFile(), { force: true });
+}
+
 export function stopService() {
 	if (currentPlatform() === 'win32') {
 		run('schtasks.exe', ['/End', '/TN', serviceNames.windowsTask], {
 			quiet: true,
 		});
+		endRecordedTree();
 		return;
 	}
 	if (currentPlatform() === 'linux') {
@@ -206,9 +232,9 @@ export function stopService() {
 
 /** The command a reader should type when status reports the server down. */
 export function restartCommand(platform: Platform = currentPlatform()): string {
-	if (platform === 'win32') {
-		return `schtasks /End /TN "${serviceNames.windowsTask}" && schtasks /Run /TN "${serviceNames.windowsTask}"`;
-	}
+	// Not the raw `schtasks` pair: `/End` alone strands the server's process
+	// tree (see `stopService`).
+	if (platform === 'win32') return 'gizmo service restart';
 	if (platform === 'linux') {
 		return `systemctl --user restart ${serviceNames.systemdUnit}`;
 	}

@@ -106,7 +106,7 @@ describe('windowsLauncherScript', () => {
 
 describe('restartCommand', () => {
 	it('names the mechanism in use on each platform', () => {
-		expect(restartCommand('win32')).toContain(serviceNames.windowsTask);
+		expect(restartCommand('win32')).toBe('gizmo service restart');
 		expect(restartCommand('linux')).toContain(serviceNames.systemdUnit);
 		expect(restartCommand('darwin')).toContain(serviceNames.launchdLabel);
 	});

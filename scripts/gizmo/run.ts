@@ -1,4 +1,4 @@
-import { closeSync, openSync } from 'node:fs';
+import { closeSync, openSync, rmSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { appendFile, mkdir } from 'node:fs/promises';
@@ -11,7 +11,7 @@ import {
 	originsOf,
 	type WebConfig,
 } from './config';
-import { appRoot, webLogFile } from './paths';
+import { appRoot, webLogFile, webPidFile } from './paths';
 import { tailnetNode } from './tailscale';
 
 /**
@@ -55,6 +55,10 @@ export async function runServer(config: WebConfig, options: RunOptions = {}) {
 	);
 
 	const logDescriptor = openSync(logFile, 'a');
+	// Task Scheduler's End only reaches the launched process. Recording the
+	// pid lets `gizmo service stop` end the whole tree instead of leaving the
+	// old server holding the ports behind a "restarted" one.
+	writeFileSync(webPidFile(), String(process.pid));
 	const requireFromApp = createRequire(
 		join(root, 'apps', 'app', 'package.json'),
 	);
@@ -115,5 +119,6 @@ export async function runServer(config: WebConfig, options: RunOptions = {}) {
 		return await firstExit(children, logFile);
 	} finally {
 		for (const child of children) stopProcessTree(child.pid);
+		rmSync(webPidFile(), { force: true });
 	}
 }

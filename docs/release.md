@@ -346,9 +346,10 @@ The Windows box runs from a checkout via `Supervise.ps1` and a config under
    specific to this machine and is not part of what other users install.
 2. `schtasks /End /TN "Gizmo Web"`, then `pnpm gizmo service install` from the
    checkout, which rewrites the same task name to point at `gizmo run` there.
-   There is no `--source` flag: the service is always registered against the
-   tree the CLI itself is running from (`appRoot`), so running it out of the
-   checkout is what makes it a source install.
+   There is no `--source` flag: the service is registered against the tree
+   the CLI itself is running from (a checkout as itself, a release install as
+   `app/current`), so running it out of the checkout is what makes it a
+   source install.
 3. `pnpm gizmo service start`, then `pnpm gizmo service status`.
 4. Delete `gizmo.json` from the `genge-services` conf directory. The other
    services there are untouched.
