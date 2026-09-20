@@ -3,6 +3,7 @@ import { caddyfile, publicExposureWarning } from '../gizmo/caddy';
 import {
 	compareVersions,
 	parseChecksums,
+	tarExecutable,
 	tarballName,
 } from '../gizmo/release-download';
 import {
@@ -143,5 +144,20 @@ describe('releaseNotes', () => {
 
 	it('falls back to the version when the log has no sections', () => {
 		expect(releaseNotes('# Work log\n', 'v0.1.0')).toBe('v0.1.0');
+	});
+});
+
+describe('tarExecutable', () => {
+	it('uses the System32 copy on Windows so GNU tar never sees a drive letter', () => {
+		const env = { SystemRoot: 'C:\\Windows' };
+		expect(tarExecutable('win32', env, () => true)).toMatch(
+			/System32.tar\.exe$/,
+		);
+		expect(tarExecutable('win32', env, () => false)).toBe('tar');
+	});
+
+	it('leaves other platforms on PATH lookup', () => {
+		expect(tarExecutable('linux', {})).toBe('tar');
+		expect(tarExecutable('darwin', {})).toBe('tar');
 	});
 });

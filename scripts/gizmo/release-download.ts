@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -90,11 +91,27 @@ export async function fetchVerifiedTarball(version: string): Promise<string> {
 	return file;
 }
 
+/**
+ * Which `tar` to run. Windows 10+ ships bsdtar in System32, but a Git for
+ * Windows install often puts GNU tar ahead of it on PATH, and GNU tar reads
+ * `C:\\...` as `host:path` ("Cannot connect to C: resolve failed"). Prefer the
+ * system copy whenever it exists.
+ */
+export function tarExecutable(
+	platform = process.platform,
+	env = process.env,
+	exists: (path: string) => boolean = existsSync,
+): string {
+	if (platform !== 'win32') return 'tar';
+	const system = join(env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe');
+	return exists(system) ? system : 'tar';
+}
+
 /** `tar` ships with Windows 10+ as well, so one extractor covers all three. */
 export async function unpackTarball(archive: string, target: string) {
 	await rm(target, { recursive: true, force: true });
 	await mkdir(target, { recursive: true });
-	const result = spawnSync('tar', ['-xzf', archive, '-C', target], {
+	const result = spawnSync(tarExecutable(), ['-xzf', archive, '-C', target], {
 		encoding: 'utf8',
 		windowsHide: true,
 	});
