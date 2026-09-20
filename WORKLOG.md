@@ -1,5 +1,18 @@
 # Work log
 
+## 2026-09-20 — Registry updates find pnpm without a PATH
+
+- A release install's registry update failed at `pnpm install` with
+  `pnpm: not found`: the supervisor runs the service with an absolute `node`
+  and no login PATH, and the installer shelled out to a bare `pnpm`. The
+  checkout had already moved, so the linked extensions ran code the host had
+  no dependencies for, which is how the Changes panel broke on this machine.
+- The server now resolves `pnpm` the way the installer guarantees it: the
+  corepack shim beside the `node` the service runs, then `corepack pnpm`, then
+  PATH. The child also gets that `node` directory prepended to its PATH, since
+  the shim is a script that starts `node` by name. Verified by running the
+  install under `env -i` with only the system PATH.
+
 ## 2026-09-20 — v0.1.5: workspace configuration gathers memory; the registry catches up
 
 - Workspace instructions are no longer their own screen. Configuration, tools

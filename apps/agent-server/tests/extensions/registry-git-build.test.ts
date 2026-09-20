@@ -2,9 +2,13 @@ import { execFile } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { win32 } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
-import { registryUpdateAvailable } from '../../src/extensions/registry-git-build';
+import {
+	pnpmCommand,
+	registryUpdateAvailable,
+} from '../../src/extensions/registry-git-build';
 
 const exec = promisify(execFile);
 const paths: string[] = [];
@@ -55,3 +59,41 @@ async function commit(repository: string, message: string) {
 async function git(args: string[], cwd: string) {
 	await exec('git', args, { cwd, windowsHide: true });
 }
+
+describe('pnpmCommand', () => {
+	const node = join('/opt', 'node', 'bin', 'node');
+	const only =
+		(...present: string[]) =>
+		(path: string) =>
+			present.includes(path);
+
+	it('prefers the pnpm shim beside the node the service runs', () => {
+		const pnpm = join('/opt', 'node', 'bin', 'pnpm');
+		expect(pnpmCommand(node, 'linux', only(pnpm))).toEqual({
+			command: pnpm,
+			args: [],
+		});
+	});
+
+	it('falls back to corepack beside node when pnpm was never enabled', () => {
+		const corepack = join('/opt', 'node', 'bin', 'corepack');
+		expect(pnpmCommand(node, 'linux', only(corepack))).toEqual({
+			command: corepack,
+			args: ['pnpm'],
+		});
+	});
+
+	it('leaves PATH resolution as the last resort', () => {
+		expect(pnpmCommand(node, 'linux', () => false)).toEqual({
+			command: 'pnpm',
+			args: [],
+		});
+	});
+
+	it('names the .cmd shims on Windows', () => {
+		const exe = 'C:\\nodejs\\node.exe';
+		expect(pnpmCommand(exe, 'win32', () => false).command).toBe('pnpm.cmd');
+		const shim = win32.join('C:\\nodejs', 'pnpm.cmd');
+		expect(pnpmCommand(exe, 'win32', only(shim)).command).toBe(shim);
+	});
+});

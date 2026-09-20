@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { delimiter, dirname, join, posix, win32 } from 'node:path';
 
 function exec(command: string, args: string[], cwd: string): Promise<string> {
 	return new Promise((resolve, reject) => {
@@ -71,6 +71,29 @@ export async function registryUpdateAvailable(clone: string, ref = 'HEAD') {
 }
 
 /**
+ * Where `pnpm` lives when the service has no useful PATH. The one-line
+ * installer requires pnpm through `corepack enable`, which puts the shim
+ * beside the `node` the supervisor was registered with, so that directory is
+ * tried first; `corepack pnpm` covers a Node that ships corepack but was not
+ * enabled. A bare `pnpm` on PATH is the last resort, for source checkouts run
+ * from a shell.
+ */
+export function pnpmCommand(
+	nodeExe = process.execPath,
+	platform = process.platform,
+	exists: (path: string) => boolean = existsSync,
+): { command: string; args: string[] } {
+	const path = platform === 'win32' ? win32 : posix;
+	const bin = path.dirname(nodeExe);
+	const ext = platform === 'win32' ? '.cmd' : '';
+	const pnpm = path.join(bin, `pnpm${ext}`);
+	if (exists(pnpm)) return { command: pnpm, args: [] };
+	const corepack = path.join(bin, `corepack${ext}`);
+	if (exists(corepack)) return { command: corepack, args: ['pnpm'] };
+	return { command: `pnpm${ext}`, args: [] };
+}
+
+/**
  * Installs the registry's server-side dependencies. There is nothing to
  * build: extensions are TypeScript the host evaluates as-is. A registry
  * without a lockfile has no dependencies and is left alone.
@@ -79,22 +102,38 @@ export async function installRegistryDependencies(
 	clone: string,
 ): Promise<void> {
 	if (!existsSync(join(clone, 'pnpm-lock.yaml'))) return;
+	const pnpm = pnpmCommand();
+	const windows = process.platform === 'win32';
 	await new Promise<void>((resolve, reject) => {
 		execFile(
-			'pnpm install --frozen-lockfile --ignore-scripts',
+			// Through a shell the command is not quoted for us, and a Windows
+			// Node often lives under `Program Files`.
+			windows ? `"${pnpm.command}"` : pnpm.command,
+			[...pnpm.args, 'install', '--frozen-lockfile', '--ignore-scripts'],
 			{
 				cwd: clone,
-				shell: true,
+				// `.cmd` shims on Windows only run through a shell.
+				shell: windows,
 				windowsHide: true,
-				// Spawned without a terminal. Package managers use CI to choose
-				// their non-interactive, deterministic behavior.
-				env: { ...process.env, CI: process.env.CI || 'true' },
+				env: {
+					...process.env,
+					// Spawned without a terminal. Package managers use CI to choose
+					// their non-interactive, deterministic behavior.
+					CI: process.env.CI || 'true',
+					// The pnpm shim is a script that starts `node` from PATH, and a
+					// supervisor's PATH need not name the Node the service runs.
+					PATH: [dirname(process.execPath), process.env.PATH]
+						.filter(Boolean)
+						.join(delimiter),
+				},
 			},
 			(error, stdout, stderr) => {
 				if (error) {
 					reject(
 						new Error(
-							[error.message, stdout, stderr].filter(Boolean).join('\n'),
+							[`${pnpm.command} install failed`, error.message, stdout, stderr]
+								.filter(Boolean)
+								.join('\n'),
 						),
 					);
 				} else resolve();
