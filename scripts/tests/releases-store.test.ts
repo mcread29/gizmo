@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { releasesDir } from '../gizmo/paths';
+import { currentLink, releasesDir, serviceRoot } from '../gizmo/paths';
 import {
 	currentVersion,
 	installedReleases,
@@ -115,5 +115,18 @@ describe('previousRelease', () => {
 		await release('v0.2.0');
 		await pointCurrent(await release('v0.3.0'));
 		expect(await previousRelease()).toBe('v0.2.0');
+	});
+});
+
+describe('serviceRoot', () => {
+	it('points a release install at the current link so updates take effect', () => {
+		const releases = join('/data', 'app', 'releases');
+		expect(serviceRoot(join(releases, 'v0.1.1'), releases)).toBe(currentLink());
+	});
+
+	it('leaves a source checkout as its own root', () => {
+		const releases = join('/data', 'app', 'releases');
+		expect(serviceRoot('/work/gizmo', releases)).toBe('/work/gizmo');
+		expect(serviceRoot(releases, releases)).toBe(releases);
 	});
 });

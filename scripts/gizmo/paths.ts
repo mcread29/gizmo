@@ -1,5 +1,5 @@
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -22,6 +22,20 @@ export const appHome = () => join(dataDir(), 'app');
 export const releasesDir = () => join(appHome(), 'releases');
 /** Symlink (junction on Windows) at `app/current` pointing at the live tree. */
 export const currentLink = () => join(appHome(), 'current');
+/**
+ * The tree a supervisor should be told to run. Node resolves the `current`
+ * junction before `import.meta.url` is set, so `appRoot` names one pinned
+ * release; a service registered against it would keep running that release
+ * after every `update` swapped the link. Release installs therefore point
+ * the service at `current` itself. A source checkout is its own root.
+ */
+export function serviceRoot(root = appRoot, releases = releasesDir()): string {
+	const inside = relative(releases, root);
+	const isRelease =
+		inside !== '' && !inside.startsWith('..') && !isAbsolute(inside);
+	return isRelease ? currentLink() : root;
+}
+
 /** The Windows launcher the scheduled task runs; carries `GIZMO_DATA_DIR`. */
 export const windowsLauncher = () => join(appHome(), 'startup.cmd');
 

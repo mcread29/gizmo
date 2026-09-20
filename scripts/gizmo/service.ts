@@ -6,7 +6,7 @@ import {
 	stopService,
 	uninstallService,
 } from './service-platform';
-import { appRoot, webConfigFile } from './paths';
+import { webConfigFile } from './paths';
 
 /** A restart is a stop and a start; no platform needs anything cleverer. */
 export function restartService() {
@@ -61,7 +61,7 @@ export async function serviceCommand(argv: readonly string[]) {
 					'variables until you run `gizmo configure`.',
 			);
 		}
-		for (const name of await installService(appRoot))
+		for (const name of await installService())
 			console.log(`Registered ${name}`);
 		console.log('\nStart it with:\n  gizmo service start');
 		return;

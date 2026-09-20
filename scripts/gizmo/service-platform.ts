@@ -1,6 +1,5 @@
 import { spawnSync } from 'node:child_process';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import { homedir, tmpdir, userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
@@ -13,7 +12,7 @@ import {
 	windowsTaskXml,
 	type ServiceCommand,
 } from './service-definition';
-import { appRoot, webLogFile, windowsLauncher } from './paths';
+import { serviceRoot, webLogFile, windowsLauncher } from './paths';
 
 export type Platform = 'linux' | 'darwin' | 'win32';
 
@@ -50,10 +49,12 @@ function run(command: string, args: string[], { quiet = false } = {}) {
 /**
  * What every supervisor is told to run. The `node` path is resolved here, at
  * install time, rather than looked up later: a login session's PATH is not
- * the one a version manager set up in an interactive shell.
+ * the one a version manager set up in an interactive shell. `tsx` is named
+ * through `root/node_modules/tsx` rather than resolved, so the path stays
+ * valid when a later release ships a different `tsx` version.
  */
-export function serviceCommand(root = appRoot): ServiceCommand {
-	const tsxCli = createRequire(import.meta.url).resolve('tsx/cli');
+export function serviceCommand(root = serviceRoot()): ServiceCommand {
+	const tsxCli = join(root, 'node_modules', 'tsx', 'dist', 'cli.mjs');
 	const env: Record<string, string> = {};
 	if (process.env.GIZMO_DATA_DIR)
 		env.GIZMO_DATA_DIR = process.env.GIZMO_DATA_DIR;
@@ -129,7 +130,7 @@ async function installDarwin(command: ServiceCommand) {
 
 const guiTarget = () => `gui/${String(process.getuid?.() ?? 501)}`;
 
-export async function installService(root = appRoot): Promise<string[]> {
+export async function installService(root = serviceRoot()): Promise<string[]> {
 	const command = serviceCommand(root);
 	await mkdir(dirname(command.logFile), { recursive: true });
 	if (currentPlatform() === 'win32') return installWindows(command);
