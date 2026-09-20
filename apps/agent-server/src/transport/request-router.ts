@@ -122,6 +122,7 @@ export async function routeRequest(
 		case 'memory.status':
 		case 'memory.digests':
 		case 'memory.facts':
+		case 'memory.settings':
 		case 'memory.settings.set':
 		case 'memory.backfill.start':
 		case 'memory.backfill.stop':

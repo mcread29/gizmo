@@ -39,6 +39,26 @@ export const digestOverrideSchema = Type.Object(
 
 export type DigestOverride = Static<typeof digestOverrideSchema>;
 
+/**
+ * What one scope runs under and why: the effective settings, the default they
+ * fall back to, and the override itself when there is one.
+ *
+ * Sent for a workspace or, with no override, for the machine's own default.
+ * The raw override is what lets the UI say which half of a setting is
+ * inherited and which was chosen here — a merged view cannot tell a workspace
+ * that happens to match the default from one that pinned the same value.
+ */
+export const digestScopeSchema = Type.Object(
+	{
+		settings: digestSettingsSchema,
+		defaults: digestSettingsSchema,
+		override: Type.Optional(digestOverrideSchema),
+	},
+	{ additionalProperties: false },
+);
+
+export type DigestScope = Static<typeof digestScopeSchema>;
+
 export const journalDigestSchema = Type.Object(
 	{
 		segment: Type.String({ minLength: 1 }),
@@ -91,8 +111,8 @@ export const memoryStatusSchema = Type.Object(
 		settings: digestSettingsSchema,
 		/** The default it falls back to, so the UI can name what is inherited. */
 		defaults: digestSettingsSchema,
-		/** True when this workspace overrides the default rather than inheriting. */
-		overridden: Type.Boolean(),
+		/** Absent while this workspace inherits the default in full. */
+		override: Type.Optional(digestOverrideSchema),
 		/** Present while a backfill is running in this workspace. */
 		running: Type.Optional(
 			Type.Object(

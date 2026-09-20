@@ -1,5 +1,6 @@
 import type {
 	DigestOverride,
+	DigestScope,
 	DigestSettings,
 	JournalFact,
 	MemoryStatus,
@@ -40,7 +41,7 @@ export class MemoryService {
 			factSegments,
 			settings,
 			defaults,
-			overridden,
+			override,
 		] = await Promise.all([
 			new JournalStore(workspacePath).list(),
 			new DigestStore(workspacePath).segments(),
@@ -48,7 +49,7 @@ export class MemoryService {
 			factStore.segments(),
 			this.#settings.read(workspacePath),
 			this.#settings.readDefault(),
-			this.#settings.isOverridden(workspacePath),
+			this.#settings.readOverride(workspacePath),
 		]);
 		const active = this.#running.get(workspacePath);
 		return {
@@ -58,7 +59,7 @@ export class MemoryService {
 			factSegments: factSegments.length,
 			settings,
 			defaults,
-			overridden,
+			...(override ? { override } : {}),
 			...(active
 				? {
 						running: {
@@ -112,6 +113,19 @@ export class MemoryService {
 
 	async readSettings(workspacePath?: string): Promise<DigestSettings> {
 		return this.#settings.read(workspacePath);
+	}
+
+	/**
+	 * What a scope runs under, without touching the journal: the settings
+	 * page has no workspace to read, and Overview only needs the override.
+	 */
+	async settingsScope(workspacePath?: string): Promise<DigestScope> {
+		const [settings, defaults, override] = await Promise.all([
+			this.#settings.read(workspacePath),
+			this.#settings.readDefault(),
+			workspacePath ? this.#settings.readOverride(workspacePath) : undefined,
+		]);
+		return { settings, defaults, ...(override ? { override } : {}) };
 	}
 
 	/** Writes the default every workspace without an override falls back to. */

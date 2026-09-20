@@ -7,8 +7,8 @@ export const settingsPages = [
 	'appearance',
 	'chat',
 	'context',
-	'memory',
 	'connection',
+	'memory',
 	'providers',
 	'agent',
 	'skills',
@@ -21,7 +21,12 @@ export type SettingsPage = (typeof settingsPages)[number];
 export const defaultSettingsPage: SettingsPage = 'appearance';
 
 /** A workspace screen shows one workspace; its tabs are addressable too. */
-export const workspaceTabs = ['overview', 'skills', 'extensions'] as const;
+export const workspaceTabs = [
+	'overview',
+	'memory',
+	'skills',
+	'extensions',
+] as const;
 
 export type WorkspaceTab = (typeof workspaceTabs)[number];
 

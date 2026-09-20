@@ -1,4 +1,5 @@
 import {
+	parseDigestScope,
 	parseDigestSettings,
 	parseJournalDigests,
 	parseJournalFacts,
@@ -27,6 +28,15 @@ export class MemoryRequests extends GitRequests {
 	async memoryFacts(projectPath: string) {
 		const response = await this.request({ type: 'memory.facts', projectPath });
 		return parseJournalFacts(response.result);
+	}
+
+	/** No project reads the default itself; a project reads its view of it. */
+	async memorySettings(projectPath?: string) {
+		const response = await this.request({
+			type: 'memory.settings',
+			...(projectPath ? { projectPath } : {}),
+		});
+		return parseDigestScope(response.result);
 	}
 
 	async setMemoryDefaults(settings: DigestSettings) {

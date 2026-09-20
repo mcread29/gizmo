@@ -1,5 +1,6 @@
 import type {
 	DigestOverride,
+	DigestScope,
 	DigestSettings,
 	JournalDigest,
 	JournalFact,
@@ -63,6 +64,8 @@ export interface AgentClient {
 	): Promise<JournalDigest[]>;
 	/** Only the standing facts; superseded ones never cross the wire. */
 	memoryFacts(projectPath: string): Promise<JournalFact[]>;
+	/** The default with no project, or that workspace's view of it. */
+	memorySettings(projectPath?: string): Promise<DigestScope>;
 	setMemoryDefaults(settings: DigestSettings): Promise<DigestSettings>;
 	setMemoryOverride(
 		projectPath: string,

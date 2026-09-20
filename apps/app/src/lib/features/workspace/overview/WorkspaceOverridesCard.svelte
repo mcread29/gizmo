@@ -28,6 +28,7 @@
 			gizmoExtensions: store.resources?.gizmoExtensions ?? [],
 			config: configuration.config,
 			toolPolicy: store.toolPolicy,
+			memory: configuration.memory,
 		}),
 	);
 
@@ -50,6 +51,13 @@
 			void store.setProjectToolPolicy(workspacePath, null);
 			return;
 		}
+		// Digest settings are stored per machine rather than in the project
+		// config, so reverting one drops its key from the stored override and
+		// re-reads what the workspace now inherits.
+		if (override.kind === 'digest-model' || override.kind === 'digest-auto') {
+			void revertDigest(override.kind);
+			return;
+		}
 		const id = override.id;
 		if (!id) return;
 		if (override.kind === 'skill') {
@@ -68,6 +76,17 @@
 				? store.setProjectPiExtension(workspacePath, id, null)
 				: store.setProjectGizmoExtension(workspacePath, id, null),
 		);
+	}
+
+	async function revertDigest(kind: 'digest-model' | 'digest-auto') {
+		const stored = { ...configuration.memory?.override };
+		if (kind === 'digest-model') delete stored.model;
+		else delete stored.auto;
+		await store.memory.setMemoryOverride(
+			Object.keys(stored).length > 0 ? stored : undefined,
+			workspacePath,
+		);
+		configuration.refreshMemory(store, workspacePath);
 	}
 </script>
 

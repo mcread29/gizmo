@@ -1,4 +1,5 @@
 import type {
+	DigestScope,
 	PiExtensionResource,
 	ProjectConfig,
 	SkillResource,
@@ -15,7 +16,7 @@ import type { WorkspaceTab } from '../../../router.svelte';
 export interface WorkspaceOverride {
 	/** Stable identity for keyed rendering; unique across kinds. */
 	key: string;
-	kind: 'skill' | 'extension' | 'tools';
+	kind: 'skill' | 'extension' | 'tools' | 'digest-model' | 'digest-auto';
 	/** The overridden item, absent for the single built-in tools row. */
 	id?: string;
 	name: string;
@@ -34,6 +35,8 @@ export interface WorkspaceOverrideInput {
 	gizmoExtensions?: readonly { id: string; name: string; enabled: boolean }[];
 	config: ProjectConfig | undefined;
 	toolPolicy: ToolPolicy | undefined;
+	/** How this workspace digests its journal, and what it would inherit. */
+	memory?: DigestScope | undefined;
 }
 
 export function workspaceOverrides({
@@ -42,6 +45,7 @@ export function workspaceOverrides({
 	gizmoExtensions = [],
 	config,
 	toolPolicy,
+	memory,
 }: WorkspaceOverrideInput): WorkspaceOverride[] {
 	const rows: WorkspaceOverride[] = [];
 
@@ -78,6 +82,36 @@ export function workspaceOverrides({
 			here: enabled ? 'On here' : 'Off here',
 			globally: globallyOn ? 'on globally' : 'off globally',
 			tab: 'extensions',
+		});
+	}
+
+	/*
+	 * The two digest settings are overridden one at a time, so they are two
+	 * rows rather than one "Memory" row: reverting the model must not also
+	 * revert automatic digesting.
+	 */
+	if (memory?.override && 'model' in memory.override) {
+		rows.push({
+			key: 'digest-model',
+			kind: 'digest-model',
+			name: 'Digest model',
+			here: memory.override.model
+				? `${memory.override.model.provider} · ${memory.override.model.id} here`
+				: 'Off here',
+			globally: memory.defaults.model
+				? `${memory.defaults.model.provider} · ${memory.defaults.model.id} globally`
+				: 'off globally',
+			tab: 'memory',
+		});
+	}
+	if (memory?.override?.auto !== undefined) {
+		rows.push({
+			key: 'digest-auto',
+			kind: 'digest-auto',
+			name: 'Automatic digesting',
+			here: memory.override.auto ? 'On here' : 'Off here',
+			globally: memory.defaults.auto ? 'on globally' : 'off globally',
+			tab: 'memory',
 		});
 	}
 

@@ -1,5 +1,6 @@
 import type {
 	DigestOverride,
+	DigestScope,
 	DigestSettings,
 	JournalDigest,
 	JournalFact,
@@ -96,7 +97,18 @@ export class FakeMemoryCapability {
 			factSegments: 2,
 			settings: this.#effective(),
 			defaults: this.#defaults,
-			overridden: Boolean(this.#override),
+			...(this.#override ? { override: this.#override } : {}),
+		};
+	}
+
+	/** The same answer as status, without the journal counts. */
+	async scope(workspacePath?: string): Promise<DigestScope> {
+		if (!workspacePath)
+			return { settings: this.#defaults, defaults: this.#defaults };
+		return {
+			settings: this.#effective(),
+			defaults: this.#defaults,
+			...(this.#override ? { override: this.#override } : {}),
 		};
 	}
 

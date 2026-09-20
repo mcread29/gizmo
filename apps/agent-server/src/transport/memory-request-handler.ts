@@ -6,6 +6,7 @@ type MemoryRequestType =
 	| 'memory.status'
 	| 'memory.digests'
 	| 'memory.facts'
+	| 'memory.settings'
 	| 'memory.settings.set'
 	| 'memory.backfill.start'
 	| 'memory.backfill.stop';
@@ -29,6 +30,8 @@ export async function handleMemoryRequest(
 			};
 		case 'memory.facts':
 			return { result: await memory.facts(request.projectPath) };
+		case 'memory.settings':
+			return { result: await memory.settingsScope(request.projectPath) };
 		case 'memory.settings.set': {
 			// No project means the default; a project means its override, which
 			// `inherit` clears so the workspace falls back to the default again.

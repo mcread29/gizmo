@@ -1,4 +1,8 @@
-import type { ProjectConfig, ProjectDomains } from '@gizmo/protocol';
+import type {
+	DigestScope,
+	ProjectConfig,
+	ProjectDomains,
+} from '@gizmo/protocol';
 import type { AgentStore } from '../../agent-client';
 
 /**
@@ -10,6 +14,13 @@ import type { AgentStore } from '../../agent-client';
 export class WorkspaceConfiguration {
 	/** Undefined until the first load for the current workspace lands. */
 	config = $state<ProjectConfig>();
+	/**
+	 * What this workspace's memory runs under. Read here rather than on the
+	 * Memory tab because Overview names every override before any tab is
+	 * opened; it is the settings without the journal, so it costs one small
+	 * read rather than a directory listing.
+	 */
+	memory = $state<DigestScope>();
 	/** Gizmo domains from the retired profile system, kept for old installs. */
 	domains = $state<ProjectDomains['domains']>([]);
 	error = $state<string>();
@@ -23,9 +34,11 @@ export class WorkspaceConfiguration {
 	 */
 	load(store: AgentStore, workspacePath: string | undefined): () => void {
 		this.config = undefined;
+		this.memory = undefined;
 		this.error = undefined;
 		if (!workspacePath) return () => {};
 		let current = true;
+		void this.#loadMemory(store, workspacePath, () => current);
 		void store.refreshResources(workspacePath);
 		void store.refreshToolPolicy(workspacePath);
 		void store
@@ -41,6 +54,25 @@ export class WorkspaceConfiguration {
 		return () => {
 			current = false;
 		};
+	}
+
+	/** Re-reads the memory override after the Memory tab writes one. */
+	refreshMemory(store: AgentStore, workspacePath: string): void {
+		void this.#loadMemory(store, workspacePath, () => true);
+	}
+
+	async #loadMemory(
+		store: AgentStore,
+		workspacePath: string,
+		current: () => boolean,
+	): Promise<void> {
+		try {
+			const scope = await store.memory.memorySettings(workspacePath);
+			if (current()) this.memory = scope;
+		} catch {
+			// Overview survives without it: the row it feeds is one of several,
+			// and the Memory tab reports a failure of its own.
+		}
 	}
 
 	/**

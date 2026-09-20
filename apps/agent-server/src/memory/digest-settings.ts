@@ -65,10 +65,12 @@ export class DigestSettingsStore {
 		return { auto: file.auto, ...(file.model ? { model: file.model } : {}) };
 	}
 
-	/** Whether this workspace overrides the default at all. */
-	async isOverridden(workspacePath: string): Promise<boolean> {
+	/** What this workspace overrides, or undefined while it inherits in full. */
+	async readOverride(
+		workspacePath: string,
+	): Promise<DigestOverride | undefined> {
 		const file = await this.#readFile();
-		return Boolean(file.projects[workspacePath]);
+		return file.projects[workspacePath];
 	}
 
 	/** Writes the default every workspace falls back to. */

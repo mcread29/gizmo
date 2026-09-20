@@ -26,7 +26,7 @@ describe('DigestSettingsStore', () => {
 		await store.writeDefault({ auto: true, model: haiku });
 		expect(await store.read(alpha)).toEqual({ auto: true, model: haiku });
 		expect(await store.read(beta)).toEqual({ auto: true, model: haiku });
-		expect(await store.isOverridden(alpha)).toBe(false);
+		expect(await store.readOverride(alpha)).toBeUndefined();
 	});
 
 	it('overrides one workspace without touching the others', async () => {
@@ -35,8 +35,8 @@ describe('DigestSettingsStore', () => {
 
 		expect(await store.read(alpha)).toEqual({ auto: true, model: mini });
 		expect(await store.read(beta)).toEqual({ auto: true, model: haiku });
-		expect(await store.isOverridden(alpha)).toBe(true);
-		expect(await store.isOverridden(beta)).toBe(false);
+		expect(await store.readOverride(alpha)).toEqual({ model: mini });
+		expect(await store.readOverride(beta)).toBeUndefined();
 	});
 
 	/**
@@ -65,7 +65,7 @@ describe('DigestSettingsStore', () => {
 		await store.writeDefault({ auto: false, model: haiku });
 
 		expect(await store.read(alpha)).toEqual({ auto: false, model: mini });
-		expect(await store.isOverridden(alpha)).toBe(true);
+		expect(await store.readOverride(alpha)).toEqual({ model: mini });
 	});
 
 	it('survives a round trip through the file', async () => {

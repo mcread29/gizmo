@@ -102,6 +102,9 @@
 			title: 'This machine',
 			items: [
 				{ page: 'providers', label: 'Providers', icon: KeyRound },
+				/* The digest default is stored beside the credentials it needs,
+				   in this machine's data directory. */
+				{ page: 'memory', label: 'Memory', icon: Brain },
 				{
 					page: 'agent',
 					label: 'Agent resources',
@@ -112,10 +115,9 @@
 		},
 		{
 			title: 'This workspace',
-			items: [
-				{ page: 'memory', label: 'Memory', icon: Brain },
-			] satisfies SettingsNavItem[],
-			/* Workspace configuration is its own screen; this is the way in. */
+			/* Nothing device-wide is scoped to one workspace; what is lives on
+			   the workspace screen, and this is the way in. */
+			items: [] satisfies SettingsNavItem[],
 			action: {
 				label: 'Workspace settings',
 				icon: FolderCog,

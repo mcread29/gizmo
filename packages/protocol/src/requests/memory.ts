@@ -38,6 +38,20 @@ export const memoryRequestSchemas = [
 		{ additionalProperties: false },
 	),
 	/**
+	 * What a scope runs under, without reading its journal. The Memory tab's
+	 * status carries the same answer, but the global settings page has no
+	 * workspace to ask about and Overview only wants the override.
+	 */
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('memory.settings'),
+			/** Absent reads the default; present reads that workspace's view. */
+			projectPath: Type.Optional(Type.String({ minLength: 1 })),
+		},
+		{ additionalProperties: false },
+	),
+	/**
 	 * Writes either the default or one workspace's override. An override with
 	 * no keys clears it, so the workspace inherits the default again.
 	 */

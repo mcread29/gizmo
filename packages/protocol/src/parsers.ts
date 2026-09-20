@@ -37,6 +37,8 @@ import {
 	type WorkspaceDirectoryListing,
 } from './projects';
 import {
+	type DigestScope,
+	digestScopeSchema,
 	type DigestSettings,
 	digestSettingsSchema,
 	type JournalDigest,
@@ -90,6 +92,7 @@ export const parseJournalFacts = parser<JournalFact[]>(
 	Type.Array(journalFactSchema),
 );
 export const parseDigestSettings = parser<DigestSettings>(digestSettingsSchema);
+export const parseDigestScope = parser<DigestScope>(digestScopeSchema);
 export const parseAgentRequest = parser<AgentRequest>(
 	agentRequestSchema,
 	'request',

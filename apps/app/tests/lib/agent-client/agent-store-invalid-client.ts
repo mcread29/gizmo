@@ -30,7 +30,6 @@ const emptyMemoryStatus = {
 	factSegments: 0,
 	settings: { auto: false },
 	defaults: { auto: false },
-	overridden: false,
 };
 
 const emptyCatalog: ResourceCatalog = {
@@ -53,6 +52,9 @@ export class InvalidEventClient implements AgentClient {
 
 	async memoryFacts() {
 		return [];
+	}
+	async memorySettings() {
+		return { settings: { auto: false }, defaults: { auto: false } };
 	}
 	async setMemoryOverride(_projectPath: string, _override?: DigestOverride) {
 		return { auto: true };

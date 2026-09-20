@@ -9,6 +9,7 @@
 	import WorkspaceActionsMenu from './WorkspaceActionsMenu.svelte';
 	import WorkspaceExtensionsPanel from './WorkspaceExtensionsPanel.svelte';
 	import WorkspaceHome from './WorkspaceHome.svelte';
+	import WorkspaceMemoryPanel from './WorkspaceMemoryPanel.svelte';
 	import WorkspaceSkillsPanel from './WorkspaceSkillsPanel.svelte';
 	import { WorkspaceConfiguration } from './workspace-config.svelte';
 
@@ -40,6 +41,7 @@
 
 	const tabs = [
 		{ value: 'overview', label: 'Overview' },
+		{ value: 'memory', label: 'Memory' },
 		{ value: 'skills', label: 'Skills' },
 		{ value: 'extensions', label: 'Extensions' },
 	];
@@ -140,6 +142,17 @@
 								{onOpenThread}
 								onNewThread={() => onNewThread(project.path)}
 							/>
+						{:else if value === 'memory'}
+							<!-- Memory reads the journal, not the project config, so it
+								does not wait on the configuration the other tabs edit. -->
+							<div data-ui="workspace-configure">
+								<WorkspaceMemoryPanel
+									{store}
+									workspacePath={project.path}
+									onOverrideChange={() =>
+										configuration.refreshMemory(store, project.path)}
+								/>
+							</div>
 						{:else if configuration.config}
 							<div data-ui="workspace-configure">
 								{#if value === 'skills'}

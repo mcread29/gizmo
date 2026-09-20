@@ -1,12 +1,15 @@
 /**
- * The Memory page: digest controls and the list of saved memories.
+ * A workspace's Memory tab: digest controls and the list of saved memories.
+ * It is shaped like a settings page and built from the same cards, so its
+ * styles stay beside them even though the tab lives on the workspace screen.
  *
  * Digests are read far more than they are acted on, so a memory renders as a
- * quiet block of prose rather than a card — the page is a reading surface, and
+ * quiet block of prose rather than a card — the tab is a reading surface, and
  * 100 bordered cards in a column is harder to skim than 100 paragraphs.
  */
 
 [data-ui='setting-field'] > select,
+[data-ui='memory-override'] > select,
 [data-ui='setting-field'] > input[type='search'] {
 	width: 100%;
 	padding: var(--space-2) var(--space-3);
@@ -16,6 +19,21 @@
 	color: var(--color-text);
 	font-family: inherit;
 	font-size: var(--text-sm);
+}
+
+/**
+ * A control and its reset share a row on the workspace's Memory tab: an
+ * override has to be as easy to clear as it was to set, the way an extension
+ * row's "Use global" is.
+ */
+[data-ui='memory-override'] {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: var(--space-2);
+}
+[data-ui='memory-override'] > select {
+	flex: 1;
 }
 
 [data-ui='setting-field'] > progress {
