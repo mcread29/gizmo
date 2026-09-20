@@ -28,6 +28,14 @@ export const sessionRequestSchemas = [
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('providers.read-api-key'),
+			providerId: Type.String({ minLength: 1, maxLength: 128 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('providers.remove-api-key'),
 			providerId: Type.String({ minLength: 1, maxLength: 128 }),
 		},

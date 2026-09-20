@@ -21,7 +21,10 @@
 	import ConnectionSettings from './ConnectionSettings.svelte';
 	import ContextSettings from './ContextSettings.svelte';
 	import MemorySettings from './MemorySettings.svelte';
-	import SettingsNav, { type SettingsNavItem } from './SettingsNav.svelte';
+	import SettingsNav, {
+		type SettingsNavAction,
+		type SettingsNavItem,
+	} from './SettingsNav.svelte';
 	import AgentSettings from './AgentSettings.svelte';
 	import ProvidersSettings from './ProvidersSettings.svelte';
 	import ExtensionsSettings from './ExtensionsSettings.svelte';
@@ -79,6 +82,12 @@
 		label: string;
 	}>;
 
+	/*
+	 * Grouped by what a change actually reaches, which is the first thing any
+	 * settings page has to answer. It used to be one "This device" run holding
+	 * machine-wide credentials and a workspace's memory, and every page then
+	 * carried a subtitle correcting it; the groups say it once instead.
+	 */
 	let groups = $derived([
 		{
 			title: 'This device',
@@ -86,8 +95,12 @@
 				{ page: 'appearance', label: 'Appearance', icon: Palette },
 				{ page: 'chat', label: 'Chat', icon: MessageSquare },
 				{ page: 'context', label: 'Context', icon: Layers },
-				{ page: 'memory', label: 'Memory', icon: Brain },
 				{ page: 'connection', label: 'Connection', icon: Plug },
+			] satisfies SettingsNavItem[],
+		},
+		{
+			title: 'This machine',
+			items: [
 				{ page: 'providers', label: 'Providers', icon: KeyRound },
 				{
 					page: 'agent',
@@ -96,6 +109,18 @@
 					...(skillCount ? { badge: skillCount } : {}),
 				},
 			] satisfies SettingsNavItem[],
+		},
+		{
+			title: 'This workspace',
+			items: [
+				{ page: 'memory', label: 'Memory', icon: Brain },
+			] satisfies SettingsNavItem[],
+			/* Workspace configuration is its own screen; this is the way in. */
+			action: {
+				label: 'Workspace settings',
+				icon: FolderCog,
+				onSelect: openWorkspace,
+			} satisfies SettingsNavAction,
 		},
 		{
 			title: 'Gizmo',
@@ -126,11 +151,6 @@
 		<div data-ui="settings-body">
 			<div data-ui="settings-sidebar">
 				<SettingsNav {groups} current={page} onSelect={selectPage} />
-				<!-- Workspace configuration is its own screen; this is the way in. -->
-				<button data-ui="settings-nav-item" onclick={openWorkspace}>
-					<FolderCog size={15} />
-					<span>Workspace settings</span>
-				</button>
 			</div>
 
 			{#snippet settingsContent()}

@@ -45,10 +45,7 @@ export class RegistryCapability {
 		store.providersLoading = true;
 		store.providerError = undefined;
 		try {
-			store.providers = await this.client.setProviderApiKey(
-				providerId,
-				apiKey,
-			);
+			store.providers = await this.client.setProviderApiKey(providerId, apiKey);
 			return true;
 		} catch (error) {
 			store.providerError = errorMessage(error);
@@ -72,6 +69,17 @@ export class RegistryCapability {
 		} finally {
 			store.providersLoading = false;
 		}
+	}
+
+	/**
+	 * Reads a key back so it can be copied. Unlike the write paths this leaves
+	 * `providerError` alone and throws: the caller is one button, and a failure
+	 * belongs in its toast rather than above the whole list.
+	 */
+	async readProviderApiKey(providerId: string) {
+		if (this.store.connection !== 'connected')
+			throw new Error('Not connected to the agent server');
+		return this.client.readProviderApiKey(providerId);
 	}
 
 	async refreshRegistry() {

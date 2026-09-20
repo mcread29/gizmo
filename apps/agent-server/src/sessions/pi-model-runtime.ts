@@ -75,6 +75,24 @@ export async function setProviderApiKey(
 	return listProviders();
 }
 
+/**
+ * Resolve the key a provider would actually send, so settings can copy it.
+ * `getAuth` is the only public read path — `checkAuth` withholds the secret
+ * on purpose — and it also covers keys that come from the environment rather
+ * than from auth.json, which is what the status line already reports.
+ */
+export async function readProviderApiKey(providerId: string): Promise<string> {
+	const id = providerId.trim();
+	if (!id) throw new Error('Unknown provider');
+	const runtime = await gizmoModelRuntime();
+	const provider = runtime.getProvider(id);
+	if (!provider) throw new Error(`Unknown provider: ${id}`);
+	const auth = await runtime.getAuth(id);
+	const apiKey = auth?.auth.apiKey;
+	if (!apiKey) throw new Error(`No API key is stored for ${provider.name}`);
+	return apiKey;
+}
+
 export async function removeProviderApiKey(
 	providerId: string,
 ): Promise<ProviderStatus[]> {

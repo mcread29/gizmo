@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Slider } from 'bits-ui';
-	import { SwitchField } from '../../components';
+	import { SettingField, SwitchField } from '../../components';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
@@ -15,28 +15,19 @@
 	}
 </script>
 
-<SettingsPage
-	title="Context"
-	scope="Stored on this device · applies to new and resumed threads"
->
+<SettingsPage title="Context" scope="Applies to new and resumed threads">
 	<div data-ui="settings-card">
 		<SwitchField
 			bind:checked={layout.autoCompact}
 			label="Auto-compact context"
 			description="Summarize older work automatically before the model runs out of context."
 		/>
-		<div
-			data-ui="setting-field"
-			data-layout="stacked"
-			data-state={layout.autoCompact ? 'enabled' : 'disabled'}
+		<SettingField
+			label="Compaction range"
+			description="Compaction starts at the upper mark and keeps complete turns down to the lower one."
+			stacked
+			disabled={!layout.autoCompact}
 		>
-			<div>
-				<strong>Compaction range</strong>
-				<span
-					>Compaction starts at the upper mark and keeps complete turns down to
-					the lower one.</span
-				>
-			</div>
 			<div data-ui="context-range-values">
 				<span
 					><i data-kind="retain"></i>Retain {layout.compactionRetainPercent}%</span
@@ -67,6 +58,6 @@
 					aria-label="Auto-compaction threshold"
 				/>
 			</Slider.Root>
-		</div>
+		</SettingField>
 	</div>
 </SettingsPage>

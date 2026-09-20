@@ -103,6 +103,12 @@
 	min-height: 100%;
 }
 
+/* The providers table needs room for a key field beside the name and the
+   model count, but it is still a list to read down, not a workbench. */
+[data-ui='settings-content'][data-page='providers'] {
+	width: min(880px, 100%);
+}
+
 /* The skills workbench owns scrolling while its navigation stays fixed. */
 [data-ui='settings-content'][data-page='skills'] {
 	position: absolute;
@@ -137,6 +143,7 @@
 
 [data-ui='settings-page-header'] {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: var(--space-4);
@@ -172,17 +179,36 @@
 	gap: var(--space-4);
 }
 
-/* Separates the editable part of a page from what it only reports. */
+/* Separates the editable part of a page from what it only reports. A section
+   that owns an action keeps it on the heading line, in a second column, rather
+   than stretched across the width the grid would otherwise give it. */
 [data-ui='settings-subhead'] {
 	display: grid;
-	gap: 3px;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: start;
+	gap: 3px var(--space-4);
 	margin-top: var(--space-2);
 	padding-top: var(--space-4);
 	border-top: 1px solid var(--color-border);
 }
 
-[data-ui='settings-subhead'] strong {
+/* The text column is pinned: without it a section that has no action lets
+   its description auto-place into the action's column, beside the heading. */
+[data-ui='settings-subhead'] > h3,
+[data-ui='settings-subhead'] > span {
+	grid-column: 1;
+}
+
+[data-ui='settings-subhead'] > [data-ui='button'] {
+	grid-row: 1 / span 2;
+	grid-column: 2;
+	align-self: center;
+}
+
+[data-ui='settings-subhead'] h3 {
+	margin: 0;
 	font-size: var(--text-sm);
+	font-weight: 600;
 }
 
 [data-ui='settings-subhead'] span {
@@ -196,13 +222,6 @@
 	gap: var(--space-3);
 }
 
-[data-ui='settings-note'] {
-	margin: 0;
-	color: var(--color-text-muted);
-	font-size: var(--text-2xs);
-	line-height: 1.5;
-}
-
 [data-ui='settings-card'] {
 	display: grid;
 	overflow: hidden;
@@ -211,27 +230,21 @@
 	background: var(--color-surface);
 }
 
-/* Resource pages are work surfaces, not stacks of cards. Sections are
-   separated by rhythm and rules while lists remain directly scannable. */
-[data-ui='settings-content'][data-page='agent']
-	[data-ui='settings-card']:not([data-workbench='true']),
-[data-ui='settings-content'][data-page='extensions'] [data-ui='settings-card'] {
-	overflow: visible;
-	border: 0;
-	border-radius: 0;
-	background: transparent;
+/*
+ * The other half of the pair. A card groups a handful of unrelated settings;
+ * an inventory is one long list of like things, and boxing it only indents
+ * the rows away from the page. This is what the resource pages were asking
+ * for when they used to un-style the card back off again per page.
+ */
+[data-ui='settings-list'] {
+	display: grid;
+	border-top: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--color-border);
 }
 
-[data-ui='settings-content'][data-page='agent']
-	[data-ui='settings-card']:not([data-workbench='true'])
-	> [data-ui='integration-list'],
-[data-ui='settings-content'][data-page='agent']
-	[data-ui='settings-card']:not([data-workbench='true'])
-	> [data-ui='resource-list'],
-[data-ui='settings-content'][data-page='extensions']
-	[data-ui='settings-card']
-	> [data-ui='skill-list'] {
-	border-top: 1px solid var(--color-border);
+/* A list may be introduced by a field of its own, as the registry is by the
+   repository it lists from. */
+[data-ui='settings-list'] > [data-ui='setting-field'] {
 	border-bottom: 1px solid var(--color-border);
 }
 

@@ -67,7 +67,7 @@
 
 <SettingsPage
 	title="Extensions"
-	scope="Installed globally · each workspace can switch one off in Configure"
+	scope="Each workspace can switch one off in its Configure screen"
 >
 	{#if store.resourceError}
 		<ResourceNote tone="error">{store.resourceError}</ResourceNote>
@@ -77,7 +77,7 @@
 	{/if}
 
 	<div data-ui="settings-subhead">
-		<strong>Installed</strong>
+		<h3>Installed</h3>
 		<span
 			>Gizmo extensions add tools, panels, and project services. Off keeps one
 			installed but out of every thread. Reload picks up edited extension source
@@ -93,7 +93,7 @@
 			{reloading ? 'Reloading…' : 'Reload extensions'}
 		</Button>
 	</div>
-	<div data-ui="settings-card">
+	<div data-ui="settings-list">
 		{#if loading}
 			<ResourceNote>Loading installed extensions…</ResourceNote>
 		{:else if installed.length === 0}
@@ -143,7 +143,7 @@
 	</div>
 
 	<div data-ui="settings-subhead">
-		<strong>Registry</strong>
+		<h3>Registry</h3>
 		<span
 			>Gizmo's extension repository, cloned to
 			<code>{store.registryStatus?.home ?? '…'}</code>. Install links an

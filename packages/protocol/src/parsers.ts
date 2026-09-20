@@ -49,6 +49,8 @@ import {
 import {
 	composerCommandSchema,
 	type ComposerCommand,
+	providerApiKeySchema,
+	type ProviderApiKey,
 	providerStatusSchema,
 	type ProviderStatus,
 } from './providers';
@@ -100,6 +102,7 @@ export const parseStoredProjects = parser<StoredProject[]>(
 export const parseProviderStatuses = parser<ProviderStatus[]>(
 	Type.Array(providerStatusSchema),
 );
+export const parseProviderApiKey = parser<ProviderApiKey>(providerApiKeySchema);
 export const parseProjectDomains = parser<ProjectDomains>(projectDomainsSchema);
 export const parseProjectConfig = parser<ProjectConfig>(projectConfigSchema);
 export const parseWorkspaceDirectoryListing = parser<WorkspaceDirectoryListing>(

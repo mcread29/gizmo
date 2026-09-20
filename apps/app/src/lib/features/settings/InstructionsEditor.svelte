@@ -87,13 +87,13 @@
 	>
 		<div data-ui="instructions-editor-header">
 			<div data-ui="settings-section-header">
-				<strong>
+				<h3>
 					{title}
 					{#if dirty}<span
 							data-ui="instructions-editor-dirty"
 							aria-live="polite">Unsaved</span
 						>{/if}
-				</strong>
+				</h3>
 				<span>{description}</span>
 			</div>
 			<div data-ui="instructions-editor-actions">

@@ -18,6 +18,17 @@ export const providerStatusSchema = Type.Object(
 
 export type ProviderStatus = Static<typeof providerStatusSchema>;
 
+/**
+ * A stored API key, read back so the settings page can put it on the
+ * clipboard. Only ever sent in reply to an explicit request for one provider.
+ */
+export const providerApiKeySchema = Type.Object(
+	{ apiKey: Type.String({ minLength: 1 }) },
+	{ additionalProperties: false },
+);
+
+export type ProviderApiKey = Static<typeof providerApiKeySchema>;
+
 export const composerCommandSchema = Type.Object(
 	{
 		name: Type.String({ minLength: 1 }),

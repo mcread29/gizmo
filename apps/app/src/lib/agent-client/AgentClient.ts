@@ -80,6 +80,7 @@ export interface AgentClient {
 		apiKey: string,
 	): Promise<ProviderStatus[]>;
 	removeProviderApiKey(providerId: string): Promise<ProviderStatus[]>;
+	readProviderApiKey(providerId: string): Promise<string>;
 	connect(): Promise<void>;
 	disconnect(): Promise<void>;
 	listSessions(): Promise<SessionCatalog>;

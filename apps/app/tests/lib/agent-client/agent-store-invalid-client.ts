@@ -22,6 +22,17 @@ import type {
 	AgentEventListener,
 } from '../../../src/lib/agent-client/AgentClient';
 
+/** The one shape every memory call in these tests returns. */
+const emptyMemoryStatus = {
+	segments: 0,
+	digested: 0,
+	facts: 0,
+	factSegments: 0,
+	settings: { auto: false },
+	defaults: { auto: false },
+	overridden: false,
+};
+
 const emptyCatalog: ResourceCatalog = {
 	skills: [],
 	agentsFiles: [],
@@ -34,15 +45,7 @@ export class InvalidEventClient implements AgentClient {
 	// The memory layer is not exercised by these connection/replay tests; the
 	// stubs exist only to satisfy the interface.
 	async memoryStatus() {
-		return {
-			segments: 0,
-			digested: 0,
-			facts: 0,
-			factSegments: 0,
-			settings: { auto: false },
-			defaults: { auto: false },
-			overridden: false,
-		};
+		return emptyMemoryStatus;
 	}
 	async memoryDigests() {
 		return [];
@@ -59,26 +62,10 @@ export class InvalidEventClient implements AgentClient {
 		return settings;
 	}
 	async startMemoryBackfill() {
-		return {
-			segments: 0,
-			digested: 0,
-			facts: 0,
-			factSegments: 0,
-			settings: { auto: false },
-			defaults: { auto: false },
-			overridden: false,
-		};
+		return emptyMemoryStatus;
 	}
 	async stopMemoryBackfill() {
-		return {
-			segments: 0,
-			digested: 0,
-			facts: 0,
-			factSegments: 0,
-			settings: { auto: false },
-			defaults: { auto: false },
-			overridden: false,
-		};
+		return emptyMemoryStatus;
 	}
 	async listProviders(): Promise<ProviderStatus[]> {
 		return [];
@@ -86,8 +73,15 @@ export class InvalidEventClient implements AgentClient {
 	async reimportPiAuth(): Promise<ProviderStatus[]> {
 		return [];
 	}
-	async setProviderApiKey(): Promise<ProviderStatus[]> { return []; }
-	async removeProviderApiKey(): Promise<ProviderStatus[]> { return []; }
+	async setProviderApiKey(): Promise<ProviderStatus[]> {
+		return [];
+	}
+	async removeProviderApiKey(): Promise<ProviderStatus[]> {
+		return [];
+	}
+	async readProviderApiKey(): Promise<string> {
+		return '';
+	}
 
 	async connect() {}
 	async disconnect() {}

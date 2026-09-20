@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentStore } from '../../agent-client';
-	import { SelectField, SwitchField } from '../../components';
+	import { SelectField, SettingField, SwitchField } from '../../components';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
@@ -31,7 +31,7 @@
 	let selected = $derived(layout.titleModel || off);
 </script>
 
-<SettingsPage title="Chat" scope="Stored on this device">
+<SettingsPage title="Chat">
 	<div data-ui="settings-card">
 		<SwitchField
 			bind:checked={layout.sendOnEnter}
@@ -41,7 +41,6 @@
 		<SwitchField
 			bind:checked={layout.autoFollowOutput}
 			label="Follow agent output"
-			description="Keep the newest response content in view while the agent is working."
 		/>
 		<SwitchField
 			bind:checked={layout.expandReasoning}
@@ -51,17 +50,17 @@
 	</div>
 
 	<div data-ui="settings-card">
-		<SelectField
-			value={selected}
-			{options}
+		<SettingField
 			label="Thread name model"
-			onValueChange={(value) =>
-				(layout.titleModel = value === off ? '' : value)}
-		/>
-		<p data-ui="settings-hint">
-			Names each new thread from its first message, once the first reply is
-			done. Pick something small and cheap — a local model costs nothing to run.
-			Threads you rename yourself are left alone.
-		</p>
+			description="Names each new thread from its first message, once the first reply is done. Pick something small and cheap — a local model costs nothing to run. Threads you rename yourself are left alone."
+		>
+			<SelectField
+				value={selected}
+				{options}
+				label="Thread name model"
+				onValueChange={(value) =>
+					(layout.titleModel = value === off ? '' : value)}
+			/>
+		</SettingField>
 	</div>
 </SettingsPage>

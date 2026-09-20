@@ -131,7 +131,7 @@
 	</div>
 
 	<div data-ui="settings-subhead">
-		<strong>Built-in tools</strong>
+		<h3>Built-in tools</h3>
 		<span
 			>What the agent may start threads with, stored as Pi's defaultTools
 			setting. A workspace may override this in its Configure screen; takes
@@ -139,7 +139,7 @@
 		>
 	</div>
 
-	<div data-ui="settings-card">
+	<div data-ui="settings-list">
 		{#if store.toolPolicyError}
 			<ResourceNote tone="error">{store.toolPolicyError}</ResourceNote>
 		{/if}
@@ -171,11 +171,11 @@
 	</div>
 
 	<div data-ui="settings-subhead">
-		<strong>Prompts</strong>
+		<h3>Prompts</h3>
 		<span>Prompt templates available as commands. Edit these on disk.</span>
 	</div>
 
-	<div data-ui="settings-card">
+	<div data-ui="settings-list">
 		{#if prompts.length === 0}
 			<ResourceNote>Nothing found.</ResourceNote>
 		{:else}
@@ -197,7 +197,7 @@
 	{#if catalog?.diagnostics.length}
 		<div data-ui="settings-card">
 			<div data-ui="settings-section-header">
-				<strong>Warnings</strong>
+				<h3>Warnings</h3>
 				<span>Reported while loading these resources.</span>
 			</div>
 			<div data-ui="resource-list">

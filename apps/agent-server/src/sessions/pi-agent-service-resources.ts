@@ -5,6 +5,7 @@ import {
 } from '../resources/pi-global-resources';
 import {
 	listProviders,
+	readProviderApiKey,
 	reimportPiAuth,
 	removeProviderApiKey,
 	setProviderApiKey,
@@ -28,6 +29,10 @@ export class PiAgentServiceResources extends PiAgentServiceCore {
 
 	removeProviderApiKey(providerId: string) {
 		return removeProviderApiKey(providerId);
+	}
+
+	async readProviderApiKey(providerId: string) {
+		return { apiKey: await readProviderApiKey(providerId) };
 	}
 
 	listResources(workspacePath?: string) {

@@ -34,7 +34,7 @@
 </script>
 
 <div data-ui="settings-subhead">
-	<strong>Built-in tools</strong>
+	<h3>Built-in tools</h3>
 	<span>
 		Overrides the global built-in tools for this workspace through
 		.pi/settings.json.

@@ -1,21 +1,18 @@
 <script lang="ts">
 	import { Switch } from 'bits-ui';
+	import SettingField from './SettingField.svelte';
 
 	interface Props {
 		checked?: boolean;
 		label: string;
-		description: string;
+		description?: string;
 	}
 
 	let { checked = $bindable(false), label, description }: Props = $props();
 </script>
 
-<div data-ui="setting-field">
-	<div>
-		<strong>{label}</strong>
-		<span>{description}</span>
-	</div>
+<SettingField {label} {description}>
 	<Switch.Root data-ui="switch" bind:checked aria-label={label}>
 		<Switch.Thumb data-ui="switch-thumb" />
 	</Switch.Root>
-</div>
+</SettingField>

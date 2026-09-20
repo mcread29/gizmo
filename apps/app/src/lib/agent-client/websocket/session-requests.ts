@@ -1,6 +1,7 @@
 import {
 	parseAgentModelCatalog,
 	parseComposerCommands,
+	parseProviderApiKey,
 	parseProviderStatuses,
 	parseSessionCatalog,
 	parseSessionSnapshot,
@@ -33,6 +34,14 @@ export class SessionRequests extends RequestClient {
 			apiKey,
 		});
 		return parseProviderStatuses(response.result);
+	}
+
+	async readProviderApiKey(providerId: string) {
+		const response = await this.request({
+			type: 'providers.read-api-key',
+			providerId,
+		});
+		return parseProviderApiKey(response.result).apiKey;
 	}
 
 	async removeProviderApiKey(providerId: string) {

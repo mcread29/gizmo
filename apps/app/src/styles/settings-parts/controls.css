@@ -62,9 +62,23 @@
 	padding: var(--space-3) var(--space-4);
 	border-bottom: 1px solid var(--color-border);
 }
-[data-ui='settings-section-header'] strong,
+/*
+ * Section titles are headings, not bold text. They were <strong>, which left
+ * the screen with a single heading below the page title: nothing for a screen
+ * reader to navigate by, and a section that carried no more visual weight
+ * than the label of one switch inside it.
+ */
+[data-ui='settings-section-header'] h3 {
+	margin: 0;
+	font-size: var(--text-sm);
+	font-weight: 600;
+}
 [data-ui='setting-field'] strong {
 	font-size: var(--text-sm);
+}
+/* Memory's filter sits in the header it filters, under the description. */
+[data-ui='settings-section-header'] input {
+	margin-top: var(--space-2);
 }
 [data-ui='settings-section-header'] span,
 [data-ui='setting-field'] span {
@@ -83,14 +97,38 @@
 [data-ui='setting-field'] + [data-ui='setting-field'] {
 	border-top: 1px solid var(--color-border);
 }
-[data-ui='setting-field'] > div {
+/* A label with no sentence under it does not need two lines of room, and
+   the padding has to give way too or the control alone still sets the height. */
+[data-ui='setting-field'][data-density='compact'] {
+	min-height: 44px;
+	padding-block: var(--space-2);
+}
+/* The description column is the one that gives way; a control shrunk below
+   its own label overlaps the text it sits beside. */
+[data-ui='setting-field'] > [data-ui='button'] {
+	flex-shrink: 0;
+}
+/*
+ * The label block is the one child with no [data-ui] of its own. The :not()
+ * matters: `[data-ui='setting-field'] > div` outranks a named child's own
+ * rule, so without it this quietly re-declared [data-ui='endpoint-field'] as
+ * a one-column grid and stacked every input above its buttons.
+ */
+[data-ui='setting-field'] > div:not([data-ui]) {
 	display: grid;
 	gap: 3px;
 	min-width: 0;
 }
+/*
+ * justify-content is reset, not inherited from the flex base: on a grid it
+ * aligns the tracks instead, and `space-between` stops an auto column from
+ * stretching — leaving the whole stack as narrow as its widest intrinsic
+ * child, which for a text input is about twenty characters.
+ */
 [data-ui='setting-field'][data-layout='stacked'] {
 	display: grid;
 	align-items: stretch;
+	justify-content: normal;
 }
 [data-ui='context-range'] {
 	position: relative;

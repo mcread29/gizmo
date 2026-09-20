@@ -215,14 +215,6 @@
  * Settings controls. These lived in dialogs.css from when Settings was a
  * dialog; they belong with the screen that renders them.
  */
-[data-ui='settings-section'] {
-	display: grid;
-	overflow: hidden;
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
-	background: var(--color-surface);
-}
-[data-ui='settings-section'] [data-ui='select-trigger'],
 [data-ui='setting-field'] [data-ui='select-trigger'] {
 	min-width: 168px;
 }

@@ -9,9 +9,20 @@
 		badge?: number;
 	}
 
+	/** A way out of Settings that still belongs to a group, like a workspace. */
+	export interface SettingsNavAction {
+		label: string;
+		icon: Component<any>;
+		onSelect: () => void;
+	}
+
 	interface Props {
 		/** A group without a title is a plain run of items, with no heading. */
-		groups: Array<{ title?: string; items: SettingsNavItem[] }>;
+		groups: Array<{
+			title?: string;
+			items: SettingsNavItem[];
+			action?: SettingsNavAction;
+		}>;
 		current: SettingsPage;
 		onSelect: (page: SettingsPage) => void;
 	}
@@ -39,6 +50,13 @@
 						>{/if}
 				</button>
 			{/each}
+			{#if group.action}
+				{@const ActionIcon = group.action.icon}
+				<button data-ui="settings-nav-item" onclick={group.action.onSelect}>
+					<ActionIcon size={15} />
+					<span>{group.action.label}</span>
+				</button>
+			{/if}
 		</div>
 	{/each}
 </nav>

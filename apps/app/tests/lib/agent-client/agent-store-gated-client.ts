@@ -97,6 +97,9 @@ export class GatedResumeClient extends InvalidEventClient {
 	async removeProviderApiKey(): Promise<ProviderStatus[]> {
 		return [];
 	}
+	async readProviderApiKey(): Promise<string> {
+		return '';
+	}
 	async listSessions(): Promise<SessionCatalog> {
 		const sessions = [
 			this.snapshot.session,

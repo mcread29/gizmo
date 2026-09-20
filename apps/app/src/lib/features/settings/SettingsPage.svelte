@@ -4,10 +4,12 @@
 	interface Props {
 		title: string;
 		/**
-		 * Who the page's settings apply to. Stated on every page because the
-		 * screen mixes device preferences with machine-wide agent configuration.
+		 * What a change here reaches, when the nav group has not already said
+		 * it. Most pages leave this off; the ones that keep it have something
+		 * their group cannot express, like Context's "new and resumed threads".
+		 * Under `hideHeader` it is the toolbar's only text, so those pages set it.
 		 */
-		scope: string;
+		scope?: string;
 		children: Snippet;
 		actions?: Snippet;
 		hideHeader?: boolean;
@@ -19,7 +21,7 @@
 <section data-ui="settings-page" aria-label={title}>
 	{#if hideHeader}
 		<div data-ui="settings-page-toolbar">
-			<span>{scope}</span>
+			<span>{scope ?? ''}</span>
 			{#if actions}<div data-ui="settings-page-actions">
 					{@render actions()}
 				</div>{/if}
@@ -28,7 +30,7 @@
 		<header data-ui="settings-page-header">
 			<div>
 				<h2>{title}</h2>
-				<span>{scope}</span>
+				{#if scope}<span>{scope}</span>{/if}
 			</div>
 			{#if actions}<div data-ui="settings-page-actions">
 					{@render actions()}

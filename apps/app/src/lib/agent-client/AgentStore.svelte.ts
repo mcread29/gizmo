@@ -24,7 +24,12 @@ export class AgentStore extends AgentStoreState {
 	/** The journal's derived memory layer. */
 	readonly memory: MemoryCapability;
 	readonly #projects: ProjectCapability;
-	readonly #registry: RegistryCapability;
+	/**
+	 * Provider credentials and the extension registry. Public because the
+	 * Providers page drives the whole credential surface and does not need a
+	 * delegation apiece on this facade.
+	 */
+	readonly registry: RegistryCapability;
 	readonly #resources: ResourceCapability;
 	readonly #sessions: SessionCapability;
 	readonly #runtime: SessionRuntimeCapability;
@@ -56,18 +61,10 @@ export class AgentStore extends AgentStoreState {
 		this.#extensions = new ExtensionCapability(this, client);
 		this.#git = new GitCapability(this, client);
 		this.memory = new MemoryCapability(this, client);
-		this.#registry = new RegistryCapability(this, client);
+		this.registry = new RegistryCapability(this, client);
 		this.#resources = new ResourceCapability(this, client);
 	}
 
-	refreshProviders() {
-		return this.#registry.refreshProviders();
-	}
-	reimportPiAuth() {
-		return this.#registry.reimportPiAuth();
-	}
-	setProviderApiKey(p: string, k: string) { return this.#registry.setProviderApiKey(p, k); }
-	removeProviderApiKey(p: string) { return this.#registry.removeProviderApiKey(p); }
 	connect() {
 		return this.#connection.connect();
 	}
@@ -237,16 +234,16 @@ export class AgentStore extends AgentStoreState {
 		return this.#git.commitAll(message);
 	}
 	refreshRegistry() {
-		return this.#registry.refreshRegistry();
+		return this.registry.refreshRegistry();
 	}
 	registryUpdate() {
-		return this.#registry.registryUpdate();
+		return this.registry.registryUpdate();
 	}
 	registryLink(id: string) {
-		return this.#registry.registryLink(id);
+		return this.registry.registryLink(id);
 	}
 	registryUnlink(id: string) {
-		return this.#registry.registryUnlink(id);
+		return this.registry.registryUnlink(id);
 	}
 	refreshResources(workspacePath?: string) {
 		return this.#resources.refreshResources(workspacePath);

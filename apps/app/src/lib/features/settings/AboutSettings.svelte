@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { protocolVersion } from '@gizmo/protocol';
-	import { Button, ConfirmDialog } from '../../components';
+	import { Button, ConfirmDialog, SettingField } from '../../components';
 	import { shortcutHint } from '../shell/shortcuts';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SettingsPage from './SettingsPage.svelte';
@@ -26,20 +26,16 @@
 	] as const;
 </script>
 
-<SettingsPage title="About" scope="Gizmo on this device">
+<SettingsPage title="About">
 	<div data-ui="settings-card">
-		<div data-ui="setting-field">
-			<div>
-				<strong>Version</strong>
-				<span>Protocol {protocolVersion}</span>
-			</div>
+		<SettingField label="Version" description="Protocol {protocolVersion}">
 			<span data-ui="resource-detail">{version}</span>
-		</div>
+		</SettingField>
 	</div>
 
 	<div data-ui="settings-card">
 		<div data-ui="settings-section-header">
-			<strong>Keyboard</strong>
+			<h3>Keyboard</h3>
 			<span>Shortcuts available anywhere in the workspace.</span>
 		</div>
 		<dl data-ui="shortcut-list">
@@ -53,18 +49,14 @@
 	</div>
 
 	<div data-ui="settings-card">
-		<div data-ui="setting-field">
-			<div>
-				<strong>Restore device settings</strong>
-				<span
-					>Resets appearance, chat, and context preferences. Skills, workspaces,
-					and threads are untouched.</span
-				>
-			</div>
+		<SettingField
+			label="Restore device settings"
+			description="Resets appearance, chat, and context preferences. Skills, workspaces, and threads are untouched."
+		>
 			<Button variant="danger" size="sm" onclick={() => (confirmOpen = true)}
 				>Restore defaults</Button
 			>
-		</div>
+		</SettingField>
 	</div>
 </SettingsPage>
 

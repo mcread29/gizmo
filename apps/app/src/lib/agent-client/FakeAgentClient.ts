@@ -90,6 +90,8 @@ export class FakeAgentClient implements AgentClient {
 		this.#sessions.setProviderApiKey(providerId, apiKey);
 	removeProviderApiKey: AgentClient['removeProviderApiKey'] = (providerId) =>
 		this.#sessions.removeProviderApiKey(providerId);
+	readProviderApiKey: AgentClient['readProviderApiKey'] = (providerId) =>
+		this.#sessions.readProviderApiKey(providerId);
 	connect: AgentClient['connect'] = async () => this.#state.connect();
 	disconnect: AgentClient['disconnect'] = async () => this.#state.disconnect();
 	listSessions: AgentClient['listSessions'] = () => this.#sessions.list();

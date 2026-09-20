@@ -5,7 +5,8 @@ import {
 	type ConversationMessage,
 	type SessionOptions,
 } from '@gizmo/protocol';
-import { fakeModels, fakeProviders, fakeThinkingLevels } from './fixtures';
+import { fakeModels, fakeThinkingLevels } from './fixtures';
+import { fakeProviders } from './provider-fixtures';
 import type { FakeSession } from './state';
 import { FakeClientState } from './state';
 import type { FakeToolPolicyCapability } from './tool-policy';
@@ -38,6 +39,15 @@ export class FakeSessionCapability {
 				? { ...entry, authenticated: true, credentialType: 'api_key' as const }
 				: entry,
 		);
+	}
+
+	async readProviderApiKey(providerId: string) {
+		this.state.assertConnected();
+		const provider = fakeProviders.find((entry) => entry.id === providerId);
+		if (!provider) throw new Error(`Unknown provider: ${providerId}`);
+		if (!provider.authenticated || provider.credentialType !== 'api_key')
+			throw new Error(`No API key is stored for ${provider.name}`);
+		return `sk-fake-${provider.id}-0000000000000000`;
 	}
 
 	async removeProviderApiKey(providerId: string) {

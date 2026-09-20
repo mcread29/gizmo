@@ -2,23 +2,9 @@ import type {
 	AgentModelCatalog,
 	AgentResource,
 	ExtensionDescriptor,
-	ProviderStatus,
 	SkillResource,
 	StoredProject,
 } from '@gizmo/protocol';
-
-export const fakeProviders: ProviderStatus[] = [
-	{
-		id: 'openai-codex',
-		name: 'OpenAI Codex',
-		authenticated: true,
-		source: 'OAuth',
-		credentialType: 'oauth',
-		supportsApiKey: false,
-		supportsOAuth: true,
-		modelCount: 3,
-	},
-];
 
 export const fakeModels = [
 	{

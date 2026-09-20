@@ -1,0 +1,220 @@
+/*
+ * The providers table. Forty rows of the same four facts is tabular data, so
+ * it is a table: one line per provider, a header that names the columns once
+ * instead of repeating "models" and "API key" on every row, and the key field
+ * living in its column rather than in a form of its own.
+ */
+[data-ui='provider-table'] {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--text-sm);
+	table-layout: fixed;
+}
+
+[data-ui='provider-table'] col:nth-child(2) {
+	width: 76px;
+}
+
+[data-ui='provider-table'] col:nth-child(3) {
+	width: 44%;
+}
+
+/* Wide enough for all three buttons plus the cell's own padding, so the
+   Save that appears mid-edit never pushes the others out of the column. */
+[data-ui='provider-table'] col:nth-child(4) {
+	width: 116px;
+}
+
+/*
+ * Nothing inside a row may be display: flex on the cell itself — a flex cell
+ * stops stretching to the row's height, which lets short rows collapse under
+ * their neighbours. The flex lives one level in, in [data-ui='provider-line'].
+ */
+[data-ui='provider-table'] th,
+[data-ui='provider-table'] td {
+	padding: 0 var(--space-3);
+	text-align: left;
+	vertical-align: middle;
+}
+
+[data-ui='provider-table'] th:first-child,
+[data-ui='provider-table'] td:first-child {
+	padding-left: var(--space-4);
+}
+
+[data-ui='provider-table'] th:last-child,
+[data-ui='provider-table'] td:last-child {
+	padding-right: var(--space-4);
+}
+
+[data-ui='provider-table'] thead th {
+	padding-top: var(--space-2);
+	padding-bottom: 7px;
+	border-bottom: 1px solid var(--color-border);
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+	font-weight: var(--weight-semibold);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+/* One height for every row, whether it holds a key field or a word. */
+[data-ui='provider-table'] tbody th,
+[data-ui='provider-table'] tbody td {
+	height: 34px;
+}
+
+[data-ui='provider-table'] tbody tr + tr > * {
+	border-top: 1px solid var(--color-border);
+}
+
+[data-ui='provider-table'] tbody tr:hover > * {
+	background: color-mix(in srgb, var(--color-surface-soft) 55%, transparent);
+}
+
+/* The name cell carries the status dot and, when connected, where the
+   credential came from — a label worth reading on three rows, not on forty. */
+[data-ui='provider-line'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	font-size: var(--text-sm);
+	font-weight: var(--weight-medium);
+}
+
+[data-ui='provider-line'] > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='provider-line'] > em {
+	overflow: hidden;
+	flex: 0 1 auto;
+	min-width: 0;
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.4 var(--font-mono);
+	font-style: normal;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='provider-dot'] {
+	flex: 0 0 auto;
+	width: 7px;
+	height: 7px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-full);
+}
+
+[data-ui='provider-dot'][data-on='true'] {
+	border-color: var(--color-success);
+	background: var(--color-success);
+}
+
+[data-ui='provider-table'] td[data-ui='provider-models'] {
+	color: var(--color-text-muted);
+	font: var(--text-2xs) / 1.4 var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+[data-ui='provider-credential'] > input {
+	display: block;
+	box-sizing: border-box;
+	width: 100%;
+	height: 26px;
+	padding: 0 var(--space-2);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-xs);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	font: var(--text-2xs) / 1 var(--font-mono);
+}
+
+[data-ui='provider-credential'] > input::placeholder {
+	color: var(--color-text-muted);
+}
+
+[data-ui='provider-credential'] > input:hover {
+	border-color: var(--color-border-strong);
+}
+
+[data-ui='provider-credential'] > input:focus-visible {
+	border-color: var(--color-accent);
+	outline: none;
+	box-shadow: var(--focus-ring);
+}
+
+/* Providers Gizmo cannot hold a key for: OAuth-only, or local and keyless.
+   They still occupy the column, indented to the field's text, so the rows
+   stay on one grid. */
+[data-ui='provider-credential'] > span {
+	display: block;
+	padding-left: 9px;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+/* Right-aligned in a fixed column, so the buttons line up down the table. */
+[data-ui='provider-actions'] {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-1);
+}
+
+[data-ui='provider-slot'] {
+	width: 26px;
+}
+
+[data-ui='provider-actions'] [data-ui='button'][data-size='icon'] {
+	width: 26px;
+	height: 26px;
+}
+
+[data-ui='provider-filter'] {
+	flex: 0 0 auto;
+	width: 168px;
+}
+
+[data-ui='provider-filter'] [data-ui='search-field'] {
+	padding: 0 var(--space-2);
+}
+
+[data-ui='provider-filter'] input {
+	padding: 5px 0;
+	font-size: var(--text-2xs);
+}
+
+/*
+ * Narrow: the model count is the one column worth losing. Dropping it keeps
+ * the provider's name readable instead of shaving every one to an initial.
+ * It is emptied rather than display: none'd — removing a cell shortens the
+ * row, and every later cell then inherits the previous column's width.
+ */
+@media (max-width: 720px) {
+	[data-ui='provider-table'] col:nth-child(2) {
+		width: 0;
+	}
+
+	[data-ui='provider-table'] col:nth-child(4) {
+		width: 104px;
+	}
+
+	[data-ui='provider-table'] thead th:nth-child(2),
+	[data-ui='provider-table'] td[data-ui='provider-models'] {
+		padding: 0;
+		visibility: hidden;
+	}
+
+	[data-ui='provider-table'] th,
+	[data-ui='provider-table'] td {
+		padding: 0 var(--space-2);
+	}
+
+	/* The dot already says connected; the name is what gets read. */
+	[data-ui='provider-line'] > em {
+		display: none;
+	}
+}

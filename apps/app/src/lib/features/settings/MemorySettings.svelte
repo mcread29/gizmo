@@ -7,7 +7,7 @@
 	} from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import { Switch } from 'bits-ui';
-	import { Button } from '../../components';
+	import { Button, SettingField } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import MemoryDigestList from './MemoryDigestList.svelte';
 	import MemoryFactList from './MemoryFactList.svelte';
@@ -152,15 +152,11 @@
 	{/snippet}
 
 	<div data-ui="settings-card">
-		<div data-ui="setting-field" data-layout="stacked">
-			<div>
-				<strong>Digest model</strong>
-				<span>
-					Summarizes each journal segment into what stays true afterwards, so
-					search reads decisions instead of raw transcript. This setting is for
-					this workspace; other projects keep their own.
-				</span>
-			</div>
+		<SettingField
+			label="Digest model"
+			description="Summarizes each journal segment into what stays true afterwards, so search reads decisions instead of raw transcript."
+			stacked
+		>
 			<select
 				aria-label="Digest model"
 				onchange={(event) => selectModel(event.currentTarget.value)}
@@ -178,16 +174,12 @@
 					</option>
 				{/each}
 			</select>
-		</div>
+		</SettingField>
 
-		<div data-ui="setting-field">
-			<div>
-				<strong>Digest new segments automatically</strong>
-				<span>
-					Each segment is digested as it is journaled. Failures are skipped and
-					picked up by the next backfill.
-				</span>
-			</div>
+		<SettingField
+			label="Digest new segments automatically"
+			description="Each segment is digested as it is journaled. Failures are skipped and picked up by the next backfill."
+		>
 			<Switch.Root
 				data-ui="switch"
 				checked={status?.settings.auto ?? true}
@@ -202,35 +194,34 @@
 			>
 				<Switch.Thumb data-ui="switch-thumb" />
 			</Switch.Root>
-		</div>
+		</SettingField>
 	</div>
 
 	<div data-ui="settings-card">
-		<div data-ui="setting-field" data-layout="stacked">
-			<div>
-				<strong>Coverage</strong>
-				<span>
-					{#if status?.running}
-						{status.running.phase === 'facts' ? 'Deriving facts from' : 'Digesting'}
-						{status.running.done} of {status.running.total}
-						{#if status.running.failed > 0}
-							· {status.running.failed} failed
-						{/if}
-						{#if status.running.error}
-							<span data-ui="memory-error">{status.running.error}</span>
-						{/if}
-					{:else if undigested > 0}
-						{undigested} segment{undigested === 1 ? '' : 's'} not yet digested.
-					{:else if status && status.segments > 0}
-						Every segment has a digest.
-					{:else}
-						No journal segments yet.
+		<SettingField label="Coverage" stacked>
+			{#snippet detail()}
+				{#if status?.running}
+					{status.running.phase === 'facts'
+						? 'Deriving facts from'
+						: 'Digesting'}
+					{status.running.done} of {status.running.total}
+					{#if status.running.failed > 0}
+						· {status.running.failed} failed
 					{/if}
-				</span>
-			</div>
+					{#if status.running.error}
+						<span data-ui="memory-error">{status.running.error}</span>
+					{/if}
+				{:else if undigested > 0}
+					{undigested} segment{undigested === 1 ? '' : 's'} not yet digested.
+				{:else if status && status.segments > 0}
+					Every segment has a digest.
+				{:else}
+					No journal segments yet.
+				{/if}
+			{/snippet}
 			<progress value={coverage} max="100" aria-label="Digest coverage"
 			></progress>
-		</div>
+		</SettingField>
 
 		<div data-ui="setting-actions">
 			{#if status?.running}
@@ -254,26 +245,22 @@
 	</div>
 
 	<div data-ui="settings-card">
-		<div data-ui="setting-field" data-layout="stacked">
-			<div>
-				<strong>What is currently true</strong>
-				<span>
-					Statements the project still stands behind, derived from the digests.
-					A later session that contradicts one retires it, so this list shrinks
-					as well as grows.
-				</span>
-			</div>
+		<div data-ui="settings-section-header">
+			<h3>What is currently true</h3>
+			<span>
+				Statements the project still stands behind, derived from the digests. A
+				later session that contradicts one retires it, so this list shrinks as
+				well as grows.
+			</span>
 		</div>
 
 		<MemoryFactList {facts} />
 	</div>
 
 	<div data-ui="settings-card">
-		<div data-ui="setting-field" data-layout="stacked">
-			<div>
-				<strong>Saved memories</strong>
-				<span>What the agent recalls from this workspace, newest first.</span>
-			</div>
+		<div data-ui="settings-section-header">
+			<h3>Saved memories</h3>
+			<span>What the agent recalls from this workspace, newest first.</span>
 			<input
 				type="search"
 				placeholder="Filter decisions, summaries, errors"

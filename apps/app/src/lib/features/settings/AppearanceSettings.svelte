@@ -7,7 +7,7 @@
 		systemThemeMode,
 		type ColorScheme,
 	} from '../../app-settings';
-	import { SelectField } from '../../components';
+	import { SelectField, SettingField } from '../../components';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
@@ -40,13 +40,9 @@
 	}
 </script>
 
-<SettingsPage title="Appearance" scope="Stored on this device">
+<SettingsPage title="Appearance">
 	<div data-ui="settings-card">
-		<div data-ui="setting-field">
-			<div>
-				<strong>Color scheme</strong>
-				<span>Applies to every window on this device.</span>
-			</div>
+		<SettingField label="Color scheme">
 			<SelectField
 				value={scheme}
 				label="Color scheme"
@@ -58,15 +54,9 @@
 					if (option) selectScheme(option.value);
 				}}
 			/>
-		</div>
-		<div data-ui="setting-field">
-			<div>
-				<strong>Appearance</strong>
-				<span
-					>System follows your operating system's light and dark setting.</span
-				>
-			</div>
-			<div data-ui="segmented" role="group" aria-label="Appearance">
+		</SettingField>
+		<SettingField label="Light and dark">
+			<div data-ui="segmented" role="group" aria-label="Light and dark">
 				{#each modes as option (option.value)}
 					<button
 						data-ui="segmented-option"
@@ -76,6 +66,6 @@
 					>
 				{/each}
 			</div>
-		</div>
+		</SettingField>
 	</div>
 </SettingsPage>

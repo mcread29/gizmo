@@ -12,11 +12,11 @@
 </script>
 
 {#if !registry}
-	<div data-ui="settings-card">
+	<div data-ui="settings-list">
 		<ResourceNote>Loading…</ResourceNote>
 	</div>
 {:else}
-	<div data-ui="settings-card">
+	<div data-ui="settings-list">
 		<div data-ui="setting-field">
 			<div>
 				<strong><GitBranch size={13} /> {registry.url}</strong>

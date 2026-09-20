@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentStore } from '../../agent-client';
-	import { Button } from '../../components';
+	import { Button, SettingField } from '../../components';
 	import { toasts } from '../../toasts.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import SettingsPage from './SettingsPage.svelte';
@@ -49,24 +49,18 @@
 	}
 </script>
 
-<SettingsPage title="Connection" scope="Stored on this device">
+<SettingsPage title="Connection">
 	<div data-ui="settings-card">
-		<div data-ui="setting-field">
-			<div>
-				<strong>Agent server</strong>
-				<span>{resolved}</span>
-			</div>
+		<SettingField label="Agent server" description={resolved}>
 			<span data-ui="connection-state" data-tone={status.tone}
 				><i></i>{status.label}</span
 			>
-		</div>
-		<div data-ui="setting-field" data-layout="stacked">
-			<div>
-				<strong>Address</strong>
-				<span
-					>Leave empty to use the local sidecar. Changing this reconnects.</span
-				>
-			</div>
+		</SettingField>
+		<SettingField
+			label="Address"
+			description="Leave empty to use the local sidecar. Changing this reconnects."
+			stacked
+		>
 			<div data-ui="endpoint-field">
 				<label for="agent-url" data-ui="sr-only">Agent server address</label>
 				<input
@@ -84,6 +78,6 @@
 					>{applying ? 'Connecting…' : 'Apply'}</Button
 				>
 			</div>
-		</div>
+		</SettingField>
 	</div>
 </SettingsPage>

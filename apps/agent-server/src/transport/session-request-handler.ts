@@ -6,6 +6,7 @@ type SessionRequestType =
 	| 'providers.list'
 	| 'providers.import-pi-auth'
 	| 'providers.set-api-key'
+	| 'providers.read-api-key'
 	| 'providers.remove-api-key'
 	| 'attachment.read'
 	| 'attachment.reveal'
@@ -49,6 +50,8 @@ export async function handleSessionRequest(
 					request.apiKey,
 				),
 			};
+		case 'providers.read-api-key':
+			return { result: await service.readProviderApiKey(request.providerId) };
 		case 'providers.remove-api-key':
 			return {
 				result: await service.removeProviderApiKey(request.providerId),
