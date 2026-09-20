@@ -17,3 +17,8 @@ RELEASE.json
 
 # Superseded by .gizmo/memory/journal; content was backfilled into it.
 .agent-journal/
+
+# Sibling checkout the registry submodule links its dev API through:
+# extensions/registry/package.json uses link:../gizmo/packages/extension-api.
+# Only packages/ is exposed, so nothing walks back into extensions/.
+extensions/gizmo/
