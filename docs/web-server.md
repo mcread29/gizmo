@@ -66,12 +66,16 @@ appended to `~/.gizmo/logs/web.log`.
 `gizmo service install` writes whichever of those applies to the platform, and
 `gizmo status` prints the matching restart command when a probe fails.
 
-This machine is still on the pre-`gizmo` arrangement: the **Gizmo Web** task
-runs `C:\ProgramData\genge-services\bin\Supervise.ps1 -Name gizmo`, which reads
-`C:\ProgramData\genge-services\conf\gizmo.json` and runs
-`scripts/web-server.ts run` from the repo root. That file is now a shim over
-`gizmo run`, so it keeps working untouched; `gizmo service install` replaces
-the whole arrangement with a task that calls `gizmo run` directly.
+On Windows, `gizmo service install` and `gizmo service uninstall` need an
+elevated console. Windows lets an ordinary token query, run and end a task but
+not create or delete one, and `schtasks` reports that as a bare
+"Access is denied"; the CLI turns it into an instruction. Everything else —
+`start`, `stop`, `restart`, `status` — works from a normal console.
+
+The task runs as `S4U`, the no-window, no-stored-password logon type. An
+`InteractiveToken` task puts its action on the desktop, so `startup.cmd` would
+open a console window at every login and take the server down with it the first
+time someone closed that window.
 
 ## Restarting it
 

@@ -101,8 +101,21 @@ export function launchdPlist(command: ServiceCommand): string {
 /**
  * `schtasks /Create` cannot express restart-on-failure, so the task is
  * registered from XML instead of flags.
+ *
+ * `S4U` is what keeps the server out of the way. An `InteractiveToken` task
+ * runs its action on the desktop, so a batch file gets a console window that
+ * pops up at login and kills the server the moment anyone closes it. S4U runs
+ * the same command as the same user with no window and no stored password.
+ *
+ * `LeastPrivilege` is deliberate too: the server binds high ports and writes
+ * only inside the user's own home, so an elevated task would just create
+ * administrator-owned files in `~/.gizmo`.
  */
-export function windowsTaskXml(launcher: string, cwd: string): string {
+export function windowsTaskXml(
+	launcher: string,
+	cwd: string,
+	userId: string,
+): string {
 	return [
 		'<?xml version="1.0" encoding="UTF-16"?>',
 		'<Task version="1.3" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">',
@@ -116,8 +129,9 @@ export function windowsTaskXml(launcher: string, cwd: string): string {
 		'  </Triggers>',
 		'  <Principals>',
 		'    <Principal id="Author">',
-		'      <LogonType>InteractiveToken</LogonType>',
-		'      <RunLevel>HighestAvailable</RunLevel>',
+		`      <UserId>${escapeXml(userId)}</UserId>`,
+		'      <LogonType>S4U</LogonType>',
+		'      <RunLevel>LeastPrivilege</RunLevel>',
 		'    </Principal>',
 		'  </Principals>',
 		'  <Settings>',
@@ -155,6 +169,27 @@ export function windowsTaskXml(launcher: string, cwd: string): string {
 		'',
 	].join('\r\n');
 }
+
+/**
+ * Windows lets an ordinary console query, run and end a task, but creating or
+ * deleting one in the root task folder needs an elevated token. `schtasks`
+ * reports that as a bare "Access is denied", which reads like a bug rather
+ * than a missing privilege, so the CLI says what to do instead.
+ */
+export function windowsElevationMessage(): string {
+	return [
+		`Windows will not let an ordinary console add or remove the "${serviceNames.windowsTask}"`,
+		'scheduled task. Start PowerShell with "Run as administrator" and run the',
+		'same command again.',
+		'',
+		'Only `service install` and `service uninstall` need that. `start`, `stop`,',
+		'`restart` and `status` work from a normal console.',
+	].join('\n');
+}
+
+/** True for the one `schtasks` failure that an elevated console would fix. */
+export const isAccessDenied = (output: string) =>
+	/access is denied/i.test(output);
 
 /**
  * The launcher the scheduled task runs. It exists so the machine-local

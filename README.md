@@ -41,8 +41,9 @@ gizmo service install && gizmo service start
 
 Then open <http://localhost:4173>.
 
-> The installers fetch a published GitHub Release, and Gizmo has not tagged
-> `v0.1.0` yet. Until it does, install from a checkout as below.
+> On Windows, `gizmo service install` is the one step that needs an elevated
+> console: only an elevated token may register a scheduled task. `configure`,
+> `start`, `stop`, `restart` and `status` do not.
 
 ### From a checkout
 

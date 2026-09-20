@@ -81,4 +81,5 @@ Write-Host ''
 Write-Host "Installed $Version."
 Write-Host 'Next:'
 Write-Host '  gizmo configure --local'
-Write-Host '  gizmo service install; gizmo service start'
+Write-Host '  gizmo service install   (from an elevated PowerShell)'
+Write-Host '  gizmo service start'

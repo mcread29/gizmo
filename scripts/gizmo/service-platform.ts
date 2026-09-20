@@ -1,12 +1,14 @@
 import { spawnSync } from 'node:child_process';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { homedir, tmpdir } from 'node:os';
+import { homedir, tmpdir, userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
+	isAccessDenied,
 	launchdPlist,
 	serviceNames,
 	systemdUnit,
+	windowsElevationMessage,
 	windowsLauncherScript,
 	windowsTaskXml,
 	type ServiceCommand,
@@ -64,6 +66,18 @@ export function serviceCommand(root = appRoot): ServiceCommand {
 	};
 }
 
+function schtasksError(verb: string, output: string): Error {
+	if (isAccessDenied(output)) return new Error(windowsElevationMessage());
+	return new Error(`schtasks ${verb} failed:\n${output}`);
+}
+
+/** The account an S4U task runs as; `schtasks` will not infer it for us. */
+function windowsUserId(): string {
+	const user = process.env.USERNAME ?? userInfo().username;
+	const domain = process.env.USERDOMAIN;
+	return domain ? `${domain}\\${user}` : user;
+}
+
 /** `schtasks` only accepts UTF-16 task XML, BOM included. */
 async function writeTaskXml(file: string, xml: string) {
 	await mkdir(dirname(file), { recursive: true });
@@ -75,16 +89,17 @@ async function installWindows(command: ServiceCommand) {
 	await mkdir(dirname(launcher), { recursive: true });
 	await writeFile(launcher, windowsLauncherScript(command), 'utf8');
 	const xmlFile = join(tmpdir(), `gizmo-task-${String(process.pid)}.xml`);
-	await writeTaskXml(xmlFile, windowsTaskXml(launcher, command.cwd));
+	await writeTaskXml(
+		xmlFile,
+		windowsTaskXml(launcher, command.cwd, windowsUserId()),
+	);
 	try {
-		run('schtasks.exe', [
-			'/Create',
-			'/TN',
-			serviceNames.windowsTask,
-			'/XML',
-			xmlFile,
-			'/F',
-		]);
+		const created = run(
+			'schtasks.exe',
+			['/Create', '/TN', serviceNames.windowsTask, '/XML', xmlFile, '/F'],
+			{ quiet: true },
+		);
+		if (created.status !== 0) throw schtasksError('/Create', created.output);
 	} finally {
 		await rm(xmlFile, { force: true });
 	}
@@ -127,9 +142,16 @@ export async function uninstallService(): Promise<string[]> {
 		run('schtasks.exe', ['/End', '/TN', serviceNames.windowsTask], {
 			quiet: true,
 		});
-		run('schtasks.exe', ['/Delete', '/TN', serviceNames.windowsTask, '/F'], {
-			quiet: true,
-		});
+		// A missing task is a fine outcome for uninstall; a missing privilege
+		// is not, because it leaves the task running behind a success message.
+		const deleted = run(
+			'schtasks.exe',
+			['/Delete', '/TN', serviceNames.windowsTask, '/F'],
+			{ quiet: true },
+		);
+		if (deleted.status !== 0 && isAccessDenied(deleted.output)) {
+			throw schtasksError('/Delete', deleted.output);
+		}
 		await rm(windowsLauncher(), { force: true });
 		return [`scheduled task "${serviceNames.windowsTask}"`];
 	}

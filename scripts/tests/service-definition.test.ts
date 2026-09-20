@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+	isAccessDenied,
 	launchdPlist,
 	serviceNames,
 	systemdUnit,
 	windowsLauncherScript,
+	windowsElevationMessage,
 	windowsTaskXml,
 	type ServiceCommand,
 } from '../gizmo/service-definition';
@@ -60,13 +62,23 @@ describe('launchdPlist', () => {
 });
 
 describe('windowsTaskXml', () => {
-	const xml = windowsTaskXml('C:\Users\a\.gizmo\app\startup.cmd', 'C:\app');
+	const xml = windowsTaskXml(
+		'C:\Users\a\.gizmo\app\startup.cmd',
+		'C:\app',
+		'GENGE\mchan',
+	);
 
 	it('starts at logon and restarts on failure', () => {
 		expect(xml).toContain('<LogonTrigger>');
 		expect(xml).toContain('<Interval>PT1M</Interval>');
 		expect(xml).toContain('<Count>999</Count>');
-		expect(xml).toContain('<RunLevel>HighestAvailable</RunLevel>');
+		expect(xml).toContain('<RunLevel>LeastPrivilege</RunLevel>');
+	});
+
+	it('runs windowless as the installing user, so no console can close it', () => {
+		expect(xml).toContain('<LogonType>S4U</LogonType>');
+		expect(xml).toContain('<UserId>GENGE\mchan</UserId>');
+		expect(xml).not.toContain('InteractiveToken');
 	});
 
 	it('never times the server out', () => {
@@ -97,5 +109,21 @@ describe('restartCommand', () => {
 		expect(restartCommand('win32')).toContain(serviceNames.windowsTask);
 		expect(restartCommand('linux')).toContain(serviceNames.systemdUnit);
 		expect(restartCommand('darwin')).toContain(serviceNames.launchdLabel);
+	});
+});
+
+describe('windowsElevationMessage', () => {
+	it('names the task and the console that can register it', () => {
+		const message = windowsElevationMessage();
+		expect(message).toContain(serviceNames.windowsTask);
+		expect(message).toContain('Run as administrator');
+		expect(message).toContain('work from a normal console');
+	});
+
+	it('claims elevation only for the failure elevation fixes', () => {
+		expect(isAccessDenied('ERROR: Access is denied.')).toBe(true);
+		expect(
+			isAccessDenied('ERROR: The system cannot find the file specified.'),
+		).toBe(false);
 	});
 });
