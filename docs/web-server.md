@@ -1,65 +1,101 @@
 # The web server
 
-This is the live Gizmo — the one reachable at
+This is the always-on Gizmo — the one reachable at
 <https://gizmo.genge.init0.link>, serving a built bundle rather than a dev
-build. It is not started from this repo.
+build. It is owned by the machine's supervisor, not by this repo, and not by
+you.
+
+## The one command
+
+Everything is a `gizmo` verb. In a checkout that is `pnpm gizmo <verb>`; an
+installed Gizmo puts `gizmo` on PATH.
+
+| Command                                             | What it does                                  |
+| --------------------------------------------------- | --------------------------------------------- |
+| `gizmo status`                                      | Probes both ports and every configured URL.   |
+| `gizmo configure --show`                            | Prints `~/.gizmo/web.json`.                   |
+| `gizmo configure --local\|--tailscale\|--url <url>` | Rewrites it.                                  |
+| `gizmo service restart`                             | Applies a configuration change.               |
+| `gizmo service install\|uninstall`                  | Registers or removes the supervisor entry.    |
+| `gizmo run`                                         | The process the supervisor runs. Not for you. |
+
+## What it reads
+
+`~/.gizmo/web.json` (or `$GIZMO_DATA_DIR/web.json`) is the whole
+configuration:
+
+```json
+{
+	"agentPort": 8787,
+	"webPort": 4173,
+	"bind": "all",
+	"urls": [
+		"http://localhost:4173",
+		"http://127.0.0.1:4173",
+		"http://genge.angler-musical.ts.net:4173",
+		"http://100.105.88.93:4173",
+		"https://gizmo.genge.init0.link"
+	]
+}
+```
+
+`urls` is the part that is easy to get wrong by hand, because one list feeds
+two allowlists: their hostnames become Vite's `allowedHosts`, and their origins
+become the agent server's WebSocket allowlist. A host missing from `urls` loads
+the page and then never connects — which looks like a broken app rather than a
+wrong URL.
+
+`bind` is derived from `urls` rather than chosen: `loopback` when they are all
+local, `tailscale` when they are all tailnet names, `all` when both kinds are
+present — as here, because the Caddy front reaches Vite preview on `127.0.0.1`
+while the tailnet names reach it directly. `gizmo configure --bind` overrides
+the derivation if you ever need it to.
+
+Until a machine has a `web.json`, the server falls back to the older
+`GIZMO_PORT` / `GIZMO_WEB_PORT` / `GIZMO_WEB_HOSTS` / `GIZMO_WEB_ORIGINS`
+environment variables. That fallback is what keeps a pre-`web.json` instance
+running across this change.
 
 ## What owns it
 
-A Windows scheduled task named **Gizmo Web** runs
-`C:\ProgramData\genge-services\bin\Supervise.ps1 -Name gizmo` at logon. That
-supervisor reads `C:\ProgramData\genge-services\conf\gizmo.json` and runs
+On Linux a systemd user unit (`gizmo.service`), on macOS a launchd agent
+(`link.init0.gizmo`), on Windows a scheduled task (**Gizmo Web**). All three
+run `gizmo run` at login and restart it 15 seconds after any exit. Output is
+appended to `~/.gizmo/logs/web.log`.
 
-```
-node .../tsx/dist/cli.mjs scripts/web-server.ts run
-```
+`gizmo service install` writes whichever of those applies to the platform, and
+`gizmo status` prints the matching restart command when a probe fails.
 
-from the repo root, restarting it 15 seconds after any exit. So
-`scripts/web-server.ts` is still the entry point — but only its `run` verb,
-and the supervisor is the one that says it.
-
-The config file also holds the environment the server needs, which is the part
-that is easy to get wrong by hand:
-
-| Variable | Value | Why |
-| --- | --- | --- |
-| `GIZMO_PORT` | `8787` | Agent server, bound to loopback only. |
-| `GIZMO_WEB_PORT` | `4173` | Vite preview; the only listener on the tailnet. |
-| `GIZMO_WEB_HOSTS` | `localhost,127.0.0.1,100.105.88.93,genge.angler-musical.ts.net,gizmo.genge.init0.link` | Vite's `allowedHosts`. |
-| `GIZMO_WEB_ORIGINS` | `https://gizmo.genge.init0.link` | The agent server's origin allowlist. |
-| `PATH` | mise shims first | Without this, `mise` is not on PATH and startup fails. |
+This machine is still on the pre-`gizmo` arrangement: the **Gizmo Web** task
+runs `C:\ProgramData\genge-services\bin\Supervise.ps1 -Name gizmo`, which reads
+`C:\ProgramData\genge-services\conf\gizmo.json` and runs
+`scripts/web-server.ts run` from the repo root. That file is now a shim over
+`gizmo run`, so it keeps working untouched; `gizmo service install` replaces
+the whole arrangement with a task that calls `gizmo run` directly.
 
 ## Restarting it
 
 ```
-schtasks /End /TN "Gizmo Web" && schtasks /Run /TN "Gizmo Web"
+gizmo service restart
 ```
 
-Give it up to two minutes: the supervisor waits for both health ports (8787
-and 4173) before reporting healthy, and the agent server's extensions take a
-while to load. To check:
-
-```
-pnpm web:server:status
-```
-
-That probes the ports. It deliberately does not consult any state file — see
-below.
+Give it up to two minutes: it waits for both health ports before reporting
+healthy, and the agent server's extensions take a while to load. `gizmo status`
+answers the same question at any time.
 
 ## Do not start it by hand
 
-There is no way to, and that is deliberate: `scripts/web-server.ts` has exactly
-two verbs, `run` and `status`. Starting a second server by hand takes ports 8787
-and 4173, and the supervisor then logs `port 8787 is held by pid(s) N which are
-NOT ours` every 15 seconds and never comes back up. If that has happened,
-`taskkill /PID <pid> /T /F` and wait for the next attempt.
+Starting a second server takes ports 8787 and 4173, and the supervisor then
+never comes back up — it logs that the port is held by a pid that is not its
+own, every 15 seconds. If that has happened, kill the hand-started process and
+wait for the next attempt.
 
 ## Checking it in a browser
 
-Use `https://gizmo.genge.init0.link`, not `http://localhost:4173`. The page
-loads on localhost, but `GIZMO_WEB_ORIGINS` allows only the tunnel origin, so
-the client's WebSocket is rejected and the app sits there unconnected. That
-failure looks like a broken app rather than a wrong URL.
+Use a URL that is in `urls`. `https://gizmo.genge.init0.link` always is;
+`http://localhost:4173` is only there if `gizmo configure --local` has been
+run. On a URL outside the list the page loads but the client's WebSocket is
+rejected, which looks like a broken app.
 
 ## Not this server
 

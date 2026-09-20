@@ -65,7 +65,7 @@ export async function runManagedServer() {
 	const requireFromApp = createRequire(
 		join(root, 'apps', 'app', 'package.json'),
 	);
-	const tsxCli = createRequire(__filename).resolve('tsx/cli');
+	const tsxCli = createRequire(import.meta.url).resolve('tsx/cli');
 	process.env.GIZMO_PI_WEB = '1';
 	const port = Number(process.env.GIZMO_PORT ?? 8787);
 

@@ -27,7 +27,7 @@ async function start() {
 	if (existing) await rm(stateFile, { force: true });
 
 	await mkdir(runtimeDirectory, { recursive: true });
-	const tsxCli = createRequire(__filename).resolve('tsx/cli');
+	const tsxCli = createRequire(import.meta.url).resolve('tsx/cli');
 	const runnerArguments = [
 		tsxCli,
 		join(root, 'scripts', 'dev-server.ts'),

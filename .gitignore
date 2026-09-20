@@ -10,6 +10,9 @@ coverage/
 *.log
 .gizmo-dev/
 .gizmo-web/
+
+# Written by scripts/release-pack.ts into the tree it is about to tar.
+RELEASE.json
 .DS_Store
 
 # Superseded by .gizmo/memory/journal; content was backfilled into it.

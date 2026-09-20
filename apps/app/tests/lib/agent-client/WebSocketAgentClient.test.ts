@@ -1,56 +1,6 @@
 import { protocolVersion, type AgentEvent } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
-import { WebSocketAgentClient } from '../../../src/lib/agent-client/WebSocketAgentClient';
-
-class TestSocket extends EventTarget implements WebSocket {
-	readonly CONNECTING = 0;
-	readonly OPEN = 1;
-	readonly CLOSING = 2;
-	readonly CLOSED = 3;
-	binaryType: BinaryType = 'blob';
-	bufferedAmount = 0;
-	extensions = '';
-	onclose: WebSocket['onclose'] = null;
-	onerror: WebSocket['onerror'] = null;
-	onmessage: WebSocket['onmessage'] = null;
-	onopen: WebSocket['onopen'] = null;
-	protocol = '';
-	readyState: WebSocket['readyState'] = this.CONNECTING;
-	sent: unknown[] = [];
-	url = 'ws://agent.test/agent';
-
-	open() {
-		this.readyState = this.OPEN;
-		this.dispatchEvent(new Event('open'));
-	}
-
-	receive(value: unknown) {
-		this.dispatchEvent(
-			new MessageEvent('message', { data: JSON.stringify(value) }),
-		);
-	}
-
-	send(value: string) {
-		this.sent.push(JSON.parse(value));
-	}
-
-	close() {
-		this.readyState = this.CLOSED;
-		this.dispatchEvent(new Event('close'));
-	}
-}
-
-async function createConnectedClient() {
-	const socket = new TestSocket();
-	const client = new WebSocketAgentClient({
-		url: socket.url,
-		createSocket: () => socket,
-	});
-	const connecting = client.connect();
-	socket.open();
-	await connecting;
-	return { client, socket };
-}
+import { createConnectedClient } from './websocket-test-socket';
 
 describe('WebSocketAgentClient', () => {
 	it('correlates request responses while forwarding streamed events', async () => {
@@ -138,63 +88,6 @@ describe('WebSocketAgentClient', () => {
 		await expect(reading).resolves.toMatchObject({ name: 'notes.txt' });
 	});
 
-	it('validates project data returned by the server', async () => {
-		const { client, socket } = await createConnectedClient();
-
-		const projects = client.listProjects();
-		expect(socket.sent[0]).toMatchObject({ type: 'project.list' });
-		socket.receive({
-			protocolVersion,
-			requestId: 'request-1',
-			type: 'response.success',
-			result: [
-				{
-					title: 'Game',
-					path: '/projects/game',
-					integrations: [{ id: 'unity', root: '.' }],
-					addedAt: 1,
-				},
-			],
-		});
-
-		await expect(projects).resolves.toEqual([
-			{
-				title: 'Game',
-				path: '/projects/game',
-				integrations: [{ id: 'unity', root: '.' }],
-				addedAt: 1,
-			},
-		]);
-	});
-
-	it('subscribes the active session to project status changes', async () => {
-		const { client, socket } = await createConnectedClient();
-
-		const watching = client.watchProjectStatus(
-			'session-1',
-			'/projects/game',
-			'unity',
-		);
-		expect(socket.sent[0]).toMatchObject({
-			type: 'project.watch',
-			sessionId: 'session-1',
-			projectPath: '/projects/game',
-			extensionId: 'unity',
-		});
-		socket.receive({
-			protocolVersion,
-			requestId: 'request-1',
-			type: 'response.success',
-			result: {
-				// Status payloads are opaque extension-owned data in core.
-				engine: 'unity',
-				state: 'connected',
-			},
-		});
-
-		await expect(watching).resolves.toMatchObject({ state: 'connected' });
-	});
-
 	it('validates persisted session catalogs and hydrated resumes', async () => {
 		const { client, socket } = await createConnectedClient();
 		const session = {
@@ -276,33 +169,6 @@ describe('WebSocketAgentClient', () => {
 		});
 		await expect(thinking).resolves.toMatchObject({
 			current: { thinkingLevel: 'low' },
-		});
-	});
-
-	it('sends project extension paths and validates the returned config', async () => {
-		const { client, socket } = await createConnectedClient();
-
-		const setting = client.setProjectExtensionPaths('/projects/game', [
-			'/projects/game/tools/helper.ts',
-		]);
-		expect(socket.sent[0]).toMatchObject({
-			type: 'project.extension-paths.set',
-			projectPath: '/projects/game',
-			paths: ['/projects/game/tools/helper.ts'],
-		});
-		socket.receive({
-			protocolVersion,
-			requestId: 'request-1',
-			type: 'response.success',
-			result: {
-				version: 1,
-				piExtensionPaths: ['/projects/game/tools/helper.ts'],
-			},
-		});
-
-		await expect(setting).resolves.toEqual({
-			version: 1,
-			piExtensionPaths: ['/projects/game/tools/helper.ts'],
 		});
 	});
 

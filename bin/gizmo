@@ -1,0 +1,6 @@
+#!/bin/sh
+# The shim `gizmo install` puts on PATH. It resolves the tree it lives in, so
+# `~/.gizmo/app/current/bin/gizmo` always drives whatever `current` points at.
+set -eu
+root=$(cd -- "$(dirname -- "$0")/.." && pwd)
+exec node "$root/node_modules/tsx/dist/cli.mjs" "$root/scripts/gizmo.ts" "$@"

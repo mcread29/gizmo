@@ -1,5 +1,49 @@
 # Work log
 
+## 2026-09-19 — Installable releases: the `gizmo` CLI, services, packaging
+
+- `~/.gizmo/web.json` is now the whole web configuration (`agentPort`,
+  `webPort`, `bind`, `urls`), and `gizmo run` derives Vite's allowed hosts, the
+  agent server's origin allowlist, and the bind address from it. With no
+  `web.json` the old `GIZMO_WEB_HOSTS`/`GIZMO_WEB_ORIGINS` environment is used
+  verbatim, which is what let the live instance keep running through this
+  change. `scripts/web-server.ts` is a shim over `gizmo run`, because the live
+  service definition names that path.
+- `gizmo service install|uninstall|start|stop|restart|status` writes the
+  platform's own supervisor entry — systemd user unit, launchd agent, or the
+  **Gizmo Web** scheduled task — so `Supervise.ps1`, `scripts/lib/supervised.ts`
+  and `scripts/web-update.ts` are gone. The generated task XML was validated by
+  registering it under a throwaway name and deleting it again; the live task
+  was not touched.
+- `gizmo configure` has the three profiles: `--local`, `--tailscale [--serve]`
+  (discovered through `tailscale status --json`), and `--url <url>`, which
+  refuses a hostname that resolves off-tailnet unless `--public` is passed,
+  prints the DNS records to create, and emits a Caddyfile (`--caddyfile <path>`
+  writes it; on its own it re-emits for the domains already configured).
+- Release plumbing: a `v*`-tagged GitHub Actions workflow that checks, tests,
+  builds and packs `gizmo-vX.Y.Z.tar.gz` + `RELEASE.json` + `SHA256SUMS`;
+  `gizmo install|update|rollback|releases|uninstall` over
+  `~/.gizmo/app/releases/<version>` with a `current` link, checksum
+  verification and a two-release retention; and the two one-line bootstrap
+  installers (`scripts/install.sh`, `scripts/install.ps1`).
+- `scripts/` is a workspace package now, so it type-checks and has tests for
+  the first time (56 of them, over config derivation, the profiles, service
+  definitions, Caddy output and packaging). That needed the ESM conversion of
+  `dev-server.ts` and `scripts/dev/*`.
+- Deviations from `docs/release.md`, both recorded there: `bind` gained a third
+  value `all`, because Vite preview takes one `--host` and this machine serves
+  both a loopback-terminated domain and raw tailnet names; and the Windows
+  launcher lives at `<dataDir>/app/startup.cmd` rather than under
+  `%LOCALAPPDATA%`.
+- Validation: `pnpm check`, `pnpm test` (680 tests) and `pnpm format` all
+  clean. Two pre-existing test files that exceeded the 300-line limit were
+  split, since the release workflow gates on `pnpm check`. `configure` was
+  exercised end to end against a temporary `GIZMO_DATA_DIR`, including real
+  tailnet discovery and the DNS check for `gizmo.genge.init0.link`; the live
+  instance stayed up throughout (`gizmo status` green).
+- Not done, deliberately: migrating this machine's live instance to `web.json`
+  plus a `gizmo`-owned task, and cutting `v0.1.0`.
+
 ## 2026-09-19 — Gizmo-owned extension directories, explicit project paths
 
 - Moved the link farm out of Pi's home directory: registry and hand-written

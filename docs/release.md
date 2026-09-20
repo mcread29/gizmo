@@ -6,9 +6,11 @@ with one command, reaches over localhost, Tailscale, or their own domain, and
 can remove cleanly. It covers the app and the extension registry, because the
 two ship separately and have to agree on a contract.
 
-Nothing below exists yet except where noted. The current live setup is
-described in [web-server.md](web-server.md); this document replaces it once
-implemented.
+This is implemented as of 2026-09-19, with two deviations from the original
+plan, both marked **Deviation** where they apply below. What is not done is the
+migration of this machine's live instance and the first tag — see "Migrating
+the current live instance" at the end. [web-server.md](web-server.md) describes
+the live instance as it stands today.
 
 ## What is fixed by how Gizmo is built
 
@@ -52,7 +54,7 @@ A GitHub Actions workflow (`.github/workflows/release.yml`) runs on every
    `apps/app/dist`, minus `node_modules`, `research`, `screenshots`,
    `skills-ref`, and the `.gizmo-*` runtime directories. Include a
    `RELEASE.json` with `{ version, commit, extensionApiVersion,
-   registryRef }`.
+registryRef }`.
 3. Write `SHA256SUMS` and attach both to a GitHub Release. The tag body is the
    `WORKLOG.md` section for the release.
 
@@ -92,17 +94,17 @@ and as `~/.gizmo/app/current/bin/gizmo` (a shim the installer puts on PATH)
 from a release. It replaces `web-server.ts`, `web-update.ts`, `reload`, and
 `reload.cmd`. The verbs:
 
-| Verb | What it does |
-| --- | --- |
-| `gizmo install [vX.Y.Z]` | Fetch and unpack a release into `releases/`, `pnpm install --frozen-lockfile`, point `current` at it. Does not touch the service. |
-| `gizmo configure ...` | Write `web.json`. Flags below. |
-| `gizmo service install` | Register the platform service pointing at `current`, enabled at login. |
-| `gizmo service start / stop / restart / status` | Drive the platform service. `status` probes the two ports, as today. |
-| `gizmo service uninstall` | Stop and unregister the service. Leaves files. |
-| `gizmo run` | The service's entry point: what `web-server.ts run` is today, reading `web.json` instead of raw env. |
-| `gizmo update [vX.Y.Z]` | `install` the new version, then `service restart`. The old release stays for rollback; two are kept. |
-| `gizmo rollback` | Point `current` at the previous release and restart. |
-| `gizmo uninstall [--purge]` | See "Uninstall". |
+| Verb                                            | What it does                                                                                                                      |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `gizmo install [vX.Y.Z]`                        | Fetch and unpack a release into `releases/`, `pnpm install --frozen-lockfile`, point `current` at it. Does not touch the service. |
+| `gizmo configure ...`                           | Write `web.json`. Flags below.                                                                                                    |
+| `gizmo service install`                         | Register the platform service pointing at `current`, enabled at login.                                                            |
+| `gizmo service start / stop / restart / status` | Drive the platform service. `status` probes the two ports, as today.                                                              |
+| `gizmo service uninstall`                       | Stop and unregister the service. Leaves files.                                                                                    |
+| `gizmo run`                                     | The service's entry point: what `web-server.ts run` is today, reading `web.json` instead of raw env.                              |
+| `gizmo update [vX.Y.Z]`                         | `install` the new version, then `service restart`. The old release stays for rollback; two are kept.                              |
+| `gizmo rollback`                                | Point `current` at the previous release and restart.                                                                              |
+| `gizmo uninstall [--purge]`                     | See "Uninstall".                                                                                                                  |
 
 ### The one-line installer
 
@@ -123,12 +125,12 @@ the next command. It does not configure or start anything, so a piped script
 never registers a service. Prerequisites checked, with the fix printed if
 missing:
 
-| Tool | Minimum | Why |
-| --- | --- | --- |
-| Node | 24 | `--experimental-strip-types` in the extension builder; `tsx`. |
-| pnpm | 11 | `corepack enable` installs the pinned version from `packageManager`. |
-| git | any | Registry clone and update. |
-| Tailscale | optional | Only for the `--tailscale` profile. |
+| Tool      | Minimum  | Why                                                                  |
+| --------- | -------- | -------------------------------------------------------------------- |
+| Node      | 24       | `--experimental-strip-types` in the extension builder; `tsx`.        |
+| pnpm      | 11       | `corepack enable` installs the pinned version from `packageManager`. |
+| git       | any      | Registry clone and update.                                           |
+| Tailscale | optional | Only for the `--tailscale` profile.                                  |
 
 `mise` is not required. The current live instance needs it on PATH only
 because that machine installs Node through it; the service definition
@@ -142,10 +144,10 @@ current live instance does.
 
 ```json
 {
-  "agentPort": 8787,
-  "webPort": 4173,
-  "bind": "loopback",
-  "urls": ["http://localhost:4173", "https://gizmo.genge.init0.link"]
+	"agentPort": 8787,
+	"webPort": 4173,
+	"bind": "loopback",
+	"urls": ["http://localhost:4173", "https://gizmo.genge.init0.link"]
 }
 ```
 
@@ -155,6 +157,15 @@ current live instance does.
 - `GIZMO_ORIGINS` is every entry in `urls` verbatim.
 - `bind` decides which interface Vite preview listens on. The agent server is
   always loopback.
+
+**Deviation.** `bind` has three values, not two: `loopback`, `tailscale`, and
+`all`. The plan assumed each profile picks one, but Vite preview takes a single
+`--host`, and a configuration that mixes a loopback URL (a TLS front reaching
+`127.0.0.1`) with a raw tailnet URL needs both interfaces at once — which is
+exactly what this machine does. So `bind` is derived rather than set per
+profile: `bindFor()` returns the narrowest bind that still serves every URL in
+`urls`, and `all` (0.0.0.0, today's live behaviour) is the answer when the URLs
+disagree. `gizmo configure --bind <value>` overrides the derivation.
 
 The profiles:
 
@@ -194,7 +205,7 @@ platforms, renews on its own, and gets the Cloudflare DNS module with
 2. Prints a Caddyfile for the domain, bound to the Tailscale IP so the
    listener is not on the LAN, proxying to the web port, with the
    `tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }` block. `--caddyfile
-   <path>` writes it instead of printing it.
+<path>` writes it instead of printing it.
 3. Reminds that the DNS record must be an unproxied `A` record for the
    Tailscale IPv4 address (and optionally `AAAA` for the IPv6 one), and that
    `gizmo configure --tailscale` should be run too so the raw IP and MagicDNS
@@ -217,7 +228,7 @@ Neither Vite preview nor the agent server authenticates anyone; in all three
 profiles the network is the identity. Localhost is the machine's user,
 and both the Tailscale profile and a custom domain that resolves to a
 Tailscale IP are reachable only by tailnet members, which Tailscale ACLs
-can narrow further. The one thing not to do is point a *proxied* Cloudflare
+can narrow further. The one thing not to do is point a _proxied_ Cloudflare
 record or a public tunnel at the web port, because that exposes an
 unauthenticated Gizmo to the internet. `gizmo configure --url` checks the
 DNS answer and refuses an address that is not in `100.64.0.0/10` or the
@@ -230,15 +241,21 @@ The service is always "run `node <current>/... gizmo.ts run`, restart if it
 exits, start at login". Each platform's native supervisor does that already,
 so the repo's `Supervise.ps1` loop goes away.
 
-| Platform | Mechanism | File |
-| --- | --- | --- |
-| Linux | systemd user unit, `Restart=always`, `RestartSec=15`, `loginctl enable-linger` so it runs without a session | `~/.config/systemd/user/gizmo.service` |
-| macOS | launchd LaunchAgent, `KeepAlive: true`, `ThrottleInterval: 15` | `~/Library/LaunchAgents/link.init0.gizmo.plist` |
-| Windows | Scheduled task **Gizmo Web**, at logon, highest available run level, restart on failure every 1 minute up to 999 times, plus a one-line `startup.cmd` that sets `GIZMO_DATA_DIR` if configured | `%LOCALAPPDATA%\gizmo\startup.cmd` |
+| Platform | Mechanism                                                                                                                                                                                      | File                                            |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Linux    | systemd user unit, `Restart=always`, `RestartSec=15`, `loginctl enable-linger` so it runs without a session                                                                                    | `~/.config/systemd/user/gizmo.service`          |
+| macOS    | launchd LaunchAgent, `KeepAlive: true`, `ThrottleInterval: 15`                                                                                                                                 | `~/Library/LaunchAgents/link.init0.gizmo.plist` |
+| Windows  | Scheduled task **Gizmo Web**, at logon, highest available run level, restart on failure every 1 minute up to 999 times, plus a one-line `startup.cmd` that sets `GIZMO_DATA_DIR` if configured | `<dataDir>/app/startup.cmd`                     |
 
-`scripts/lib/supervised.ts` becomes platform-aware: `status` prints the
-restart command for the platform in use instead of the hard-coded `schtasks`
-line.
+**Deviation.** The Windows launcher lives at `<dataDir>/app/startup.cmd`, not
+`%LOCALAPPDATA%\gizmo\startup.cmd`. Putting it under `%LOCALAPPDATA%` would
+have been a second Gizmo-owned location outside the data directory, which
+contradicts "everything Gizmo installs lives in one place" and would survive
+`gizmo uninstall --purge` on a machine with a relocated `GIZMO_DATA_DIR`.
+
+`scripts/lib/supervised.ts` is gone; `gizmo status` prints the restart command
+for the platform in use instead of the hard-coded `schtasks` line
+(`restartCommand()` in `scripts/gizmo/service-platform.ts`).
 
 Health checks stay as they are: the supervisor is not consulted for status,
 the ports are. `gizmo run` still waits for the agent port before starting Vite
@@ -269,7 +286,7 @@ package every extension is written against; see
 - **Uninstall of everything from the registry** is a new `registry.reset`
   request: unlink every id in `installed.json` (both enabled and disabled
   locations), remove the clone, and write an empty state. `gizmo uninstall
-  --purge` calls the same code path directly so it works with the server
+--purge` calls the same code path directly so it works with the server
   stopped. Hand-written global and project-local extensions are the user's
   own files and are never touched.
 
@@ -327,8 +344,11 @@ The Windows box runs from a checkout via `Supervise.ps1` and a config under
    machine's `tailnet-domains` service, which keeps proxying to
    `127.0.0.1:4173`; skip the Caddyfile that `--url` prints. That service is
    specific to this machine and is not part of what other users install.
-2. `schtasks /End /TN "Gizmo Web"`, then `pnpm gizmo service install --source .`
-   which rewrites the same task name to point at `gizmo run` in the checkout.
+2. `schtasks /End /TN "Gizmo Web"`, then `pnpm gizmo service install` from the
+   checkout, which rewrites the same task name to point at `gizmo run` there.
+   There is no `--source` flag: the service is always registered against the
+   tree the CLI itself is running from (`appRoot`), so running it out of the
+   checkout is what makes it a source install.
 3. `pnpm gizmo service start`, then `pnpm gizmo service status`.
 4. Delete `gizmo.json` from the `genge-services` conf directory. The other
    services there are untouched.

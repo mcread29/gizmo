@@ -1,7 +1,8 @@
 import { readFile, mkdir, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export const root = join(__dirname, '..', '..');
+export const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const runtimeDirectory = join(root, '.gizmo-dev');
 export const stateFile = join(runtimeDirectory, 'dev-server.json');
 export const logFile = join(runtimeDirectory, 'dev-server.log');

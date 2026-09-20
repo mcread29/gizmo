@@ -6,6 +6,93 @@ An open source, extensible AI workbench built on Pi. Extensions add
 first-class support for Unity, Svelte, and other project ecosystems without
 forking the product.
 
+## Install
+
+Gizmo installs into `~/.gizmo` and is then run by your platform's own
+supervisor — a systemd user unit, a launchd agent, or a Windows scheduled
+task. It needs Node 24 or newer, pnpm 11 or newer (`corepack enable`), and
+`git`; the last because extensions are cloned and built on your machine at
+runtime rather than shipped prebuilt. Tailscale is optional and only used by
+the remote-access profiles below.
+
+On macOS and Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/mcread29/gizmo/main/scripts/install.sh | sh
+```
+
+On Windows, in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/mcread29/gizmo/main/scripts/install.ps1 | iex
+```
+
+Either one checks those prerequisites, downloads the latest release tarball,
+verifies it against the published `SHA256SUMS`, unpacks it under
+`~/.gizmo/app/releases/`, installs its dependencies, and puts a `gizmo` shim on
+your PATH. It stops there: a script you piped into a shell should not register
+a background service. Two commands finish the job, and the installer prints
+them.
+
+```sh
+gizmo configure --local
+gizmo service install && gizmo service start
+```
+
+Then open <http://localhost:4173>.
+
+> The installers fetch a published GitHub Release, and Gizmo has not tagged
+> `v0.1.0` yet. Until it does, install from a checkout as below.
+
+### From a checkout
+
+Running `main` is a supported way to install, not just to develop — it is what
+the maintainer's own instance does. Clone the repository, then:
+
+```sh
+pnpm install
+pnpm build
+pnpm gizmo configure --local
+pnpm gizmo service install && pnpm gizmo service start
+```
+
+The supervisor is pointed at the checkout, so `git pull && pnpm install` and a
+`pnpm gizmo service restart` is the whole update story. There is no compiled
+backend: the server runs from source under `tsx`, and `pnpm build` is only for
+the browser bundle.
+
+### Reaching it from somewhere other than the machine it runs on
+
+`gizmo configure` decides which hosts the app answers on, and the profiles
+compose — a real instance often uses two of them at once.
+
+| Command                                        | What you get                                                                                                                                                                              |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gizmo configure --local`                      | `localhost` and `127.0.0.1` only. The default.                                                                                                                                            |
+| `gizmo configure --tailscale --serve`          | `https://<magicdns-name>`, with a real certificate, reachable by tailnet members only. The one to pick if you have Tailscale.                                                              |
+| `gizmo configure --tailscale`                  | Plain HTTP on the tailnet IP and MagicDNS name. Vite binds the Tailscale address alone, so the LAN never sees the port.                                                                    |
+| `gizmo configure --url https://gizmo.example`  | A domain you own: a DNS-only (unproxied) A record pointing at this node's tailnet IP, plus a TLS front you run. `configure` prints the Caddyfile, and refuses a name that resolves publicly unless you pass `--public`. |
+
+Any of them rewrites `~/.gizmo/web.json` and takes effect on
+`gizmo service restart`. See [Always-on web server](#always-on-web-server)
+below for what that file holds and how the bind address is derived from it.
+
+### Updating, rolling back, removing
+
+```sh
+gizmo update              # fetch the newest release and restart; the previous one is kept
+gizmo rollback            # point back at it
+gizmo uninstall --purge   # unregister the service and delete ~/.gizmo
+```
+
+Two releases are kept at a time. Both forms of uninstall list what they are
+about to delete and ask before doing it; without `--purge`, uninstall
+unregisters the service and removes the installed app tree, leaving your
+threads, settings, and extensions where they are.
+[docs/release.md](docs/release.md) covers the layout under `~/.gizmo`, the
+version contract between the app and the extension registry, and exactly what
+uninstall does and does not delete.
+
 ## Architecture
 
 Gizmo stores user-selected workspaces in its app data directory, while each
@@ -58,7 +145,7 @@ it in place and the browser reconnects; Vite hot-reloads the app as usual.
 
 That is the *dev* server, which you own. The live one at
 <https://gizmo.genge.init0.link> is run by a scheduled task instead, and must
-not be started by hand — `pnpm web:server:status` reports whether it is up, and
+not be started by hand — `pnpm gizmo status` reports whether it is up, and
 [docs/web-server.md](docs/web-server.md) covers how to restart it.
 
 Pi Web keeps Gizmo's thread, workspace, settings, Git, and extension UI. New
@@ -110,29 +197,30 @@ in the connected Editor and returns linked per-test results.
 
 ## Always-on web server
 
-`pnpm web:server:start` runs the production stack in the background: the agent
-server on loopback, plus `vite preview` serving the built app and proxying
-`/agent` through to it. Build first with `pnpm build`.
+An installed Gizmo is run by the platform's own supervisor — a systemd user
+unit, a launchd agent, or a Windows scheduled task — rather than by a pnpm
+script. The `gizmo` command is the whole interface:
 
 ```sh
-pnpm build
-pnpm web:server:start
-pnpm web:server:status
-pnpm web:server:stop
+gizmo configure --local      # or --tailscale [--serve], or --url https://gizmo.example
+gizmo service install        # register with the supervisor, then start it
+gizmo status                 # probe both ports and every configured URL
+gizmo service restart        # apply a configuration change
 ```
 
-`GIZMO_WEB_PORT` (default 4173) and `GIZMO_PORT` (default 8787) set the ports.
-`GIZMO_WEB_HOSTS` is a comma-separated list of the hostnames the app is reached
-by; it becomes both the allowed-host list for the web server and the allowed
-WebSocket origins for the agent server, so add an entry for any LAN or Tailscale
-name you want to use.
+In a checkout, the same CLI is `pnpm gizmo <verb>`. Build the browser bundle
+first with `pnpm build`; the server itself runs from source under `tsx`.
 
-`pnpm web:update` is the one-command update for a running instance: rebuild the
-app, then stop and start the daemon. When a machine-local launcher exists at
-`.gizmo-web/startup.cmd` (Windows), the start goes through it so the
-instance's configured hosts and ports survive the restart — a bare restart
-would default `GIZMO_WEB_HOSTS` back to localhost only and drop Tailscale
-reachability.
+`gizmo configure` writes `~/.gizmo/web.json` — the two ports, the bind address,
+and every URL the app is reached by. Those URLs become both Vite's allowed-host
+list and the agent server's WebSocket origin allowlist, so a host missing from
+them shows up as an app that loads and then never connects. The bind address is
+derived from the URLs: loopback when they are all local, the Tailscale address
+when they are all tailnet names, otherwise every interface.
+
+[docs/web-server.md](docs/web-server.md) covers the verbs and the live
+instance; [docs/release.md](docs/release.md) covers installing, updating, and
+rolling back.
 
 The lower-level discovery commands are:
 
