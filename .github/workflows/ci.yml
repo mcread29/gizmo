@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      # Background script runs (`call_script`) execute through bun, and the
+      # agent-server tests spawn it for real.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm check
