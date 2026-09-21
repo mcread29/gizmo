@@ -1,4 +1,5 @@
 import { Type, type Static } from 'typebox';
+import { appRequestSchemas } from './app';
 import { extensionUiRequestSchemas } from './extension-ui';
 import { gitRequestSchemas } from './git';
 import { memoryRequestSchemas } from './memory';
@@ -13,6 +14,7 @@ export const agentRequestSchema = Type.Union([
 	...resourcesRequestSchemas,
 	...gitRequestSchemas,
 	...memoryRequestSchemas,
+	...appRequestSchemas,
 ]);
 
 export type AgentRequest = Static<typeof agentRequestSchema>;

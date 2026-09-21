@@ -209,6 +209,10 @@ export function windowsLauncherScript(command: ServiceCommand): string {
 		`cd /d "${command.cwd}"`,
 		...environment,
 		line,
+		// The server's exit code is the task's result. A browser-started update
+		// ends with a deliberate non-zero exit, and RestartOnFailure is what
+		// brings the new release up.
+		'exit /b %errorlevel%',
 		'',
 	].join('\r\n');
 }

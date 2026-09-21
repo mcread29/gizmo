@@ -6,6 +6,7 @@ import {
 	tarExecutable,
 	tarballName,
 } from '../gizmo/release-download';
+import { pnpmExecutable } from '../gizmo/pnpm';
 import {
 	excludedFromRelease,
 	releaseNotes,
@@ -159,5 +160,26 @@ describe('tarExecutable', () => {
 	it('leaves other platforms on PATH lookup', () => {
 		expect(tarExecutable('linux', {})).toBe('tar');
 		expect(tarExecutable('darwin', {})).toBe('tar');
+	});
+});
+
+describe('pnpmExecutable', () => {
+	it('prefers the corepack shim beside node', () => {
+		expect(
+			pnpmExecutable('/opt/node/bin/node', 'linux', (path) =>
+				path.endsWith('/bin/pnpm'),
+			),
+		).toBe('/opt/node/bin/pnpm');
+		expect(
+			pnpmExecutable('C:\\nodejs\\node.exe', 'win32', (path) =>
+				path.endsWith('pnpm.cmd'),
+			),
+		).toMatch(/pnpm\.cmd$/);
+	});
+
+	it('falls back to PATH when there is no shim', () => {
+		expect(pnpmExecutable('/opt/node/bin/node', 'linux', () => false)).toBe(
+			'pnpm',
+		);
 	});
 });

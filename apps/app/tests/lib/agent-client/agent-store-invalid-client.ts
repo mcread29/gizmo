@@ -6,6 +6,7 @@ import {
 	type GitStatus,
 	type ProjectConfig,
 	type ProviderStatus,
+	type AppUpdateStatus,
 	type RegistryStatus,
 	type ResourceCatalog,
 	type SessionCatalog,
@@ -32,6 +33,8 @@ const emptyMemoryStatus = {
 	defaults: { auto: false },
 };
 
+// prettier-ignore
+const noUpdate: AppUpdateStatus = { install: 'source', version: 'abc1234', root: '/src', updateAvailable: false, phase: 'idle' };
 const emptyCatalog: ResourceCatalog = {
 	skills: [],
 	agentsFiles: [],
@@ -49,7 +52,6 @@ export class InvalidEventClient implements AgentClient {
 	async memoryDigests() {
 		return [];
 	}
-
 	async memoryFacts() {
 		return [];
 	}
@@ -120,6 +122,8 @@ export class InvalidEventClient implements AgentClient {
 	async steer() {}
 	async abort() {}
 	async resolveExtensionUi() {}
+	appUpdateStatus = async () => noUpdate;
+	appUpdateStart = async () => noUpdate;
 	async registryStatus(): Promise<RegistryStatus> {
 		return this.#registry();
 	}

@@ -1,5 +1,28 @@
 # Work log
 
+## 2026-09-21 — Update Gizmo from the About page
+
+- Settings → About now shows the running version, checks the latest
+  release (GitHub's latest tag for a release install, the branch tip for a
+  checkout) and offers an **Update** button. Two new requests,
+  `app.update.status` and `app.update.start`, and one broadcast event,
+  `app.update.changed`, carry it; protocol v32.
+- The server runs `gizmo update --no-restart`, a new CLI mode that installs
+  and moves `current` but leaves the service alone, then exits with code 75
+  so the supervisor restarts it on the new release. A restart from inside
+  the service would have ended the CLI with the server. Every tab sees the
+  progress, drops, and reconnects.
+- The CLI now finds `pnpm` the way the server does: the corepack shim beside
+  `node` first, then PATH, with the Node directory prepended for the shim.
+  Without this a browser-started update would have failed exactly as the
+  registry update did on 2026-09-20.
+- On Windows the scheduled task's launcher now ends with
+  `exit /b %errorlevel%`, so the server's exit code is the task result and
+  RestartOnFailure is what restarts onto the new release. The CLI quotes the
+  pnpm path when it goes through a shell, since the shim lives under
+  `Program Files`.
+- `AgentStore` no longer delegates the registry actions; callers use
+  `store.registry` directly, as they already did for providers.
 ## 2026-09-21 — v0.1.9: `gizmo update` is idempotent
 
 - Running `gizmo update` when the install was already on the newest release

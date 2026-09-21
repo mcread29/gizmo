@@ -1,4 +1,5 @@
 import type {
+	AppUpdateStatus,
 	DigestOverride,
 	DigestScope,
 	DigestSettings,
@@ -185,6 +186,10 @@ export interface AgentClient {
 		gizmoExtensionId: string,
 		enabled: boolean,
 	): Promise<ResourceCatalog>;
+	/** The running Gizmo and whether a newer release is published. */
+	appUpdateStatus(refresh?: boolean): Promise<AppUpdateStatus>;
+	/** Installs the latest release (or a tag) and restarts the server. */
+	appUpdateStart(version?: string): Promise<AppUpdateStatus>;
 	registryStatus(): Promise<RegistryStatus>;
 	registryUpdate(): Promise<RegistryStatus>;
 	registryLink(id: string): Promise<RegistryStatus>;

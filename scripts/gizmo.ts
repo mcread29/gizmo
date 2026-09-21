@@ -25,6 +25,7 @@ const usage = `Usage: gizmo <command>
   run                  Run the server in the foreground; what the service runs
   status               Alias for \`gizmo service status\`
   update [vX.Y.Z]      Install a release beside the running one, then restart
+         --no-restart  Install it and point current at it, but keep serving
   rollback             Point current at the previous release and restart
   releases             List installed releases
   uninstall [--purge]  Stop and unregister the service, then remove files
@@ -63,9 +64,13 @@ async function main() {
 			else await installRelease(args.positional[0]);
 			return;
 		}
-		case 'update':
-			await updateCommand(rest[0]);
+		case 'update': {
+			const args = parseArgs(rest, new Set());
+			await updateCommand(args.positional[0], {
+				restart: !args.flags.has('no-restart'),
+			});
 			return;
+		}
 		case 'rollback':
 			await rollbackCommand();
 			return;

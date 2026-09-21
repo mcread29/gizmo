@@ -85,7 +85,9 @@ ends that whole tree.
 
 The task points at `~/.gizmo/app/current`, not at one release folder, so
 `gizmo update` and `gizmo rollback` take effect on the next restart without
-re-registering anything.
+re-registering anything. An update started from Settings → About relies on
+the same thing: the server exits once the new release is installed and the
+supervisor restarts it from `current`.
 
 ## Restarting it
 

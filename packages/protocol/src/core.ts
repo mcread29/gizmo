@@ -9,8 +9,11 @@ import { Type, type Static } from 'typebox';
  *
  * v27: `session.unsent` returns messages a run died before delivering, and
  * `message.completed` carries `interrupted` for a turn that stopped short.
+ *
+ * v32: `app.update.status` and `app.update.start` let the browser update
+ * Gizmo itself; `app.update.changed` broadcasts the progress.
  */
-export const protocolVersion = 31 as const;
+export const protocolVersion = 32 as const;
 
 const sessionTitleLimit = 48;
 

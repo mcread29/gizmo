@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { protocolVersion } from '@gizmo/protocol';
+	import type { AgentStore } from '../../agent-client';
 	import { Button, ConfirmDialog, SettingField } from '../../components';
 	import { shortcutHint } from '../shell/shortcuts';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
+	import AppUpdateSection from './AppUpdateSection.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
 	interface Props {
 		layout: WorkspaceLayout;
-		version: string;
+		store: AgentStore;
 	}
 
-	let { layout, version }: Props = $props();
+	let { layout, store }: Props = $props();
 	let confirmOpen = $state(false);
 
 	const shortcuts = [
@@ -28,8 +30,9 @@
 
 <SettingsPage title="About">
 	<div data-ui="settings-card">
-		<SettingField label="Version" description="Protocol {protocolVersion}">
-			<span data-ui="resource-detail">{version}</span>
+		<AppUpdateSection {store} />
+		<SettingField label="Protocol">
+			<span data-ui="resource-detail">{protocolVersion}</span>
 		</SettingField>
 	</div>
 

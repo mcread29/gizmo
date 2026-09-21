@@ -20,6 +20,7 @@ import { migrateExtensionDirs } from './extensions/migrate-extension-dirs';
 import { extensionsDir } from './extensions/registry-storage';
 import { registeredExtensions } from './extensions/registry';
 import { ProjectCatalog } from './projects/project-catalog';
+import { appUpdates } from './updates/app-update-service';
 
 await restoreDesktopEnvironment();
 await migrateExtensionDirs();
@@ -94,6 +95,24 @@ configureExtensionReload({
 		}),
 });
 const extensionWatcher = startExtensionWatcher();
+
+/**
+ * A browser-started update ends with this process leaving. `gizmo run`
+ * exits with the same code, and each supervisor's restart-on-exit brings
+ * up `app/current`, which the CLI has just pointed at the new release.
+ */
+export const restartExitCode = 75;
+appUpdates.configure({
+	broadcast: (status) =>
+		agentServer.services.agent.events.emit('server', {
+			type: 'app.update.changed',
+			status,
+		}),
+	restart: () => {
+		console.log('Update installed; exiting for the supervisor to restart.');
+		void close().finally(() => process.exit(restartExitCode));
+	},
+});
 
 console.log(
 	`${piWebMode ? 'Pi Web' : 'Gizmo'} server listening on ws://${host}:${port}/agent`,

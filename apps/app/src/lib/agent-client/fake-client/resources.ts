@@ -1,4 +1,5 @@
 import type {
+	AppUpdateStatus,
 	InstructionFile,
 	InstructionTarget,
 	ResourceCatalog,
@@ -118,6 +119,31 @@ export class FakeResourceCapability {
 		if (target === 'system-prompt') return '/home/dev/.gizmo/system-prompt.md';
 		if (target === 'global-agents') return '/home/dev/.pi/agent/AGENTS.md';
 		return `${workspacePath ?? '/home/dev/project'}/AGENTS.md`;
+	}
+
+	/** A release install with a newer tag published. */
+	#appUpdate: AppUpdateStatus = {
+		install: 'release',
+		version: 'v0.1.7',
+		root: '/home/dev/.gizmo/app/releases/v0.1.7',
+		latest: 'v0.1.8',
+		updateAvailable: true,
+		checkedAt: 1_700_000_000_000,
+		phase: 'idle',
+	};
+
+	async appUpdateStatus() {
+		return this.#appUpdate;
+	}
+
+	async appUpdateStart(version?: string) {
+		this.#appUpdate = {
+			...this.#appUpdate,
+			phase: 'installing',
+			target: version ?? this.#appUpdate.latest ?? 'latest',
+			message: 'Starting…',
+		};
+		return this.#appUpdate;
 	}
 
 	/** The one registry: Gizmo's extension repository, cloned locally. */

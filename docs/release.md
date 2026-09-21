@@ -308,6 +308,20 @@ current instance serving. For a `source` install, `update` is `git pull`,
 `pnpm install`, `pnpm build`, restart, which is what `pnpm web:update` does
 now.
 
+### From the browser
+
+Settings → About shows the running version, checks GitHub for the latest
+tag (or the branch tip for a `source` install) and offers **Update to
+vX.Y.Z** when there is one. The button runs the same CLI from inside the
+server: `gizmo update --no-restart` downloads, verifies, unpacks and installs
+the release, then moves `current`. The server cannot restart its own service
+from inside that service (the stop would end the CLI along with it), so once
+the CLI succeeds the server exits with code 75 and the supervisor's
+restart-on-exit brings up `current`, which is now the new release. Every open
+tab sees the progress as `app.update.changed` events, drops when the server
+exits, and reconnects on its own. A failure at any step leaves the running
+release serving and shows the last lines of CLI output on the page.
+
 A restart takes up to two minutes on a machine with many extensions, as
 today; `update` waits on the ports and reports.
 

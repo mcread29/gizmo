@@ -1,4 +1,5 @@
 import {
+	parseAppUpdateStatus,
 	parseExtensionReloadResult,
 	parseRegistryStatus,
 	parseResourceCatalog,
@@ -81,6 +82,22 @@ export class ResourceRequests extends ProjectRequests {
 			enabled,
 		});
 		return parseResourceCatalog(response.result);
+	}
+
+	async appUpdateStatus(refresh = false) {
+		const response = await this.request({
+			type: 'app.update.status',
+			...(refresh ? { refresh } : {}),
+		});
+		return parseAppUpdateStatus(response.result);
+	}
+
+	async appUpdateStart(version?: string) {
+		const response = await this.request({
+			type: 'app.update.start',
+			...(version ? { version } : {}),
+		});
+		return parseAppUpdateStatus(response.result);
 	}
 
 	async registryStatus() {

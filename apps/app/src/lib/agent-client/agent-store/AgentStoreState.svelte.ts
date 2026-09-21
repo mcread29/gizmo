@@ -1,4 +1,5 @@
 import type {
+	AppUpdateStatus,
 	AgentModelOption,
 	AgentSessionSummary,
 	CompactionPolicy,
@@ -84,6 +85,9 @@ export class AgentStoreState {
 	providers = $state.raw<ProviderStatus[]>([]);
 	providersLoading = $state(false);
 	providerError = $state<string>();
+	appUpdate = $state<AppUpdateStatus>();
+	appUpdateBusy = $state(false);
+	appUpdateError = $state<string>();
 	registryStatus = $state<RegistryStatus>();
 	registryBusy = $state(false);
 	registryError = $state<string>();

@@ -10,19 +10,12 @@
 		router: AppRouter;
 		layout: WorkspaceLayout;
 		store: AgentStore;
-		version: string;
 		settingsGuard: UnsavedChangesGuard;
 		onShowWorkspaceSettings: (projectPath: string) => void;
 	}
 
-	let {
-		router,
-		layout,
-		store,
-		version,
-		settingsGuard,
-		onShowWorkspaceSettings,
-	}: Props = $props();
+	let { router, layout, store, settingsGuard, onShowWorkspaceSettings }: Props =
+		$props();
 </script>
 
 <SettingsScreen
@@ -31,7 +24,6 @@
 	page={router.settingsPage}
 	{layout}
 	{store}
-	{version}
 	onSelectPage={(page) => router.showSettingsPage(page)}
 	onOpenWorkspace={() => {
 		const path = store.selectedProjectPath;

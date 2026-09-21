@@ -183,6 +183,10 @@ export class FakeAgentClient implements AgentClient {
 	) => this.#resources.setGlobalGizmoExtension(extensionId, enabled);
 	setGlobalExtension: AgentClient['setGlobalExtension'] = () =>
 		this.#resources.setGlobalExtension();
+	appUpdateStatus: AgentClient['appUpdateStatus'] = () =>
+		this.#resources.appUpdateStatus();
+	appUpdateStart: AgentClient['appUpdateStart'] = (version) =>
+		this.#resources.appUpdateStart(version);
 	registryStatus: AgentClient['registryStatus'] = () =>
 		this.#resources.registryStatus();
 	registryUpdate: AgentClient['registryUpdate'] = () =>

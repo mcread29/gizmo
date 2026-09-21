@@ -59,7 +59,7 @@ describe('update on an install that is already current', () => {
 		vi.mocked(latestReleaseTag).mockResolvedValue('v0.1.8');
 		const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 		try {
-			await updateCommand(undefined, live);
+			await updateCommand(undefined, { root: live });
 			expect(log.mock.calls.flat().join(' ')).toContain('Already on v0.1.8');
 		} finally {
 			log.mockRestore();
@@ -71,7 +71,7 @@ describe('update on an install that is already current', () => {
 	it('does not ask GitHub when the named version is the one running', async () => {
 		const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 		try {
-			await updateCommand('v0.1.8', live);
+			await updateCommand('v0.1.8', { root: live });
 		} finally {
 			log.mockRestore();
 		}

@@ -56,6 +56,7 @@ import {
 	providerStatusSchema,
 	type ProviderStatus,
 } from './providers';
+import { appUpdateStatusSchema, type AppUpdateStatus } from './app-update';
 import { registryStatusSchema, type RegistryStatus } from './registry';
 import { agentRequestSchema, type AgentRequest } from './requests';
 import { resourceCatalogSchema, type ResourceCatalog } from './resources';
@@ -84,6 +85,9 @@ function parser<T>(schema: TSchema, kind: ParserKind = 'response') {
 }
 
 export const parseRegistryStatus = parser<RegistryStatus>(registryStatusSchema);
+export const parseAppUpdateStatus = parser<AppUpdateStatus>(
+	appUpdateStatusSchema,
+);
 export const parseMemoryStatus = parser<MemoryStatus>(memoryStatusSchema);
 export const parseJournalDigests = parser<JournalDigest[]>(
 	Type.Array(journalDigestSchema),

@@ -23,17 +23,27 @@ import {
 	previousRelease,
 	pruneReleases,
 } from './releases-store';
+import { pnpmEnvironment, pnpmExecutable } from './pnpm';
 import { restartService, waitUntilHealthy } from './service';
 import { uninstallService } from './service-platform';
 
 const shell = process.platform === 'win32';
 
 function run(command: string, args: string[], cwd: string) {
-	const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell });
+	// Through a shell the command is not quoted for us, and a Windows Node
+	// (and so its pnpm shim) often lives under `Program Files`.
+	const result = spawnSync(shell ? `"${command}"` : command, args, {
+		cwd,
+		stdio: 'inherit',
+		shell,
+		env: pnpmEnvironment(),
+	});
 	if (result.status !== 0) {
 		throw new Error(`${command} ${args.join(' ')} failed in ${cwd}.`);
 	}
 }
+
+const pnpm = (args: string[], cwd: string) => run(pnpmExecutable(), args, cwd);
 
 /** A checkout has no `RELEASE.json`, and is updated with git rather than a tarball. */
 export async function isSourceInstall(root = appRoot): Promise<boolean> {
@@ -82,7 +92,7 @@ export async function installRelease(requested?: string): Promise<string> {
 	const archive = await fetchVerifiedTarball(version);
 	await unpackTarball(archive, target);
 	await rm(archive, { force: true });
-	run('pnpm', ['install', '--frozen-lockfile'], target);
+	pnpm(['install', '--frozen-lockfile'], target);
 	await pointCurrent(target);
 	console.log(`current -> ${target}`);
 	return version;
@@ -107,11 +117,21 @@ async function pruneOldReleases() {
 
 function updateSourceCheckout(root: string) {
 	run('git', ['pull', '--ff-only'], root);
-	run('pnpm', ['install', '--frozen-lockfile'], root);
-	run('pnpm', ['build'], root);
+	pnpm(['install', '--frozen-lockfile'], root);
+	pnpm(['build'], root);
 }
 
-export async function updateCommand(requested?: string, root = appRoot) {
+/**
+ * With `restart: false` the new release is installed and `current` moved,
+ * but the running server is left alone. That is how the server updates
+ * itself from the browser: it cannot restart its own service from inside
+ * the service, since the stop would end this very CLI along with it, so it
+ * exits once this returns and lets the supervisor bring up `current`.
+ */
+export async function updateCommand(
+	requested?: string,
+	{ restart = true, root = appRoot }: { restart?: boolean; root?: string } = {},
+) {
 	if (await isSourceInstall(root)) {
 		if (requested) {
 			throw new Error(
@@ -133,6 +153,11 @@ export async function updateCommand(requested?: string, root = appRoot) {
 			return;
 		}
 		await installRelease(version);
+	}
+	if (!restart) {
+		await pruneOldReleases();
+		console.log('Installed. Restart the service to run it.');
+		return;
 	}
 	restartService();
 	await waitUntilHealthy();

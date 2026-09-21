@@ -12,7 +12,7 @@
 
 	onMount(() => {
 		void store.refreshResources();
-		void store.refreshRegistry();
+		void store.registry.refreshRegistry();
 	});
 
 	let piExtensions = $derived(store.resources?.extensions ?? []);
@@ -118,7 +118,7 @@
 								size="sm"
 								title="Uninstall"
 								disabled={store.registryBusy}
-								onclick={() => void store.registryUnlink(extension.id)}
+								onclick={() => void store.registry.registryUnlink(extension.id)}
 								aria-label={`Uninstall ${extension.name}`}
 							>
 								<Unlink2 size={13} />

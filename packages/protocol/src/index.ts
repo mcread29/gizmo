@@ -1,3 +1,4 @@
+export * from './app-update';
 export * from './core';
 export * from '@gizmo/extension-api/display-schema';
 export * from './errors';

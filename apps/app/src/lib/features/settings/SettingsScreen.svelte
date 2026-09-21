@@ -41,7 +41,6 @@
 		page: SettingsPageName;
 		layout: WorkspaceLayout;
 		store: AgentStore;
-		version: string;
 		onSelectPage: (page: SettingsPageName) => void;
 		onOpenWorkspace: () => void;
 	}
@@ -52,7 +51,6 @@
 		page,
 		layout,
 		store,
-		version,
 		onSelectPage,
 		onOpenWorkspace,
 	}: Props = $props();
@@ -217,7 +215,7 @@
 					{:else if page === 'extensions'}
 						<ExtensionsSettings {store} />
 					{:else}
-						<AboutSettings {layout} {version} />
+						<AboutSettings {layout} {store} />
 					{/if}
 				</div>
 			{/snippet}

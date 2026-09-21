@@ -29,7 +29,7 @@
 					variant="secondary"
 					size="sm"
 					disabled={store.registryBusy}
-					onclick={() => void store.registryUpdate()}
+					onclick={() => void store.registry.registryUpdate()}
 				>
 					<RefreshCw size={13} /> Update
 				</Button>
@@ -49,7 +49,7 @@
 						variant="secondary"
 						size="sm"
 						disabled={store.registryBusy}
-						onclick={() => void store.registryLink(extension.id)}
+						onclick={() => void store.registry.registryLink(extension.id)}
 					>
 						<Link2 size={13} /> Install
 					</Button>

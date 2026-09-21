@@ -2,6 +2,7 @@ import type { ProjectServiceRegistry } from '@gizmo/extension-api';
 import type { AgentRequest } from '@gizmo/protocol';
 import type { ExtensionHostService } from '../extensions/extension-host-service';
 import type { ExtensionUiService } from '../extensions/extension-ui-service';
+import { handleAppRequest } from './app-request-handler';
 import { handleExtensionUiRequest } from './extension-ui-request-handler';
 import { MemoryService } from '../memory/memory-service';
 import type { PiAgentService } from '../sessions/pi-agent-service';
@@ -127,6 +128,10 @@ export async function routeRequest(
 		case 'memory.backfill.start':
 		case 'memory.backfill.stop':
 			return handleMemoryRequest(memory, request);
+
+		case 'app.update.status':
+		case 'app.update.start':
+			return handleAppRequest(request);
 	}
 
 	request satisfies never;

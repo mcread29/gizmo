@@ -1,5 +1,6 @@
 import { viewSchema } from '@gizmo/extension-api';
 import { Type, type Static } from 'typebox';
+import { appUpdateChangedEventSchema } from './app-update';
 import { eventEnvelope } from './envelopes';
 import {
 	extensionDescriptorSchema,
@@ -13,6 +14,7 @@ import {
 } from './sessions';
 
 export const agentEventSchema = Type.Union([
+	appUpdateChangedEventSchema,
 	Type.Object(
 		{
 			...eventEnvelope,

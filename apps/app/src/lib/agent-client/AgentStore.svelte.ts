@@ -11,6 +11,7 @@ import { ResourceCapability } from './agent-store/ResourceCapability';
 import { SessionCapability } from './agent-store/SessionCapability';
 import { SessionSyncCapability } from './agent-store/SessionSyncCapability';
 import { SessionRuntimeCapability } from './agent-store/SessionRuntimeCapability';
+import { UpdateCapability } from './agent-store/UpdateCapability';
 import type { PendingConfirmation } from './agent-store/types';
 
 // prettier-ignore
@@ -25,11 +26,12 @@ export class AgentStore extends AgentStoreState {
 	readonly memory: MemoryCapability;
 	readonly #projects: ProjectCapability;
 	/**
-	 * Provider credentials and the extension registry. Public because the
-	 * Providers page drives the whole credential surface and does not need a
-	 * delegation apiece on this facade.
+	 * Provider credentials, the extension registry, and Gizmo's own updates.
+	 * Public because each settings page drives its whole surface and does not
+	 * need a delegation apiece on this facade.
 	 */
 	readonly registry: RegistryCapability;
+	readonly updates: UpdateCapability;
 	readonly #resources: ResourceCapability;
 	readonly #sessions: SessionCapability;
 	readonly #runtime: SessionRuntimeCapability;
@@ -62,6 +64,7 @@ export class AgentStore extends AgentStoreState {
 		this.#git = new GitCapability(this, client);
 		this.memory = new MemoryCapability(this, client);
 		this.registry = new RegistryCapability(this, client);
+		this.updates = new UpdateCapability(this, client);
 		this.#resources = new ResourceCapability(this, client);
 	}
 
@@ -235,18 +238,6 @@ export class AgentStore extends AgentStoreState {
 	}
 	commitAll(message: string) {
 		return this.#git.commitAll(message);
-	}
-	refreshRegistry() {
-		return this.registry.refreshRegistry();
-	}
-	registryUpdate() {
-		return this.registry.registryUpdate();
-	}
-	registryLink(id: string) {
-		return this.registry.registryLink(id);
-	}
-	registryUnlink(id: string) {
-		return this.registry.registryUnlink(id);
 	}
 	refreshResources(workspacePath?: string) {
 		return this.#resources.refreshResources(workspacePath);

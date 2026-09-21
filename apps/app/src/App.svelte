@@ -235,7 +235,6 @@
 		{router}
 		{layout}
 		{store}
-		version={agent.version}
 		{settingsGuard}
 		onShowWorkspaceSettings={(path) => showWorkspace(path)}
 	/>

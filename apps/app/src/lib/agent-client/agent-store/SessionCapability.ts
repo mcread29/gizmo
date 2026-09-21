@@ -242,12 +242,10 @@ export class SessionCapability {
 		const store = this.store;
 		if (event.type === 'session.state') {
 			store.sessionStates[event.sessionId] = event.state;
-			// A thread is named from its opening message once the first run is
-			// over, so the name arrives with the reply rather than racing it.
+			// Named once the first run ends, so the name arrives with the reply.
 			if (event.state === 'idle') this.#naming.maybeName(event.sessionId);
 		} else if (event.type === 'session.compaction') {
-			// Tracked for every thread: the flag for the selected one is derived
-			// from this on switch, so another thread's compaction never leaks in.
+			// Tracked per thread; the selected one's flag is derived on switch.
 			if (event.active) store.compactingSessions[event.sessionId] = true;
 			else delete store.compactingSessions[event.sessionId];
 		} else if (event.type === 'error') {
@@ -262,8 +260,10 @@ export class SessionCapability {
 		)
 			return; // View surfaces subscribe directly; keep these out of transcripts.
 		else if (event.type === 'extensions.reloaded') {
-			// Refresh contributions after the server reloads extensions.
-			void store.reloadExtensions({ server: false });
+			void store.reloadExtensions({ server: false }); // Pick up contributions.
+			return;
+		} else if (event.type === 'app.update.changed') {
+			store.appUpdate = event.status;
 			return;
 		}
 		if (this.replay.hold(event)) return;
