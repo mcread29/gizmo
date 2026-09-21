@@ -53,12 +53,30 @@ export async function adoptCurrentTree(root = appRoot): Promise<string> {
 }
 
 /**
+ * Unpacking replaces the target directory, so the release that is serving
+ * cannot be the target: on Windows the running server holds its files open
+ * and the delete fails with `EBUSY`, and on any platform it would pull the
+ * code out from under the live process. Reinstalling the running version is
+ * a repair, and needs the service stopped first.
+ */
+function refuseToReplaceLiveRelease(version: string, current: string | null) {
+	if (version !== current) return;
+	throw new Error(
+		`${version} is the release that is currently running, and unpacking ` +
+			'over it would delete the files the live server is using. Run ' +
+			'`gizmo service stop` first to reinstall it, or `gizmo update` to ' +
+			'move to a different version.',
+	);
+}
+
+/**
  * Unpacks beside whatever is running and only moves `current` once
  * dependencies are in, so a failed download or install leaves the live
  * instance serving.
  */
 export async function installRelease(requested?: string): Promise<string> {
 	const version = requested ?? (await latestReleaseTag());
+	refuseToReplaceLiveRelease(version, await currentVersion());
 	const target = join(releasesDir(), version);
 	console.log(`Installing ${version} into ${target}`);
 	const archive = await fetchVerifiedTarball(version);
@@ -93,16 +111,28 @@ function updateSourceCheckout(root: string) {
 	run('pnpm', ['build'], root);
 }
 
-export async function updateCommand(requested?: string) {
-	if (await isSourceInstall()) {
+export async function updateCommand(requested?: string, root = appRoot) {
+	if (await isSourceInstall(root)) {
 		if (requested) {
 			throw new Error(
 				'This is a source install; check out the tag you want, then run `gizmo update`.',
 			);
 		}
-		updateSourceCheckout(appRoot);
+		updateSourceCheckout(root);
 	} else {
-		await installRelease(requested);
+		// Deciding this before anything is downloaded keeps a second `update`
+		// a no-op. Reinstalling the live release cannot work, and restarting a
+		// server that is already on the right version only drops the devices
+		// connected to it.
+		const version = requested ?? (await latestReleaseTag());
+		if (version === (await currentVersion())) {
+			console.log(
+				`Already on ${version}. ` +
+					'Run `gizmo service restart` if you meant to restart it.',
+			);
+			return;
+		}
+		await installRelease(version);
 	}
 	restartService();
 	await waitUntilHealthy();

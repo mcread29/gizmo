@@ -1,5 +1,22 @@
 # Work log
 
+## 2026-09-21 — v0.1.9: `gizmo update` is idempotent
+
+- Running `gizmo update` when the install was already on the newest release
+  failed with `EBUSY: resource busy or locked, rmdir .../releases/v0.1.8`.
+  `installRelease` unpacks by deleting the target directory first, and the
+  target was the release the running server is executing from, whose files
+  Windows holds open. Nothing was damaged, because the delete fails before it
+  removes anything, but the command looked like it had broken the install.
+- `update` now resolves which version it would move to before downloading
+  anything, and reports `Already on <version>` and stops when that is the one
+  already serving. It no longer restarts in that case either, since dropping
+  the connected devices buys nothing. Naming the running version explicitly
+  does not even ask GitHub for the latest tag.
+- `installRelease` refuses to unpack over the live release rather than
+  reaching a platform error, and says to stop the service first when the
+  intent is to repair it. Covered by `scripts/tests/install-commands.test.ts`.
+
 ## 2026-09-21 — v0.1.8: the service survives a slow boot
 
 - Gizmo did not come back after a reboot. The "Gizmo Web" task fired at
