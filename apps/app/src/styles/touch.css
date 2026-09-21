@@ -1,0 +1,219 @@
+/*
+ * Fingers and phones. Everything here keys off `data-touch` and `data-phone`
+ * on <html>, published by the shell from lib/layout.ts, so a desktop browser
+ * with a mouse never sees a rule from this file.
+ *
+ * `data-touch` is a coarse pointer with no hover: hover-revealed actions have
+ * to be visible, tooltips carry no information, and targets need to be
+ * fingertip-sized. `data-phone` is a viewport at or under the phone
+ * breakpoint, whatever the pointer: dialogs become bottom sheets and dense
+ * side-by-side layouts stack.
+ */
+
+/* ---- Touch: reveal what hover used to reveal ---------------------------- */
+
+[data-touch='true'] [data-ui='message-actions'],
+[data-touch='true'] [data-ui='workspace-row-actions'],
+[data-touch='true'] [data-ui='view-item-actions'] {
+	opacity: 1;
+}
+
+/* A tooltip that can only open on hover or focus is noise after a tap. */
+[data-touch='true'] [data-ui='tooltip'] {
+	display: none;
+}
+
+/* ---- Touch: fingertip targets ------------------------------------------ */
+
+[data-touch='true'] {
+	--control-height-sm: 40px;
+	--control-height-md: 44px;
+}
+
+[data-touch='true'] [data-ui='button'][data-size='icon'] {
+	width: 44px;
+	height: 44px;
+}
+
+/* Inline action rows keep a smaller box but still take a 44px tap. */
+[data-touch='true']
+	[data-ui='message-meta']
+	[data-ui='button'][data-size='icon'],
+[data-touch='true']
+	[data-ui='workspace-row-actions']
+	[data-ui='button'][data-size='icon'] {
+	width: 36px;
+	height: 36px;
+}
+
+[data-touch='true'] [data-ui='menu-item'],
+[data-touch='true'] [data-ui='select-item'] {
+	min-height: 44px;
+}
+
+[data-touch='true'] [data-ui='tabs-trigger'] {
+	min-height: 40px;
+	padding-inline: 14px;
+}
+
+[data-touch='true'] [data-ui='settings-nav-item'] {
+	min-height: 44px;
+	font-size: var(--text-sm);
+}
+
+[data-touch='true'] [data-ui='composer-command-menu'] > button {
+	min-height: 44px;
+}
+
+[data-touch='true'] [data-ui='session-item'],
+[data-touch='true'] [data-ui='workspace-entry'] {
+	min-height: 44px;
+}
+
+/* A scroller that reaches its end must not hand the gesture to the page. */
+[data-touch='true'] [data-ui='scroll-viewport'],
+[data-touch='true'] [data-ui='sidebar'],
+[data-touch='true'] [data-ui='inspector'] {
+	overscroll-behavior: contain;
+}
+
+/*
+ * iOS Safari zooms the page into any field smaller than 16px on focus, and
+ * never zooms back out. Only the form controls change; body text keeps the
+ * app's scale.
+ */
+[data-touch='true'] input:not([type='checkbox']):not([type='radio']),
+[data-touch='true'] textarea,
+[data-touch='true'] select {
+	font-size: max(1rem, 16px);
+}
+
+[data-touch='true'] [data-ui='composer'] textarea {
+	line-height: 1.4;
+}
+
+/* Rows give tap feedback where hover used to. */
+[data-touch='true'] [data-ui='session-item']:active,
+[data-touch='true'] [data-ui='workspace-entry']:active,
+[data-touch='true'] [data-ui='settings-nav-item']:active,
+[data-touch='true'] [data-ui='menu-item']:active {
+	background: var(--color-surface-soft);
+}
+
+/* The transcript wraps diffs instead of asking a thumb to pan sideways. */
+[data-touch='true'] [data-ui='diff'] [data-ui='diff-line'] {
+	min-width: 0;
+}
+
+[data-touch='true'] [data-ui='diff'] [data-ui='diff-text'] {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+/* ---- Phone: bottom sheets ---------------------------------------------- */
+
+[data-phone='true'] [data-ui='dialog'],
+[data-phone='true'] [data-ui='dialog'][data-size='lg'] {
+	top: auto;
+	bottom: 0;
+	left: 0;
+	width: 100vw;
+	max-height: calc(100dvh - var(--space-8) - var(--keyboard-inset, 0px));
+	transform: none;
+	border-bottom: 0;
+	border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+[data-phone='true'] [data-ui='dialog-body'] {
+	max-height: calc(100dvh - 150px - var(--keyboard-inset, 0px));
+}
+
+[data-phone='true'] [data-ui='dialog-header'] {
+	padding: var(--space-4) var(--space-5);
+}
+
+[data-phone='true'] [data-ui='toast-region'] {
+	right: var(--space-3);
+	bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+	left: var(--space-3);
+	width: auto;
+}
+
+/* ---- Phone: the workspace header gives the thread its room -------------- */
+
+/* The path is a desktop detail; the name and a New thread icon suffice. */
+[data-phone='true'] [data-ui='conversation-header'] {
+	min-height: 0;
+	padding: var(--space-2) var(--space-4);
+}
+
+[data-phone='true'] [data-ui='conversation-header'] h1 {
+	font-size: var(--text-md);
+}
+
+[data-phone='true'] [data-ui='conversation-header'] [data-ui='workspace-path'] {
+	display: none;
+}
+
+/* ---- Phone: settings nav is a page of its own -------------------------- */
+
+/*
+ * Above the phone width the nav is a horizontal strip beside the page (see
+ * settings-parts/layout.css). On a phone it is a full-width list that the
+ * page replaces: the settings screen shows the nav until a page is chosen
+ * and a Back control returns to it.
+ */
+[data-phone='true'] [data-ui='settings-body'] {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+[data-phone='true']
+	[data-ui='settings-body'][data-phone-view='nav']
+	> :not([data-ui='settings-sidebar']),
+[data-phone='true']
+	[data-ui='settings-body'][data-phone-view='page']
+	> [data-ui='settings-sidebar'] {
+	display: none;
+}
+
+[data-phone='true'] [data-ui='settings-sidebar'] {
+	padding: var(--space-3);
+	border: 0;
+	mask-image: none;
+}
+
+[data-phone='true'] [data-ui='settings-nav'] {
+	grid-auto-flow: row;
+	gap: var(--space-5);
+	overflow: visible;
+}
+
+[data-phone='true'] [data-ui='settings-nav-group'] {
+	grid-auto-flow: row;
+}
+
+[data-phone='true'] [data-ui='settings-nav-title'] {
+	display: block;
+}
+
+[data-phone='true'] [data-ui='settings-nav-item'] {
+	min-height: 48px;
+	font-size: var(--text-md);
+}
+
+[data-phone='true'] [data-ui='settings-content'] {
+	padding: var(--space-4);
+}
+
+[data-phone='true'] [data-ui='settings-content'][data-page='skills'] {
+	padding: var(--space-3);
+}
+
+[data-phone='true'] [data-ui='settings-back'] {
+	display: inline-flex;
+}
+
+[data-ui='settings-back'] {
+	display: none;
+}

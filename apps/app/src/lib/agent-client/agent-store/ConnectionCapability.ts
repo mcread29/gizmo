@@ -123,6 +123,28 @@ export class ConnectionCapability {
 		if (this.store.connection === 'disconnected') await this.connect();
 	}
 
+	/**
+	 * The page came back to the foreground. A phone suspends the page while
+	 * it is away, so the socket may be gone without a close event yet, and a
+	 * scheduled retry may still be waiting out its backoff: both are settled
+	 * now rather than when the timers get round to it.
+	 */
+	async wake() {
+		const store = this.store;
+		if (store.connection === 'disconnected') {
+			if (this.#autoReconnect) await this.reconnectNow();
+			return;
+		}
+		if (
+			store.connection === 'connected' &&
+			this.#silenceWatch !== undefined &&
+			Date.now() - this.#lastMessageAt >= silenceTimeoutMs
+		) {
+			this.#clearSilenceWatch();
+			await this.client.disconnect();
+		}
+	}
+
 	async disconnect() {
 		this.#autoReconnect = false;
 		clearTimeout(this.#reconnectTimer);

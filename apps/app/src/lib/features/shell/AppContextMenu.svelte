@@ -51,9 +51,16 @@
 </script>
 
 <ContextMenu.Root>
+	<!--
+		A long press opens the menu on touch, and iOS never follows it with a
+		contextmenu event, so the target is read on the press that starts it.
+	-->
 	<ContextMenu.Trigger
 		data-ui="context-menu-region"
-		oncontextmenu={(event: MouseEvent) => (target = readContextTarget(event))}
+		oncontextmenu={(event: Event) => (target = readContextTarget(event))}
+		onpointerdown={(event: PointerEvent) => {
+			if (event.pointerType === 'touch') target = readContextTarget(event);
+		}}
 	>
 		{@render children()}
 	</ContextMenu.Trigger>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AgentIdentity } from '@gizmo/protocol';
-	import { ArrowLeft, Moon, Settings, Sun } from '@lucide/svelte';
+	import { ArrowLeft, Moon, Search, Settings, Sun } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { BrandMark, Button, Tooltip } from '../../components';
 	import StreamingIndicator from '../conversation/StreamingIndicator.svelte';
@@ -27,6 +27,8 @@
 		settingsOpen?: boolean;
 		onOpenSettings: () => void;
 		onCloseSettings: () => void;
+		/** Opens the command palette, which ⌘K does on a keyboard. */
+		onOpenPalette?: () => void;
 	}
 
 	let {
@@ -38,6 +40,7 @@
 		settingsOpen = false,
 		onOpenSettings,
 		onCloseSettings,
+		onOpenPalette,
 	}: Props = $props();
 
 	// Visible even when the conversation is scrolled away from the newest reply.
@@ -154,6 +157,23 @@
 					{item.label}
 				</button>
 			{/each}
+			{#if onOpenPalette}
+				<!-- Only shown where the window is too narrow for the sidebar's
+					search, and a keyboard shortcut cannot be assumed. -->
+				<div data-ui="titlebar-touch-only">
+					<Tooltip text={`Search and commands · ${shortcutHint('K')}`}>
+						{#snippet children(props)}
+							<Button
+								{...props}
+								variant="ghost"
+								size="icon"
+								aria-label="Search and commands"
+								onclick={onOpenPalette}><Search size={17} /></Button
+							>
+						{/snippet}
+					</Tooltip>
+				</div>
+			{/if}
 			<Tooltip text={layout.darkTheme ? 'Use light theme' : 'Use dark theme'}>
 				{#snippet children(props)}
 					<Button

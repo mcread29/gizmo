@@ -137,11 +137,21 @@
 				</p>
 			{/if}
 		</div>
-		<Button
-			size="sm"
-			disabled={store.connection !== 'connected'}
-			onclick={onNewThread}><Plus size={14} /> New thread</Button
-		>
+		{#if layout.phone}
+			<Button
+				size="icon"
+				variant="secondary"
+				aria-label="New thread"
+				disabled={store.connection !== 'connected'}
+				onclick={onNewThread}><Plus size={16} /></Button
+			>
+		{:else}
+			<Button
+				size="sm"
+				disabled={store.connection !== 'connected'}
+				onclick={onNewThread}><Plus size={14} /> New thread</Button
+			>
+		{/if}
 	</div>
 
 	<div data-ui="conversation-shelf">
@@ -260,7 +270,7 @@
 			<Composer
 				{store}
 				{drafts}
-				sendOnEnter={layout.sendOnEnter}
+				sendOnEnter={layout.enterSends}
 				bind:focus={focusComposer}
 			/>
 		{/if}

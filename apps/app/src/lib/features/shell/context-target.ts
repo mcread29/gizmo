@@ -13,11 +13,12 @@ export interface ContextTarget {
 }
 
 /**
- * Resolves what was right-clicked by walking up to the nearest element that
- * declares a `data-context-kind`. Components opt into the menu by tagging
- * themselves, so the menu never needs to know the component tree.
+ * Resolves what was right-clicked, or long-pressed, by walking up to the
+ * nearest element that declares a `data-context-kind`. Components opt into
+ * the menu by tagging themselves, so the menu never needs to know the
+ * component tree.
  */
-export function readContextTarget(event: MouseEvent): ContextTarget {
+export function readContextTarget(event: Event): ContextTarget {
 	const eventTarget = event.target;
 	const editable =
 		eventTarget instanceof HTMLInputElement ||

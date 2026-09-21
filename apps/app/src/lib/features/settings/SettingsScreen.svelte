@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+		ArrowLeft,
 		FolderCog,
 		Info,
 		MessageSquare,
@@ -11,7 +12,7 @@
 		Brain,
 	} from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
-	import { ScrollPanel } from '../../components';
+	import { Button, ScrollPanel } from '../../components';
 	import type { SettingsPage as SettingsPageName } from '../../router.svelte';
 	import { focusOnOpen } from '../shell/modal-screen';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
@@ -56,6 +57,16 @@
 		onOpenWorkspace,
 	}: Props = $props();
 
+	/*
+	 * A phone has room for the nav or a page, not both. Opening Settings shows
+	 * the nav; choosing a page replaces it, and Back returns to the list. Wider
+	 * windows ignore this and show both.
+	 */
+	let phoneView = $state<'nav' | 'page'>('nav');
+	$effect(() => {
+		if (!open) phoneView = 'nav';
+	});
+
 	let skillCount = $derived(
 		store.resources?.skills.filter((skill) => skill.enabledGlobally).length,
 	);
@@ -70,7 +81,10 @@
 	}
 
 	const selectPage = (next: SettingsPageName) =>
-		leave(() => onSelectPage(next));
+		leave(() => {
+			onSelectPage(next);
+			phoneView = 'page';
+		});
 	const openWorkspace = () => leave(onOpenWorkspace);
 
 	const resourcePages = [
@@ -150,13 +164,20 @@
 		-->
 		<h1 id="settings-screen-title" data-ui="sr-only">Settings</h1>
 
-		<div data-ui="settings-body">
+		<div data-ui="settings-body" data-phone-view={phoneView}>
 			<div data-ui="settings-sidebar">
 				<SettingsNav {groups} current={page} onSelect={selectPage} />
 			</div>
 
 			{#snippet settingsContent()}
 				<div data-ui="settings-content" data-page={page}>
+					<Button
+						data-ui="settings-back"
+						variant="ghost"
+						size="sm"
+						onclick={() => leave(() => (phoneView = 'nav'))}
+						><ArrowLeft size={15} /> All settings</Button
+					>
 					{#if page === 'agent' || page === 'skills' || page === 'extensions'}
 						<!--
 							aria-current, not aria-pressed: these switch the page rather than

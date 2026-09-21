@@ -125,7 +125,10 @@
 	color: inherit;
 }
 
-[data-left-mode='overlay'] [data-ui='conversation-header'],
+[data-left-mode='overlay'] [data-ui='conversation-header'] {
+	padding-inline: var(--space-4);
+}
+
 [data-left-mode='overlay'] [data-ui='error-banner'] {
 	padding-inline: var(--space-4);
 	margin-inline: var(--space-4);

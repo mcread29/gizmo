@@ -86,6 +86,47 @@
 	font-style: normal;
 }
 
+/*
+ * A narrow window stacks the nav above the page as a scrolling strip; the
+ * fade on its trailing edge says there is more. Phones go further and show
+ * one or the other: see touch.css.
+ */
+@media (max-width: 860px) {
+	[data-ui='settings-body'] {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	[data-ui='settings-sidebar'] {
+		border-right: 0;
+		border-bottom: 1px solid var(--color-border);
+		mask-image: linear-gradient(
+			to right,
+			#000 calc(100% - var(--space-8)),
+			transparent
+		);
+	}
+
+	[data-ui='settings-nav'] {
+		grid-auto-flow: column;
+		gap: var(--space-3);
+		overflow-x: auto;
+		padding-right: var(--space-8);
+		scrollbar-width: none;
+	}
+
+	[data-ui='settings-nav-group'] {
+		grid-auto-flow: column;
+	}
+
+	[data-ui='settings-nav-item'] > span {
+		white-space: nowrap;
+	}
+
+	[data-ui='settings-nav-title'] {
+		display: none;
+	}
+}
+
 [data-ui='settings-content'] {
 	display: grid;
 	gap: var(--space-6);
