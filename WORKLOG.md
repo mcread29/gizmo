@@ -1,5 +1,18 @@
 # Work log
 
+## 2026-09-21 — v0.1.7: the app works on phones
+
+- Touch and phone layouts are keyed off `data-touch` and `data-phone` on the
+  root, defined once in `lib/layout.ts`: 44px targets, always-visible row
+  actions, no tooltips, bottom-sheet dialogs, a two-step Settings screen, and
+  a compact workspace header. The composer respects the safe area and the
+  on-screen keyboard, and Enter inserts a newline on touch keyboards.
+- Overlay drawers open and close with edge swipes, the socket reconnects when
+  the page returns to the foreground, and the shell fills the screen when
+  installed on an iOS home screen, where the small viewport stops short. A
+  manifest and icons make it installable; `scripts/icons.mjs` regenerates
+  them.
+
 ## 2026-09-20 — Registry updates find pnpm without a PATH
 
 - A release install's registry update failed at `pnpm install` with
