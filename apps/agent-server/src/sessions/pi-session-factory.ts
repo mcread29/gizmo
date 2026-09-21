@@ -2,7 +2,7 @@ import { ensureExtensionApiResolution } from '../extensions/extension-api-runtim
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { ComposerCommand, CompactionPolicy } from '@gizmo/protocol';
-import type { CompactionOptions } from './pi-agent-types';
+import type { CompactionOptions, PiSessionFactory } from './pi-agent-types';
 import { generateCommitMessage } from './commit-message';
 import { generateSessionTitle, type TitleModel } from './session-title';
 import {
@@ -24,7 +24,6 @@ import {
 import { ResourceCatalogService } from '../resources/resource-catalog';
 import { defaultDataDir } from './session-repository';
 import { gizmoModelRuntime } from './pi-model-runtime';
-import type { PiSessionFactory } from './pi-agent-types';
 import { refreshExtensionPaths } from './extension-reload-paths';
 
 // Kept as the default behind the facade; tests can still inject the same factory API.
