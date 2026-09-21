@@ -250,6 +250,18 @@ Bun is a runtime prerequisite for `run_script` specifically; the rest of
 Gizmo does not require it, and a missing Bun degrades to that one tool
 failing with a clear message.
 
+### `call` / `wait`: the same sandbox without a timeout
+
+Long scripts use `call` instead of `run_script`: it starts the same
+Bun subprocess (same workspace, `.ts`/`.js`-only, no-shell rules) with
+no timeout and returns a call id immediately. The run keeps going while
+the agent works; its result arrives as a follow-up message when it
+settles, or the agent blocks for it with `wait`. `call_check` peeks,
+`call_list` lists, and `call_cancel` stops a run. Aborting `wait` leaves
+the run going. Implementation lives in
+`apps/agent-server/src/scripts/` (`call-manager`, `call-tools`,
+`call-state`) with delivery wiring in `src/pi-extensions/call-wait.ts`.
+
 ## Skills and prompts: Pi's job, not Gizmo's
 
 Gizmo does not have (and should not build) its own skill/prompt package

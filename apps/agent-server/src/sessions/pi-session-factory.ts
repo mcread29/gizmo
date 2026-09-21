@@ -88,6 +88,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 		additionalExtensionPaths: [
 			journalExtensionPath(),
 			displayExtensionPath(),
+			callWaitExtensionPath(),
 			...piExtensions,
 			...(options.projectExtensionPaths ?? []),
 		],
@@ -152,7 +153,7 @@ export const createDefaultPiSession: PiSessionFactory = async (
 		async reload(options?: Parameters<typeof reload>[0]) {
 			await refreshExtensionPaths(
 				resourceLoaderOptions.additionalExtensionPaths,
-				[journalExtensionPath(), displayExtensionPath()],
+				[journalExtensionPath(), displayExtensionPath(), callWaitExtensionPath()],
 				cwd,
 			);
 			return reload(options);
@@ -271,6 +272,11 @@ export function journalExtensionPath(): string {
 	return fileURLToPath(
 		new URL('../pi-extensions/memory-journal.ts', import.meta.url),
 	);
+}
+
+/** Timeout-free background script runs with follow-up delivery. */
+export function callWaitExtensionPath() {
+	return fileURLToPath(new URL("../pi-extensions/call-wait.ts", import.meta.url));
 }
 
 /** Static displays and browser-backed input ship with every Gizmo session. */
