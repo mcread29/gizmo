@@ -1,6 +1,6 @@
 [data-ui='panel-resize-handle'] {
 	position: absolute;
-	top: var(--titlebar-height);
+	top: calc(var(--titlebar-height) + env(safe-area-inset-top));
 	bottom: 0;
 	z-index: 18;
 	width: 7px;
@@ -47,7 +47,7 @@ body[data-resizing='sidebar'] {
  */
 [data-ui='settings-screen'] {
 	position: fixed;
-	inset: var(--titlebar-height) 0 0;
+	inset: calc(var(--titlebar-height) + env(safe-area-inset-top)) 0 0;
 	z-index: 40;
 	/* One row: the screen's heading is for screen readers only, so the nav and
 	   the page share the full height rather than sitting under a title band. */
@@ -58,7 +58,7 @@ body[data-resizing='sidebar'] {
 /* The session tree is a screen for the same reason Settings is. */
 [data-ui='tree-screen'] {
 	position: fixed;
-	inset: var(--titlebar-height) 0 0;
+	inset: calc(var(--titlebar-height) + env(safe-area-inset-top)) 0 0;
 	z-index: 40;
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr) auto;

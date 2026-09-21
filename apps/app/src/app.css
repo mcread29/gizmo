@@ -13,6 +13,7 @@
 @import './styles/settings.css';
 @import './styles/feedback.css';
 @import './styles/gallery.css';
+@import './styles/touch.css';
 
 * {
 	box-sizing: border-box;

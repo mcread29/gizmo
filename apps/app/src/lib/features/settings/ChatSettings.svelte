@@ -36,7 +36,7 @@
 		<SwitchField
 			bind:checked={layout.sendOnEnter}
 			label="Send with Enter"
-			description="Press Shift+Enter for a new line. When off, use Ctrl or Command+Enter to send."
+			description="Press Shift+Enter for a new line. When off, use Ctrl or Command+Enter to send. On a touch keyboard Enter always adds a new line; tap Send instead."
 		/>
 		<SwitchField
 			bind:checked={layout.autoFollowOutput}

@@ -55,6 +55,32 @@ describe('AgentStore', () => {
 		}
 	});
 
+	it('reconnects as soon as the page returns to the foreground', async () => {
+		vi.useFakeTimers();
+		try {
+			const client = new FakeAgentClient({ latencyMs: 0 });
+			const store = new AgentStore(client);
+			await store.connect();
+			client.dropConnection();
+			expect(store.connection).toBe('disconnected');
+
+			await store.wake();
+			expect(store.connection).toBe('connected');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('leaves a deliberate disconnect alone when the page wakes', async () => {
+		const client = new FakeAgentClient({ latencyMs: 0 });
+		const store = new AgentStore(client);
+		await store.connect();
+		await store.disconnect();
+
+		await store.wake();
+		expect(store.connection).toBe('disconnected');
+	});
+
 	it('retries immediately when asked, without waiting out the backoff', async () => {
 		vi.useFakeTimers();
 		try {

@@ -15,6 +15,8 @@
 		type AgentClient,
 	} from './lib/agent-client';
 	import { saveAppSettings } from './lib/app-settings';
+	import { watchTouch } from './lib/layout';
+	import { watchKeyboardInset } from './lib/features/shell/keyboard-inset';
 	import { Toast } from './lib/components';
 	import { DraftStore } from './lib/features/conversation/drafts.svelte';
 	import { PiExtensionUiStore } from './lib/features/extension-ui/PiExtensionUiStore.svelte';
@@ -83,11 +85,15 @@
 		const measure = () => layout.measure();
 		measure();
 		window.addEventListener('resize', measure);
+		const stopTouchWatch = watchTouch(measure);
+		const stopKeyboardInset = watchKeyboardInset();
 		const stopRouting = router.start();
 		extensionUi.start();
 		void store.connect();
 		return () => {
 			window.removeEventListener('resize', measure);
+			stopTouchWatch();
+			stopKeyboardInset();
 			stopRouting();
 			extensionUi.dispose();
 			void store.disconnect();
@@ -96,6 +102,12 @@
 
 	$effect(() => {
 		document.documentElement.dataset.theme = layout.theme;
+	});
+
+	// Stylesheets key touch and phone rules off these, never off a media query.
+	$effect(() => {
+		document.documentElement.dataset.touch = String(layout.touch);
+		document.documentElement.dataset.phone = String(layout.phone);
 	});
 
 	$effect(() => {
@@ -194,6 +206,11 @@
 </svelte:head>
 
 <svelte:window onkeydown={onKeydown} />
+<svelte:document
+	onvisibilitychange={() => {
+		if (document.visibilityState === 'visible') void store.wake();
+	}}
+/>
 
 <Tooltip.Provider delayDuration={350} skipDelayDuration={300}>
 	<AppWorkspaceShell

@@ -127,26 +127,8 @@
 	max-width: 34ch;
 }
 
+/* The settings shell's own narrow-window rules live in layout.css. */
 @media (max-width: 860px) {
-	[data-ui='settings-body'] {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	[data-ui='settings-sidebar'] {
-		border-right: 0;
-		border-bottom: 1px solid var(--color-border);
-	}
-
-	[data-ui='settings-nav'] {
-		grid-auto-flow: column;
-		gap: var(--space-3);
-		overflow-x: auto;
-	}
-
-	[data-ui='settings-nav-title'] {
-		display: none;
-	}
-
 	[data-ui='settings-content'][data-page='skills'] {
 		padding: var(--space-4);
 	}
@@ -190,7 +172,9 @@
 	}
 
 	[data-ui='skills-workbench'][data-selected='true'] {
-		height: calc(100dvh - var(--titlebar-height) - 180px);
+		height: calc(
+			100dvh - var(--titlebar-height) - env(safe-area-inset-top) - 180px
+		);
 		min-height: 520px;
 	}
 

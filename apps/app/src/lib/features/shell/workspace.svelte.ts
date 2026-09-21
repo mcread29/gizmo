@@ -14,8 +14,10 @@ import {
 } from '../../app-settings';
 import type { ExtensionSettingsContext } from '../../extensions/settings';
 import {
+	currentTouch,
 	currentViewportWidth,
 	inspectorMode,
+	isPhone,
 	sidebarMode,
 	type PanelMode,
 } from '../../layout';
@@ -56,6 +58,8 @@ export class WorkspaceLayout {
 	activeInspectorTab = $state<string | undefined>(undefined);
 
 	viewportWidth = $state(currentViewportWidth());
+	/** A coarse pointer with no hover: see `touchMediaQuery`. */
+	touch = $state(currentTouch());
 	leftDrawerOpen = $state(false);
 	rightDrawerOpen = $state(false);
 	#settingsContexts = new Map<string, ExtensionSettingsContext>();
@@ -63,6 +67,13 @@ export class WorkspaceLayout {
 	readonly leftMode: PanelMode = $derived(sidebarMode(this.viewportWidth));
 	readonly rightMode: PanelMode = $derived(inspectorMode(this.viewportWidth));
 	readonly darkTheme = $derived(isDarkTheme(this.theme));
+	readonly phone = $derived(isPhone(this.viewportWidth));
+	/**
+	 * Whether a bare Enter sends. On a touch keyboard Enter is the obvious
+	 * new-line key and the send button is right there, so the preference only
+	 * applies to hardware keyboards.
+	 */
+	readonly enterSends = $derived(this.sendOnEnter && !this.touch);
 	readonly leftVisible = $derived(
 		this.leftMode === 'overlay' ? this.leftDrawerOpen : this.showThreadSidebar,
 	);
@@ -146,8 +157,9 @@ export class WorkspaceLayout {
 	}
 
 	/** Re-reads the window and shrinks docked panels that no longer fit. */
-	measure(width = currentViewportWidth()): void {
+	measure(width = currentViewportWidth(), touch = currentTouch()): void {
 		this.viewportWidth = width;
+		this.touch = touch;
 		if (inspectorMode(width) === 'overlay') return;
 		const available = width - conversationFloor;
 		if (this.sidebarWidth + this.inspectorWidth <= available) return;

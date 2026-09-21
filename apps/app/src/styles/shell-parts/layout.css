@@ -16,7 +16,9 @@
 	 * the viewport actually has for it.
 	 */
 	grid-template:
-		'titlebar titlebar titlebar' var(--titlebar-height)
+		'titlebar titlebar titlebar' calc(
+			var(--titlebar-height) + env(safe-area-inset-top)
+		)
 		'sidebar conversation inspector' minmax(0, 1fr) /
 		minmax(0, var(--left-column)) minmax(0, 1fr) minmax(0, var(--right-column));
 	width: 100%;
@@ -24,6 +26,19 @@
 	max-height: 100dvh;
 	overflow: hidden;
 	background: var(--color-canvas);
+}
+
+/*
+ * Installed on an iOS home screen, the small viewport stops short of the
+ * screen by the height of the status bar, leaving a dead band under the
+ * shell. The large viewport is the whole screen there, and nothing can
+ * collapse into the band, so the shell may safely fill it.
+ */
+@media (display-mode: standalone) {
+	[data-ui='app-shell'] {
+		height: 100lvh;
+		max-height: 100lvh;
+	}
 }
 
 [data-ui='app-shell'][data-left-mode='overlay'] {
@@ -65,22 +80,26 @@
 [data-left-mode='overlay'] [data-ui='sidebar'],
 [data-right-mode='overlay'] [data-ui='inspector'] {
 	position: fixed;
-	top: var(--titlebar-height);
+	top: calc(var(--titlebar-height) + env(safe-area-inset-top));
 	bottom: 0;
 	z-index: 31;
+	padding-bottom: env(safe-area-inset-bottom);
+	overscroll-behavior: contain;
 	box-shadow: var(--shadow-md);
 	transition: transform 160ms ease;
 }
 
 [data-left-mode='overlay'] [data-ui='sidebar'] {
 	left: 0;
-	width: min(280px, calc(100vw - 48px));
+	width: min(300px, calc(100vw - 48px));
+	padding-left: env(safe-area-inset-left);
 	transform: translateX(-100%);
 }
 
 [data-right-mode='overlay'] [data-ui='inspector'] {
 	right: 0;
 	width: min(var(--inspector-width, 300px), calc(100vw - 48px));
+	padding-right: env(safe-area-inset-right);
 	transform: translateX(100%);
 }
 
@@ -91,7 +110,7 @@
 
 [data-ui='drawer-scrim'] {
 	position: fixed;
-	inset: var(--titlebar-height) 0 0;
+	inset: calc(var(--titlebar-height) + env(safe-area-inset-top)) 0 0;
 	z-index: 30;
 	display: block;
 	border: 0;
@@ -104,7 +123,8 @@
 	display: grid;
 	grid-template-columns: 1fr auto 1fr;
 	align-items: center;
-	padding: 0 10px;
+	padding: env(safe-area-inset-top) max(10px, env(safe-area-inset-right)) 0
+		max(10px, env(safe-area-inset-left));
 	border-bottom: 1px solid var(--color-border);
 	background: var(--color-surface);
 }
@@ -145,6 +165,15 @@
 [data-left-mode='overlay'] [data-ui='titlebar-start'] > strong,
 [data-left-mode='overlay'] [data-ui='preview-badge'] {
 	display: none;
+}
+
+/* The keyboard shortcuts these stand in for have no touch equivalent. */
+[data-ui='titlebar-touch-only'] {
+	display: none;
+}
+
+[data-left-mode='overlay'] [data-ui='titlebar-touch-only'] {
+	display: contents;
 }
 
 [data-ui='brand-mark'] {

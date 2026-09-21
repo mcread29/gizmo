@@ -14,6 +14,7 @@
 	import PanelResizeHandle from './PanelResizeHandle.svelte';
 	import Titlebar from './Titlebar.svelte';
 	import type { WorkspaceLayout } from './workspace.svelte';
+	import { watchDrawerSwipes } from './drawer-swipe';
 
 	interface Props {
 		agent: AgentIdentity;
@@ -88,6 +89,7 @@
 		data-right-visible={layout.rightVisible}
 		data-screen-open={overlayOpen || undefined}
 		style={`--sidebar-width:${layout.sidebarWidth}px;--inspector-width:${layout.inspectorWidth}px`}
+		{@attach (element) => watchDrawerSwipes(element, layout)}
 	>
 		<Titlebar
 			{agent}
@@ -98,6 +100,7 @@
 			settingsOpen={router.current === 'settings'}
 			onOpenSettings={() => router.go('settings')}
 			{onCloseSettings}
+			onOpenPalette={() => sessions.openCommandPalette('root')}
 		/>
 
 		<!--

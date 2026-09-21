@@ -37,6 +37,26 @@ describe('WorkspaceLayout', () => {
 		expect(narrow.drawerOpen).toBe(true);
 	});
 
+	it('treats the phone breakpoint as a width, not a pointer', () => {
+		expect(layout(390).phone).toBe(true);
+		expect(layout(600).phone).toBe(false);
+	});
+
+	it('lets Enter insert a newline on a touch keyboard', () => {
+		const desktop = new WorkspaceLayout({ ...defaultAppSettings });
+		desktop.measure(1440, false);
+		expect(desktop.enterSends).toBe(true);
+
+		const phone = new WorkspaceLayout({ ...defaultAppSettings });
+		phone.measure(390, true);
+		expect(phone.touch).toBe(true);
+		expect(phone.enterSends).toBe(false);
+
+		phone.sendOnEnter = false;
+		phone.measure(1440, false);
+		expect(phone.enterSends).toBe(false);
+	});
+
 	it('keeps only one drawer open at a time', () => {
 		const narrow = layout(600);
 		narrow.toggleRight();
