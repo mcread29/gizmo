@@ -491,3 +491,10 @@
 {"id":"0491-af033d08","session":"dde9206f-e0c9-40e7-8388-9f3bd653e347","firstEntryId":"af033d08-3beb-4e4e-b1b9-f6b4eff565e1","lastEntryId":"839004a4-4444-4eb4-abdc-6824f919b75e","at":"2026-09-18T21:41:26.983Z","messages":27,"bytes":23393,"trigger":"backfill","source":"claude-code"}
 {"id":"0492","session":"01a0b658-e4db-7182-905d-f5ccd23124d8","firstEntryId":"b1ea8975","lastEntryId":"9fbc0832","at":"2026-09-18T22:15:21.200Z","messages":4,"bytes":2255,"trigger":"session-end"}
 {"id":"0493","session":"01a0ad65-2328-7870-b60f-c3a6b2ecab81","firstEntryId":"3c58ec8d","lastEntryId":"9308b052","at":"2026-09-19T05:24:47.977Z","messages":6,"bytes":3735,"trigger":"session-end"}
+{"id":"0494-a2a66a5f","session":"01a0c170-0aaf-747e-9cd5-bc01a75af1bc","firstEntryId":"a2a66a5f","lastEntryId":"545cb4bd","at":"2026-09-21T00:55:09.094Z","messages":24,"bytes":38322,"trigger":"threshold"}
+{"id":"0495-3dbb6090","session":"01a0c170-0aaf-747e-9cd5-bc01a75af1bc","firstEntryId":"3dbb6090","lastEntryId":"0f327f1f","at":"2026-09-21T00:55:09.096Z","messages":3,"bytes":2695,"trigger":"threshold"}
+{"id":"0496-25f04f95","session":"01a0c170-0aaf-747e-9cd5-bc01a75af1bc","firstEntryId":"25f04f95","lastEntryId":"99ece81b","at":"2026-09-21T00:58:48.497Z","messages":34,"bytes":39418,"trigger":"threshold"}
+{"id":"0497-02c00877","session":"01a0c170-0aaf-747e-9cd5-bc01a75af1bc","firstEntryId":"02c00877","lastEntryId":"74622a79","at":"2026-09-21T00:58:48.502Z","messages":1,"bytes":740,"trigger":"threshold"}
+{"id":"0498-3ae38845","session":"01a0c170-0aaf-747e-9cd5-bc01a75af1bc","firstEntryId":"3ae38845","lastEntryId":"51dc3dcb","at":"2026-09-21T01:04:26.128Z","messages":46,"bytes":40019,"trigger":"threshold"}
+{"id":"0499-c99da596","session":"01a0c170-0aaf-747e-9cd5-bc01a75af1bc","firstEntryId":"c99da596","lastEntryId":"4bfdf323","at":"2026-09-21T03:04:52.799Z","messages":17,"bytes":18184,"trigger":"session-end"}
+{"id":"0500-bed12b4b","session":"01a0c170-0aaf-747e-9cd5-bc01a75af1bc","firstEntryId":"bed12b4b","lastEntryId":"daeb2a12","at":"2026-09-21T04:59:52.966Z","messages":11,"bytes":9421,"trigger":"session-end"}

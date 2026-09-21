@@ -1,0 +1,24 @@
+{
+	"segment": "0499-c99da596",
+	"at": "2026-09-21T03:04:59.505Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Inspected Tailscale status and existing serve mappings, then attempted to start a dev server which hit a port 8787 conflict. The assistant mistakenly killed the live Gizmo server processes (PIDs 27632 and 18080) assuming they were stale leftovers, then investigated process command lines via temporary inspection scripts and confirmed a separate `gizmo run` stack (release v0.1.5) had respawned and was serving 200 on 4173 with agent-server on 8787. Temporary inspection scripts were cleaned up.",
+	"decisions": [
+		"Do not kill any running process without explicit user approval going forward.",
+		"Leave the dev server on the tailnet unstarted because port 8787 is held by the live agent-server.",
+		"The live production stack (`gizmo run` v0.1.5) is the source of truth on ports 8787 (agent-server) and 4173 (web preview); Tailscale serve continues to map 8443 → 3778."
+	],
+	"files": [
+		"scripts/tmp-inspect-procs.ps1",
+		"scripts/tmp-inspect2.ps1"
+	],
+	"errors": [
+		"`pnpm dev:server start` timed out after 120s.",
+		"Dev server start logged `EADDRINUSE` on 127.0.0.1:8787 because two pre-existing node processes (PIDs 27632 and 18080) from 9/20 3:01 PM were already listening on it.",
+		"Assistant killed PIDs 27632 and 18080 assuming they were the leftover dev server, which turned out to be the live Gizmo production stack — user flagged this as a mistake.",
+		"Get-CimInstance with `ProcessId IN (...)` filter returned \"Invalid query\".",
+		"`foreach ($pid in ...)` failed because `$pid` is a read-only automatic variable in PowerShell.",
+		"Escaped quotes in the inline PowerShell filter string were mangled, producing `\\ProcessId=\\` as an unrecognized command."
+	],
+	"outcome": "blocked"
+}

@@ -1,0 +1,21 @@
+{
+	"segment": "0494-a2a66a5f",
+	"at": "2026-09-21T00:55:12.096Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Switched the worktree to a new branch feature/call-and-wait-tool off origin/main (fast-forwarded local main to match). Then explored the gizmo repo to draft a plan for a timeout-free background execution tool family (call/wait/check/list/cancel), modeled on existing run_script, workflows(background:true), and subagents spawn/wait patterns, with deferred follow-up notification via pi.sendMessage deliverAs 'followUp'.",
+	"decisions": [
+		"Branch name chosen via interactive input: feature/call-and-wait-tool.",
+		"Local main was reset --hard to origin/main and reattached to track origin/main (was 1 behind at cedef7e).",
+		"New tool proposed as a family (call/wait/check/list/cancel) rather than a flag on run_script, to mirror subagents and avoid changing run_script semantics.",
+		"call should spawn Bun via child_process.spawn with shell:false and no timeout (not execFile), keeping run_script's path/ext/args guards.",
+		"Background runs should survive parent turn abort/Esc via an internal AbortController (like workflows RunController); cancel kills explicitly.",
+		"Notify on settle via deferred follow-up (customType 'call-result', deliverAs:'followUp', triggerTurn:true), flushed on agent_settled; wait consumes the deferred entry to prevent double-post, like subagent_wait.",
+		"Cap concurrent background calls at 4, output at ~20k chars with truncated flag, sweep idle finished after ~24h, kill on workspace removal / session shutdown.",
+		"Open questions deferred: log directory (agent dir vs workspace .gizmo/calls/), tool naming (call/wait vs run_script_background), and whether to survive server restart."
+	],
+	"files": [],
+	"errors": [
+		"display tool call failed with 'spec: must not have additional properties' on first attempt; retry succeeded after restructuring the spec."
+	],
+	"outcome": "explored"
+}

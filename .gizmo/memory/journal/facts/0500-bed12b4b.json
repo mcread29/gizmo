@@ -1,0 +1,31 @@
+{
+	"segment": "0500-bed12b4b",
+	"at": "2026-09-21T05:00:01.213Z",
+	"model": "opencode-go/minimax-m3",
+	"facts": [
+		{
+			"id": "0500-bed12b4b#1",
+			"segment": "0500-bed12b4b",
+			"at": "2026-09-21T05:00:01.213Z",
+			"subject": "call-and-wait feature",
+			"statement": "The call-and-wait feature has been committed on its feature branch and merged into main (merge commit 240b75a), with typecheck and all 18 call/wait tests passing on merged main.",
+			"supersedes": []
+		},
+		{
+			"id": "0500-bed12b4b#2",
+			"segment": "0500-bed12b4b",
+			"at": "2026-09-21T05:00:01.213Z",
+			"subject": "main branch HEAD",
+			"statement": "Local main was fast-forwarded to origin/main (626a03d, the mobile-experience merge) before the call-and-wait merge, so the call-and-wait merge commit 240b75a sits on top of the mobile-experience work.",
+			"supersedes": []
+		},
+		{
+			"id": "0500-bed12b4b#3",
+			"segment": "0500-bed12b4b",
+			"at": "2026-09-21T05:00:01.213Z",
+			"subject": "call-and-wait merge push status",
+			"statement": "The call-and-wait merge into main has not been pushed to origin; pushing remains an explicit next step.",
+			"supersedes": []
+		}
+	]
+}

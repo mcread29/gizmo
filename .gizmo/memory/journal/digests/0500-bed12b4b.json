@@ -1,0 +1,24 @@
+{
+	"segment": "0500-bed12b4b",
+	"at": "2026-09-21T04:59:59.180Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Confirmed the call-and-wait feature was uncommitted on the feature branch, then committed it and merged into main. Verified the merged main by running typecheck and the 18 call/wait tests, all passing.",
+	"decisions": [
+		"Deliberately excluded `.gizmo/memory/journal/` files (modified `index.jsonl`, new numbered entries) from the commit even though they were dirty in the working tree, staging only the eight feature files.",
+		"Updated local main to `origin/main` (626a03d, mobile-experience merge) via fast-forward before merging the feature branch, so the merge commit (240b75a) sits on top of the updated main.",
+		"Used a merge commit (no-ff style default) for the feature rather than fast-forward, because local main had commits not on the feature branch.",
+		"Did not push to origin after merge — left that as an explicit next step."
+	],
+	"files": [
+		"apps/agent-server/src/pi-extensions/call-wait.ts",
+		"apps/agent-server/src/scripts/call-manager.ts",
+		"apps/agent-server/src/scripts/call-state.ts",
+		"apps/agent-server/src/scripts/call-tools.ts",
+		"apps/agent-server/src/sessions/pi-session-factory.ts",
+		"apps/agent-server/tests/scripts/call-manager.test.ts",
+		"apps/agent-server/tests/scripts/call-tools.test.ts",
+		"docs/extensions.md"
+	],
+	"errors": [],
+	"outcome": "shipped"
+}

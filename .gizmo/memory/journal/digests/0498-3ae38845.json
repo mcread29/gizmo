@@ -1,0 +1,28 @@
+{
+	"segment": "0498-3ae38845",
+	"at": "2026-09-21T01:04:34.689Z",
+	"model": "opencode-go/minimax-m3",
+	"summary": "Added vitest coverage for the call-manager and call-tools modules, then extracted shared types/helpers (CallStatus, CallRecord, clampOutput, createDeferredDelivery) into a new call-state module to reduce file size and reorganized imports across call-manager, call-tools, and call-wait. Verified call-manager and call-tools tests pass (18/18, plus 32/32 in a broader run) and ran prettier --write on touched files. Updated docs/extensions.md to describe the call/wait tool family and point at the new layout.",
+	"decisions": [
+		"Extract shared call-script helpers (CallStatus, CallRecord, SpawnCallOptions, clampOutput, createDeferredDelivery) into a new module src/scripts/call-state.ts to keep call-manager.ts and call-tools.ts under the repo's line-count guidance.",
+		"Use pnpm vitest to execute call-manager and call-tools tests (bun scripts are run via the production code, but tests themselves run under vitest with a temp workspace).",
+		"In the new test files, retry workspace removal on Windows EBUSY after killing spawned processes, instead of relying on a single rm call, because the kill signal takes a moment to release the directory.",
+		"Accept the pre-existing pnpm/corepack test failures in tests/extensions/registry-git-build.test.ts as unrelated to this change, verified by stashing the diff and re-running.",
+		"Document the new call/wait/call_check/call_list/call_cancel tool family in docs/extensions.md, noting that aborting wait leaves the underlying run going, and link to apps/agent-server/src/scripts/ for the implementation."
+	],
+	"files": [
+		"apps/agent-server/tests/scripts/call-manager.test.ts",
+		"apps/agent-server/tests/scripts/call-tools.test.ts",
+		"apps/agent-server/src/scripts/call-state.ts",
+		"apps/agent-server/src/scripts/call-manager.ts",
+		"apps/agent-server/src/scripts/call-tools.ts",
+		"apps/agent-server/src/pi-extensions/call-wait.ts",
+		"docs/extensions.md"
+	],
+	"errors": [
+		"edit → error: multi-edit on call-manager.ts and call-wait.ts failed because the oldText did not match exactly (call-wait originally still imported from '../scripts/call-manager' before the split); fixed by reading the file and applying a single, correctly-shaped replacement.",
+		"pnpm check / pnpm test: 2 failures in tests/extensions/registry-git-build.test.ts around pnpmCommand resolving to corepack with args ['pnpm'] vs command 'pnpm' with args []; verified pre-existing by stashing the change and reproducing the same failures.",
+		"pnpm prettier --check: reported formatting issues in the 6 newly written/edited files plus an unrelated pi-session-factory.ts; resolved for the touched files by running prettier --write, and pi-session-factory.ts was confirmed to need the same formatting independent of this change."
+	],
+	"outcome": "shipped"
+}
