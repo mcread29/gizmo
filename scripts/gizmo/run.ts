@@ -1,9 +1,13 @@
 import { closeSync, openSync, rmSync, writeFileSync } from 'node:fs';
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { appendFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { firstExit, stopProcessTree, waitForPort } from '../lib/web-process';
+import {
+	firstExit,
+	startUntilListening,
+	stopProcessTree,
+} from '../lib/web-process';
 import {
 	bindAddress,
 	hostsOf,
@@ -33,6 +37,11 @@ function resolveBindAddress(config: WebConfig): string {
 		.find((host) => isTailnetAddress(host) && host.includes('.'));
 	return bindAddress('tailscale', address);
 }
+
+/** How long one agent start may take to open its port. */
+const AGENT_START_TIMEOUT = 5 * 60_000;
+/** How many starts to try before the service gives up. */
+const AGENT_START_ATTEMPTS = 3;
 
 export interface RunOptions {
 	root?: string;
@@ -66,31 +75,47 @@ export async function runServer(config: WebConfig, options: RunOptions = {}) {
 
 	// Production mode: no `tsx watch`, so an edit in the working tree never
 	// restarts the server that other devices are connected to.
-	const agent = spawn(
-		process.execPath,
-		[tsxCli, join(root, 'apps', 'agent-server', 'src', 'server.ts')],
-		{
-			cwd: join(root, 'apps', 'agent-server'),
-			env: {
-				...process.env,
-				GIZMO_PI_WEB: '1',
-				// The agent server stays bound to loopback. Remote devices reach it
-				// only through the Vite preview proxy, so there is exactly one
-				// listener exposed to the tailnet.
-				GIZMO_HOST: '127.0.0.1',
-				GIZMO_PORT: String(config.agentPort),
-				GIZMO_ORIGINS: origins.join(','),
+	const spawnAgent = () =>
+		spawn(
+			process.execPath,
+			[tsxCli, join(root, 'apps', 'agent-server', 'src', 'server.ts')],
+			{
+				cwd: join(root, 'apps', 'agent-server'),
+				env: {
+					...process.env,
+					GIZMO_PI_WEB: '1',
+					// The agent server stays bound to loopback. Remote devices reach it
+					// only through the Vite preview proxy, so there is exactly one
+					// listener exposed to the tailnet.
+					GIZMO_HOST: '127.0.0.1',
+					GIZMO_PORT: String(config.agentPort),
+					GIZMO_ORIGINS: origins.join(','),
+				},
+				stdio: ['ignore', logDescriptor, logDescriptor],
+				windowsHide: true,
 			},
-			stdio: ['ignore', logDescriptor, logDescriptor],
-			windowsHide: true,
-		},
-	);
-	const children = [agent];
+		);
 
+	const children: ChildProcess[] = [];
 	try {
 		// Bring up the WebSocket backend before exposing the web server, so the
 		// first page load does not race the extension integrations still loading.
-		await waitForPort(config.agentPort, agent, 60_000);
+		// The agent server compiles from source and loads every extension on the
+		// way up, which on a machine that has just booted can take minutes while
+		// everything else starts. A start that never makes it is retried rather
+		// than abandoned: the service manager only restarts a task it could not
+		// launch, so an early exit here would leave the server down until the
+		// next login.
+		const agent = await startUntilListening(
+			spawnAgent,
+			config.agentPort,
+			logFile,
+			{
+				timeoutMilliseconds: AGENT_START_TIMEOUT,
+				attempts: AGENT_START_ATTEMPTS,
+			},
+		);
+		children.push(agent);
 		const app = spawn(
 			process.execPath,
 			[

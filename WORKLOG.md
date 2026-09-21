@@ -1,5 +1,6 @@
 # Work log
 
+<<<<<<< HEAD
 ## 2026-09-21 — v0.1.7: the app works on phones
 
 - Touch and phone layouts are keyed off `data-touch` and `data-phone` on the
@@ -12,6 +13,21 @@
   installed on an iOS home screen, where the small viewport stops short. A
   manifest and icons make it installable; `scripts/icons.mjs` regenerates
   them.
+=======
+## 2026-09-21 — v0.1.8: the service survives a slow boot
+
+- Gizmo did not come back after a reboot. The "Gizmo Web" task fired at
+  logon, but the launcher waited only 60 seconds for the agent server to open
+  its port, and on a machine that had just booted the server took longer than
+  that to compile from source and load its extensions. The launcher killed the
+  tree and exited 1, and Task Scheduler only retries a task it could not
+  launch, so nothing came back until someone started it by hand. The log held
+  the start header and nothing else.
+- The launcher now gives each start five minutes and tries three times before
+  giving up, and every failed attempt is written to `web.log` with its
+  reason, so a server that never came up leaves something to read. Covered by
+  `scripts/tests/web-process.test.ts`.
+>>>>>>> deda67a (fix: retry the agent server start so the service survives a slow boot)
 
 ## 2026-09-20 — Registry updates find pnpm without a PATH
 

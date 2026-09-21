@@ -36,6 +36,42 @@ function portOpen(port: number) {
 	});
 }
 
+export interface StartOptions {
+	timeoutMilliseconds: number;
+	attempts: number;
+}
+
+/**
+ * Starts `spawnChild` and waits for it to listen on `port`, trying again
+ * when it exits early or runs out of time. Each failed attempt is written to
+ * `logFile` next to the child's own output, so a server that never came up
+ * leaves a reason behind rather than a bare exit code in the service log.
+ */
+export async function startUntilListening(
+	spawnChild: () => ChildProcess,
+	port: number,
+	logFile: string,
+	options: StartOptions,
+): Promise<ChildProcess> {
+	for (let attempt = 1; ; attempt += 1) {
+		const child = spawnChild();
+		try {
+			await waitForPort(port, child, options.timeoutMilliseconds);
+			return child;
+		} catch (error) {
+			stopProcessTree(child.pid);
+			const reason = error instanceof Error ? error.message : String(error);
+			const last = attempt >= options.attempts;
+			await appendFile(
+				logFile,
+				`Start attempt ${String(attempt)} of ${String(options.attempts)} failed: ${reason}` +
+					(last ? '\n' : ' Trying again.\n'),
+			);
+			if (last) throw error;
+		}
+	}
+}
+
 export function stopProcessTree(pid: number | undefined) {
 	if (!pid) return;
 	if (process.platform === 'win32') {
