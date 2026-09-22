@@ -10,7 +10,9 @@ type ExtensionUiRequest = Extract<
 			| 'extension.view.open'
 			| 'extension.view.close'
 			| 'extension.view.action'
-			| 'extension.command.run';
+			| 'extension.command.run'
+			| 'extension.settings.get'
+			| 'extension.settings.set';
 	}
 >;
 
@@ -31,7 +33,7 @@ export async function handleExtensionUiRequest(
 				},
 			};
 		case 'extension.view.open': {
-			const view = await ui.open(owner, address(request), request.settings);
+			const view = await ui.open(owner, address(request));
 			return { result: view ? { view } : {} };
 		}
 		case 'extension.view.close':
@@ -47,6 +49,14 @@ export async function handleExtensionUiRequest(
 				request.sessionId,
 			);
 			return { result: {} };
+		case 'extension.settings.get':
+			return { result: { values: await ui.settings(request.extensionId) } };
+		case 'extension.settings.set':
+			return {
+				result: {
+					values: await ui.setSettings(request.extensionId, request.values),
+				},
+			};
 	}
 }
 

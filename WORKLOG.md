@@ -1,5 +1,57 @@
 # Work log
 
+## 2026-09-22 — UI/UX pass across the thread, sidebar, settings and views
+
+- Thread header is one breadcrumb row (workspace › thread title, path as tooltip) with New thread / Tree / ⋯ on the right; the second shelf row is gone.
+- Empty thread shows starters: recent threads in this workspace and the first slash commands (`ThreadEmpty.svelte`).
+- Tool cards show `+n −m` for edits; `tool-diff.ts` reads a result patch or synthesises one from oldText/newText and feeds the same `DiffView`.
+- Turn footer reads "Worked for … · N tool calls" counted across the whole turn.
+- Unread marker ("New" rule) above the first unseen message; jump pill says "New output below" while streaming.
+- Sidebar rows carry waiting (confirmation pending) / running / needs-attention states; collapsed workspaces show a count pill.
+- Composer: queued steering/follow-up notice, and a red "Stop" button while streaming.
+- Command palette shows shortcut hints; Chat settings gets a Keyboard shortcuts card.
+- Extensions settings: Installed | Registry segmented toggle; per-extension settings folded behind a disclosure.
+- Extension model field: thinking level is a segmented control; model placeholder reads "Same as the host".
+- Session tree search matches the sidebar search field; inspector tabs get "label · extension" tooltips; tables scroll horizontally with row-level selection fills; log timestamps muted on warning/error lines.
+- Phone: inspector overlay is full width; workspace crumb hidden in the header.
+- `followSystemTheme` now defaults on.
+- Split to stay under the file-length gate: `conversation-parts/thread-empty.css`, `message-parts/attachments.css`, `queued-notice.ts`, `unread.ts`, `thread-activity.ts`, `WorkspaceRowActions.svelte`, `InstalledExtensionList.svelte`, `JumpToLatest.svelte`, `UnreadMarker.svelte`.
+- Not verified in the browser: the unread marker only appears once the transcript stops following output, and a programmatic `scrollTop` in headless Chromium did not flip that state, so it is covered by the unit tests only.
+
+## 2026-09-22 — Extension settings on the server, hidden workspaces, and a tighter transcript
+
+- Extension settings moved from the browser's localStorage to one file on
+  the server, `extension-settings.json` beside Pi's own settings, so a
+  setting made in one tab holds in every tab and is readable by the
+  extension's server code. `extension.settings.get` and `.set` carry them,
+  `extension.settings.changed` broadcasts a change, and `extensions.ui`
+  now includes each extension's current `settingsValues`. Extensions read
+  them as `settings` on every context (tools, views, status items,
+  commands). Settings → Extensions gained the form; the workspace
+  Extensions tab shows the same one. Protocol v33.
+- A new `model` settings field lets an extension ask for a model from the
+  host's own catalog, with a thinking level when it sets `thinking`. The
+  value is a `ModelSetting` (`readModelSetting` parses it); a
+  session-independent `models.catalog` request feeds the picker. Git uses
+  it for the commit-message model, subagents for its three tier rungs.
+- Views and UI contexts get an optional `complete()` helper that runs a
+  one-shot text completion on a chosen or default model, so an extension
+  can draft text without a session. `git.commit-message` honours the git
+  extension's model setting the same way.
+- Workspaces can be hidden: `hidden` on the stored project and a
+  `project.hidden.set` request. The sidebar folds them into a "N hidden
+  workspaces" row that expands to show them again, and the workspace menu
+  offers Hide/Show. Threads of a hidden workspace leave the sidebar too;
+  the data stays where it was.
+- A workspace can now switch on an extension that is off globally. The
+  server already treated a workspace override as the last word in both
+  directions; only the toggle refused. The row reads "Inherits global · on"
+  or "Overridden · off" so the two states are not mistaken for each other.
+- A collapsed Reasoning row no longer leaves a 16px hole beneath it. Grouped
+  rows hide their avatar, but the hidden 30px box still set the row height;
+  it is now zero-height, so a one-line reasoning summary is one line tall,
+  the same as a collapsed tool call.
+
 ## 2026-09-21 — Update Gizmo from the About page
 
 - Settings → About now shows the running version, checks the latest
@@ -23,6 +75,7 @@
   `Program Files`.
 - `AgentStore` no longer delegates the registry actions; callers use
   `store.registry` directly, as they already did for providers.
+
 ## 2026-09-21 — v0.1.9: `gizmo update` is idempotent
 
 - Running `gizmo update` when the install was already on the newest release

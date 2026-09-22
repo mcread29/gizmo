@@ -9,10 +9,8 @@ import {
 	systemThemeMode,
 	type AppSettings,
 	type AppTheme,
-	type ExtensionSettings,
 	type PanelName,
 } from '../../app-settings';
-import type { ExtensionSettingsContext } from '../../extensions/settings';
 import {
 	currentTouch,
 	currentViewportWidth,
@@ -33,14 +31,13 @@ const conversationFloor = 420;
  */
 export class WorkspaceLayout {
 	theme = $state<AppTheme>('dark');
-	followSystemTheme = $state(false);
+	followSystemTheme = $state(true);
 	sendOnEnter = $state(true);
 	autoFollowOutput = $state(true);
 	expandReasoning = $state(false);
 	autoCompact = $state(true);
 	autoCompactFillPercent = $state(25);
 	compactionRetainPercent = $state(10);
-	extensionSettings = $state<ExtensionSettings>({});
 	showThreadSidebar = $state(true);
 	showInspector = $state(true);
 	sidebarWidth = $state(panelWidthLimits.sidebar.default);
@@ -62,7 +59,6 @@ export class WorkspaceLayout {
 	touch = $state(currentTouch());
 	leftDrawerOpen = $state(false);
 	rightDrawerOpen = $state(false);
-	#settingsContexts = new Map<string, ExtensionSettingsContext>();
 
 	readonly leftMode: PanelMode = $derived(sidebarMode(this.viewportWidth));
 	readonly rightMode: PanelMode = $derived(inspectorMode(this.viewportWidth));
@@ -109,7 +105,6 @@ export class WorkspaceLayout {
 		this.autoCompact = settings.autoCompact;
 		this.autoCompactFillPercent = settings.autoCompactFillPercent;
 		this.compactionRetainPercent = settings.compactionRetainPercent;
-		this.extensionSettings = structuredClone(settings.extensionSettings);
 		this.showThreadSidebar = settings.showThreadSidebar;
 		this.showInspector = settings.showInspector;
 		this.sidebarWidth = settings.sidebarWidth;
@@ -129,7 +124,6 @@ export class WorkspaceLayout {
 			autoCompact: this.autoCompact,
 			autoCompactFillPercent: this.autoCompactFillPercent,
 			compactionRetainPercent: this.compactionRetainPercent,
-			extensionSettings: $state.snapshot(this.extensionSettings),
 			showThreadSidebar: this.showThreadSidebar,
 			showInspector: this.showInspector,
 			sidebarWidth: this.sidebarWidth,
@@ -138,22 +132,6 @@ export class WorkspaceLayout {
 			agentUrl: this.agentUrl,
 			titleModel: this.titleModel,
 		};
-	}
-
-	settingsFor(extensionId: string) {
-		const existing = this.#settingsContexts.get(extensionId);
-		if (existing) return existing;
-		const context: ExtensionSettingsContext = {
-			get: (key) => this.extensionSettings[extensionId]?.[key],
-			set: (key, value) => {
-				this.extensionSettings[extensionId] = {
-					...this.extensionSettings[extensionId],
-					[key]: value,
-				};
-			},
-		};
-		this.#settingsContexts.set(extensionId, context);
-		return context;
 	}
 
 	/** Re-reads the window and shrinks docked panels that no longer fit. */

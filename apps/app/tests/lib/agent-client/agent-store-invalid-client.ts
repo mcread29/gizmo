@@ -212,16 +212,13 @@ export class InvalidEventClient implements AgentClient {
 	async setProjectGizmoExtension(): Promise<ProjectConfig> {
 		return { version: 1 };
 	}
-	async setProjectPiExtension(): Promise<ProjectConfig> {
-		return { version: 1 };
-	}
-	async setProjectExtensionPaths(): Promise<ProjectConfig> {
-		return { version: 1 };
-	}
+	setProjectPiExtension = this.setProjectGizmoExtension;
+	setProjectExtensionPaths = this.setProjectGizmoExtension;
 	async setGlobalGizmoExtension(): Promise<ResourceCatalog> {
 		return emptyCatalog;
 	}
 	async removeProject() {}
+	setProjectHidden = this.addProject;
 	async reorderProjects(): Promise<StoredProject[]> {
 		return [];
 	}
@@ -257,6 +254,9 @@ export class InvalidEventClient implements AgentClient {
 		return undefined;
 	}
 	async closeExtensionView(): Promise<void> {}
+	getExtensionSettings = async (): Promise<Record<string, unknown>> => ({});
+	setExtensionSettings = async (): Promise<Record<string, unknown>> => ({});
+	getGlobalModelCatalog = async () => ({ models: [], thinkingLevels: [] });
 	async runExtensionViewAction(): Promise<ActionResult> {
 		return { status: 'succeeded' };
 	}

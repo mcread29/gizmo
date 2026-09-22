@@ -102,6 +102,16 @@ export class FakeProjectCapability {
 		if (index >= 0) this.state.projects.splice(index, 1);
 	}
 
+	async setHidden(projectPath: string, hidden: boolean) {
+		this.state.assertProject(projectPath);
+		const project = this.state.projects.find(
+			({ path }) => path === projectPath,
+		)!;
+		if (hidden) project.hidden = true;
+		else delete project.hidden;
+		return project;
+	}
+
 	async reorder(paths: string[]) {
 		const rank = new Map(paths.map((path, index) => [path, index]));
 		this.state.projects.sort(

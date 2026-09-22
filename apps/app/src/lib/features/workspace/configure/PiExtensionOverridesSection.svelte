@@ -33,10 +33,16 @@
 		);
 	}
 
-	function toggleExtension(id: string, checked: boolean) {
+	// An override that matches the global state is noise, so agreeing with
+	// it clears the override; disagreeing records one, in either direction.
+	function toggleExtension(id: string, globallyOn: boolean, checked: boolean) {
 		onBusy(id);
 		onReapply(
-			store.setProjectPiExtension(workspacePath, id, checked ? null : false),
+			store.setProjectPiExtension(
+				workspacePath,
+				id,
+				checked === globallyOn ? null : checked,
+			),
 		);
 	}
 
@@ -48,7 +54,7 @@
 
 <ConfigureSectionHeading
 	title="Extensions"
-	description="Tools and browser panels share one setting. Enable globally in Settings → Extensions, or turn off for this workspace."
+	description="Tools and browser panels share one setting. Each extension follows its global setting unless this workspace overrides it, on or off."
 />
 <div data-ui="settings-card">
 	{#if extensions.length === 0}
@@ -57,7 +63,7 @@
 		<div data-ui="integration-list" data-layout="workspace-setup">
 			{#each extensions as extension (extension.id)}
 				{@const override = overrideFor(extension.id)}
-				{@const effective = extension.enabled && (override ?? true)}
+				{@const effective = override ?? extension.enabled}
 				<div
 					data-ui="integration-row"
 					data-changed={override !== undefined || undefined}
@@ -66,21 +72,19 @@
 						<Switch.Root
 							data-ui="switch"
 							checked={effective}
-							disabled={!extension.enabled || busyExtension === extension.id}
+							disabled={busyExtension === extension.id}
 							aria-label={`${extension.name} enabled here`}
 							onCheckedChange={(checked) =>
-								toggleExtension(extension.id, checked)}
+								toggleExtension(extension.id, extension.enabled, checked)}
 						>
 							<Switch.Thumb data-ui="switch-thumb" />
 						</Switch.Root>
 						<span>
 							<strong>{extension.name}</strong>
 							<small title={extension.path}
-								>{extension.enabled
-									? override === undefined
-										? 'Inherits global · on'
-										: 'Overridden · off'
-									: 'Off globally'}</small
+								>{override === undefined
+									? `Inherits global · ${extension.enabled ? 'on' : 'off'}`
+									: `Overridden · ${override ? 'on' : 'off'}`}</small
 							>
 						</span>
 					</label>

@@ -55,6 +55,8 @@ export const storedProjectSchema = Type.Object(
 		integrations: Type.Array(workspaceProfileExtensionSchema),
 		/** Skill overrides in effect; absent rows follow the global setting. */
 		skills: Type.Optional(Type.Array(projectSkillSchema)),
+		/** Hidden workspaces keep all their data but leave the sidebar list. */
+		hidden: Type.Optional(Type.Boolean()),
 		addedAt: Type.Integer({ minimum: 0 }),
 	},
 	{ additionalProperties: false },

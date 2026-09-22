@@ -78,3 +78,23 @@ export function formatDay(timestamp: number, now = Date.now()): string {
 		day: 'numeric',
 	}).format(timestamp);
 }
+
+/**
+ * Tool calls across the whole turn that ends at `messageId`: the footer sits
+ * on the turn's last row, but a turn is one message per step, each with its
+ * own tools, so counting the last message alone undercounted.
+ */
+export function turnToolCount(
+	messages: ReadonlyArray<{ id: string; role: string; tools: unknown[] }>,
+	messageId: string,
+): number {
+	const end = messages.findIndex(({ id }) => id === messageId);
+	if (end < 0) return 0;
+	let count = 0;
+	for (let index = end; index >= 0; index--) {
+		const message = messages[index]!;
+		if (message.role !== 'assistant') break;
+		count += message.tools.length;
+	}
+	return count;
+}

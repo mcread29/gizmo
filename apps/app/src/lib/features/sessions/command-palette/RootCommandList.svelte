@@ -10,6 +10,7 @@
 	} from '@lucide/svelte';
 	import { Command } from 'bits-ui';
 	import PaletteFooter from './PaletteFooter.svelte';
+	import { shortcutHint } from '../../shell/shortcuts';
 
 	interface Props {
 		extensionCommands: CommandContribution[];
@@ -70,6 +71,7 @@
 				>
 					<Plus size={15} />
 					<span data-ui="palette-result-name">New thread</span>
+					<kbd data-ui="palette-result-hint">{shortcutHint('N')}</kbd>
 				</Command.Item>
 				<Command.Item
 					data-ui="palette-result"
@@ -78,6 +80,7 @@
 				>
 					<Settings size={15} />
 					<span data-ui="palette-result-name">Open settings</span>
+					<kbd data-ui="palette-result-hint">{shortcutHint(',')}</kbd>
 				</Command.Item>
 				<Command.Item
 					data-ui="palette-result"
@@ -96,6 +99,7 @@
 				>
 					<Search size={15} />
 					<span data-ui="palette-result-name">Search threads</span>
+					<kbd data-ui="palette-result-hint">{shortcutHint('⇧K')}</kbd>
 				</Command.Item>
 			</Command.GroupItems>
 		</Command.Group>

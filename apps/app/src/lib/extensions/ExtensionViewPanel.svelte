@@ -12,7 +12,6 @@
 		extensionId,
 		viewId,
 		sessionId,
-		settings,
 		tabLabel,
 		onViewChange,
 	}: {
@@ -22,8 +21,6 @@
 		viewId: string;
 		/** Passed for thread-scoped views; the server ignores it otherwise. */
 		sessionId?: string;
-		/** The extension's client-local settings values, sent on open. */
-		settings?: Record<string, unknown>;
 		/** The label on the tab that opened this, so the header can avoid it. */
 		tabLabel?: string;
 		/** Lets a tab show the view's badge without opening it twice. */
@@ -79,14 +76,11 @@
 	$effect(() => {
 		const open = { ...address };
 		reloadToken;
-		// Settings are a snapshot taken at open: reading them reactively would
-		// reopen the view on every keystroke in the settings form.
-		const values = untrack(() => (settings ? { ...settings } : undefined));
 		let live = true;
 		view = undefined;
 		error = undefined;
 		store.client
-			.openExtensionView(open, values)
+			.openExtensionView(open)
 			.then((opened) => {
 				if (live && opened) view = opened;
 			})

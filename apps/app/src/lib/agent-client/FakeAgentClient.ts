@@ -163,6 +163,8 @@ export class FakeAgentClient implements AgentClient {
 	) => this.#projects.setExtensionPaths(projectPath, paths);
 	removeProject: AgentClient['removeProject'] = (projectPath) =>
 		this.#projects.remove(projectPath);
+	setProjectHidden: AgentClient['setProjectHidden'] = (projectPath, hidden) =>
+		this.#projects.setHidden(projectPath, hidden);
 	reorderProjects: AgentClient['reorderProjects'] = (paths) =>
 		this.#projects.reorder(paths);
 	listResources: AgentClient['listResources'] = (workspacePath) =>
@@ -239,6 +241,14 @@ export class FakeAgentClient implements AgentClient {
 	) => this.#extensionUi.action(address, event);
 	runExtensionCommand: AgentClient['runExtensionCommand'] = () =>
 		this.#extensionUi.runCommand();
+	getExtensionSettings: AgentClient['getExtensionSettings'] = (extensionId) =>
+		this.#extensionUi.settings(extensionId);
+	setExtensionSettings: AgentClient['setExtensionSettings'] = (
+		extensionId,
+		values,
+	) => this.#extensionUi.setSettings(extensionId, values);
+	getGlobalModelCatalog: AgentClient['getGlobalModelCatalog'] = () =>
+		this.#extensionUi.modelCatalog();
 	invokeProjectExtension: AgentClient['invokeProjectExtension'] = (
 		projectPath,
 		extensionId,

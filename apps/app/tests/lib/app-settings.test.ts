@@ -26,17 +26,6 @@ describe('app settings', () => {
 		expect(loadAppSettings()).toEqual(settings);
 	});
 
-	it('migrates the former Unity compile policy into extension settings', () => {
-		localStorage.setItem(
-			'gizmo.settings.v1',
-			JSON.stringify({ compilePlayModePolicy: 'keep_playing' }),
-		);
-
-		expect(
-			loadAppSettings().extensionSettings.unity?.compilePlayModePolicy,
-		).toBe('keep_playing');
-	});
-
 	it('migrates the former Unity-specific inspector preference', () => {
 		localStorage.setItem(
 			'gizmo.settings.v1',

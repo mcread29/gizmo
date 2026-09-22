@@ -38,11 +38,13 @@
 			extensionUi.inspectorViews(),
 			tabOrder,
 			({ extensionId, value }) => `${extensionId}.${value.id}`,
-		).map(({ extensionId, value }) => {
+		).map(({ extensionId, extensionName, value }) => {
 			const id = `${extensionId}.${value.id}`;
 			return {
 				value: id,
 				label: value.label,
+				// Two extensions can both offer a "Changes" tab; the owner tells them apart.
+				title: `${value.label} · ${extensionName}`,
 				shortLabel: value.shortLabel,
 				extensionId,
 				viewId: value.id,
@@ -109,7 +111,6 @@
 							viewId={tab.viewId}
 							sessionId={tab.sessionId}
 							tabLabel={tab.label}
-							settings={layout.extensionSettings[tab.extensionId]}
 							onViewChange={(view) => (views[tab.value] = view)}
 						/>
 					</div>

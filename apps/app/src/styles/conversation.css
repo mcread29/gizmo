@@ -1,3 +1,5 @@
+@import './conversation-parts/thread-empty.css';
+
 /*
  * Flex rather than grid rows: the error banner comes and goes, and a row count
  * that changes with it is a layout that breaks the first time it appears.
@@ -11,49 +13,49 @@
 	background: var(--color-surface-raised);
 }
 
-/* One header row height across all three columns, so the shelf lines up. */
+/*
+ * One row: breadcrumb on the left, the thread's verbs on the right. Sits on
+ * the canvas like the workspace screen's header, with the shelf line under it.
+ */
 [data-ui='conversation-header'] {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--space-4);
 	min-height: var(--header-row-h);
-	/* Inset to match the workspace screen's header, so the title does not
-	   shift sideways when switching between the two. */
-	padding: 10px var(--space-5);
-	/* The workspace screen's header sits on the canvas; this is the same shelf. */
-	background: var(--color-canvas);
-}
-
-[data-ui='conversation-header'] > div:first-child {
-	min-width: 0;
-}
-
-/*
- * The thread's own row, standing where the workspace screen's folder tabs
- * stand. The 8px matches [data-ui='tabs-list']: those strips carry their
- * bottom border on a rounded box, so the line lifts away at both ends.
- */
-[data-ui='conversation-shelf'] {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-4);
-	/* Fixed, not a minimum: the row has to end on the same line as the tab
-	   strips beside it, whatever the controls in it measure. */
-	height: var(--header-shelf-h);
-	padding: 0 var(--space-5);
-	border-radius: 8px;
+	padding: var(--space-2) var(--space-5);
 	border-bottom: 1px solid var(--color-border);
 	background: var(--color-canvas);
 }
 
-/* The controls sit inside the strip's height, as the tab triggers do. */
-[data-ui='conversation-shelf'] [data-ui='conversation-header-actions'] button {
-	height: 26px;
+[data-ui='thread-crumbs'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	min-width: 0;
+	color: var(--color-text-muted);
 }
 
-[data-ui='conversation-shelf'] strong {
+[data-ui='thread-crumbs'] > svg {
+	flex: 0 0 auto;
+	color: var(--color-text-faint);
+}
+
+[data-ui='thread-crumb-workspace'] {
+	flex: 0 1 auto;
+	min-width: 3ch;
+	max-width: 40%;
+	overflow: hidden;
+	font-size: var(--text-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* The thread title is the page's heading; the workspace is context. */
+[data-ui='thread-crumbs'] h1 {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
 	overflow: hidden;
 	color: var(--color-text);
 	font-size: var(--text-sm);
@@ -62,22 +64,9 @@
 	white-space: nowrap;
 }
 
-/* Identical to the workspace screen's title: the same thing, named the same. */
-[data-ui='conversation-header'] h1 {
-	margin: 0;
-	font-size: var(--text-lg);
-}
-
-/* A workspace name is arbitrary text; it ellipsizes rather than pushing the
-   New thread button off the row. */
-[data-ui='conversation-header'] h1 {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
 [data-ui='conversation-header-actions'] {
 	display: flex;
+	flex: 0 0 auto;
 	align-items: center;
 	gap: var(--space-1);
 }
@@ -200,27 +189,6 @@
 	color: var(--color-text-muted);
 	font-size: var(--text-xs);
 	text-align: center;
-}
-
-/* An empty thread is just a thread: the workspace overview is its own screen. */
-[data-ui='thread-empty'] {
-	display: grid;
-	flex: 1;
-	align-content: center;
-	justify-items: center;
-	gap: var(--space-1);
-	min-height: 0;
-	padding: var(--space-6);
-	text-align: center;
-}
-
-[data-ui='thread-empty'] strong {
-	font-size: var(--text-sm);
-}
-
-[data-ui='thread-empty'] span {
-	color: var(--color-text-muted);
-	font-size: var(--text-xs);
 }
 
 [data-ui='transcript-skeleton'] {

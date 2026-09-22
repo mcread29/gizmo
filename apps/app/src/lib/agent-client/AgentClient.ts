@@ -13,6 +13,7 @@ import type {
 	FileRevertResult,
 	GitCommitResult,
 	GitStatus,
+	GlobalModelCatalog,
 	SessionCatalog,
 	SessionOptions,
 	SessionSnapshot,
@@ -169,6 +170,11 @@ export interface AgentClient {
 		paths: string[],
 	): Promise<ProjectConfig>;
 	removeProject(projectPath: string): Promise<void>;
+	/** Hides or shows a workspace; nothing it owns is deleted. */
+	setProjectHidden(
+		projectPath: string,
+		hidden: boolean,
+	): Promise<StoredProject>;
 	/** Persists the sidebar order; resolves with the catalog in that order. */
 	reorderProjects(paths: string[]): Promise<StoredProject[]>;
 	listResources(workspacePath?: string): Promise<ResourceCatalog>;
@@ -233,10 +239,7 @@ export interface AgentClient {
 	 * extension pushed any; everything after arrives as
 	 * `extension.view.updated` events until the view is closed.
 	 */
-	openExtensionView(
-		address: ExtensionViewAddress,
-		settings?: Record<string, unknown>,
-	): Promise<View | undefined>;
+	openExtensionView(address: ExtensionViewAddress): Promise<View | undefined>;
 	closeExtensionView(address: ExtensionViewAddress): Promise<void>;
 	runExtensionViewAction(
 		address: ExtensionViewAddress,
@@ -248,6 +251,15 @@ export interface AgentClient {
 		commandId: string,
 		sessionId?: string,
 	): Promise<void>;
+	/** An extension's stored settings; they are global, not per-workspace. */
+	getExtensionSettings(extensionId: string): Promise<Record<string, unknown>>;
+	/** Merges values into them; a `null` value clears its key. */
+	setExtensionSettings(
+		extensionId: string,
+		values: Record<string, unknown>,
+	): Promise<Record<string, unknown>>;
+	/** The model catalog with no thread in play, for global settings. */
+	getGlobalModelCatalog(): Promise<GlobalModelCatalog>;
 	/**
 	 * Asks the server to reload every linked extension in place: server code
 	 * re-evaluates, idle Pi runtimes reload. Optional because the demo client

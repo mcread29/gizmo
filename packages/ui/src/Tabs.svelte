@@ -8,6 +8,8 @@
 		label: string;
 		/** A space-saving label used when the tab container is narrow. */
 		shortLabel?: string;
+		/** Tooltip on the trigger; where the tab's owner belongs. */
+		title?: string;
 		/** Rendered as a pill beside the label; omitted when zero. */
 		badge?: number;
 		badgeTone?: 'accent' | 'danger';
@@ -105,6 +107,7 @@
 			<Tabs.Trigger
 				data-ui="tabs-trigger"
 				value={item.value}
+				title={item.title}
 				draggable={reorderable || undefined}
 				data-dragging={dragging === item.value || undefined}
 				data-drop={drop?.value === item.value ? drop.edge : undefined}

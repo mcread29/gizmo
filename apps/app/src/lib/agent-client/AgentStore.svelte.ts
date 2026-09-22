@@ -20,7 +20,8 @@ export type { AgentError, AgentErrorKind, AgentModel, ConnectionState, PendingCo
 /** Stable reactive facade coordinating the agent client's capability modules. */
 export class AgentStore extends AgentStoreState {
 	readonly #connection: ConnectionCapability;
-	readonly #extensions: ExtensionCapability;
+	/** Public for the settings forms, which drive it directly. */
+	readonly extensions: ExtensionCapability;
 	readonly #git: GitCapability;
 	/** The journal's derived memory layer. */
 	readonly memory: MemoryCapability;
@@ -60,7 +61,7 @@ export class AgentStore extends AgentStoreState {
 			this.#sessions,
 			sync,
 		);
-		this.#extensions = new ExtensionCapability(this, client);
+		this.extensions = new ExtensionCapability(this, client);
 		this.#git = new GitCapability(this, client);
 		this.memory = new MemoryCapability(this, client);
 		this.registry = new RegistryCapability(this, client);
@@ -84,7 +85,7 @@ export class AgentStore extends AgentStoreState {
 		return this.#connection.wake();
 	}
 	reloadExtensions(options?: { server?: boolean }) {
-		return this.#extensions.reloadExtensions(options);
+		return this.extensions.reloadExtensions(options);
 	}
 	refreshProjects() {
 		return this.#projects.refreshProjects();
@@ -180,6 +181,9 @@ export class AgentStore extends AgentStoreState {
 	reorderProjects(paths: string[]) {
 		return this.#projects.reorderProjects(paths);
 	}
+	setProjectHidden(projectPath: string, hidden: boolean) {
+		return this.#projects.setProjectHidden(projectPath, hidden);
+	}
 	removeProject(projectPath: string) {
 		return this.#projects.removeProject(projectPath);
 	}
@@ -191,7 +195,7 @@ export class AgentStore extends AgentStoreState {
 		extensionId: string,
 		enabled: boolean | null,
 	) {
-		return this.#extensions.setProjectGizmoExtension(
+		return this.extensions.setProjectGizmoExtension(
 			projectPath,
 			extensionId,
 			enabled,
@@ -202,17 +206,17 @@ export class AgentStore extends AgentStoreState {
 		extensionId: string,
 		enabled: boolean | null,
 	) {
-		return this.#extensions.setProjectPiExtension(
+		return this.extensions.setProjectPiExtension(
 			projectPath,
 			extensionId,
 			enabled,
 		);
 	}
 	setProjectExtensionPaths(projectPath: string, paths: string[]) {
-		return this.#extensions.setProjectExtensionPaths(projectPath, paths);
+		return this.extensions.setProjectExtensionPaths(projectPath, paths);
 	}
 	loadProjectExtensions() {
-		return this.#extensions.loadProjectExtensions();
+		return this.extensions.loadProjectExtensions();
 	}
 	invokeProjectExtension(
 		projectPath: string,
@@ -220,7 +224,7 @@ export class AgentStore extends AgentStoreState {
 		operation: string,
 		input?: unknown,
 	) {
-		return this.#extensions.invokeProjectExtension(
+		return this.extensions.invokeProjectExtension(
 			projectPath,
 			extensionId,
 			operation,

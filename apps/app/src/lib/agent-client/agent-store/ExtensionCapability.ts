@@ -44,6 +44,28 @@ export class ExtensionCapability {
 		return diagnostics;
 	}
 
+	/** An extension's stored settings, held by the server for every client. */
+	async extensionSettings(extensionId: string) {
+		return this.client.getExtensionSettings(extensionId);
+	}
+
+	/**
+	 * Merges values into them. A `null` clears a key. The server broadcasts
+	 * `extension.settings.changed`, so every client (including this one)
+	 * re-renders from the event rather than from this answer.
+	 */
+	async setExtensionSettings(
+		extensionId: string,
+		values: Record<string, unknown>,
+	) {
+		return this.client.setExtensionSettings(extensionId, values);
+	}
+
+	/** Models a `model` setting can pick from, with no thread in play. */
+	async globalModelCatalog() {
+		return this.client.getGlobalModelCatalog();
+	}
+
 	async setProjectGizmoExtension(
 		projectPath: string,
 		extensionId: string,

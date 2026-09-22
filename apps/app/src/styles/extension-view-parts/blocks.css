@@ -103,6 +103,12 @@
 [data-ui='view-log-line'] time {
 	color: var(--color-text-muted);
 }
+/* A line's tone colours its text; the timestamp stays quiet whatever the
+   line says, so a run of errors is still readable as a timeline. */
+[data-ui='view-log-line'][data-tone='error'] time,
+[data-ui='view-log-line'][data-tone='warning'] time {
+	color: var(--color-text-muted);
+}
 [data-ui='view-log-truncated'] {
 	margin: 0 0 var(--space-1);
 	color: var(--color-text-muted);

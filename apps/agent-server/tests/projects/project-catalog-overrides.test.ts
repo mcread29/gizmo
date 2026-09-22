@@ -102,6 +102,43 @@ describe('ProjectCatalog overrides', () => {
 			catalog.setProjectExtensionPaths(project, [join(project, 'missing.ts')]),
 		).rejects.toThrow('does not exist');
 	});
+
+	it('hides a workspace without dropping anything it owns', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project);
+		await catalog.setSkill(project, 'review', false);
+
+		expect(await catalog.setHidden(project, true)).toMatchObject({
+			path: project,
+			hidden: true,
+		});
+		// The row survives a reload, skills and all.
+		const reloaded = new ProjectCatalog(data);
+		expect(await reloaded.list()).toMatchObject([
+			{
+				path: project,
+				hidden: true,
+				skills: [{ id: 'review', enabled: false }],
+			},
+		]);
+		expect(
+			JSON.parse(await readFile(join(data, 'projects.json'), 'utf8')),
+		).toMatchObject([{ path: project, hidden: true }]);
+
+		// Showing it again clears the flag rather than storing `false`.
+		await reloaded.setHidden(project, false);
+		const [shown] = JSON.parse(
+			await readFile(join(data, 'projects.json'), 'utf8'),
+		) as Record<string, unknown>[];
+		expect(shown).not.toHaveProperty('hidden');
+		expect((await reloaded.list())[0]).not.toHaveProperty('hidden');
+
+		await expect(
+			catalog.setHidden(join(project, 'nope'), true),
+		).rejects.toThrow('not registered');
+	});
 });
 
 async function temporary(prefix: string) {

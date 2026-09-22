@@ -1,33 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import { expect, it, vi } from 'vitest';
 import type { AgentStore } from '../../../src/lib/agent-client';
 import { WorkspaceLayout } from '../../../src/lib/features/shell/workspace.svelte';
 import ExtensionDialogs from '../../../src/lib/extensions/ExtensionDialogs.svelte';
 
-it.each([
-	['stop', true],
-	['keep_playing', false],
-])('honors Unity compile policy %s', async (policy, accepted) => {
-	const confirmation = {
-		kind: 'stop_play_mode_for_compile',
-		confirmationId: 'confirm',
-		sessionId: 'thread',
-	};
-	const resolveConfirmation = vi.fn();
-	const store = {
-		pendingConfirmations: [confirmation],
-		resolveConfirmation,
-	} as unknown as AgentStore;
-	const layout = new WorkspaceLayout();
-	layout.extensionSettings = { unity: { compilePlayModePolicy: policy } };
-	render(ExtensionDialogs, { store, layout });
-	await waitFor(() =>
-		expect(resolveConfirmation).toHaveBeenCalledWith(confirmation, accepted),
-	);
-	expect(screen.queryByRole('dialog')).toBeNull();
-});
-
-it('shows extension-provided confirmation copy when the policy is ask', async () => {
+it('shows extension-provided confirmation copy', async () => {
 	const store = {
 		pendingConfirmations: [
 			{

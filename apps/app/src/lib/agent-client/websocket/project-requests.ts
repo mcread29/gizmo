@@ -3,7 +3,9 @@ import {
 	parseProjectConfig,
 	parseProjectDomains,
 	parseActionResult,
+	parseExtensionSettingsValues,
 	parseExtensionsUi,
+	parseGlobalModelCatalog,
 	parseStoredProjects,
 	parseViewResult,
 	parseWorkspaceDirectoryListing,
@@ -93,6 +95,19 @@ export class ProjectRequests extends SessionRequests {
 		await this.request({ type: 'project.remove', projectPath });
 	}
 
+	async setProjectHidden(projectPath: string, hidden: boolean) {
+		const response = await this.request({
+			type: 'project.hidden.set',
+			projectPath,
+			hidden,
+		});
+		const [project] = parseStoredProjects([response.result]);
+		if (!project) {
+			throw new Error('Agent server did not return the updated workspace');
+		}
+		return project;
+	}
+
 	async reorderProjects(paths: string[]) {
 		const response = await this.request({ type: 'project.reorder', paths });
 		return parseStoredProjects(response.result);
@@ -148,14 +163,35 @@ export class ProjectRequests extends SessionRequests {
 		return parseExtensionsUi(response.result).extensions;
 	}
 
-	async openExtensionView(
-		address: ExtensionViewAddress,
-		settings?: Record<string, unknown>,
+	async getExtensionSettings(extensionId: string) {
+		const response = await this.request({
+			type: 'extension.settings.get',
+			extensionId,
+		});
+		return parseExtensionSettingsValues(response.result).values;
+	}
+
+	async setExtensionSettings(
+		extensionId: string,
+		values: Record<string, unknown>,
 	) {
+		const response = await this.request({
+			type: 'extension.settings.set',
+			extensionId,
+			values,
+		});
+		return parseExtensionSettingsValues(response.result).values;
+	}
+
+	async getGlobalModelCatalog() {
+		const response = await this.request({ type: 'models.catalog' });
+		return parseGlobalModelCatalog(response.result);
+	}
+
+	async openExtensionView(address: ExtensionViewAddress) {
 		const response = await this.request({
 			type: 'extension.view.open',
 			...addressFields(address),
-			...(settings ? { settings } : {}),
 		});
 		return parseViewResult(response.result).view;
 	}

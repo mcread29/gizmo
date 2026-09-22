@@ -11,6 +11,9 @@
 
 	let { store, workspacePath, onRemoved }: Props = $props();
 	let removeOpen = $state(false);
+	let hidden = $derived(
+		Boolean(store.projects.find(({ path }) => path === workspacePath)?.hidden),
+	);
 
 	async function removeWorkspace() {
 		await store.removeProject(workspacePath);
@@ -25,6 +28,11 @@
 -->
 <Menu
 	items={[
+		{
+			// Hiding is reversible and destroys nothing, so it asks nothing.
+			label: hidden ? 'Show workspace' : 'Hide workspace',
+			onSelect: () => void store.setProjectHidden(workspacePath, !hidden),
+		},
 		{
 			label: 'Remove workspace…',
 			tone: 'danger',

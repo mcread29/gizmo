@@ -75,6 +75,46 @@
 	color: var(--color-accent);
 }
 
+/* Stopped on a question: the tile asks in the warning colour. */
+[data-ui='session-item'][data-status='waiting'] [data-ui='session-icon'] {
+	background: var(--color-warning-soft);
+	color: var(--color-warning);
+	box-shadow: 0 0 0 1px
+		color-mix(in srgb, var(--color-warning) 45%, transparent);
+}
+
+[data-ui='session-item'][data-status='waiting'] small {
+	color: var(--color-warning);
+}
+
+[data-ui='session-item'][data-status='error'] [data-ui='session-icon'] {
+	background: var(--color-danger-soft);
+	color: var(--color-danger);
+}
+
+[data-ui='session-item'][data-status='error'] small {
+	color: var(--color-danger);
+}
+
+/* A collapsed workspace still says how many of its threads want attention. */
+[data-ui='workspace-activity'] {
+	flex: none;
+	min-width: 18px;
+	padding: 1px 5px;
+	border-radius: var(--radius-full);
+	background: var(--color-accent-soft);
+	color: var(--color-accent);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+}
+
+[data-ui='workspace-activity'][data-tone='warning'] {
+	background: var(--color-warning-soft);
+	color: var(--color-warning);
+}
+
 [data-ui='session-working'] {
 	animation: spin 1.2s linear infinite;
 }
@@ -93,6 +133,46 @@
 
 @media (prefers-reduced-motion: reduce) {
 	[data-ui='session-item'][data-running] [data-ui='session-icon'],
+	/* Stopped on a question: the tile asks in the warning colour. */
+[data-ui='session-item'][data-status='waiting'] [data-ui='session-icon'] {
+		background: var(--color-warning-soft);
+		color: var(--color-warning);
+		box-shadow: 0 0 0 1px
+			color-mix(in srgb, var(--color-warning) 45%, transparent);
+	}
+
+	[data-ui='session-item'][data-status='waiting'] small {
+		color: var(--color-warning);
+	}
+
+	[data-ui='session-item'][data-status='error'] [data-ui='session-icon'] {
+		background: var(--color-danger-soft);
+		color: var(--color-danger);
+	}
+
+	[data-ui='session-item'][data-status='error'] small {
+		color: var(--color-danger);
+	}
+
+	/* A collapsed workspace still says how many of its threads want attention. */
+	[data-ui='workspace-activity'] {
+		flex: none;
+		min-width: 18px;
+		padding: 1px 5px;
+		border-radius: var(--radius-full);
+		background: var(--color-accent-soft);
+		color: var(--color-accent);
+		font-size: var(--text-2xs);
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		text-align: center;
+	}
+
+	[data-ui='workspace-activity'][data-tone='warning'] {
+		background: var(--color-warning-soft);
+		color: var(--color-warning);
+	}
+
 	[data-ui='session-working'] {
 		animation: none;
 	}

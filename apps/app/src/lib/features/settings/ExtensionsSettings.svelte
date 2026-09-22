@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { RefreshCw, Unlink2 } from '@lucide/svelte';
-	import { Switch } from 'bits-ui';
+	import { RefreshCw } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ResourceNote } from '../../components';
 	import { toasts } from '../../toasts.svelte';
+	import { extensionUi } from '../../extensions/extension-ui.svelte';
 	import ExtensionRegistrySection from './ExtensionRegistrySection.svelte';
+	import InstalledExtensionList from './InstalledExtensionList.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
 	let { store }: { store: AgentStore } = $props();
@@ -40,7 +41,21 @@
 			.sort((left, right) => left.name.localeCompare(right.name)),
 	);
 	let loading = $derived(store.resourcesLoading && installed.length === 0);
+	/**
+	 * A settings form needs the fields the extension declares, which only the
+	 * running extension reports, so it shows for the ones the selected
+	 * workspace has enabled. The values themselves are global.
+	 */
+	let withSettings = $derived(
+		new Set(
+			extensionUi.extensions
+				.filter((extension) => extension.settings.length > 0)
+				.map(({ id }) => id),
+		),
+	);
 
+	/** Installed and Registry are long lists; one at a time keeps the page short. */
+	let section = $state<'installed' | 'registry'>('installed');
 	let reloading = $state(false);
 	/** In-place reload of every linked extension; no server restart. */
 	async function reload() {
@@ -76,80 +91,77 @@
 		<ResourceNote tone="error">{store.registryError}</ResourceNote>
 	{/if}
 
-	<div data-ui="settings-subhead">
-		<h3>Installed</h3>
-		<span
-			>Gizmo extensions add tools, panels, and project services. Off keeps one
-			installed but out of every thread. Reload picks up edited extension source
-			without restarting the server.</span
+	<div data-ui="segmented" role="tablist" aria-label="Extension lists">
+		<button
+			type="button"
+			data-ui="segmented-option"
+			data-state={section === 'installed' ? 'active' : 'inactive'}
+			role="tab"
+			aria-selected={section === 'installed'}
+			onclick={() => (section = 'installed')}
+			>Installed{#if installed.length}
+				<span data-ui="segmented-count">{installed.length}</span>{/if}</button
 		>
-		<Button
-			variant="secondary"
-			size="sm"
-			disabled={reloading || store.registryBusy}
-			onclick={() => void reload()}
-		>
-			<RefreshCw size={13} />
-			{reloading ? 'Reloading…' : 'Reload extensions'}
-		</Button>
-	</div>
-	<div data-ui="settings-list">
-		{#if loading}
-			<ResourceNote>Loading installed extensions…</ResourceNote>
-		{:else if installed.length === 0}
-			<ResourceNote>
-				No Gizmo extensions are installed. Install one from the registry below.
-			</ResourceNote>
-		{:else}
-			<div data-ui="skill-list">
-				{#each installed as extension (extension.id)}
-					<div data-ui="skill-row">
-						<div data-ui="skill-row-main">
-							<div data-ui="skill-row-title">
-								<strong>{extension.name}</strong>
-								<span data-ui="skill-row-state" data-on={extension.enabled}
-									>{extension.enabled ? 'On' : 'Off'}</span
-								>
-							</div>
-						</div>
-						<div data-ui="skill-row-actions">
-							<Button
-								variant="ghost"
-								size="sm"
-								title="Uninstall"
-								disabled={store.registryBusy}
-								onclick={() => void store.registry.registryUnlink(extension.id)}
-								aria-label={`Uninstall ${extension.name}`}
-							>
-								<Unlink2 size={13} />
-							</Button>
-							<Switch.Root
-								data-ui="switch"
-								checked={extension.enabled}
-								disabled={store.resourcesLoading}
-								aria-label={`${extension.name} enabled globally`}
-								onCheckedChange={(enabled) =>
-									void (extension.pi
-										? store.setGlobalExtension(extension.id, enabled)
-										: store.setGlobalGizmoExtension(extension.id, enabled))}
-							>
-								<Switch.Thumb data-ui="switch-thumb" />
-							</Switch.Root>
-						</div>
-					</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
-
-	<div data-ui="settings-subhead">
-		<h3>Registry</h3>
-		<span
-			>Gizmo's extension repository, cloned to
-			<code>{store.registryStatus?.home ?? '…'}</code>. Install links an
-			extension into Pi; uninstall unlinks it.</span
+		<button
+			type="button"
+			data-ui="segmented-option"
+			data-state={section === 'registry' ? 'active' : 'inactive'}
+			role="tab"
+			aria-selected={section === 'registry'}
+			onclick={() => (section = 'registry')}>Registry</button
 		>
 	</div>
 
-	<ExtensionRegistrySection {store} />
+	{#if section === 'installed'}
+		<div data-ui="settings-subhead">
+			<h3>Installed</h3>
+			<span
+				>Gizmo extensions add tools, panels, and project services. Off keeps one
+				installed but out of every thread. Reload picks up edited extension
+				source without restarting the server.</span
+			>
+			<Button
+				variant="secondary"
+				size="sm"
+				disabled={reloading || store.registryBusy}
+				onclick={() => void reload()}
+			>
+				<RefreshCw size={13} />
+				{reloading ? 'Reloading…' : 'Reload extensions'}
+			</Button>
+		</div>
+		<div data-ui="settings-list">
+			{#if loading}
+				<ResourceNote>Loading installed extensions…</ResourceNote>
+			{:else if installed.length === 0}
+				<ResourceNote>
+					No Gizmo extensions are installed. Install one from the Registry.
+				</ResourceNote>
+			{:else}
+				<InstalledExtensionList {store} {installed} {withSettings} />
+			{/if}
+		</div>
+	{:else}
+		<div data-ui="settings-subhead">
+			<h3>Registry</h3>
+			<span
+				>Gizmo's extension repository, cloned to
+				<code>{store.registryStatus?.home ?? '…'}</code>. Install links an
+				extension into Pi; uninstall unlinks it.</span
+			>
+		</div>
+
+		<ExtensionRegistrySection {store} />
+	{/if}
 </SettingsPage>
+
+<style>
+	[data-ui='segmented'] {
+		justify-self: start;
+	}
+	[data-ui='segmented-count'] {
+		margin-left: 6px;
+		color: var(--color-text-faint);
+		font-weight: 500;
+	}
+</style>

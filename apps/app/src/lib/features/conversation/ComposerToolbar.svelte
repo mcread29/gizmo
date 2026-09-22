@@ -78,11 +78,12 @@
 						{...props}
 						type="button"
 						variant="danger"
-						size="icon"
+						size="sm"
+						data-ui="composer-stop"
 						aria-label="Stop response"
 						onclick={() => store.abort()}
 					>
-						<Square size={14} />
+						<Square size={12} /> Stop
 					</Button>
 				{/snippet}
 			</Tooltip>

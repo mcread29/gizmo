@@ -1,3 +1,4 @@
 @import './message-parts/messages.css';
+@import './message-parts/attachments.css';
 @import './message-parts/streaming.css';
 @import './message-parts/events.css';

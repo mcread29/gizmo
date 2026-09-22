@@ -6,6 +6,11 @@ import type {
 import { extensionUi } from '../../extensions/extension-ui.svelte';
 import type { AgentClient } from '../AgentClient';
 import type { AgentStore } from '../AgentStore.svelte';
+import {
+	addProject,
+	removeProject,
+	setProjectHidden,
+} from './project-catalog-edits';
 import { errorMessage } from './shared';
 
 /** Extensions with a live project process, in enabled order. */
@@ -131,15 +136,6 @@ export class ProjectCapability {
 		return this.client.searchProjects(query, root);
 	}
 
-	async addProject(projectPath: string): Promise<StoredProject> {
-		const project = await this.client.addProject(projectPath);
-		this.store.projects = [
-			project,
-			...this.store.projects.filter(({ path }) => path !== project.path),
-		];
-		return project;
-	}
-
 	async reorderProjects(paths: string[]) {
 		const previous = this.store.projects;
 		// Optimistic: the row lands where it was dropped, then the server confirms.
@@ -157,11 +153,16 @@ export class ProjectCapability {
 		}
 	}
 
-	async removeProject(projectPath: string) {
-		await this.client.removeProject(projectPath);
-		this.store.projects = this.store.projects.filter(
-			({ path }) => path !== projectPath,
-		);
+	addProject(projectPath: string): Promise<StoredProject> {
+		return addProject(this.store, this.client, projectPath);
+	}
+
+	setProjectHidden(projectPath: string, hidden: boolean): Promise<void> {
+		return setProjectHidden(this.store, this.client, projectPath, hidden);
+	}
+
+	removeProject(projectPath: string): Promise<void> {
+		return removeProject(this.store, this.client, projectPath);
 	}
 
 	async selectWorkspace(projectPath: string) {

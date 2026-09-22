@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { copyToClipboard } from '../../clipboard';
 	import type { SessionTree } from '@gizmo/protocol';
-	import { ArrowLeft } from '@lucide/svelte';
+	import { ArrowLeft, Search } from '@lucide/svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel, SelectField } from '../../components';
 	import { toasts } from '../../toasts.svelte';
@@ -149,7 +149,7 @@
 			</div>
 			<div data-ui="tree-controls">
 				<label data-ui="tree-search">
-					<span>Search</span>
+					<Search size={14} aria-hidden="true" />
 					<input
 						type="search"
 						bind:value={search}

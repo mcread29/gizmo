@@ -4,11 +4,10 @@
 		createVirtualizer,
 		observeElementRect,
 	} from '@tanstack/svelte-virtual';
-	import { ArrowDown } from '@lucide/svelte';
 	import { onDestroy, tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import type { AgentStore } from '../../agent-client';
-	import { Button, ScrollPanel } from '../../components';
+	import { ScrollPanel } from '../../components';
 	import type { PiExtensionUiStore } from '../extension-ui/PiExtensionUiStore.svelte';
 	import {
 		bottomTolerance,
@@ -16,13 +15,16 @@
 		observeFollow,
 		scrollIntoEnd,
 	} from './follow';
-	import { dayKey, formatDay } from './message-groups';
+	import { dayKey, formatDay, turnToolCount } from './message-groups';
 	import { createMessageRows, estimateRowHeight } from './message-rows';
+	import JumpToLatest from './JumpToLatest.svelte';
 	import MessageGroupView from './MessageGroup.svelte';
 	import { createRowMeasurer } from './row-measure';
 	import { streamingActivity } from './streaming';
 	import ThreadEvent from './ThreadEvent.svelte';
+	import UnreadMarker from './UnreadMarker.svelte';
 	import { createTranscriptSettle } from './transcript-settle';
+	import { countUnread, firstUnread, rowIndexOf } from './unread';
 
 	interface Props {
 		store: AgentStore;
@@ -113,14 +115,16 @@
 	// once the user scrolls up. Streaming appends to the same id, so a growing
 	// reply does not count as new.
 	let seenMessageId = $state<string>();
-	let unreadCount = $derived.by(() => {
-		if (followOutput || !seenMessageId) return 0;
-		const index = store.messages.findIndex(({ id }) => id === seenMessageId);
-		return index < 0 ? 0 : store.messages.length - 1 - index;
-	});
+	let unreadCount = $derived(
+		followOutput ? 0 : countUnread(store.messages, seenMessageId),
+	);
 	$effect(() => {
 		if (followOutput) seenMessageId = lastMessageId;
 	});
+	/** The first message after the last one read, where the "New" rule sits. */
+	let firstUnreadId = $derived(
+		unreadCount ? firstUnread(store.messages, seenMessageId)?.id : undefined,
+	);
 
 	/** While following, every change in size re-pins the end. */
 	function pinIfFollowing() {
@@ -197,12 +201,8 @@
 	}
 
 	function jumpToUnread() {
-		const seen = store.messages.findIndex(({ id }) => id === seenMessageId);
-		const first = store.messages[seen + 1];
-		if (!first) return jumpToLatest();
-		const index = rows.findIndex((row) =>
-			row.messages.some(({ id }) => id === first.id),
-		);
+		const first = firstUnread(store.messages, seenMessageId);
+		const index = first ? rowIndexOf(rows, first.id) : -1;
 		if (index < 0) return jumpToLatest();
 		$virtualizer.scrollToIndex(index, { align: 'start', behavior: 'smooth' });
 	}
@@ -253,9 +253,15 @@
 								<span>{formatDay(row.createdAt)}</span>
 							</div>
 						{/if}
+						{#if firstUnreadId && rowIndexOf([row], firstUnreadId) === 0}
+							<UnreadMarker />
+						{/if}
 						{#if row.kind === 'message' || row.kind === 'tool'}
 							<MessageGroupView
 								group={row}
+								toolCount={row.groupedAfter
+									? 0
+									: turnToolCount(store.messages, row.sourceMessageId)}
 								groupedBefore={row.groupedBefore}
 								groupedAfter={row.groupedAfter}
 								{agentName}
@@ -281,20 +287,10 @@
 	</div>
 </ScrollPanel>
 
-<!-- Only offered once the user has actually scrolled away from the newest text. -->
-{#if !followOutput && store.messages.length > 0}
-	<div data-ui="jump-to-latest">
-		{#if unreadCount > 0}
-			<Button variant="primary" size="sm" onclick={jumpToUnread}
-				><ArrowDown size={13} />
-				{unreadCount === 1
-					? '1 new message'
-					: `${unreadCount} new messages`}</Button
-			>
-		{:else}
-			<Button variant="secondary" size="sm" onclick={jumpToLatest}
-				><ArrowDown size={13} /> Jump to latest</Button
-			>
-		{/if}
-	</div>
-{/if}
+<JumpToLatest
+	visible={!followOutput && store.messages.length > 0}
+	{unreadCount}
+	streaming={activity.streaming}
+	onLatest={jumpToLatest}
+	onUnread={jumpToUnread}
+/>

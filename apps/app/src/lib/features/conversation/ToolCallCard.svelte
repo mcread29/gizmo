@@ -22,6 +22,7 @@
 	} from '@gizmo/design/format';
 	import { toolIcon, toolLabel } from './tool-labels';
 	import { toolSummary } from './tool-summary';
+	import { toolDiff } from './tool-diff';
 
 	interface Props {
 		tool: ToolCallView;
@@ -64,6 +65,12 @@
 			: toolSummary(tool.input),
 	);
 	let errors = $derived(readArray(tool.result, 'errors'));
+	/** What an edit changed, said on the line so eight edits can be told apart. */
+	let stat = $derived.by(() => {
+		if (tool.status !== 'complete') return undefined;
+		const diff = toolDiff(tool);
+		return diff && diff.added + diff.removed > 0 ? diff : undefined;
+	});
 	/** The failure, carried on the card's one line so a crashed run does not
 	 * look calmer than it is; the full output stays one click away. */
 	let errorExcerpt = $derived.by(() => {
@@ -162,6 +169,11 @@
 			data-tone={errorExcerpt && !open ? 'danger' : undefined}
 			title={subtitle}>{subtitle}</small
 		>
+		{#if stat}
+			<span data-ui="tool-diff-stat" title="Lines added and removed">
+				<ins>+{stat.added}</ins><del>−{stat.removed}</del>
+			</span>
+		{/if}
 		{#if tool.status === 'running'}
 			<CircleDashed data-ui="spinner" size={15} />
 		{:else if tool.status === 'complete'}

@@ -52,12 +52,52 @@ field but `id` and `name` is optional:
   its service), `packageRoot` for shipped skills and prompts, `dispose`.
 - **UI** — `views`, `statusItems(context)`, `commands(context)` with
   `runCommand`, `settings` (a list of typed fields the host renders as a
-  form and stores on the client), and `toolPresentation` (`labels`, `icons`,
-  and `parameters` for tool cards). `activate(host)` hands the extension
-  `host.uiChanged()` so it can ask clients to re-read its status items and
-  commands when its own state changes.
+  form and stores on the server; see below), and `toolPresentation`
+  (`labels`, `icons`, and `parameters` for tool cards). `activate(host)`
+  hands the extension `host.uiChanged()` so it can ask clients to re-read its
+  status items and commands when its own state changes.
 - **Confirmations** — `context.confirm(kind, { title, message })` asks the
   user through the host's dialog; the answer is a boolean.
+
+### Settings
+
+`settings` declares typed fields — `text`, `number` (with `min`/`max`),
+`boolean`, `select` (with `options`), and `model` (with `thinking?: true` for
+a thinking-level picker beside it) — and the host renders the form under
+Settings → Extensions and in a workspace's Configure → Extensions tab. The
+values are **global**, not per-workspace, and live on the server in
+`extension-settings.json` in the Pi agent directory Gizmo runs against
+(`PI_CODING_AGENT_DIR`, else Gizmo's data directory, beside Pi's own
+`settings.json`), shaped
+`{ "version": 1, "extensions": { "<id>": { "<key>": value } } }`. A write is
+checked against the declared field, so an unknown key or a value of the wrong
+kind is refused; the file is written atomically and a corrupt one reads as
+empty.
+
+Every context the host builds carries them as
+`settings: Readonly<Record<string, unknown>>`: `ViewContext` (views),
+`UiContext` (`statusItems`, `commands`, `runCommand`), and `ExtensionContext`
+(`createTools`). Views and UI contributions see a change immediately — the
+server broadcasts `extension.settings.changed`, refreshes status items and
+commands, and reopens live views — while tools read the values captured when
+the session started, so a change reaches them on the next thread or after
+Reload runtime.
+
+A `model` field stores `{ provider, id, thinkingLevel? }`; read it with
+`readModelSetting(context.settings.myModel)` from `@gizmo/extension-api`,
+which returns `ModelSetting | undefined`. The picker's options come from the
+session-independent `models.catalog` request.
+
+### Completing text
+
+`ViewContext` and `UiContext` also carry an optional
+`complete({ model?, systemPrompt?, prompt, maxTokens? }): Promise<string>`,
+so a view can draft text with a host model without owning a thread. Pass the
+`ModelSetting` a `model` field holds; with none, the host's default model
+answers. `thinkingLevel` on the setting becomes the request's reasoning
+level. The first-party Git extension uses this: its `commitMessageModel`
+setting also writes `git.commit-message`, so commit messages can run on a
+cheaper model than the thread.
 
 A **view** is `{ title, status?, badge?, blocks, actions? }` built from
 blocks: `heading`, `text`, `markdown`, `keyValue`, `metric`, `list`,
@@ -120,9 +160,10 @@ discovered from the workspace directory itself — rescanned at startup and on
 reload alongside the globals. A project extension never shadows a global id
 (a clash is logged and the local one dropped).
 
-Enablement uses Gizmo's own enabled/disabled directories. Workspace
-`piExtensions` overrides can disable an enabled extension for that workspace;
-legacy `gizmoExtensions` overrides migrate on the next edit and legacy global
+Enablement uses Gizmo's own enabled/disabled directories. A workspace
+`piExtensions` override is the last word in either direction: it can turn a
+globally enabled extension off for that workspace, or turn a globally
+disabled one on (a Unity project in a house that keeps Unity off). Legacy `gizmoExtensions` overrides migrate on the next edit and legacy global
 opt-outs migrate at server startup. On the first boot after the move from
 `~/.pi/agent`, registry links are re-created in the new directories and
 hand-written globals imported as copies; `~/.pi` is left to the Pi CLI.
@@ -161,7 +202,11 @@ delivers a clicked action and returns `{ status, message? }`;
 connection that has it open and disposed when the last one closes, or when
 the socket drops. `extension.command.run` runs a command; a command or status
 item may instead name a view to open. `extensions.ui.changed` tells clients to
-re-read one extension's descriptors.
+re-read one extension's descriptors. The descriptor carries `settingsValues`
+alongside `settings`, so a client renders the form without another round
+trip; `extension.settings.get` and `extension.settings.set` read and merge
+those values (a `null` clears a key) and `extension.settings.changed` is
+broadcast to every client.
 
 ## Reloading without a restart
 

@@ -110,8 +110,44 @@ export const settingsFieldSchema = Type.Union([
 		},
 		strict,
 	),
+	/**
+	 * A model picked from the host's own catalog. The stored value is a
+	 * `ModelSetting`; set `thinking` to also offer a thinking level.
+	 */
+	Type.Object(
+		{
+			kind: Type.Literal('model'),
+			key: identifier,
+			label,
+			description: Type.Optional(Type.String({ maxLength: 1_000 })),
+			thinking: Type.Optional(Type.Boolean()),
+		},
+		strict,
+	),
 ]);
 export type SettingsField = Static<typeof settingsFieldSchema>;
+
+/** The value a `model` settings field stores. */
+export interface ModelSetting {
+	provider: string;
+	id: string;
+	thinkingLevel?: string;
+}
+
+/** Reads a stored `model` settings value, or undefined when it is unset. */
+export function readModelSetting(value: unknown): ModelSetting | undefined {
+	if (typeof value !== 'object' || value === null) return undefined;
+	const { provider, id, thinkingLevel } = value as Record<string, unknown>;
+	if (typeof provider !== 'string' || !provider) return undefined;
+	if (typeof id !== 'string' || !id) return undefined;
+	return {
+		provider,
+		id,
+		...(typeof thinkingLevel === 'string' && thinkingLevel
+			? { thinkingLevel }
+			: {}),
+	};
+}
 
 /** How the host labels and trims an extension's tools in the thread. */
 export const toolPresentationSchema = Type.Object(
@@ -140,6 +176,8 @@ export const extensionUiSchema = Type.Object(
 		statusItems: Type.Array(statusItemSchema, { maxItems: 20 }),
 		commands: Type.Array(commandSchema, { maxItems: 100 }),
 		settings: Type.Array(settingsFieldSchema, { maxItems: 100 }),
+		/** The values currently stored on the server for those fields. */
+		settingsValues: Type.Record(Type.String(), Type.Unknown()),
 		toolPresentation: toolPresentationSchema,
 		/** Whether `project.status`/`project.watch` are worth calling. */
 		hasProjectService: Type.Boolean(),
@@ -148,6 +186,18 @@ export const extensionUiSchema = Type.Object(
 );
 export type ExtensionUi = Static<typeof extensionUiSchema>;
 
+/**
+ * One text completion from the host, with no thread involved. `model` is
+ * normally a `model` setting's value; the host's default model is used when
+ * it is absent.
+ */
+export interface HostCompletionRequest {
+	model?: ModelSetting;
+	systemPrompt?: string;
+	prompt: string;
+	maxTokens?: number;
+}
+
 /** What a view is opened with. */
 export interface ViewContext {
 	workspacePath: string;
@@ -155,8 +205,10 @@ export interface ViewContext {
 	sessionId?: string;
 	/** Replaces what every subscribed client shows. Safe to call often. */
 	update(view: View): void;
-	/** Values the user set in this extension's settings form (client-local). */
+	/** The extension's stored settings, as the server holds them. */
 	settings: Readonly<Record<string, unknown>>;
+	/** Drafts text with a host model. Absent on hosts that offer none. */
+	complete?(request: HostCompletionRequest): Promise<string>;
 }
 
 export interface ViewHandle {
@@ -183,6 +235,10 @@ export interface ViewDefinition {
 export interface UiContext {
 	workspacePath: string;
 	sessionId?: string;
+	/** The extension's stored settings, as the server holds them. */
+	settings: Readonly<Record<string, unknown>>;
+	/** Drafts text with a host model. Absent on hosts that offer none. */
+	complete?(request: HostCompletionRequest): Promise<string>;
 }
 
 /** What the host hands an extension when it is registered. */

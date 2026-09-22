@@ -20,20 +20,6 @@
 				}
 			: { title: 'Confirm', message: 'The extension is asking to continue.' },
 	);
-	// Preserve the saved Unity compile policy while older confirmations use
-	// the shared stop-play-mode kind.
-	let compilePolicy = $derived(
-		confirmation?.kind === 'stop_play_mode_for_compile'
-			? layout.extensionSettings.unity?.compilePlayModePolicy
-			: undefined,
-	);
-	let automatic = $derived(
-		compilePolicy === 'stop' || compilePolicy === 'keep_playing',
-	);
-	$effect(() => {
-		if (confirmation && automatic)
-			void store.resolveConfirmation(confirmation, compilePolicy === 'stop');
-	});
 </script>
 
 {#each extensionUi.modalViews() as modal (`${modal.extensionId}.${modal.value.id}`)}
@@ -56,13 +42,12 @@
 				extensionId={modal.extensionId}
 				viewId={modal.value.id}
 				sessionId={modal.value.scope === 'thread' ? store.sessionId : undefined}
-				settings={layout.extensionSettings[modal.extensionId]}
 			/>
 		</Dialog>
 	{/if}
 {/each}
 
-{#if confirmation && !automatic}
+{#if confirmation}
 	{@const current = confirmation}
 	<ConfirmDialog
 		bind:open={() => true, () => {}}

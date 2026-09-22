@@ -12,6 +12,7 @@ export function extensionUiFixture(
 		statusItems: [],
 		commands: [],
 		settings: [],
+		settingsValues: {},
 		toolPresentation: {},
 		hasProjectService: false,
 		...overrides,

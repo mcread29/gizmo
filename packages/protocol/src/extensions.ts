@@ -1,4 +1,5 @@
 import { Type, type Static } from 'typebox';
+import { protocolVersion } from './core';
 
 export const extensionOperationSchema = Type.Object(
 	{
@@ -54,6 +55,22 @@ export const extensionReloadResultSchema = Type.Object(
 );
 
 export type ExtensionReloadResult = Static<typeof extensionReloadResultSchema>;
+
+/**
+ * An extension's stored settings changed; every client re-renders its form
+ * and the extension's UI contributions are re-fetched.
+ */
+export const extensionSettingsChangedEventSchema = Type.Object(
+	{
+		protocolVersion: Type.Literal(protocolVersion),
+		eventId: Type.Integer({ minimum: 1 }),
+		sessionId: Type.String({ minLength: 1 }),
+		type: Type.Literal('extension.settings.changed'),
+		extensionId: Type.String({ minLength: 1, maxLength: 128 }),
+		values: Type.Record(Type.String(), Type.Unknown()),
+	},
+	{ additionalProperties: false },
+);
 
 export const extensionUiRequestSchema = Type.Union([
 	Type.Object(

@@ -32,8 +32,15 @@ describe('project and resource protocol validation', () => {
 					integrations: [{ id: 'unity', root: '.' }],
 					addedAt: 1,
 				},
+				{
+					title: 'Hidden',
+					path: '/projects/hidden',
+					integrations: [],
+					hidden: true,
+					addedAt: 2,
+				},
 			]),
-		).toHaveLength(1);
+		).toHaveLength(2);
 		expect(
 			parseAgentRequest({
 				protocolVersion,

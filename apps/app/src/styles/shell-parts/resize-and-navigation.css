@@ -135,18 +135,36 @@ body[data-resizing='sidebar'] {
 	gap: var(--space-3);
 }
 
+/* The same field as the sidebar's thread search: icon, borderless input. */
 [data-ui='tree-search'] {
-	display: grid;
+	display: flex;
 	flex: 1;
-	gap: 4px;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
 	max-width: 520px;
-	color: var(--color-text-muted);
-	font-size: var(--text-2xs);
-	font-weight: var(--weight-semibold);
+	padding: 0 var(--space-2);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text-faint);
 }
 
 [data-ui='tree-search'] input {
 	width: 100%;
+	height: var(--control-height-sm);
+	padding: 0;
+	border: 0;
+	outline: none;
+	background: transparent;
+	color: var(--color-text);
+	font: inherit;
+	font-size: var(--text-sm);
+}
+
+[data-ui='tree-search']:focus-within {
+	border-color: var(--color-accent);
+	box-shadow: var(--focus-ring);
 }
 
 [data-ui='tree-body'] {

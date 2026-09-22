@@ -1,6 +1,11 @@
 <script lang="ts">
 	import type { AgentSessionSummary } from '@gizmo/protocol';
-	import { FolderOpen, GitBranch, MoreHorizontal, Plus } from '@lucide/svelte';
+	import {
+		ChevronRight,
+		GitBranch,
+		MoreHorizontal,
+		Plus,
+	} from '@lucide/svelte';
 	import { tick } from 'svelte';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, Menu } from '../../components';
@@ -10,6 +15,7 @@
 	import type { DraftStore } from './drafts.svelte';
 	import ConversationError from './ConversationError.svelte';
 	import MessageList from './MessageList.svelte';
+	import ThreadEmpty from './ThreadEmpty.svelte';
 	import TranscriptSearch from './TranscriptSearch.svelte';
 	import PiExtensionWidgets from '../extension-ui/PiExtensionWidgets.svelte';
 	import PiExtensionQuestion from '../extension-ui/PiExtensionQuestion.svelte';
@@ -122,43 +128,36 @@
 	tabindex="-1"
 >
 	<!--
-		The same two rows as the workspace screen: the workspace identifies the
-		column, and the row beneath says which of its surfaces is open. There
-		the row holds Overview/Configure; here the open thread takes their
-		place, so switching between the two does not move the shelf line.
+		One row: the workspace as a breadcrumb, then the open thread. The path
+		is a tooltip; on the desktop the sidebar already shows where you are.
 	-->
 	<div data-ui="conversation-header">
-		<div>
-			<h1>{workspaceLabel ?? 'Workspace'}</h1>
-			{#if store.selectedProjectPath}
-				<p data-ui="workspace-path" title={store.selectedProjectPath}>
-					<FolderOpen size={13} />
-					<span>{store.selectedProjectPath}</span>
-				</p>
-			{/if}
-		</div>
-		{#if layout.phone}
-			<Button
-				size="icon"
-				variant="secondary"
-				aria-label="New thread"
-				disabled={store.connection !== 'connected'}
-				onclick={onNewThread}><Plus size={16} /></Button
+		<nav data-ui="thread-crumbs" aria-label="Thread">
+			<span data-ui="thread-crumb-workspace" title={store.selectedProjectPath}
+				>{workspaceLabel ?? 'Workspace'}</span
 			>
-		{:else}
-			<Button
-				size="sm"
-				disabled={store.connection !== 'connected'}
-				onclick={onNewThread}><Plus size={14} /> New thread</Button
-			>
-		{/if}
-	</div>
-
-	<div data-ui="conversation-shelf">
-		<strong title={threadTitle(currentSession?.title ?? 'New thread')}
-			>{threadTitle(currentSession?.title ?? 'New thread')}</strong
-		>
+			<ChevronRight size={14} aria-hidden="true" />
+			<h1 title={threadTitle(currentSession?.title ?? 'New thread')}>
+				{threadTitle(currentSession?.title ?? 'New thread')}
+			</h1>
+		</nav>
 		<div data-ui="conversation-header-actions">
+			{#if layout.phone}
+				<Button
+					size="icon"
+					variant="ghost"
+					aria-label="New thread"
+					disabled={store.connection !== 'connected'}
+					onclick={onNewThread}><Plus size={16} /></Button
+				>
+			{:else}
+				<Button
+					size="sm"
+					variant="ghost"
+					disabled={store.connection !== 'connected'}
+					onclick={onNewThread}><Plus size={14} /> New thread</Button
+				>
+			{/if}
 			<Button
 				data-ui="tree-trigger"
 				variant="ghost"
@@ -230,14 +229,14 @@
 			{/each}
 		</div>
 	{:else if empty}
-		<div data-ui="thread-empty">
-			<strong>New thread</strong>
-			{#if workspaceLabel}
-				<span>Ask about {workspaceLabel} to start.</span>
-			{:else}
-				<span>Ask about your workspace to start.</span>
-			{/if}
-		</div>
+		<ThreadEmpty
+			{store}
+			{workspaceLabel}
+			onCommand={(name) => {
+				drafts.set(store.sessionId, `/${name} `);
+				void tick().then(() => focusComposer?.());
+			}}
+		/>
 	{:else}
 		<MessageList
 			{store}

@@ -76,11 +76,12 @@ export class ProjectCatalog {
 			const projects = await this.#catalog.read();
 			// Reading config migrates legacy profiles before registration.
 			await this.configFor(path);
+			const existing = projects.find((item) => item.path === path);
 			const project: CatalogProject = {
 				title: basename(path),
 				path,
-				addedAt:
-					projects.find((item) => item.path === path)?.addedAt ?? Date.now(),
+				...(existing?.hidden ? { hidden: true } : {}),
+				addedAt: existing?.addedAt ?? Date.now(),
 			};
 			await this.#catalog.write([
 				project,
@@ -96,6 +97,27 @@ export class ProjectCatalog {
 			await this.#catalog.write(
 				(await this.#catalog.read()).filter((project) => project.path !== path),
 			);
+		});
+	}
+
+	/**
+	 * Hides or shows one workspace. Nothing is deleted: the catalog row, its
+	 * threads and its config all survive, the sidebar just stops listing it.
+	 */
+	async setHidden(path: string, hidden: boolean): Promise<StoredProject> {
+		const wanted = resolve(path);
+		return this.#catalogMutex.run(async () => {
+			const projects = await this.#catalog.read();
+			const project = projects.find((item) => item.path === wanted);
+			if (!project) {
+				throw new Error(`Workspace is not registered with Gizmo: ${wanted}`);
+			}
+			const next: CatalogProject = { ...project, hidden };
+			if (!hidden) delete next.hidden;
+			await this.#catalog.write(
+				projects.map((item) => (item === project ? next : item)),
+			);
+			return this.#storedProject(next);
 		});
 	}
 
@@ -269,6 +291,7 @@ export class ProjectCatalog {
 			path: project.path,
 			integrations,
 			...(config.skills?.length ? { skills: config.skills } : {}),
+			...(project.hidden ? { hidden: true } : {}),
 			addedAt: project.addedAt,
 		};
 	}

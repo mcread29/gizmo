@@ -53,6 +53,7 @@ const catalog: ExtensionUi[] = [
 				label: 'Refresh assets on save',
 			},
 		],
+		settingsValues: {},
 		toolPresentation: {
 			labels: { unity_console: 'Unity console' },
 			icons: { unity_console: 'plug-zap' },
@@ -72,7 +73,16 @@ const catalog: ExtensionUi[] = [
 		],
 		statusItems: [],
 		commands: [],
-		settings: [],
+		settings: [
+			{
+				kind: 'model',
+				key: 'commitMessageModel',
+				label: 'Commit message model',
+				description: 'Writes commit messages instead of the thread model.',
+				thinking: true,
+			},
+		],
+		settingsValues: {},
 		toolPresentation: {},
 		hasProjectService: false,
 	},
@@ -85,8 +95,29 @@ const catalog: ExtensionUi[] = [
 		statusItems: [],
 		commands: [],
 		settings: [],
+		settingsValues: {},
 		toolPresentation: {},
 		hasProjectService: false,
+	},
+];
+
+/** The demo server's store: one in-memory map for every extension. */
+const storedSettings = new Map<string, Record<string, unknown>>();
+
+const fakeModels = [
+	{
+		provider: 'anthropic',
+		id: 'claude-opus-4',
+		name: 'Claude Opus 4',
+		reasoning: true,
+		contextWindow: 200_000,
+	},
+	{
+		provider: 'openai',
+		id: 'gpt-5',
+		name: 'GPT-5',
+		reasoning: true,
+		contextWindow: 400_000,
 	},
 ];
 
@@ -172,7 +203,40 @@ export class FakeExtensionUiCapability {
 
 	async list(projectPath: string): Promise<ExtensionUi[]> {
 		this.state.assertProject(projectPath);
-		return catalog.map((entry) => structuredClone(entry));
+		return catalog.map((entry) => ({
+			...structuredClone(entry),
+			settingsValues: { ...(storedSettings.get(entry.id) ?? {}) },
+		}));
+	}
+
+	async settings(extensionId: string): Promise<Record<string, unknown>> {
+		return { ...(storedSettings.get(extensionId) ?? {}) };
+	}
+
+	async setSettings(
+		extensionId: string,
+		values: Record<string, unknown>,
+	): Promise<Record<string, unknown>> {
+		const next = { ...(storedSettings.get(extensionId) ?? {}) };
+		for (const [key, value] of Object.entries(values)) {
+			if (value === null || value === undefined) delete next[key];
+			else next[key] = value;
+		}
+		storedSettings.set(extensionId, next);
+		this.state.emit({
+			type: 'extension.settings.changed',
+			sessionId: 'fake-session',
+			extensionId,
+			values: { ...next },
+		});
+		return { ...next };
+	}
+
+	async modelCatalog() {
+		return {
+			models: fakeModels,
+			thinkingLevels: ['off', 'low', 'medium', 'high'],
+		};
 	}
 
 	async open(address: ExtensionViewAddress): Promise<View | undefined> {

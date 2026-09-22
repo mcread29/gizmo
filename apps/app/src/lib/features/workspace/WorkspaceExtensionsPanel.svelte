@@ -56,4 +56,11 @@
 	onReapply={(work) => void configuration.reapply(work)}
 />
 
-<ExtensionSettings {layout} enabledExtensionIds={store.enabledExtensionIds} />
+<section data-ui="settings-subhead">
+	<h3>Extension settings</h3>
+	<span>These settings are global: every workspace and client shares them.</span
+	>
+</section>
+{#each store.enabledExtensionIds as extensionId (extensionId)}
+	<ExtensionSettings {store} {extensionId} />
+{/each}

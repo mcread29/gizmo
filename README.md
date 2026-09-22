@@ -114,6 +114,11 @@ confirmation. See [`docs/chat-display.md`](docs/chat-display.md).
 
 ## Development
 
+Work happens on local scratch branches and reaches `main` as squash commits,
+one per release; there are no remote feature branches or pull requests. The
+details, and the other conventions an agent or contributor is expected to
+follow, are in [AGENTS.md](AGENTS.md).
+
 Install dependencies and start both the Svelte app and local Pi agent server:
 
 ```sh

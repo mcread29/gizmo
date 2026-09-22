@@ -6,6 +6,7 @@ import type {
 	GizmoServerExtension,
 } from '@gizmo/extension-api';
 import { isPathWithin } from '../path-utils';
+import { extensionSettings } from './extension-settings-store';
 
 let extensions: readonly GizmoServerExtension[] = [];
 
@@ -48,7 +49,7 @@ export function installedGizmoExtensions() {
 }
 
 export async function activateExtensions(
-	context: ExtensionContext,
+	context: Omit<ExtensionContext, 'settings'>,
 	integrations: readonly WorkspaceIntegration[] = [],
 ): Promise<ActiveExtensions> {
 	if (!integrations.length) return { extensions: [], tools: [] };
@@ -67,6 +68,7 @@ export async function activateExtensions(
 		return { extension, integrationPath };
 	});
 
+	const stored = await extensionSettings.read();
 	return {
 		extensions: active.map(({ extension }) => extension),
 		systemPrompt: [
@@ -84,6 +86,7 @@ export async function activateExtensions(
 				extension.createTools?.({
 					...context,
 					workspacePath: integrationPath,
+					settings: stored.extensions[extension.id] ?? {},
 				}) ?? [],
 		),
 	};

@@ -108,7 +108,10 @@ export class ExtensionUiStore {
 		if (typeof event !== 'object' || event === null || !('type' in event))
 			return;
 		const message = event as { type: string; projectPath?: string };
-		if (message.type === 'extensions.reloaded') {
+		if (
+			message.type === 'extensions.reloaded' ||
+			message.type === 'extension.settings.changed'
+		) {
 			void this.refresh();
 			return;
 		}

@@ -20,6 +20,8 @@
 		projectPath?: string;
 		/** Present only on the block the agent is currently writing. */
 		activity?: StreamingActivity;
+		/** Tool calls in the whole turn; defaults to this group's own. */
+		toolCount?: number;
 		/** Whether reasoning blocks start expanded. */
 		expandReasoning?: boolean;
 		/** Changes when the thread asks every tool call to collapse. */
@@ -37,6 +39,10 @@
 		agentName,
 		projectPath,
 		activity,
+		toolCount = group.messages.reduce(
+			(count, message) => count + message.tools.length,
+			0,
+		),
 		expandReasoning,
 		collapseToken,
 		matched,
@@ -168,7 +174,10 @@
 			<!-- The reply's own footer: how long it took, and a copy control that
 			     stays reachable at the end of a long answer. -->
 			<div data-ui="message-footer">
-				<span>Worked for {formatElapsed(worked)}</span>
+				<span
+					>Worked for {formatElapsed(worked)}{#if toolCount}
+						· {toolCount} tool {toolCount === 1 ? 'call' : 'calls'}{/if}</span
+				>
 				<Button
 					variant="ghost"
 					size="icon"

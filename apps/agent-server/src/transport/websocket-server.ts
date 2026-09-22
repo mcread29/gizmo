@@ -99,6 +99,17 @@ export async function createAgentWebSocketServer(
 				...(sessionId ? { viewSessionId: sessionId } : {}),
 				view,
 			}),
+		settingsChanged: (extensionId, values) =>
+			agent.events.emit('server', {
+				type: 'extension.settings.changed',
+				extensionId,
+				values,
+			}),
+		uiChanged: (extensionId) =>
+			agent.events.emit('server', {
+				type: 'extensions.ui.changed',
+				extensionId,
+			}),
 	};
 	const ui =
 		options.createExtensionUi?.(uiEmit) ?? new ExtensionUiService([], uiEmit);

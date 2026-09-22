@@ -4,6 +4,7 @@ import { appUpdateChangedEventSchema } from './app-update';
 import { eventEnvelope } from './envelopes';
 import {
 	extensionDescriptorSchema,
+	extensionSettingsChangedEventSchema,
 	extensionUiRequestSchema,
 } from './extensions';
 import {
@@ -183,6 +184,7 @@ export const agentEventSchema = Type.Union([
 		},
 		{ additionalProperties: false },
 	),
+	extensionSettingsChangedEventSchema,
 	/**
 	 * The server reloaded its extension catalog (an explicit reload, a
 	 * registry change, or the dev file watcher). Broadcast to every

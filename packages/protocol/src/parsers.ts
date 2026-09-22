@@ -57,6 +57,7 @@ import {
 	type ProviderStatus,
 } from './providers';
 import { appUpdateStatusSchema, type AppUpdateStatus } from './app-update';
+import { globalModelCatalogSchema, type GlobalModelCatalog } from './models';
 import { registryStatusSchema, type RegistryStatus } from './registry';
 import { agentRequestSchema, type AgentRequest } from './requests';
 import { resourceCatalogSchema, type ResourceCatalog } from './resources';
@@ -149,6 +150,16 @@ export const parseViewResult = parser<{ view?: View }>(
 		{ view: Type.Optional(viewSchema) },
 		{ additionalProperties: false },
 	),
+);
+export const extensionSettingsValuesSchema = Type.Object(
+	{ values: Type.Record(Type.String(), Type.Unknown()) },
+	{ additionalProperties: false },
+);
+export const parseExtensionSettingsValues = parser<{
+	values: Record<string, unknown>;
+}>(extensionSettingsValuesSchema);
+export const parseGlobalModelCatalog = parser<GlobalModelCatalog>(
+	globalModelCatalogSchema,
 );
 export const parseActionResult = parser<ActionResult>(actionResultSchema);
 export const parseExtensionReloadResult = parser<ExtensionReloadResult>(

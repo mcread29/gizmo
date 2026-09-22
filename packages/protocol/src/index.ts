@@ -7,6 +7,7 @@ export * from './extensions';
 export * from './git';
 export * from './heartbeat';
 export * from './memory';
+export * from './models';
 export * from './parsers';
 export * from './projects';
 export * from './providers';

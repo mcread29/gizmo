@@ -1,21 +1,17 @@
 <script lang="ts">
-	import {
-		ChevronRight,
-		FolderPlus,
-		FolderOpen,
-		Plus,
-		Search,
-		Settings2,
-	} from '@lucide/svelte';
+	import { ChevronRight, FolderPlus, FolderOpen, Search } from '@lucide/svelte';
 	import type { StoredProject } from '@gizmo/protocol';
 	import type { AgentStore } from '../../agent-client';
 	import { Button, ScrollPanel, Tooltip } from '../../components';
 	import ComponentGallery from '../dev/ComponentGallery.svelte';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
 	import ConnectionStatus from './ConnectionStatus.svelte';
+	import HiddenWorkspaces from './HiddenWorkspaces.svelte';
 	import SessionRow from './SessionRow.svelte';
-	import { matchesQuery } from './session-groups';
+	import { matchesQuery, partitionProjects } from './session-groups';
 	import { WorkspaceReorder } from './sidebar-reorder.svelte';
+	import { threadActivity } from './thread-activity';
+	import WorkspaceRowActions from './WorkspaceRowActions.svelte';
 
 	interface Props {
 		store: AgentStore;
@@ -57,9 +53,18 @@
 		);
 	}
 
+	let waitingIds = $derived(
+		new Set(store.pendingConfirmations.map(({ sessionId }) => sessionId)),
+	);
+	/** Hidden workspaces keep all their data; they just leave the list. */
+	let listed = $derived(partitionProjects(store.projects));
+
 	let matches = $derived(
-		store.sessions.filter((session) =>
-			matchesQuery(session, query, workspaceName),
+		store.sessions.filter(
+			(session) =>
+				!listed.hiddenPaths.has(
+					session.workspacePath ?? session.projectPath ?? '',
+				) && matchesQuery(session, query, workspaceName),
 		),
 	);
 
@@ -170,7 +175,7 @@
 				</div>
 			{/if}
 
-			{#each store.projects as project (project.path)}
+			{#each listed.visible as project (project.path)}
 				{@const threads = threadsByPath.get(project.path) ?? []}
 				{@const open = isOpen(project)}
 				<div
@@ -229,34 +234,23 @@
 								<small>{threads.length} threads</small>
 							{/if}
 						</span>
+						{#if !open}
+							{@const busy = threadActivity(store, waitingIds, threads)}
+							{#if busy.waiting}
+								<span data-ui="workspace-activity" data-tone="warning"
+									>{busy.waiting}</span
+								>
+							{:else if busy.running}
+								<span data-ui="workspace-activity">{busy.running}</span>
+							{/if}
+						{/if}
 					</button>
-					<div data-ui="workspace-row-actions">
-						<Tooltip text={`New thread in ${project.title}`}>
-							{#snippet children(props)}
-								<Button
-									{...props}
-									variant="ghost"
-									size="icon"
-									aria-label={`New thread in ${project.title}`}
-									disabled={store.connection !== 'connected'}
-									onclick={() => onNewThread(project.path)}
-									><Plus size={15} /></Button
-								>
-							{/snippet}
-						</Tooltip>
-						<Tooltip text={`${project.title} settings`}>
-							{#snippet children(props)}
-								<Button
-									{...props}
-									variant="ghost"
-									size="icon"
-									aria-label={`${project.title} settings`}
-									onclick={() => onOpenWorkspaceSettings(project.path)}
-									><Settings2 size={15} /></Button
-								>
-							{/snippet}
-						</Tooltip>
-					</div>
+					<WorkspaceRowActions
+						{project}
+						connected={store.connection === 'connected'}
+						{onNewThread}
+						onOpenSettings={onOpenWorkspaceSettings}
+					/>
 				</div>
 
 				{#if open && threads.length > 0}
@@ -266,12 +260,24 @@
 								{session}
 								active={!workspaceSelected && session.id === store.sessionId}
 								running={store.isSessionStreaming(session.id)}
+								waiting={waitingIds.has(session.id)}
+								failed={store.sessionStates[session.id] === 'error'}
 								onOpen={() => onOpenThread(session.id)}
 							/>
 						{/each}
 					</div>
 				{/if}
 			{/each}
+
+			{#if listed.hidden.length > 0}
+				<HiddenWorkspaces
+					projects={listed.hidden}
+					{openWorkspacePath}
+					{onOpenWorkspace}
+					onShow={(projectPath) =>
+						void store.setProjectHidden(projectPath, false)}
+				/>
+			{/if}
 		</nav>
 	</ScrollPanel>
 

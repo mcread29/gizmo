@@ -67,6 +67,10 @@ export class PiAgentServiceProjects extends PiAgentServiceResources {
 		if (paths.length) await reloadExtensions();
 	}
 
+	setProjectHidden(projectPath: string, hidden: boolean) {
+		return this.context.projects.setHidden(projectPath, hidden);
+	}
+
 	reorderProjects(paths: string[]) {
 		return this.context.projects.reorder(paths);
 	}

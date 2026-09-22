@@ -2,6 +2,7 @@
 	import type { AgentStore } from '../../agent-client';
 	import { SelectField, SettingField, SwitchField } from '../../components';
 	import type { WorkspaceLayout } from '../shell/workspace.svelte';
+	import KeyboardShortcuts from './KeyboardShortcuts.svelte';
 	import SettingsPage from './SettingsPage.svelte';
 
 	let { layout, store }: { layout: WorkspaceLayout; store: AgentStore } =
@@ -63,4 +64,6 @@
 			/>
 		</SettingField>
 	</div>
+
+	<KeyboardShortcuts />
 </SettingsPage>

@@ -1,4 +1,5 @@
 import type { AgentRequest } from '@gizmo/protocol';
+import { globalModelCatalog } from '../sessions/model-completion';
 import type { PiAgentService } from '../sessions/pi-agent-service';
 import type { RouteResult } from './request-router';
 
@@ -29,6 +30,7 @@ type SessionRequestType =
 	| 'session.label'
 	| 'session.delete'
 	| 'model.catalog'
+	| 'models.catalog'
 	| 'model.select'
 	| 'thinking.select';
 
@@ -143,6 +145,8 @@ export async function handleSessionRequest(
 		case 'session.delete':
 			await service.deleteSession(request.sessionId);
 			return {};
+		case 'models.catalog':
+			return { result: await globalModelCatalog() };
 		case 'model.catalog':
 			return { result: await service.getModelCatalog(request.sessionId) };
 		case 'model.select':

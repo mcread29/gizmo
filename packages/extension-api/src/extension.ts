@@ -13,6 +13,12 @@ import type {
 export interface ExtensionContext {
 	workspacePath: string;
 	/**
+	 * The extension's stored settings, as the server holds them. Tools read
+	 * the values captured when the session started; a change takes effect on
+	 * the next session or after a runtime reload.
+	 */
+	settings: Readonly<Record<string, unknown>>;
+	/**
 	 * Asks the user a yes/no question in every connected client. `kind` is
 	 * the extension's own identifier for the question; `title` and `message`
 	 * are what the user reads.

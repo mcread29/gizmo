@@ -15,6 +15,7 @@
 	import ComposerCommandMenu from './ComposerCommandMenu.svelte';
 	import ComposerToolbar from './ComposerToolbar.svelte';
 	import type { DraftStore } from './drafts.svelte';
+	import { queuedNotice } from './queued-notice';
 	import { restoreUnsent } from './unsent';
 
 	interface Props {
@@ -59,6 +60,7 @@
 				? 'Not connected to Gizmo. Reconnect to send messages.'
 				: undefined,
 	);
+	let queued = $derived(streaming ? queuedNotice(store.queue) : undefined);
 	let canSend = $derived(
 		Boolean(draft.trim() || attachments.length) &&
 			!store.compacting &&
@@ -258,6 +260,8 @@
 	<ComposerAttachments {attachments} onRemove={removeAttachment} />
 	{#if notice}
 		<p data-ui="composer-notice" role="status">{notice}</p>
+	{:else if queued}
+		<p data-ui="composer-notice" data-kind="queued" role="status">{queued}</p>
 	{/if}
 	<label for="prompt" data-ui="sr-only">Message Gizmo</label>
 	<textarea

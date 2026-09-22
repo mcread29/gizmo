@@ -46,6 +46,8 @@ export async function routeRequest(
 		case 'extension.view.close':
 		case 'extension.view.action':
 		case 'extension.command.run':
+		case 'extension.settings.get':
+		case 'extension.settings.set':
 			return handleExtensionUiRequest(services.ui, owner, request);
 
 		case 'providers.list':
@@ -73,6 +75,7 @@ export async function routeRequest(
 		case 'session.branch':
 		case 'session.label':
 		case 'session.delete':
+		case 'models.catalog':
 		case 'model.catalog':
 		case 'model.select':
 		case 'thinking.select':
@@ -107,6 +110,7 @@ export async function routeRequest(
 		case 'project.pi-extension.set':
 		case 'project.extension-paths.set':
 		case 'project.remove':
+		case 'project.hidden.set':
 		case 'project.reorder':
 		case 'project.status':
 		case 'project.watch':

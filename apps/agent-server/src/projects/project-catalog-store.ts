@@ -4,6 +4,8 @@ import { dirname, join } from 'node:path';
 export interface CatalogProject {
 	title: string;
 	path: string;
+	/** Hidden projects stay in the catalog but leave the sidebar list. */
+	hidden?: boolean;
 	addedAt: number;
 }
 
@@ -19,9 +21,10 @@ export class ProjectCatalogStore {
 			const input = JSON.parse(
 				await readFile(this.#file, 'utf8'),
 			) as CatalogProject[];
-			return input.map(({ title, path, addedAt }) => ({
+			return input.map(({ title, path, hidden, addedAt }) => ({
 				title,
 				path,
+				...(hidden ? { hidden: true } : {}),
 				addedAt,
 			}));
 		} catch (error) {
@@ -36,7 +39,12 @@ export class ProjectCatalogStore {
 		await writeFile(
 			temporary,
 			`${JSON.stringify(
-				projects.map(({ title, path, addedAt }) => ({ title, path, addedAt })),
+				projects.map(({ title, path, hidden, addedAt }) => ({
+					title,
+					path,
+					...(hidden ? { hidden: true } : {}),
+					addedAt,
+				})),
 				null,
 				2,
 			)}\n`,

@@ -14,10 +14,16 @@
 	margin-bottom: 2px;
 }
 
+/*
+ * A grouped row keeps the avatar column but not the avatar. Its 30px box
+ * would still set the row's height, which is what left a collapsed
+ * one-line Reasoning row with a hole beneath it that no tool card had.
+ */
 [data-ui='message'][data-grouped-before] [data-ui='avatar'] {
 	visibility: hidden;
+	height: 0;
+	border: 0;
 }
-
 [data-ui='message'][data-grouped-before] [data-ui='message-body'] {
 	padding-top: 0;
 }
@@ -52,7 +58,9 @@
 	display: none;
 }
 
+/* The time is a caption, not a header: hug it to the text. */
 [data-ui='message'][data-role='user'] [data-ui='message-body'] {
+	gap: 2px;
 	max-width: min(80%, 620px);
 	padding: 10px 14px 11px;
 	border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs);
@@ -62,11 +70,6 @@
 [data-ui='message'][data-role='user'][data-grouped-before]
 	[data-ui='message-body'] {
 	padding-top: 10px;
-}
-
-/* The time is a caption, not a header: hug it to the text. */
-[data-ui='message'][data-role='user'] [data-ui='message-body'] {
-	gap: 2px;
 }
 
 [data-ui='message'][data-role='user'] [data-ui='message-meta'] {
@@ -114,102 +117,6 @@
 	font-style: italic;
 }
 
-[data-ui='message-attachments'] {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-2);
-	margin-bottom: var(--space-3);
-}
-
-[data-ui='message-attachment'] {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	min-width: 180px;
-	max-width: 280px;
-	padding: var(--space-2);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-md);
-	background: var(--color-surface);
-}
-
-[data-ui='attachment-preview-trigger'],
-[data-ui='message-attachment-icon'] {
-	width: 44px;
-	height: 44px;
-	flex: 0 0 auto;
-	border-radius: var(--radius-sm);
-}
-
-[data-ui='attachment-preview-trigger'] {
-	padding: 0;
-	border: 0;
-	overflow: hidden;
-	background: transparent;
-	cursor: zoom-in;
-}
-
-[data-ui='attachment-preview-trigger'] img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
-[data-ui='message-attachment-icon'] {
-	display: grid;
-	place-items: center;
-	background: var(--color-surface-muted);
-	color: var(--color-text-muted);
-}
-
-[data-ui='message-attachment-info'] {
-	display: grid;
-	flex: 1;
-	min-width: 0;
-}
-
-[data-ui='message-attachment-actions'] {
-	display: flex;
-	flex: 0 0 auto;
-}
-
-[data-ui='message-attachment-actions'] [data-ui='button'] {
-	width: 28px;
-	height: 28px;
-}
-
-[data-ui='attachment-preview'] {
-	display: block;
-	max-width: 100%;
-	max-height: min(72vh, 760px);
-	margin: 0 auto;
-	object-fit: contain;
-}
-
-[data-ui='attachment-error'] {
-	flex-basis: 100%;
-	margin: 0;
-	color: var(--color-danger);
-	font-size: var(--text-2xs);
-}
-
-[data-ui='message-attachment'] strong,
-[data-ui='message-attachment'] small {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-[data-ui='message-attachment'] strong {
-	font-size: var(--text-xs);
-	font-weight: 600;
-}
-
-[data-ui='message-attachment'] small {
-	color: var(--color-text-muted);
-	font-size: var(--text-2xs);
-}
-
 /* Consecutive tool-only parts sit closer than parts carrying prose. */
 [data-ui='message-part']:has(> [data-ui='tool-call']:first-child:last-child) {
 	gap: 0;
@@ -249,6 +156,27 @@
 	flex: 1;
 	height: 1px;
 	background: var(--color-border);
+	content: '';
+}
+
+/* Where reading stopped: an accent rule with a one-word label, so a jump
+   back lands on the first message not yet seen. */
+[data-ui='unread-marker'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin-bottom: var(--space-4);
+	color: var(--color-accent);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+[data-ui='unread-marker']::before {
+	flex: 1;
+	height: 1px;
+	background: color-mix(in srgb, var(--color-accent) 55%, transparent);
 	content: '';
 }
 

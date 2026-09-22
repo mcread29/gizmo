@@ -13,7 +13,6 @@ export const appThemes = [
 
 export type AppTheme = (typeof appThemes)[number];
 export type ThemeMode = 'light' | 'dark';
-export type ExtensionSettings = Record<string, Record<string, unknown>>;
 
 export type ColorScheme =
 	'default' | 'vesper' | 'catppuccin' | 'rose-pine' | 'solarized';
@@ -61,7 +60,6 @@ export interface AppSettings {
 	autoCompact: boolean;
 	autoCompactFillPercent: number;
 	compactionRetainPercent: number;
-	extensionSettings: ExtensionSettings;
 	showThreadSidebar: boolean;
 	showInspector: boolean;
 	sidebarWidth: number;
@@ -89,14 +87,14 @@ export const panelWidthLimits: Record<PanelName, PanelWidthLimit> = {
 
 export const defaultAppSettings: AppSettings = {
 	theme: 'dark',
-	followSystemTheme: false,
+	// Off only once the user picks Light or Dark by hand.
+	followSystemTheme: true,
 	sendOnEnter: true,
 	autoFollowOutput: true,
 	expandReasoning: false,
 	autoCompact: true,
 	autoCompactFillPercent: 25,
 	compactionRetainPercent: 10,
-	extensionSettings: {},
 	showThreadSidebar: true,
 	showInspector: true,
 	sidebarWidth: panelWidthLimits.sidebar.default,
@@ -130,23 +128,8 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 		const value = JSON.parse(storage.getItem(settingsKey) ?? 'null') as unknown;
 		if (!value || typeof value !== 'object') return fallback;
 		const settings = value as Partial<
-			Record<
-				keyof AppSettings | 'showUnityInspector' | 'compilePlayModePolicy',
-				unknown
-			>
+			Record<keyof AppSettings | 'showUnityInspector', unknown>
 		>;
-		const extensionSettings = parseExtensionSettings(
-			settings.extensionSettings,
-		);
-		const legacyCompilePolicy = parseCompilePlayModePolicy(
-			settings.compilePlayModePolicy,
-		);
-		if (
-			legacyCompilePolicy &&
-			extensionSettings.unity?.compilePlayModePolicy === undefined
-		) {
-			extensionSettings.unity = { compilePlayModePolicy: legacyCompilePolicy };
-		}
 		const fillPercent = integer(
 			settings.autoCompactFillPercent,
 			10,
@@ -186,7 +169,6 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 			),
 			autoCompactFillPercent: fillPercent,
 			compactionRetainPercent: retainPercent,
-			extensionSettings,
 			showThreadSidebar: boolean(
 				settings.showThreadSidebar,
 				defaultAppSettings.showThreadSidebar,
@@ -277,22 +259,5 @@ function parseAppTheme(value: unknown): AppTheme | undefined {
 	if (value === 'vesper') return 'vesper-dark';
 	return appThemes.includes(value as AppTheme)
 		? (value as AppTheme)
-		: undefined;
-}
-
-function parseExtensionSettings(value: unknown): ExtensionSettings {
-	if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-	return Object.fromEntries(
-		Object.entries(value).flatMap(([extensionId, settings]) =>
-			settings && typeof settings === 'object' && !Array.isArray(settings)
-				? [[extensionId, { ...(settings as Record<string, unknown>) }]]
-				: [],
-		),
-	);
-}
-
-function parseCompilePlayModePolicy(value: unknown) {
-	return value === 'ask' || value === 'stop' || value === 'keep_playing'
-		? value
 		: undefined;
 }

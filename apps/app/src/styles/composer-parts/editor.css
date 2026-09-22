@@ -124,6 +124,18 @@
 	font-size: var(--text-2xs);
 }
 
+[data-ui='composer-notice'][data-kind='queued'] {
+	color: var(--color-accent);
+}
+
+/* Stop is a word, not a glyph: the one control that ends a run should not
+   be mistaken for a record button. */
+[data-ui='composer-stop'] {
+	height: 32px;
+	gap: 5px;
+	padding-inline: 10px;
+}
+
 [data-ui='composer'] textarea {
 	width: 100%;
 	/* One line when empty; autoGrow adds rows as the draft does. */

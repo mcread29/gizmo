@@ -12,8 +12,13 @@ import { Type, type Static } from 'typebox';
  *
  * v32: `app.update.status` and `app.update.start` let the browser update
  * Gizmo itself; `app.update.changed` broadcasts the progress.
+ *
+ * v33: extension settings live on the server (`extension.settings.get` and
+ * `.set`, `extension.settings.changed`, `settingsValues` on `extensions.ui`),
+ * `models.catalog` lists models without a session for `model` settings
+ * fields, and `project.hidden.set` hides a workspace from the sidebar.
  */
-export const protocolVersion = 32 as const;
+export const protocolVersion = 33 as const;
 
 const sessionTitleLimit = 48;
 

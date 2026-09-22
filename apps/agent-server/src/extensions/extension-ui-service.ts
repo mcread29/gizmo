@@ -1,4 +1,3 @@
-import { resolve } from 'node:path';
 import {
 	parseView,
 	viewIssues,
@@ -9,6 +8,16 @@ import {
 	type View,
 	type ViewHandle,
 } from '@gizmo/extension-api';
+import { completeText } from '../sessions/model-completion';
+import {
+	describeExtension,
+	inWorkspace,
+	viewKey,
+} from './extension-ui-catalog';
+import {
+	extensionSettings,
+	type ExtensionSettingsStore,
+} from './extension-settings-store';
 
 export interface ViewAddress {
 	projectPath: string;
@@ -19,6 +28,10 @@ export interface ViewAddress {
 
 export interface ExtensionUiEmitters {
 	viewUpdated(address: ViewAddress, view: View): void;
+	/** An extension's stored settings changed. */
+	settingsChanged?(extensionId: string, values: Record<string, unknown>): void;
+	/** Status items and commands should be re-fetched for an extension. */
+	uiChanged?(extensionId: string): void;
 }
 
 interface OpenView {
@@ -44,6 +57,7 @@ export class ExtensionUiService {
 		extensions: readonly GizmoExtension[] | (() => readonly GizmoExtension[]),
 		private readonly emit: ExtensionUiEmitters,
 		private readonly enabledFor?: (workspacePath: string) => Promise<string[]>,
+		private readonly settingsStore: ExtensionSettingsStore = extensionSettings,
 	) {
 		this.#extensions =
 			typeof extensions === 'function' ? extensions : () => extensions;
@@ -53,48 +67,25 @@ export class ExtensionUiService {
 		const enabled = this.enabledFor
 			? new Set(await this.enabledFor(projectPath))
 			: undefined;
-		const context = {
-			workspacePath: projectPath,
-			...(sessionId ? { sessionId } : {}),
-		};
+		const stored = await this.settingsStore.read();
 		const result: ExtensionUi[] = [];
 		for (const extension of this.#extensions()) {
 			if (enabled && !enabled.has(extension.id)) continue;
 			if (!inWorkspace(extension, projectPath)) continue;
-			const [statusItems, commands] = await Promise.all([
-				settle(
-					() => extension.statusItems?.(context),
+			result.push(
+				await describeExtension(
 					extension,
-					'statusItems',
+					projectPath,
+					sessionId,
+					stored.extensions[extension.id] ?? {},
 				),
-				settle(() => extension.commands?.(context), extension, 'commands'),
-			]);
-			result.push({
-				id: extension.id,
-				name: extension.name,
-				views: Object.entries(extension.views ?? {}).map(([id, view]) => ({
-					id,
-					label: view.label,
-					...(view.shortLabel ? { shortLabel: view.shortLabel } : {}),
-					scope: view.scope ?? 'workspace',
-					placement: view.placement ?? 'inspector',
-				})),
-				statusItems: statusItems ?? [],
-				commands: commands ?? [],
-				settings: extension.settings ?? [],
-				toolPresentation: extension.toolPresentation ?? {},
-				hasProjectService: extension.createProjectService !== undefined,
-			});
+			);
 		}
 		return result;
 	}
 
 	/** Opens (or joins) a view for `owner` and returns its latest content. */
-	async open(
-		owner: object,
-		address: ViewAddress,
-		settings: Record<string, unknown> = {},
-	): Promise<View | undefined> {
+	async open(owner: object, address: ViewAddress): Promise<View | undefined> {
 		address = this.#address(address);
 		const key = viewKey(address);
 		let open = this.#views.get(key);
@@ -118,16 +109,19 @@ export class ExtensionUiService {
 				owners: new Set(),
 				closed: false,
 			};
-			entry.handle = Promise.resolve().then(() =>
-				definition.open({
-					workspacePath: address.projectPath,
-					...(scope === 'thread' && address.sessionId
-						? { sessionId: address.sessionId }
-						: {}),
-					settings,
-					update: (view) => this.#update(entry, view),
-				}),
-			);
+			entry.handle = this.settingsStore
+				.get(address.extensionId)
+				.then((settings) =>
+					definition.open({
+						workspacePath: address.projectPath,
+						...(scope === 'thread' && address.sessionId
+							? { sessionId: address.sessionId }
+							: {}),
+						settings,
+						complete: completeText,
+						update: (view) => this.#update(entry, view),
+					}),
+				);
 			entry.handle.catch(() => {
 				this.#views.delete(key);
 			});
@@ -193,7 +187,53 @@ export class ExtensionUiService {
 		await extension.runCommand(commandId, {
 			workspacePath: projectPath,
 			...(sessionId ? { sessionId } : {}),
+			settings: await this.settingsStore.get(extensionId),
+			complete: completeText,
 		});
+	}
+
+	/** One extension's stored settings. */
+	async settings(extensionId: string): Promise<Record<string, unknown>> {
+		return this.settingsStore.get(extensionId);
+	}
+
+	/**
+	 * Merges values in, then tells everyone: the new values go out as an
+	 * event, status items and commands are re-fetched, and live views reopen.
+	 */
+	async setSettings(
+		extensionId: string,
+		values: Record<string, unknown>,
+	): Promise<Record<string, unknown>> {
+		const extension = this.#anywhere(extensionId);
+		const next = await this.settingsStore.set(
+			extensionId,
+			values,
+			extension.settings ?? [],
+		);
+		this.emit.settingsChanged?.(extensionId, next);
+		this.emit.uiChanged?.(extensionId);
+		await this.#reopen(extensionId);
+		return next;
+	}
+
+	/** Reopens every live view of an extension against its new settings. */
+	async #reopen(extensionId: string): Promise<void> {
+		const entries = [...this.#views].filter(
+			([, view]) => view.address.extensionId === extensionId,
+		);
+		await Promise.all(
+			entries.map(async ([key, open]) => {
+				const { viewId } = open.address;
+				const owners = [...open.owners];
+				await this.#dispose(key, open);
+				for (const owner of owners) {
+					await this.open(owner, open.address).catch((error: unknown) =>
+						console.warn(`View ${viewId} failed to reopen:`, error),
+					);
+				}
+			}),
+		);
 	}
 
 	/**
@@ -216,6 +256,13 @@ export class ExtensionUiService {
 		return extension.views?.[address.viewId]?.scope === 'thread'
 			? address
 			: { ...address, sessionId: undefined };
+	}
+
+	/** Looks an extension up by id alone; settings are global. */
+	#anywhere(id: string): GizmoExtension {
+		const extension = this.#extensions().find((entry) => entry.id === id);
+		if (!extension) throw new Error(`Extension is not installed: ${id}`);
+		return extension;
 	}
 
 	#extension(id: string, projectPath: string): GizmoExtension {
@@ -248,28 +295,4 @@ export class ExtensionUiService {
 			console.warn(`View ${open.address.viewId} failed to dispose:`, error);
 		}
 	}
-}
-
-function viewKey({ projectPath, extensionId, viewId, sessionId }: ViewAddress) {
-	return [projectPath, extensionId, viewId, sessionId ?? ''].join('\0');
-}
-
-async function settle<T>(
-	run: () => T | Promise<T> | undefined,
-	extension: GizmoExtension,
-	what: string,
-): Promise<T | undefined> {
-	try {
-		return await run();
-	} catch (error) {
-		console.warn(`Extension ${extension.id} failed to list ${what}:`, error);
-		return undefined;
-	}
-}
-
-function inWorkspace(extension: GizmoExtension, path: string) {
-	return (
-		!extension.workspaceRoot ||
-		resolve(extension.workspaceRoot) === resolve(path)
-	);
 }

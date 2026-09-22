@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { GizmoExtension, View } from '@gizmo/extension-api';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { ExtensionUiService } from '../../src/extensions/extension-ui-service';
+import { ExtensionSettingsStore } from '../../src/extensions/extension-settings-store';
 
 const view = (text: string): View => ({
 	title: 'Hello',
@@ -44,8 +48,31 @@ function fixture() {
 		},
 	};
 	const viewUpdated = vi.fn();
-	const ui = new ExtensionUiService([extension], { viewUpdated });
-	return { ui, extension, viewUpdated, disposed, push: () => push!, action };
+	const settingsChanged = vi.fn();
+	const uiChanged = vi.fn();
+	// A temp file keeps the suite away from the developer's own settings.
+	const store = new ExtensionSettingsStore(
+		join(
+			mkdtempSync(join(tmpdir(), 'gizmo-ext-ui-')),
+			'extension-settings.json',
+		),
+	);
+	const ui = new ExtensionUiService(
+		[extension],
+		{ viewUpdated, settingsChanged, uiChanged },
+		undefined,
+		store,
+	);
+	return {
+		ui,
+		extension,
+		viewUpdated,
+		settingsChanged,
+		uiChanged,
+		disposed,
+		push: () => push!,
+		action,
+	};
 }
 
 const address = { projectPath: '/ws', extensionId: 'hello', viewId: 'main' };
@@ -74,6 +101,7 @@ describe('ExtensionUiService', () => {
 				statusItems: [{ id: 'status', label: 'ok' }],
 				commands: [{ id: 'wave', label: 'Wave' }],
 				settings: [{ kind: 'boolean', key: 'loud', label: 'Loud' }],
+				settingsValues: {},
 				toolPresentation: { labels: { hello_say: 'Say hello' } },
 				hasProjectService: false,
 			},
@@ -84,9 +112,8 @@ describe('ExtensionUiService', () => {
 		const { ui, viewUpdated, disposed, push } = fixture();
 		const a = {};
 		const b = {};
-		expect(await ui.open(a, address, { loud: true })).toEqual(
-			view('first true'),
-		);
+		await ui.setSettings('hello', { loud: true });
+		expect(await ui.open(a, address)).toEqual(view('first true'));
 		expect(await ui.open(b, address)).toEqual(view('first true'));
 		expect(viewUpdated).toHaveBeenCalledTimes(1);
 		push()(view('second'));
@@ -146,6 +173,8 @@ describe('ExtensionUiService', () => {
 		await ui.runCommand('/ws', 'hello', 'wave');
 		expect(extension.runCommand).toHaveBeenCalledWith('wave', {
 			workspacePath: '/ws',
+			settings: {},
+			complete: expect.any(Function),
 		});
 		await ui.open({}, address);
 		await ui.reset();

@@ -1,4 +1,4 @@
-import type { AgentSessionSummary } from '@gizmo/protocol';
+import type { AgentSessionSummary, StoredProject } from '@gizmo/protocol';
 
 export interface SessionGroup {
 	label: string;
@@ -56,6 +56,19 @@ export function groupSessions(
 		groups[bucket]!.sessions.push(session);
 	}
 	return groups.filter((group) => group.sessions.length > 0);
+}
+
+/**
+ * Splits the catalog into the workspaces the sidebar lists and the ones the
+ * user hid. Hiding only affects the listing: nothing about them is deleted.
+ */
+export function partitionProjects(projects: StoredProject[]) {
+	const hidden = projects.filter((project) => project.hidden);
+	return {
+		visible: projects.filter((project) => !project.hidden),
+		hidden,
+		hiddenPaths: new Set(hidden.map(({ path }) => path)),
+	};
 }
 
 export function formatSessionTime(timestamp: number, now = Date.now()): string {

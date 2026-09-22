@@ -42,7 +42,10 @@ One package, no runtime dependency on Svelte, Pi, or the Gizmo app:
   same library `@gizmo/protocol` already uses, so the host validates every
   payload against the schema the extension was typed against.
 - **Contribution types** — `panel`, `statusItem`, `command`, `settings`
-  (a JSON-schema form), `dialog` (a modal `View`), and `toolPresentation`
+  (typed fields — `text`, `number`, `boolean`, `select`, `model` — whose
+  values the server stores globally in `extension-settings.json` and hands
+  back on every context; see [extensions.md](extensions.md)), `dialog` (a
+  modal `View`), and `toolPresentation`
   (`labels`, `iconFor`, `parametersFor`, and a `display` for result cards).
 - **`gizmoDisplay`** — the existing result-card helper, moved here unchanged.
 - **`defineExtension(extension)`** — an identity function that gives

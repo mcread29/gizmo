@@ -30,8 +30,6 @@ export const extensionUiRequestSchemas = [
 			extensionId,
 			viewId,
 			sessionId,
-			/** Client-local settings values for the extension, if any. */
-			settings: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
 		},
 		{ additionalProperties: false },
 	),
@@ -66,6 +64,25 @@ export const extensionUiRequestSchemas = [
 			extensionId,
 			commandId: Type.String({ minLength: 1, maxLength: 160 }),
 			sessionId,
+		},
+		{ additionalProperties: false },
+	),
+	/** The extension's stored settings, as the server holds them. */
+	Type.Object(
+		{ ...envelope, type: Type.Literal('extension.settings.get'), extensionId },
+		{ additionalProperties: false },
+	),
+	/**
+	 * Merges values into the extension's stored settings. A `null` value
+	 * clears that key; every other value is checked against the field the
+	 * extension declared for it.
+	 */
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('extension.settings.set'),
+			extensionId,
+			values: Type.Record(Type.String(), Type.Unknown()),
 		},
 		{ additionalProperties: false },
 	),

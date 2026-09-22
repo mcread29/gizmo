@@ -32,6 +32,10 @@ Three facts shape everything else:
 
 - Gizmo uses semver tags `vMAJOR.MINOR.PATCH` on `main`. Today there are no
   tags; the first release is `v0.1.0`.
+- Development happens on local scratch branches, which are never pushed and
+  never become pull requests. A release squashes the scratch branch onto
+  `main` as one commit (`git merge --squash`), so `main` is a history of
+  releases and nothing else. See [AGENTS.md](../AGENTS.md).
 - **Protocol version** (`packages/protocol`, currently v30) is the app's own
   compatibility number between server and browser. It stays internal.
 - **Extension API version** is the major version of the published

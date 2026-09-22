@@ -243,6 +243,11 @@ export const sessionRequestSchemas = [
 		},
 		{ additionalProperties: false },
 	),
+	/** The model catalog with no session in play, for global settings. */
+	Type.Object(
+		{ ...envelope, type: Type.Literal('models.catalog') },
+		{ additionalProperties: false },
+	),
 	Type.Object(
 		{
 			...envelope,

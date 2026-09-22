@@ -85,6 +85,16 @@ export const projectRequestSchemas = [
 	Type.Object(
 		{
 			...envelope,
+			type: Type.Literal('project.hidden.set'),
+			projectPath: Type.String({ minLength: 1 }),
+			/** Hidden workspaces keep every thread and setting they had. */
+			hidden: Type.Boolean(),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
 			type: Type.Literal('project.reorder'),
 			/** Every registered path, in the order the sidebar should show them. */
 			paths: Type.Array(Type.String({ minLength: 1 })),

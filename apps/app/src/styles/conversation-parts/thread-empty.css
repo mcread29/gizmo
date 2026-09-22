@@ -1,0 +1,95 @@
+/* An empty thread offers ways in: recent threads here, and slash commands. */
+[data-ui='thread-empty'] {
+	display: grid;
+	flex: 1;
+	align-content: center;
+	justify-items: center;
+	gap: var(--space-6);
+	min-height: 0;
+	padding: var(--space-6);
+	overflow: auto;
+}
+
+[data-ui='thread-empty-intro'] {
+	display: grid;
+	gap: var(--space-1);
+	text-align: center;
+}
+
+[data-ui='thread-empty-intro'] strong {
+	font-size: var(--text-sm);
+}
+
+[data-ui='thread-empty-intro'] span {
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+}
+
+[data-ui='thread-starters'] {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: var(--space-4);
+	width: min(560px, 100%);
+}
+
+[data-ui='thread-starter-group'] {
+	display: grid;
+	gap: 2px;
+	align-content: start;
+}
+
+[data-ui='thread-starter-group'] h2 {
+	margin: 0 0 var(--space-1);
+	padding-inline: var(--space-2);
+	color: var(--color-text-faint);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+[data-ui='thread-starter'] {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+	padding: 6px var(--space-2);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--color-text);
+	font: inherit;
+	font-size: var(--text-xs);
+	text-align: left;
+	cursor: pointer;
+}
+
+[data-ui='thread-starter']:hover,
+[data-ui='thread-starter']:focus-visible {
+	background: var(--color-surface-soft);
+	outline: none;
+}
+
+[data-ui='thread-starter'] > svg {
+	flex: 0 0 auto;
+	color: var(--color-text-muted);
+}
+
+[data-ui='thread-starter'] > span {
+	display: flex;
+	gap: var(--space-2);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='thread-starter'] code {
+	font-family: var(--font-mono);
+}
+
+[data-ui='thread-starter'] small {
+	overflow: hidden;
+	color: var(--color-text-muted);
+	text-overflow: ellipsis;
+}

@@ -1,47 +1,98 @@
 <script lang="ts">
-	import { SelectField } from '@gizmo/ui';
-	import { SwitchField } from '../components';
-	import type { WorkspaceLayout } from '../features/shell/workspace.svelte';
+	import type { AgentModelOption } from '@gizmo/protocol';
+	import { SelectField, SwitchField } from '../components';
+	import type { AgentStore } from '../agent-client';
+	import { toasts } from '../toasts.svelte';
+	import ExtensionModelField from './ExtensionModelField.svelte';
 	import { extensionUi } from './extension-ui.svelte';
 
-	let {
-		layout,
-		enabledExtensionIds,
-	}: { layout: WorkspaceLayout; enabledExtensionIds: string[] } = $props();
+	let { store, extensionId }: { store: AgentStore; extensionId: string } =
+		$props();
 
-	// The catalog is already scoped to the workspace, but Settings is also
-	// reachable with a different workspace selected, so filter again.
-	let forms = $derived(
-		extensionUi
-			.settingsFields()
-			.filter(({ extensionId }) => enabledExtensionIds.includes(extensionId)),
+	/**
+	 * Settings live on the server, so the catalog already carries the current
+	 * values and every client re-renders from the broadcast. Edits in flight
+	 * are held locally so an incoming event cannot fight the caret.
+	 */
+	let extension = $derived(
+		extensionUi.extensions.find(({ id }) => id === extensionId),
 	);
+	let fields = $derived(extension?.settings ?? []);
+	let pending = $state<Record<string, unknown>>({});
+	let values = $derived({ ...(extension?.settingsValues ?? {}), ...pending });
+	let timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+	let needsModels = $derived(fields.some((field) => field.kind === 'model'));
+	let models = $state<AgentModelOption[]>([]);
+	let thinkingLevels = $state<string[]>([]);
+	$effect(() => {
+		if (!needsModels || models.length) return;
+		void store.extensions
+			.globalModelCatalog()
+			.then((catalog) => {
+				models = catalog.models;
+				thinkingLevels = catalog.thinkingLevels;
+			})
+			.catch((error: unknown) => console.warn('No model catalog', error));
+	});
+
+	/** Text and numbers settle before they are sent; everything else is sent now. */
+	function save(key: string, value: unknown, debounceMs = 0) {
+		pending = { ...pending, [key]: value };
+		clearTimeout(timers.get(key));
+		timers.set(
+			key,
+			setTimeout(() => {
+				timers.delete(key);
+				void store.extensions
+					.setExtensionSettings(extensionId, { [key]: value })
+					.then(() => {
+						const { [key]: _saved, ...rest } = pending;
+						pending = rest;
+					})
+					.catch((error: unknown) => {
+						toasts.show(
+							error instanceof Error ? error.message : 'Could not save setting',
+							'danger',
+						);
+					});
+			}, debounceMs),
+		);
+	}
 
 	function text(value: unknown): string {
 		return typeof value === 'string' ? value : '';
 	}
 </script>
 
-{#each forms as form (form.extensionId)}
-	{@const settings = layout.settingsFor(form.extensionId)}
+{#if fields.length}
 	<section data-ui="extension-settings">
-		<h3>{form.extensionName}</h3>
-		{#each form.value as field (field.key)}
+		{#each fields as field (field.key)}
 			{#if field.kind === 'boolean'}
 				<SwitchField
 					label={field.label}
 					description={field.description ?? ''}
 					bind:checked={
-						() => settings.get(field.key) === true,
-						(checked) => settings.set(field.key, checked)
+						() => values[field.key] === true,
+						(checked) => save(field.key, checked)
 					}
 				/>
 			{:else if field.kind === 'select'}
 				<SelectField
 					label={field.label}
 					options={field.options}
-					value={text(settings.get(field.key))}
-					onValueChange={(value) => settings.set(field.key, value)}
+					value={text(values[field.key])}
+					onValueChange={(value) => save(field.key, value)}
+				/>
+			{:else if field.kind === 'model'}
+				<ExtensionModelField
+					label={field.label}
+					description={field.description}
+					thinking={field.thinking ?? false}
+					value={values[field.key]}
+					{models}
+					{thinkingLevels}
+					onChange={(value) => save(field.key, value)}
 				/>
 			{:else}
 				<label data-ui="extension-settings-field">
@@ -52,39 +103,43 @@
 							type="number"
 							min={field.min}
 							max={field.max}
-							value={settings.get(field.key) ?? ''}
+							value={typeof values[field.key] === 'number'
+								? values[field.key]
+								: ''}
 							oninput={(event) =>
-								settings.set(
+								save(
 									field.key,
 									event.currentTarget.value === ''
-										? undefined
+										? null
 										: Number(event.currentTarget.value),
+									400,
 								)}
 						/>
 					{:else}
 						<input
 							type="text"
 							placeholder={field.placeholder}
-							value={text(settings.get(field.key))}
+							value={text(values[field.key])}
 							oninput={(event) =>
-								settings.set(field.key, event.currentTarget.value)}
+								save(
+									field.key,
+									event.currentTarget.value === ''
+										? null
+										: event.currentTarget.value,
+									400,
+								)}
 						/>
 					{/if}
 				</label>
 			{/if}
 		{/each}
 	</section>
-{/each}
+{/if}
 
 <style>
 	section {
 		display: grid;
 		gap: var(--space-3);
-	}
-	h3 {
-		margin: 0;
-		font-size: var(--text-base);
-		font-weight: 600;
 	}
 	label {
 		display: grid;

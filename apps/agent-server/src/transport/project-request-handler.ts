@@ -3,7 +3,14 @@ import type {
 	ProjectServiceRegistry,
 } from '@gizmo/extension-api';
 import type { AgentRequest } from '@gizmo/protocol';
+import { readModelSetting } from '@gizmo/extension-api';
+import { extensionSettings } from '../extensions/extension-settings-store';
 import type { ExtensionHostService } from '../extensions/extension-host-service';
+import {
+	cleanCommitMessage,
+	commitMessagePrompt,
+} from '../sessions/commit-message';
+import { completeText } from '../sessions/model-completion';
 import type { PiAgentService } from '../sessions/pi-agent-service';
 import type { ProjectWatchCoordinator } from './project-watch-coordinator';
 import type { RouteResult } from './request-router';
@@ -18,6 +25,7 @@ type ProjectRequestType =
 	| 'project.pi-extension.set'
 	| 'project.extension-paths.set'
 	| 'project.remove'
+	| 'project.hidden.set'
 	| 'project.reorder'
 	| 'project.status'
 	| 'project.watch'
@@ -80,6 +88,13 @@ export async function handleProjectRequest(
 		case 'project.remove':
 			await agent.removeProject(request.projectPath);
 			return {};
+		case 'project.hidden.set':
+			return {
+				result: await agent.setProjectHidden(
+					request.projectPath,
+					request.hidden,
+				),
+			};
 		case 'project.reorder':
 			return { result: await agent.reorderProjects(request.paths) };
 		case 'project.status':
@@ -151,9 +166,7 @@ export async function handleProjectRequest(
 			if (typeof context !== 'string') {
 				throw new Error('The Git extension returned invalid commit context');
 			}
-			return {
-				result: await agent.generateCommitMessage(request.sessionId, context),
-			};
+			return { result: await commitMessage(agent, request.sessionId, context) };
 		}
 		case 'file.revert':
 			// v25 compatibility: reverting an agent-recorded edit has no
@@ -165,6 +178,29 @@ export async function handleProjectRequest(
 			);
 			return { result: { file: request.file, reverted: true } };
 	}
+}
+
+/**
+ * Uses the model the Git extension's `commitMessageModel` setting names, so
+ * a cheap model can write commit messages while the thread runs on another.
+ * With no setting, the thread's own model writes it as it always has.
+ */
+async function commitMessage(
+	agent: PiAgentService,
+	sessionId: string,
+	context: string,
+): Promise<string> {
+	const settings = await extensionSettings.get('git');
+	const model = readModelSetting(settings.commitMessageModel);
+	if (!model) return agent.generateCommitMessage(sessionId, context);
+	return cleanCommitMessage(
+		await completeText({
+			model,
+			systemPrompt: commitMessagePrompt,
+			prompt: context,
+			maxTokens: 1500,
+		}),
+	);
 }
 
 /**
