@@ -100,7 +100,8 @@ export function launchdPlist(command: ServiceCommand): string {
 
 /**
  * `schtasks /Create` cannot express restart-on-failure, so the task is
- * registered from XML instead of flags.
+ * registered from XML instead of flags. That setting only retries a launch
+ * that failed; restarting a server that exited is the launcher's job.
  *
  * `S4U` is what keeps the server out of the way. An `InteractiveToken` task
  * runs its action on the desktop, so a batch file gets a console window that
@@ -191,10 +192,24 @@ export function windowsElevationMessage(): string {
 export const isAccessDenied = (output: string) =>
 	/access is denied/i.test(output);
 
+/** The exit code with which the server asks to be started again at once. */
+export const restartExitCode = 75;
+
 /**
  * The launcher the scheduled task runs. It exists so the machine-local
  * environment lives in a file the user can read rather than inside the task
  * definition, where a wrong value is invisible.
+ *
+ * It is also the supervisor. Task Scheduler's RestartOnFailure covers only
+ * a task that could not be launched; an action that exits, with any code,
+ * just ends the task. So the loop is what `Restart=always` is to systemd: a
+ * browser-started update exits with `restartExitCode` and comes straight
+ * back up, anything else after the same 15 s pause. `service stop` ends
+ * this `cmd.exe` first, so a stopped server stays stopped.
+ *
+ * The `cd` is inside the loop because the working directory is a handle on
+ * whatever `current` pointed at when it was taken: kept, it would pin the
+ * old release, which Windows then cannot delete.
  */
 export function windowsLauncherScript(command: ServiceCommand): string {
 	const environment = Object.entries(command.env).map(
@@ -206,13 +221,19 @@ export function windowsLauncherScript(command: ServiceCommand): string {
 	return [
 		'@echo off',
 		'setlocal',
-		`cd /d "${command.cwd}"`,
 		...environment,
+		':run',
+		`cd /d "${command.cwd}"`,
 		line,
-		// The server's exit code is the task's result. A browser-started update
-		// ends with a deliberate non-zero exit, and RestartOnFailure is what
-		// brings the new release up.
-		'exit /b %errorlevel%',
+		`if %errorlevel% equ ${String(restartExitCode)} goto run`,
+		// `timeout` refuses to run without a console, which an S4U task lacks.
+		'ping -n 16 127.0.0.1 >nul',
+		'goto run',
 		'',
 	].join('\r\n');
+}
+
+/** The `node` an existing launcher runs: its one line that starts quoted. */
+export function launcherExecutable(script: string): string | null {
+	return /^"([^"]+)"/m.exec(script)?.[1] ?? null;
 }

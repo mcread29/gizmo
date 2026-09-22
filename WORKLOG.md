@@ -1,5 +1,24 @@
 # Work log
 
+## 2026-09-22 — Windows launcher restarts the server itself
+
+- Updating from the browser took Windows machines down for good. The
+  server exits with code 75 for its supervisor to bring up the new
+  release, but Task Scheduler's RestartOnFailure only retries a task that
+  could not be launched; an action that exits, with any code, just ends
+  the task (genge's event log shows every exit "successfully completed",
+  with no relaunch). The same gap left a server that crashed or failed to
+  start down until the next login.
+- `startup.cmd` is now the supervisor: it loops, restarting at once after
+  exit code 75 and after 15 s otherwise, like the systemd unit's
+  `Restart=always`. It re-enters `current` on each pass, so the old
+  release is not pinned as the working directory. `service stop` ends the
+  loop's `cmd.exe` first, so a stopped server stays stopped.
+- `service restart` (and so `update` and `rollback`) rewrites an older
+  launcher between the stop and the start, keeping the `node` it names, so
+  existing installs pick up the loop without an elevated
+  `service install`.
+
 ## 2026-09-22 — Review fixes before v0.2.2
 
 - Workspace extension paths are stored `/`-separated. Discovery and

@@ -245,11 +245,11 @@ The service is always "run `node <current>/... gizmo.ts run`, restart if it
 exits, start at login". Each platform's native supervisor does that already,
 so the repo's `Supervise.ps1` loop goes away.
 
-| Platform | Mechanism                                                                                                                                                                                      | File                                            |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Linux    | systemd user unit, `Restart=always`, `RestartSec=15`, `loginctl enable-linger` so it runs without a session                                                                                    | `~/.config/systemd/user/gizmo.service`          |
-| macOS    | launchd LaunchAgent, `KeepAlive: true`, `ThrottleInterval: 15`                                                                                                                                 | `~/Library/LaunchAgents/link.init0.gizmo.plist` |
-| Windows  | Scheduled task **Gizmo Web**, at logon, highest available run level, restart on failure every 1 minute up to 999 times, plus a one-line `startup.cmd` that sets `GIZMO_DATA_DIR` if configured | `<dataDir>/app/startup.cmd`                     |
+| Platform | Mechanism                                                                                                                                                                                   | File                                            |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Linux    | systemd user unit, `Restart=always`, `RestartSec=15`, `loginctl enable-linger` so it runs without a session                                                                                 | `~/.config/systemd/user/gizmo.service`          |
+| macOS    | launchd LaunchAgent, `KeepAlive: true`, `ThrottleInterval: 15`                                                                                                                              | `~/Library/LaunchAgents/link.init0.gizmo.plist` |
+| Windows  | Scheduled task **Gizmo Web**, at logon, least privilege, plus a `startup.cmd` that sets `GIZMO_DATA_DIR` if configured and loops: straight back up after exit code 75, after 15 s otherwise | `<dataDir>/app/startup.cmd`                     |
 
 **Deviation.** The Windows launcher lives at `<dataDir>/app/startup.cmd`, not
 `%LOCALAPPDATA%\gizmo\startup.cmd`. Putting it under `%LOCALAPPDATA%` would
@@ -321,7 +321,9 @@ server: `gizmo update --no-restart` downloads, verifies, unpacks and installs
 the release, then moves `current`. The server cannot restart its own service
 from inside that service (the stop would end the CLI along with it), so once
 the CLI succeeds the server exits with code 75 and the supervisor's
-restart-on-exit brings up `current`, which is now the new release. Every open
+restart-on-exit brings up `current`, which is now the new release. On Windows that is
+`startup.cmd`'s loop: Task Scheduler's own restart-on-failure only retries a
+task that could not be launched, not one whose action exited. Every open
 tab sees the progress as `app.update.changed` events, drops when the server
 exits, and reconnects on its own. A failure at any step leaves the running
 release serving and shows the last lines of CLI output on the page.

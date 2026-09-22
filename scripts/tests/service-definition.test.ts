@@ -4,6 +4,8 @@ import {
 	launchdPlist,
 	serviceNames,
 	systemdUnit,
+	launcherExecutable,
+	restartExitCode,
 	windowsLauncherScript,
 	windowsElevationMessage,
 	windowsTaskXml,
@@ -101,6 +103,35 @@ describe('windowsLauncherScript', () => {
 		expect(script).toContain(
 			'"/opt/node/bin/node" "/app/node_modules/tsx/dist/cli.mjs"',
 		);
+	});
+
+	// Task Scheduler never relaunches an action that exited, so without the
+	// loop an update from the browser leaves the server down.
+	it('starts the server again whenever it exits', () => {
+		const lines = windowsLauncherScript(command).split('\r\n');
+		const label = lines.indexOf(':run');
+		expect(lines.slice(label + 1, label + 3)).toEqual([
+			'cd /d "/app"',
+			expect.stringMatching(/^"\/opt\/node\/bin\/node" /),
+		]);
+		expect(lines).toContain(
+			`if %errorlevel% equ ${String(restartExitCode)} goto run`,
+		);
+		expect(lines.at(-2)).toBe('goto run');
+		expect(lines.some((line) => line.startsWith('exit'))).toBe(false);
+	});
+});
+
+describe('launcherExecutable', () => {
+	it('reads the node path back from a launcher, old or new', () => {
+		const old =
+			'@echo off\r\nsetlocal\r\ncd /d "C:\\app"\r\nset "A=B"\r\n' +
+			'"C:\\node\\node.exe" "C:\\app\\cli.mjs" "run"\r\nexit /b %errorlevel%\r\n';
+		expect(launcherExecutable(old)).toBe('C:\\node\\node.exe');
+		expect(launcherExecutable(windowsLauncherScript(command))).toBe(
+			'/opt/node/bin/node',
+		);
+		expect(launcherExecutable('@echo off\r\n')).toBeNull();
 	});
 });
 

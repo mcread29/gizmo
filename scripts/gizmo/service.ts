@@ -1,19 +1,50 @@
+import { readFileSync, writeFileSync } from 'node:fs';
 import { readConfig, configFromEnvironment, type WebConfig } from './config';
 import { isListening, probeHost, reportStatus } from './status';
 import {
+	currentPlatform,
 	installService,
+	serviceCommand as serviceDefinition,
 	startService,
 	stopService,
 	uninstallService,
 } from './service-platform';
-import { appRoot, serviceRoot, webConfigFile } from './paths';
+import {
+	launcherExecutable,
+	windowsLauncherScript,
+} from './service-definition';
+import { appRoot, serviceRoot, webConfigFile, windowsLauncher } from './paths';
 import { currentVersion } from './releases-store';
 import { runningVersion, treeVersion } from './running';
 
 /** A restart is a stop and a start; no platform needs anything cleverer. */
 export function restartService() {
 	stopService();
+	refreshWindowsLauncher();
 	startService();
+}
+
+/**
+ * Launchers written before the restart loop end with the server, so an
+ * update from the browser left Windows machines down. `service install`
+ * rewrites the launcher but needs an elevated console, so a restart
+ * rewrites it too, between the stop and the start: `cmd.exe` reads a batch
+ * file as it runs it, and a launcher replaced under a running one would be
+ * read from the middle. The `node` it names is kept, since this console may
+ * resolve a different one than the task was installed with.
+ */
+function refreshWindowsLauncher() {
+	if (currentPlatform() !== 'win32') return;
+	let old: string;
+	try {
+		old = readFileSync(windowsLauncher(), 'utf8');
+	} catch {
+		return;
+	}
+	const exe = launcherExecutable(old);
+	if (!exe) return;
+	const next = windowsLauncherScript({ ...serviceDefinition(), exe });
+	if (next !== old) writeFileSync(windowsLauncher(), next, 'utf8');
 }
 
 export async function effectiveConfig(): Promise<WebConfig> {
