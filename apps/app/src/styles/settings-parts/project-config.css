@@ -91,3 +91,108 @@
 	background: var(--color-surface-soft);
 	color: var(--color-text);
 }
+
+/*
+ * The card's own trailing row: a line of explanation and the action that
+ * refreshes what the card lists.
+ */
+[data-ui='card-footer'] {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	border-top: 1px solid var(--color-border);
+}
+
+[data-ui='card-footer'] small {
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+/*
+ * Paths from outside the workspace are the rare case, so they fold away
+ * behind a summary rather than taking a card of their own.
+ */
+[data-ui='path-disclosure'] {
+	margin-top: var(--space-3);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-surface);
+}
+
+[data-ui='path-disclosure'] > summary {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	color: var(--color-text-muted);
+	font-size: var(--text-xs);
+	list-style: none;
+	cursor: pointer;
+}
+
+[data-ui='path-disclosure'] > summary::-webkit-details-marker {
+	display: none;
+}
+
+[data-ui='path-disclosure'] > summary:hover,
+[data-ui='path-disclosure'][open] > summary {
+	color: var(--color-text);
+}
+
+[data-ui='path-panel'] {
+	display: grid;
+	gap: var(--space-2);
+	padding: 0 var(--space-3) var(--space-3);
+}
+
+[data-ui='path-panel'] > p {
+	margin: 0;
+	color: var(--color-text-muted);
+	font-size: var(--text-2xs);
+}
+
+[data-ui='path-list'] {
+	display: grid;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+}
+
+[data-ui='path-row'] + [data-ui='path-row'] {
+	border-top: 1px solid var(--color-border);
+}
+
+/*
+ * A path is long and a button is not: the path takes the room that is left
+ * and elides, rather than the button stretching across it.
+ */
+[data-ui='path-row'],
+[data-ui='path-add'] {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+[data-ui='path-row'] {
+	padding: var(--space-1) var(--space-2);
+}
+
+[data-ui='path-row'] > code {
+	overflow: hidden;
+	font: var(--text-xs) / 1.6 var(--font-mono);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+[data-ui='path-add'] > input {
+	min-width: 0;
+	padding: 7px 9px;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface-soft);
+	color: var(--color-text);
+	font: var(--text-xs) / 1.4 var(--font-mono);
+}

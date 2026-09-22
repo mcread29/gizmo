@@ -25,8 +25,11 @@
 }
 
 /* The Agent/Skills/Extensions sub-nav reuses the segmented control but
-   shouldn't stretch to the grid track's full width like a filter bar does. */
+   shouldn't stretch to the full width like a filter bar does. Both properties:
+   the skills page lays its content out as a flex column, the others as a
+   grid. */
 [data-ui='settings-content'] > [data-ui='segmented'] {
+	align-self: start;
 	justify-self: start;
 }
 

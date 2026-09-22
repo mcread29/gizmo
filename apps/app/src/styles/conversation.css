@@ -71,11 +71,11 @@
 	gap: var(--space-1);
 }
 
-[data-ui='tree-trigger'] {
+button[data-ui='button'][data-part='tree-trigger'] {
 	color: var(--color-text-muted);
 }
 
-[data-ui='tree-trigger']:hover {
+button[data-ui='button'][data-part='tree-trigger']:hover {
 	color: var(--color-accent);
 }
 

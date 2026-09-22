@@ -1,3 +1,42 @@
+/*
+ * The skills workbench owns scrolling while its navigation stays fixed. A
+ * flex column rather than the grid the other pages use: the rows above the
+ * workbench are the sub-nav and, on a phone, the back button, so a row
+ * template would have to know how many of them are showing — get that count
+ * wrong and the sub-nav lands in the 1fr row and collapses to nothing.
+ */
+[data-ui='settings-content'][data-page='skills'] {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	padding-bottom: 0;
+}
+
+/* Everything above it is auto-height; the workbench takes what is left. */
+[data-ui='settings-content'][data-page='skills'] > [data-ui='settings-page'] {
+	flex: 1;
+	min-height: 0;
+}
+
+[data-ui='settings-content'][data-page='skills'] [data-ui='settings-page'] {
+	grid-template-rows: auto minmax(0, 1fr);
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+[data-ui='settings-content'][data-page='skills']
+	[data-ui='settings-page-body'] {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
 [data-ui='skill-list'] {
 	display: grid;
 }

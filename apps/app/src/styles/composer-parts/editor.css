@@ -130,7 +130,7 @@
 
 /* Stop is a word, not a glyph: the one control that ends a run should not
    be mistaken for a record button. */
-[data-ui='composer-stop'] {
+button[data-ui='button'][data-part='composer-stop'] {
 	height: 32px;
 	gap: 5px;
 	padding-inline: 10px;

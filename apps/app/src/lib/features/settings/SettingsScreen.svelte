@@ -170,7 +170,7 @@
 			{#snippet settingsContent()}
 				<div data-ui="settings-content" data-page={page}>
 					<Button
-						data-ui="settings-back"
+						hook="settings-back"
 						variant="ghost"
 						size="sm"
 						onclick={() => leave(() => (phoneView = 'nav'))}

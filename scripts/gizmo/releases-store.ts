@@ -71,16 +71,54 @@ export async function currentVersion(): Promise<string | null> {
 	return manifest?.version ?? basename(target);
 }
 
-/** Keeps `keep` newest releases plus whatever `current` points at. */
-export async function pruneReleases(keep = 2) {
+const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+/**
+ * Windows releases a stopped process's file handles a moment after it exits,
+ * and the indexer or a virus scanner can hold a directory open for longer
+ * than that, so the first `rm` after a restart often fails with `EBUSY` on a
+ * release that is seconds away from being deletable. A few short retries
+ * cover that window; anything still locked is left for the next update.
+ */
+async function removeRelease(path: string, attempts = 5) {
+	for (let attempt = 1; ; attempt++) {
+		try {
+			await rm(path, { recursive: true, force: true });
+			return;
+		} catch (error) {
+			if (attempt === attempts) throw error;
+			await sleep(attempt * 200);
+		}
+	}
+}
+
+export type PruneResult = {
+	removed: string[];
+	locked: { path: string; message: string }[];
+};
+
+/**
+ * Keeps `keep` newest releases plus whatever `current` points at. One locked
+ * directory must not strand the others, so each is removed on its own and
+ * failures are reported rather than thrown.
+ */
+export async function pruneReleases(keep = 2): Promise<PruneResult> {
 	const releases = await installedReleases();
 	const live = await currentTarget();
 	const doomed = releases
 		.slice(0, Math.max(0, releases.length - keep))
 		.map((version) => join(releasesDir(), version))
 		.filter((path) => path !== live);
-	for (const path of doomed) await rm(path, { recursive: true, force: true });
-	return doomed;
+	const result: PruneResult = { removed: [], locked: [] };
+	for (const path of doomed) {
+		try {
+			await removeRelease(path);
+			result.removed.push(path);
+		} catch (error) {
+			result.locked.push({ path, message: (error as Error).message });
+		}
+	}
+	return result;
 }
 
 /** The release below the running one: what `gizmo rollback` goes back to. */

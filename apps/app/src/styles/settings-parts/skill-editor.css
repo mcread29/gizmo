@@ -39,7 +39,7 @@
 	gap: var(--space-2);
 }
 
-[data-ui='skill-editor-back'] {
+button[data-ui='button'][data-part='skill-editor-back'] {
 	display: none;
 }
 
@@ -182,7 +182,7 @@
 		height: 100%;
 	}
 
-	[data-ui='skill-editor-back'] {
+	button[data-ui='button'][data-part='skill-editor-back'] {
 		display: inline-flex;
 	}
 

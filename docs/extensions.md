@@ -148,16 +148,22 @@ module graph from disk; that is what makes reload-in-place possible.
 
 ## Where extensions come from
 
-| Source                | Directory                                                   | Trust                                                               |
-| --------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------- |
-| Registry              | linked into `~/.gizmo/extensions/<id>`                      | Trusted; the user chose to link it.                                 |
-| Global user extension | `~/.gizmo/extensions/<name>/` or `<name>.ts`                | Trusted; Gizmo owns the directory.                                  |
-| Project-local         | explicit paths in `.gizmo/config.json` (`piExtensionPaths`) | Trusted; the user listed each path. Offered to that workspace only. |
+| Source                | Directory                                                   | Trust                                                             |
+| --------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| Registry              | linked into `~/.gizmo/extensions/<id>`                      | Trusted; the user chose to link it.                               |
+| Global user extension | `~/.gizmo/extensions/<name>/` or `<name>.ts`                | Trusted; Gizmo owns the directory.                                |
+| Workspace             | `<workspace>/.gizmo/extensions/<name>/` or `<name>.ts`      | Offered, not trusted: switched on per workspace before it loads.  |
+| Elsewhere on disk     | any other path in `.gizmo/config.json` (`piExtensionPaths`) | Trusted; the user typed the path. Offered to that workspace only. |
 
-Registry and global extensions are the global catalog. Project-local
-extensions are named explicitly in each project's Gizmo config — nothing is
-discovered from the workspace directory itself — rescanned at startup and on
-reload alongside the globals. A project extension never shadows a global id
+Registry and global extensions are the global catalog. A workspace's own
+extensions live in `.gizmo/extensions` beside its config, which the
+workspace's Extensions screen lists with a switch apiece. **Listing is not
+loading.** `piExtensionPaths` is the only thing the loader reads, and the
+switch is what puts an entry's path in it, so a freshly cloned repository
+runs none of the extensions it ships until someone here says so. A path
+inside the workspace is stored relative to its root, so a committed config
+survives a clone; anything outside is absolute. Both kinds are rescanned at
+startup and on reload alongside the globals, and neither shadows a global id
 (a clash is logged and the local one dropped).
 
 Enablement uses Gizmo's own enabled/disabled directories. A workspace

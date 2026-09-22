@@ -22,8 +22,17 @@ import {
 	ProjectCatalogStore,
 } from './project-catalog-store';
 import { withHidden, reordered } from './project-catalog-rows';
-import { ProjectConfigStore, withOverride } from './project-config-store';
+import {
+	extensionOverrides,
+	ProjectConfigStore,
+	withOverride,
+} from './project-config-store';
 import { ProjectIntegrationResolver } from './project-integration-resolver';
+import {
+	discoverWorkspaceExtensions,
+	resolveExtensionPaths,
+	storedExtensionPath,
+} from './workspace-extensions';
 import { listPiExtensions } from '../resources/pi-global-resources';
 
 /**
@@ -54,14 +63,15 @@ export class ProjectCatalog {
 	}
 
 	async detect(projectPath: string): Promise<ProjectDomains> {
-		await requireDirectory(projectPath);
+		const path = await requireDirectory(projectPath);
 		return {
-			domains: extensionsForWorkspace(projectPath).map(({ id, name }) => ({
+			domains: extensionsForWorkspace(path).map(({ id, name }) => ({
 				id,
 				name,
 				root: '.',
 			})),
-			config: await this.configFor(projectPath),
+			config: await this.configFor(path),
+			workspaceExtensions: await discoverWorkspaceExtensions(path),
 		};
 	}
 
@@ -177,16 +187,18 @@ export class ProjectCatalog {
 	}
 
 	/**
-	 * Replaces the project's explicit Pi extension paths. An empty list
-	 * clears them; listing a path opts the workspace into loading it.
+	 * Replaces the project's Pi extension paths. An empty list clears them;
+	 * listing a path opts the workspace into loading it, whether it was
+	 * discovered under `.gizmo/extensions` or typed in by hand.
 	 */
 	async setProjectExtensionPaths(
 		projectPath: string,
 		paths: readonly string[],
 	): Promise<ProjectConfig> {
+		const stored = paths.map((path) => storedExtensionPath(projectPath, path));
 		return this.#updateConfig(projectPath, (config) => {
 			const next = { ...config };
-			if (paths.length) next.piExtensionPaths = [...new Set(paths)].sort();
+			if (stored.length) next.piExtensionPaths = [...new Set(stored)].sort();
 			else delete next.piExtensionPaths;
 			return next;
 		});
@@ -213,9 +225,10 @@ export class ProjectCatalog {
 		return config.compaction ?? defaultCompactionPolicy;
 	}
 
-	/** Explicit Pi extension paths of one workspace. */
+	/** Absolute entry paths this workspace loads, in the order stored. */
 	async projectExtensionPathsFor(projectPath: string): Promise<string[]> {
-		return (await this.configFor(projectPath)).piExtensionPaths ?? [];
+		const config = await this.configFor(projectPath);
+		return resolveExtensionPaths(projectPath, config.piExtensionPaths ?? []);
 	}
 
 	/**
@@ -228,7 +241,7 @@ export class ProjectCatalog {
 	> {
 		const entries: { workspaceRoot: string; paths: string[] }[] = [];
 		for (const { path } of await this.#catalog.read()) {
-			const paths = (await this.configFor(path)).piExtensionPaths ?? [];
+			const paths = await this.projectExtensionPathsFor(path);
 			if (paths.length) entries.push({ workspaceRoot: path, paths });
 		}
 		return entries;
@@ -246,18 +259,7 @@ export class ProjectCatalog {
 	async piExtensionOverridesFor(
 		path: string,
 	): Promise<{ disabled: string[]; enabled: string[] }> {
-		const config = await this.configFor(path);
-		const rows = [
-			...new Map(
-				[...(config.gizmoExtensions ?? []), ...(config.piExtensions ?? [])].map(
-					(row) => [row.id, row],
-				),
-			).values(),
-		];
-		return {
-			disabled: rows.filter((row) => !row.enabled).map(({ id }) => id),
-			enabled: rows.filter((row) => row.enabled).map(({ id }) => id),
-		};
+		return extensionOverrides(await this.configFor(path));
 	}
 
 	async configFor(projectPath: string): Promise<ProjectConfig> {

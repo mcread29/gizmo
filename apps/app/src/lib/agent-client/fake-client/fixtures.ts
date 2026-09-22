@@ -31,6 +31,12 @@ export const fakeDomains = [
 	{ id: 'skill-authoring', name: 'Skill Authoring', root: '.' },
 ];
 
+/** What the demo workspace keeps in its own `.gizmo/extensions` folder. */
+export const fakeWorkspaceExtensions = [
+	{ id: 'build-pipeline', path: '.gizmo/extensions/build-pipeline' },
+	{ id: 'scene-notes.ts', path: '.gizmo/extensions/scene-notes.ts' },
+];
+
 export function createFakeProjects(): StoredProject[] {
 	return [
 		{

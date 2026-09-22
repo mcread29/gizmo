@@ -1,5 +1,133 @@
 # Work log
 
+## 2026-09-22 — Review fixes before v0.2.2
+
+- Workspace extension paths are stored `/`-separated. Discovery and
+  `storedExtensionPath` used the platform separator, so a config committed
+  from Windows held `.gizmo\extensions\foo`: on Linux that path did not
+  load, and failing validation made every later write to the workspace's
+  config throw. The other way round, a Linux-written entry never matched
+  the Windows listing, so its switch read off and the row showed up again
+  under "Extensions from elsewhere". Configs are normalised on read, so
+  one already written with backslashes works as is.
+- A symlink in `.gizmo/extensions` is offered only when what it points at
+  is a folder or a script; a link to a README, or to nothing, is skipped.
+- `running.json` (and the older `web.pid`) no longer blocks a start after
+  a reboot or crash. A record written before the machine last booted is
+  ignored, since its pid may now belong to anything, and `gizmo run`
+  handles SIGTERM/SIGINT so a service-manager stop clears the record and
+  ends the children instead of skipping the `finally`.
+- `service start`/`restart` from a checkout expect `source`, not the
+  release a leftover `current` link names, so they no longer time out
+  waiting for the wrong version.
+- `update` no longer says "an older release is still serving" when
+  nothing is running.
+- `Button` takes a `hook` prop, rendered as `data-part`, for call-site
+  styling hooks: its own `data-ui="button"` overwrote any `data-ui` passed
+  in. The settings back button, the skill editor's back button, the Tree
+  trigger and the composer's Stop now use it, so their rules apply for the
+  first time — the skill editor's back button is hidden off phones, Tree
+  takes its muted and accent colours, Stop gets its own sizing.
+
+## 2026-09-22 — Display cards fold like every other tool call
+
+- A tool result carrying a `gizmoDisplay` envelope was rendered outside the
+  `<details>` that its header opens, so the header toggled nothing and the
+  card could not be folded away at all. A tool that asks a question, or any
+  extension that draws its own result, therefore sat in the transcript at
+  full height forever. The card now lives in `tool-content`, where the
+  header, and a thread-wide collapse, reach it.
+- It still opens by itself, running or finished: the drawn card is the
+  result rather than a dump of one, and nothing about it is worth hiding by
+  default. What changed is only that closing it is now possible, and that
+  choice sticks the same way pinning a normal call open does.
+- `DisplayResult` dropped its own padding; it is inset by the content box
+  around it now, and keeping both inset it twice.
+
+## 2026-09-22 — Workspace extensions live in `.gizmo/extensions/`
+
+- A workspace can keep its own Pi extensions in `.gizmo/extensions/`: a
+  folder with an `index.ts`, or a lone `.ts` file. `project.detect` reports
+  what is there as `workspaceExtensions`, so the screen no longer depends
+  on somebody typing an absolute path to find code that is sitting inside
+  the repo it belongs to.
+- Listing is not loading. Discovery only offers an entry; `piExtensionPaths`
+  is still the one thing the loader reads, and the switch on each row is
+  what puts the entry's path in it. A clone that ships an extensions folder
+  therefore runs nothing until this machine says so, which is the property
+  the absolute-path list had and the reason it is kept.
+- Paths inside the workspace are stored relative to its root. `.gizmo/config.json`
+  is committed, so an absolute path there was worth nothing on a second
+  clone or a second machine; `projectExtensionPathsFor` resolves to absolute
+  on the way out. `validateConfig` accepts a relative entry and stats it
+  against the workspace root instead of rejecting it.
+- The arbitrary-path list is still available, folded into an "Extensions
+  from elsewhere" disclosure below the found ones, open when it has entries.
+  Existing configs keep working untouched, and a stale entry whose folder
+  is gone still shows up there to be removed.
+- Its rows had been borrowing `integration-row`, whose three columns are
+  built for switch/label/button — the input landed in the `auto` column and
+  "Add" stretched across the `1fr`. `path-row` and `path-add` are their own
+  two-column grid.
+- Protocol v35.
+
+## 2026-09-22 — Settings header on the Skills page
+
+- The Agent resources sub-nav collapsed to a hairline on the Skills page.
+  `[data-page='skills']` laid its content out with
+  `grid-template-rows: auto minmax(0, 1fr)`, which only holds when the
+  sub-nav and the workbench are the only two children. A third child put
+  the sub-nav in the `1fr` row, the workbench in an implicit `auto` row
+  below it, and the free space the sub-nav got was nothing. The page is a
+  flex column now: everything above the workbench is auto-height and the
+  workbench takes what is left, whatever the child count.
+- The third child was the phone-only "All settings" back button, showing
+  on every window. `Button` writes its own `data-ui="button"` after the
+  rest props, so the `data-ui="settings-back"` the call site passed never
+  reached the DOM and `[data-ui='settings-back'] { display: none }` matched
+  nothing. The hook moved to a wrapper element. Three other call sites
+  (`skill-editor-back`, `tree-trigger`, `composer-stop`) pass a `data-ui`
+  to `Button` and lose it the same way; their rules are dead too, and are
+  left for a fix to the component.
+- The Skills page's shell rules moved from `settings-parts/layout.css` to
+  `settings-parts/skills-library.css`, beside the workbench they size.
+
+## 2026-09-22 — `gizmo update` tracks the release that is actually serving
+
+- `gizmo update` reported `Already on v0.2.1` on a machine that was still
+  serving an older release, and kept reporting it: the check compared the
+  requested version against the `current` link, which is moved _before_
+  the restart. One restart that silently failed therefore left the link on
+  the new release, the old server on the ports, and every later `update` a
+  no-op. There was no way back short of editing the link by hand.
+- `gizmo run` now writes `~/.gizmo/running.json` — pid, release, root and
+  start time — so `current` says what should be serving and this says what
+  is. `gizmo status` prints it.
+- `update` compares against that record: same version running, same no-op
+  as before; link ahead of the server, and it skips the download and goes
+  straight to the restart that did not happen.
+- `waitUntilHealthy` takes the version it expects and requires the server
+  answering to be that one. An open port proved only that _a_ server held
+  it, which is how a failed restart could still print `Up.`; a mismatch now
+  reports which release is really serving and what to do about it.
+- A start refuses when the recorded pid is still alive rather than
+  overwriting its record — a clobbered record left the live server
+  unreachable by `service stop`, which is how the stops came to fail in the
+  first place. `service stop` clears the record on every platform.
+
+## 2026-09-22 — Pruning old releases survives a locked directory
+
+- `gizmo update` on Windows ended by reporting EBUSY on the stale
+  `v0.1.9` directory. Two problems: the prune threw on the first locked
+  directory, so every other stale release was stranded behind it, and it
+  gave up immediately even though Windows frees the just-stopped server's
+  handles a moment later. `pruneReleases` now deletes each release on its
+  own, retries a locked one five times with a short backoff, and returns
+  `{ removed, locked }` so the CLI names what it kept and why.
+- `run()` no longer passes `args` alongside `shell: true`; it builds the
+  quoted command line itself, which silences Node's DEP0190 warning that
+  printed in the middle of every update.
+
 ## 2026-09-22 — Compaction policy belongs to the workspace
 
 - The auto-compaction policy (on/off, compact-at, retain) moved from the

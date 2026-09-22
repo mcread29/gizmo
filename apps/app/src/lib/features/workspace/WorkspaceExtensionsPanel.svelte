@@ -5,6 +5,7 @@
 	import GizmoExtensionOverridesSection from './configure/GizmoExtensionOverridesSection.svelte';
 	import PiExtensionOverridesSection from './configure/PiExtensionOverridesSection.svelte';
 	import ProjectExtensionPathsSection from './configure/ProjectExtensionPathsSection.svelte';
+	import WorkspaceExtensionsSection from './configure/WorkspaceExtensionsSection.svelte';
 	import type { WorkspaceConfiguration } from './workspace-config.svelte';
 
 	interface Props {
@@ -49,10 +50,21 @@
 	onReapply={(work) => void configuration.reapply(work)}
 />
 
+<WorkspaceExtensionsSection
+	{store}
+	{workspacePath}
+	{config}
+	found={configuration.workspaceExtensions}
+	onReapply={(work) => void configuration.reapply(work)}
+	onRescan={() =>
+		configuration.refreshWorkspaceExtensions(store, workspacePath)}
+/>
+
 <ProjectExtensionPathsSection
 	{store}
 	{workspacePath}
 	{config}
+	found={configuration.workspaceExtensions}
 	onReapply={(work) => void configuration.reapply(work)}
 />
 

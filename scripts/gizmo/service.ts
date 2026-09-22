@@ -6,7 +6,9 @@ import {
 	stopService,
 	uninstallService,
 } from './service-platform';
-import { webConfigFile } from './paths';
+import { appRoot, serviceRoot, webConfigFile } from './paths';
+import { currentVersion } from './releases-store';
+import { runningVersion, treeVersion } from './running';
 
 /** A restart is a stop and a start; no platform needs anything cleverer. */
 export function restartService() {
@@ -22,31 +24,67 @@ const delay = (milliseconds: number) =>
 	new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 /**
+ * What a restart should bring up, decided the way `service install` decides
+ * what to register: a release install runs whatever `current` names, and a
+ * checkout runs itself, even when a `current` link left over from an earlier
+ * release install points somewhere else.
+ */
+export async function expectedVersion(root = appRoot): Promise<string> {
+	if (serviceRoot(root) === root) return treeVersion(root);
+	return (await currentVersion()) ?? 'source';
+}
+
+/**
  * A restart takes up to two minutes on a machine with many extensions, so
  * the caller waits on the ports rather than reporting success at spawn time.
+ *
+ * An open port is not enough on its own. A stop that missed leaves the old
+ * server holding both ports, the new one exits because it cannot bind, and
+ * every probe here answers immediately — which is how an update could report
+ * `Up.` and go on serving the release it had just replaced. So the server
+ * that answers must also say it is `expect`.
  */
-export async function waitUntilHealthy(timeoutMilliseconds = 150_000) {
+export async function waitUntilHealthy(
+	expect?: string,
+	timeoutMilliseconds = 150_000,
+) {
 	const config = await effectiveConfig();
 	const web = probeHost(config);
 	const deadline = Date.now() + timeoutMilliseconds;
+	let portsUp = false;
 	process.stdout.write('Waiting for the server');
 	while (Date.now() < deadline) {
 		const [agent, app] = await Promise.all([
 			isListening(config.agentPort, '127.0.0.1'),
 			isListening(config.webPort, web),
 		]);
-		if (agent && app) {
+		portsUp = agent && app;
+		if (portsUp && (!expect || runningVersion() === expect)) {
 			console.log('\nUp.');
 			return true;
 		}
 		process.stdout.write('.');
 		await delay(2_000);
 	}
+	reportUnhealthy(portsUp, expect);
+	process.exitCode = 1;
+	return false;
+}
+
+function reportUnhealthy(portsUp: boolean, expect?: string) {
+	const live = runningVersion();
+	if (portsUp && expect) {
+		console.log(
+			`\nThe ports answer, but ${live ?? 'the process holding them'} is ` +
+				`serving, not ${expect}: the restart did not replace it.\n` +
+				'Run `gizmo service stop`, check `gizmo status`, then ' +
+				'`gizmo service start`.',
+		);
+		return;
+	}
 	console.log(
 		'\nStill not listening. Check the log, then `gizmo service status`.',
 	);
-	process.exitCode = 1;
-	return false;
 }
 
 const usage =
@@ -72,7 +110,7 @@ export async function serviceCommand(argv: readonly string[]) {
 	}
 	if (verb === 'start') {
 		startService();
-		await waitUntilHealthy();
+		await waitUntilHealthy(await expectedVersion());
 		return;
 	}
 	if (verb === 'stop') {
@@ -82,7 +120,7 @@ export async function serviceCommand(argv: readonly string[]) {
 	}
 	if (verb === 'restart') {
 		restartService();
-		await waitUntilHealthy();
+		await waitUntilHealthy(await expectedVersion());
 		return;
 	}
 	if (verb === 'status') {

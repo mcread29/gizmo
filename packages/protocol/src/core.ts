@@ -23,7 +23,7 @@ import { Type, type Static } from 'typebox';
  * `project.compaction.changed`). `session.prompt` and `session.compact` no
  * longer carry one; the server applies the thread's workspace policy.
  */
-export const protocolVersion = 34 as const;
+export const protocolVersion = 35 as const;
 
 const sessionTitleLimit = 48;
 

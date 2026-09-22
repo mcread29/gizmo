@@ -54,10 +54,11 @@
 </div>
 
 <style>
+	/* The card sits inside the tool call's content, which supplies the
+	   padding; adding its own would inset it twice. */
 	div {
 		display: grid;
 		gap: var(--space-3);
-		padding: var(--space-3);
 		font-size: var(--text-sm);
 		line-height: 1.5;
 	}

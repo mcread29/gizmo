@@ -83,6 +83,13 @@ and keep the ports, so the next start fails while the old code carries on
 serving. `gizmo run` records its pid in `~/.gizmo/web.pid` and `service stop`
 ends that whole tree.
 
+`gizmo run` also writes `~/.gizmo/running.json` — the pid, and the release it
+booted from. `current` says which release _should_ be serving; only this says
+which one is. `gizmo status` prints it, `service start`/`restart` and `update`
+wait for it to match the release they installed rather than settling for an
+open port, and a start refuses outright when the recorded pid is still alive,
+since it would only lose the ports and strand the server holding them.
+
 The task points at `~/.gizmo/app/current`, not at one release folder, so
 `gizmo update` and `gizmo rollback` take effect on the next restart without
 re-registering anything. An update started from Settings → About relies on
@@ -98,6 +105,12 @@ gizmo service restart
 Give it up to two minutes: it waits for both health ports before reporting
 healthy, and the agent server's extensions take a while to load. `gizmo status`
 answers the same question at any time.
+
+If it reports that the ports answer but the wrong release is serving, the stop
+missed: something is holding the ports outside the supervisor's reach. Run
+`gizmo service stop`, confirm with `gizmo status` that both ports are down —
+ending the stray node tree by hand if they are not — then `gizmo service
+start`.
 
 ## Do not start it by hand
 

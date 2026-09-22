@@ -60,7 +60,7 @@ describe('ProjectCatalog overrides', () => {
 		).rejects.toThrow('not registered');
 	});
 
-	it('stores explicit per-project extension paths and reports them back', async () => {
+	it('stores a path inside the workspace relative, and reports it back absolute', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');
 		const extension = join(project, 'tools', 'helper.ts');
@@ -74,11 +74,12 @@ describe('ProjectCatalog overrides', () => {
 		expect(await catalog.projectExtensionPathsFor(project)).toEqual([
 			extension,
 		]);
+		// Stored relative, so a committed config still works after a clone.
 		expect(
 			JSON.parse(
 				await readFile(join(project, '.gizmo', 'config.json'), 'utf8'),
 			),
-		).toMatchObject({ piExtensionPaths: [extension] });
+		).toMatchObject({ piExtensionPaths: [join('tools', 'helper.ts')] });
 		expect(await catalog.projectExtensionPaths()).toEqual([
 			{ workspaceRoot: project, paths: [extension] },
 		]);
@@ -89,15 +90,36 @@ describe('ProjectCatalog overrides', () => {
 		expect(await catalog.projectExtensionPaths()).toEqual([]);
 	});
 
-	it('refuses extension paths that are relative or missing', async () => {
+	it('takes a workspace-relative path and keeps an outside one absolute', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		const outside = await temporary('gizmo-elsewhere-');
+		const shared = join(outside, 'shared.ts');
+		await mkdir(join(project, 'tools'), { recursive: true });
+		await writeFile(join(project, 'tools', 'helper.ts'), 'export {};');
+		await writeFile(shared, 'export {};');
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project);
+
+		await catalog.setProjectExtensionPaths(project, [
+			join('tools', 'helper.ts'),
+			shared,
+		]);
+		expect(await catalog.projectExtensionPathsFor(project)).toEqual([
+			shared,
+			join(project, 'tools', 'helper.ts'),
+		]);
+	});
+
+	it('refuses an extension path that is not there', async () => {
 		const data = await temporary('gizmo-data-');
 		const project = await temporary('gizmo-project-');
 		const catalog = new ProjectCatalog(data);
 		await catalog.add(project);
 
 		await expect(
-			catalog.setProjectExtensionPaths(project, ['relative/ext.ts']),
-		).rejects.toThrow('must be absolute');
+			catalog.setProjectExtensionPaths(project, ['missing/ext.ts']),
+		).rejects.toThrow('does not exist');
 		await expect(
 			catalog.setProjectExtensionPaths(project, [join(project, 'missing.ts')]),
 		).rejects.toThrow('does not exist');

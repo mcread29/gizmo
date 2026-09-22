@@ -94,10 +94,13 @@
 			: (errorExcerpt ?? summary ?? tool.statusText),
 	);
 
+	// A running call is open so its progress is visible, and a card a tool
+	// described for itself opens too: it is the result, not a dump of one.
+	// Either way the header still collapses it, and the choice then sticks.
 	$effect(() => {
-		active;
+		const wanted = active || Boolean(display);
 		if (pinned) return;
-		open = active;
+		open = wanted;
 	});
 
 	// An explicit collapse overrides whatever the user had pinned open. The
@@ -183,21 +186,22 @@
 		{/if}
 	</summary>
 
-	{#if open && !display}
+	{#if open}
 		<div data-ui="tool-content">
-			<ToolResult {tool} {projectPath} />
+			{#if display}
+				<DisplayResult {display} {projectPath} />
+			{:else}
+				<ToolResult {tool} {projectPath} />
 
-			{#if resultText}
-				<div data-ui="tool-actions">
-					<Button variant="ghost" size="sm" onclick={copyResult}>
-						{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy output{/if}
-					</Button>
-				</div>
+				{#if resultText}
+					<div data-ui="tool-actions">
+						<Button variant="ghost" size="sm" onclick={copyResult}>
+							{#if copied}<Check size={13} /> Copied{:else}<Copy size={13} /> Copy
+								output{/if}
+						</Button>
+					</div>
+				{/if}
 			{/if}
 		</div>
 	{/if}
 </details>
-
-{#if display}
-	<DisplayResult {display} {projectPath} />
-{/if}

@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import {
+	chmod,
+	mkdir,
+	mkdtemp,
+	readdir,
+	rm,
+	writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -102,6 +109,34 @@ describe('pruneReleases', () => {
 		expect(kept).toContain('v0.1.0');
 		expect(await currentVersion()).toBe('v0.1.0');
 	});
+
+	// Windows keeps the just-stopped release locked for a moment; the other
+	// stale releases still have to go, and the locked one is reported.
+	it.skipIf(process.platform === 'win32')(
+		'reports a locked release without stranding the rest',
+		async () => {
+			for (const version of ['v0.1.0', 'v0.2.0', 'v0.3.0', 'v0.4.0']) {
+				await release(version);
+			}
+			await pointCurrent(join(releasesDir(), 'v0.4.0'));
+			const locked = join(releasesDir(), 'v0.1.0');
+			await chmod(locked, 0o500);
+
+			try {
+				const result = await pruneReleases();
+
+				expect(result.removed).toEqual([join(releasesDir(), 'v0.2.0')]);
+				expect(result.locked.map((entry) => entry.path)).toEqual([locked]);
+				expect(await installedReleases()).toEqual([
+					'v0.1.0',
+					'v0.3.0',
+					'v0.4.0',
+				]);
+			} finally {
+				await chmod(locked, 0o700);
+			}
+		},
+	);
 });
 
 describe('previousRelease', () => {

@@ -3,7 +3,7 @@ import {
 	defaultCompactionPolicy,
 	type ProjectConfig,
 } from '@gizmo/protocol';
-import { fakeDomains, fakeStatus } from './fixtures';
+import { fakeDomains, fakeStatus, fakeWorkspaceExtensions } from './fixtures';
 import type { FakeClientState } from './state';
 
 export class FakeProjectCapability {
@@ -19,6 +19,7 @@ export class FakeProjectCapability {
 		return {
 			domains: fakeDomains,
 			config: this.config(projectPath),
+			workspaceExtensions: fakeWorkspaceExtensions,
 		};
 	}
 

@@ -79,7 +79,7 @@
 						type="button"
 						variant="danger"
 						size="sm"
-						data-ui="composer-stop"
+						hook="composer-stop"
 						aria-label="Stop response"
 						onclick={() => store.abort()}
 					>

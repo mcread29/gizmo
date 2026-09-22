@@ -159,7 +159,7 @@
 				>
 			{/if}
 			<Button
-				data-ui="tree-trigger"
+				hook="tree-trigger"
 				variant="ghost"
 				size="sm"
 				title="Browse alternate paths"

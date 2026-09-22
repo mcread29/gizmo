@@ -45,12 +45,12 @@ function tool(overrides: Partial<ToolCallView> = {}): ToolCallView {
 }
 
 describe('inline display tools', () => {
-	it('renders every catalog component outside collapsed details', () => {
+	it('renders every catalog component inside the open card', () => {
 		const { container } = render(ToolCallCard, { tool: tool() });
-		expect(container.querySelector('details')).not.toHaveAttribute('open');
+		expect(container.querySelector('details')).toHaveAttribute('open');
 		expect(
 			container.querySelector('[data-ui="display-result"]')?.closest('details'),
-		).toBeNull();
+		).toBe(container.querySelector('details'));
 		expect(
 			screen.getByRole('heading', { name: 'Overview', level: 1 }),
 		).toBeVisible();
@@ -65,19 +65,11 @@ describe('inline display tools', () => {
 		expect(container.textContent).not.toContain('DO NOT DUMP');
 	});
 
-	it('keeps partial output visible while running, collapsed, and after completion', async () => {
+	it('keeps partial output visible while running and after completion', async () => {
 		const { container, rerender } = render(ToolCallCard, {
 			tool: tool({ status: 'running', statusText: 'Waiting for input' }),
 			active: true,
-			collapseToken: 1,
 		});
-		expect(screen.getByText('Plain content')).toBeVisible();
-		await rerender({
-			tool: tool({ status: 'running', statusText: 'Waiting for input' }),
-			active: true,
-			collapseToken: 2,
-		});
-		expect(container.querySelector('details')).not.toHaveAttribute('open');
 		expect(screen.getByText('Plain content')).toBeVisible();
 		await rerender({
 			tool: tool({
@@ -85,10 +77,30 @@ describe('inline display tools', () => {
 			}),
 			active: false,
 		});
+		expect(container.querySelector('details')).toHaveAttribute('open');
 		expect(screen.getByText('Plain content')).toBeVisible();
 		expect(
 			container.querySelectorAll('[data-ui="display-result"]'),
 		).toHaveLength(1);
+	});
+
+	it('folds away on the header, and on a thread-wide collapse', async () => {
+		const { container, rerender } = render(ToolCallCard, {
+			tool: tool(),
+			collapseToken: 1,
+		});
+		await fireEvent.click(container.querySelector('summary')!);
+		expect(container.querySelector('details')).not.toHaveAttribute('open');
+		expect(container.querySelector('[data-ui="display-result"]')).toBeNull();
+
+		await fireEvent.click(container.querySelector('summary')!);
+		expect(
+			container.querySelector('[data-ui="display-result"]'),
+		).not.toBeNull();
+
+		await rerender({ tool: tool(), collapseToken: 2 });
+		expect(container.querySelector('details')).not.toHaveAttribute('open');
+		expect(container.querySelector('[data-ui="display-result"]')).toBeNull();
 	});
 
 	it.each([1, 2, 3] as const)('uses heading level %s', (level) => {

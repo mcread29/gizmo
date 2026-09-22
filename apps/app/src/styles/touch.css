@@ -228,10 +228,10 @@
 	padding: var(--space-3);
 }
 
-[data-phone='true'] [data-ui='settings-back'] {
+[data-phone='true'] button[data-ui='button'][data-part='settings-back'] {
 	display: inline-flex;
 }
 
-[data-ui='settings-back'] {
+button[data-ui='button'][data-part='settings-back'] {
 	display: none;
 }

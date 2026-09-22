@@ -25,14 +25,18 @@ import {
 } from './releases-store';
 import { pnpmEnvironment, pnpmExecutable } from './pnpm';
 import { restartService, waitUntilHealthy } from './service';
+import { runningVersion } from './running';
 import { uninstallService } from './service-platform';
 
 const shell = process.platform === 'win32';
 
 function run(command: string, args: string[], cwd: string) {
 	// Through a shell the command is not quoted for us, and a Windows Node
-	// (and so its pnpm shim) often lives under `Program Files`.
-	const result = spawnSync(shell ? `"${command}"` : command, args, {
+	// (and so its pnpm shim) often lives under `Program Files`. Node warns
+	// (DEP0190) when `args` are passed alongside `shell`, since it only
+	// concatenates them, so we do the concatenation and the quoting here.
+	const line = [`"${command}"`, ...args.map((arg) => `"${arg}"`)].join(' ');
+	const result = spawnSync(shell ? line : command, shell ? [] : args, {
 		cwd,
 		stdio: 'inherit',
 		shell,
@@ -105,13 +109,13 @@ export async function installRelease(requested?: string): Promise<string> {
  * update gets it.
  */
 async function pruneOldReleases() {
-	try {
-		for (const path of await pruneReleases())
-			console.log(`Removed old release ${path}`);
-	} catch (error) {
-		console.log(
-			`Could not remove an old release yet: ${(error as Error).message}`,
-		);
+	const { removed, locked } = await pruneReleases();
+	for (const path of removed) console.log(`Removed old release ${path}`);
+	for (const { path, message } of locked) {
+		console.log(`Could not remove ${path} yet (${message}).`);
+	}
+	if (locked.length) {
+		console.log('The next update will try again, or delete it by hand.');
 	}
 }
 
@@ -132,6 +136,8 @@ export async function updateCommand(
 	requested?: string,
 	{ restart = true, root = appRoot }: { restart?: boolean; root?: string } = {},
 ) {
+	let target: string;
+	let installed = true;
 	if (await isSourceInstall(root)) {
 		if (requested) {
 			throw new Error(
@@ -139,29 +145,60 @@ export async function updateCommand(
 			);
 		}
 		updateSourceCheckout(root);
+		target = 'source';
 	} else {
-		// Deciding this before anything is downloaded keeps a second `update`
-		// a no-op. Reinstalling the live release cannot work, and restarting a
-		// server that is already on the right version only drops the devices
-		// connected to it.
-		const version = requested ?? (await latestReleaseTag());
-		if (version === (await currentVersion())) {
-			console.log(
-				`Already on ${version}. ` +
-					'Run `gizmo service restart` if you meant to restart it.',
-			);
-			return;
-		}
-		await installRelease(version);
+		target = requested ?? (await latestReleaseTag());
+		const plan = await planFor(target);
+		if (plan === 'nothing') return;
+		installed = plan === 'install';
+		if (installed) await installRelease(target);
 	}
 	if (!restart) {
 		await pruneOldReleases();
-		console.log('Installed. Restart the service to run it.');
+		console.log(
+			installed
+				? 'Installed. Restart the service to run it.'
+				: `${target} is ready. Restart the service to run it.`,
+		);
 		return;
 	}
 	restartService();
-	await waitUntilHealthy();
+	await waitUntilHealthy(target);
 	await pruneOldReleases();
+}
+
+/**
+ * Deciding this before anything is downloaded keeps a second `update` cheap:
+ * reinstalling the live release cannot work, and restarting a server that is
+ * already on the right version only drops the devices connected to it.
+ *
+ * `current` is not the test, though. It is moved before the restart, so an
+ * update whose restart failed leaves the link on the new release and the old
+ * server still serving — and `update` would then keep answering "Already on
+ * X" while X was nowhere near the browser. When the link and the running
+ * server disagree, there is nothing to install but everything still to
+ * restart, so this falls through with the download skipped.
+ */
+async function planFor(
+	version: string,
+): Promise<'install' | 'restart' | 'nothing'> {
+	if (version !== (await currentVersion())) return 'install';
+	const live = runningVersion();
+	if (live === version) {
+		console.log(
+			`Already on ${version}. ` +
+				'Run `gizmo service restart` if you meant to restart it.',
+		);
+		return 'nothing';
+	}
+	console.log(
+		live
+			? `${version} is installed, but ${live} is still serving. ` +
+					'Restarting to finish the update.'
+			: `${version} is installed, but nothing recorded is serving it. ` +
+					'Restarting to bring it up.',
+	);
+	return 'restart';
 }
 
 export async function rollbackCommand() {
@@ -170,7 +207,7 @@ export async function rollbackCommand() {
 	await pointCurrent(join(releasesDir(), target));
 	console.log(`current -> ${join(releasesDir(), target)}`);
 	restartService();
-	await waitUntilHealthy();
+	await waitUntilHealthy(target);
 }
 
 export async function listCommand() {

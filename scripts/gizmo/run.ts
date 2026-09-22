@@ -1,4 +1,4 @@
-import { closeSync, openSync, rmSync, writeFileSync } from 'node:fs';
+import { closeSync, openSync } from 'node:fs';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { appendFile, mkdir } from 'node:fs/promises';
@@ -15,7 +15,8 @@ import {
 	originsOf,
 	type WebConfig,
 } from './config';
-import { appRoot, webLogFile, webPidFile } from './paths';
+import { appRoot, webLogFile } from './paths';
+import { clearRunningServer, recordRunningServer } from './running';
 import { tailnetNode } from './tailscale';
 
 /**
@@ -63,11 +64,32 @@ export async function runServer(config: WebConfig, options: RunOptions = {}) {
 			`hosts ${hosts.join(',')}\norigins ${origins.join(',')}\n`,
 	);
 
-	const logDescriptor = openSync(logFile, 'a');
 	// Task Scheduler's End only reaches the launched process. Recording the
 	// pid lets `gizmo service stop` end the whole tree instead of leaving the
-	// old server holding the ports behind a "restarted" one.
-	writeFileSync(webPidFile(), String(process.pid));
+	// old server holding the ports behind a "restarted" one, and recording the
+	// release lets `update` see which one is actually serving. Refusing to
+	// start behind a live server is the point: taking the record from it would
+	// strand it, and the ports are already gone anyway.
+	try {
+		await recordRunningServer(root);
+	} catch (error) {
+		await appendFile(logFile, `${(error as Error).message}\n`);
+		throw error;
+	}
+
+	// A service manager stops the service with SIGTERM, which by default ends
+	// Node without running the `finally` below: the children are orphaned and
+	// the record outlives the server it describes.
+	const children: ChildProcess[] = [];
+	const onSignal = () => {
+		for (const child of children) stopProcessTree(child.pid);
+		clearRunningServer();
+		process.exit(0);
+	};
+	process.once('SIGTERM', onSignal);
+	process.once('SIGINT', onSignal);
+
+	const logDescriptor = openSync(logFile, 'a');
 	const requireFromApp = createRequire(
 		join(root, 'apps', 'app', 'package.json'),
 	);
@@ -96,7 +118,6 @@ export async function runServer(config: WebConfig, options: RunOptions = {}) {
 			},
 		);
 
-	const children: ChildProcess[] = [];
 	try {
 		// Bring up the WebSocket backend before exposing the web server, so the
 		// first page load does not race the extension integrations still loading.
@@ -143,7 +164,9 @@ export async function runServer(config: WebConfig, options: RunOptions = {}) {
 
 		return await firstExit(children, logFile);
 	} finally {
+		process.off('SIGTERM', onSignal);
+		process.off('SIGINT', onSignal);
 		for (const child of children) stopProcessTree(child.pid);
-		rmSync(webPidFile(), { force: true });
+		clearRunningServer();
 	}
 }

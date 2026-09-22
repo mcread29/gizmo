@@ -1,6 +1,7 @@
 import { connect } from 'node:net';
 import { bindAddress, isTailnetAddress, type WebConfig } from './config';
 import { currentPlatform, restartCommand } from './service-platform';
+import { runningServer } from './running';
 
 /** Whether something is listening, which is the only local status worth reporting. */
 export function isListening(
@@ -52,6 +53,26 @@ async function probeUrl(url: string) {
 }
 
 /**
+ * Which release is behind those ports. `gizmo version` answers for the tree
+ * the CLI itself was launched from, which after an update is the new one
+ * whether or not the restart took; this answers for the live server.
+ */
+function reportServingRelease(healthy: boolean) {
+	const running = runningServer();
+	if (running) {
+		console.log(`\nserving ${running.version}  pid ${String(running.pid)}`);
+		return;
+	}
+	if (healthy) {
+		console.log(
+			'\nSomething is serving these ports without recording which release\n' +
+				'it is — most likely a server older than this one. `gizmo service\n' +
+				'restart` will replace it.',
+		);
+	}
+}
+
+/**
  * Asks the ports and then the URLs. The supervisor is never consulted: a
  * lapsed certificate or a missing DNS record shows up here as an unreachable
  * URL rather than as a page that loads and never connects.
@@ -74,6 +95,7 @@ export async function reportStatus(config: WebConfig): Promise<void> {
 		);
 	}
 	const healthy = results.every((result) => result.up);
+	reportServingRelease(healthy);
 	if (config.urls.length) {
 		console.log('');
 		for (const line of await Promise.all(config.urls.map(probeUrl))) {

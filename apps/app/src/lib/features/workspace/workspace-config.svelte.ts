@@ -2,6 +2,7 @@ import type {
 	DigestScope,
 	ProjectConfig,
 	ProjectDomains,
+	WorkspaceExtension,
 } from '@gizmo/protocol';
 import type { AgentStore } from '../../agent-client';
 
@@ -23,6 +24,12 @@ export class WorkspaceConfiguration {
 	memory = $state<DigestScope>();
 	/** Gizmo domains from the retired profile system, kept for old installs. */
 	domains = $state<ProjectDomains['domains']>([]);
+	/**
+	 * What the workspace's own `.gizmo/extensions` folder holds. Read with
+	 * the config rather than watched: a folder appears when someone adds
+	 * one, and Rescan is the cheaper answer than a watcher per workspace.
+	 */
+	workspaceExtensions = $state<WorkspaceExtension[]>([]);
 	error = $state<string>();
 	busyExtension = $state<string>();
 
@@ -43,10 +50,11 @@ export class WorkspaceConfiguration {
 		void store.refreshToolPolicy(workspacePath);
 		void store
 			.detectProject(workspacePath)
-			.then(({ domains, config }) => {
+			.then(({ domains, config, workspaceExtensions }) => {
 				if (!current) return;
 				this.domains = domains;
 				this.config = config ?? { version: 1 };
+				this.workspaceExtensions = workspaceExtensions;
 			})
 			.catch((cause) => {
 				if (current) this.error = message(cause);
@@ -54,6 +62,18 @@ export class WorkspaceConfiguration {
 		return () => {
 			current = false;
 		};
+	}
+
+	/** Re-reads the extensions folder after someone adds one to it. */
+	refreshWorkspaceExtensions(store: AgentStore, workspacePath: string): void {
+		void store
+			.detectProject(workspacePath)
+			.then(({ workspaceExtensions }) => {
+				this.workspaceExtensions = workspaceExtensions;
+			})
+			.catch((cause) => {
+				this.error = message(cause);
+			});
 	}
 
 	/** Re-reads the memory override after the Memory tab writes one. */

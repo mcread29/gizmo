@@ -33,9 +33,12 @@ export const projectConfigSchema = Type.Object(
 		/** Overrides of each skill's global enablement. */
 		skills: Type.Optional(Type.Array(projectSkillSchema)),
 		/**
-		 * Explicit Pi extension entry paths (files or directories) loaded
-		 * only for this workspace's sessions. Listing a path is the opt-in;
-		 * nothing is discovered from the workspace directory itself.
+		 * Pi extension entry paths (files or directories) loaded only for
+		 * this workspace's sessions. Listing a path is the opt-in: Gizmo
+		 * offers what it finds in `.gizmo/extensions`, but loads nothing
+		 * until it appears here. A path inside the workspace is stored
+		 * relative to its root, so a committed config travels with the
+		 * repository; anything else is absolute.
 		 */
 		piExtensionPaths: Type.Optional(
 			Type.Array(Type.String({ minLength: 1, maxLength: 1024 })),
@@ -72,6 +75,19 @@ export type StoredProject = Static<typeof storedProjectSchema>;
 
 export type ProjectSkill = Static<typeof projectSkillSchema>;
 
+/** One entry of a workspace's own `.gizmo/extensions` directory. */
+export const workspaceExtensionSchema = Type.Object(
+	{
+		/** The entry's name on disk, extension included for a lone file. */
+		id: Type.String({ minLength: 1, maxLength: 255 }),
+		/** Where it is listed from: relative to the workspace root, `/`-separated. */
+		path: Type.String({ minLength: 1, maxLength: 1024 }),
+	},
+	{ additionalProperties: false },
+);
+
+export type WorkspaceExtension = Static<typeof workspaceExtensionSchema>;
+
 export const projectDomainsSchema = Type.Object(
 	{
 		domains: Type.Array(
@@ -86,6 +102,13 @@ export const projectDomainsSchema = Type.Object(
 		),
 		/** The project's stored overrides, if any. */
 		config: Type.Optional(projectConfigSchema),
+		/**
+		 * What `<workspace>/.gizmo/extensions` holds. Listing an entry is
+		 * not loading it: an entry runs only once its `path` joins
+		 * `config.piExtensionPaths`, which is what the workspace's
+		 * Extensions screen switches on and off.
+		 */
+		workspaceExtensions: Type.Array(workspaceExtensionSchema),
 	},
 	{ additionalProperties: false },
 );

@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync, rmSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir, userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -15,6 +15,7 @@ import {
 } from './service-definition';
 import { stopProcessTree } from '../lib/web-process';
 import { serviceRoot, webLogFile, webPidFile, windowsLauncher } from './paths';
+import { forgetRunningServer } from './running';
 
 export type Platform = 'linux' | 'darwin' | 'win32';
 
@@ -208,7 +209,6 @@ function endRecordedTree() {
 	if (Number.isInteger(pid) && /node\.exe/i.test(listed.output)) {
 		stopProcessTree(pid);
 	}
-	rmSync(webPidFile(), { force: true });
 }
 
 export function stopService() {
@@ -217,17 +217,22 @@ export function stopService() {
 			quiet: true,
 		});
 		endRecordedTree();
-		return;
-	}
-	if (currentPlatform() === 'linux') {
+	} else if (currentPlatform() === 'linux') {
 		run('systemctl', ['--user', 'stop', serviceNames.systemdUnit], {
 			quiet: true,
 		});
-		return;
+	} else {
+		run(
+			'launchctl',
+			['bootout', `${guiTarget()}/${serviceNames.launchdLabel}`],
+			{ quiet: true },
+		);
 	}
-	run('launchctl', ['bootout', `${guiTarget()}/${serviceNames.launchdLabel}`], {
-		quiet: true,
-	});
+	// Nothing is serving on this machine's behalf now. A server that was
+	// stopped politely clears its own record, but one that was killed, or that
+	// predates the record, leaves a file behind; keeping it would make the
+	// next start refuse to run.
+	forgetRunningServer();
 }
 
 /** The command a reader should type when status reports the server down. */

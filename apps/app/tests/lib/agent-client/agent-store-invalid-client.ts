@@ -189,6 +189,7 @@ export class InvalidEventClient implements AgentClient {
 	async detectProject() {
 		return {
 			domains: [{ id: 'svelte', name: 'Svelte', root: '.' }],
+			workspaceExtensions: [],
 		};
 	}
 	async browseProjects() {

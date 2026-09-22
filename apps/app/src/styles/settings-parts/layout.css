@@ -150,33 +150,6 @@
 	width: min(880px, 100%);
 }
 
-/* The skills workbench owns scrolling while its navigation stays fixed. */
-[data-ui='settings-content'][data-page='skills'] {
-	position: absolute;
-	inset: 0;
-	grid-template-rows: auto minmax(0, 1fr);
-	align-content: stretch;
-	height: 100%;
-	min-height: 0;
-	padding-bottom: 0;
-}
-
-[data-ui='settings-content'][data-page='skills'] [data-ui='settings-page'] {
-	grid-template-rows: auto minmax(0, 1fr);
-	height: 100%;
-	min-height: 0;
-	overflow: hidden;
-}
-
-[data-ui='settings-content'][data-page='skills']
-	[data-ui='settings-page-body'] {
-	display: flex;
-	flex-direction: column;
-	height: 100%;
-	min-height: 0;
-	overflow: hidden;
-}
-
 [data-ui='settings-page'] {
 	display: grid;
 	gap: var(--space-3);

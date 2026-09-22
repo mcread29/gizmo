@@ -63,7 +63,7 @@
 	<header data-ui="skill-editor-header">
 		{#if onBack}
 			<Button
-				data-ui="skill-editor-back"
+				hook="skill-editor-back"
 				variant="ghost"
 				size="icon"
 				aria-label="Back to skill library"
