@@ -1,3 +1,4 @@
+import { defaultCompactionPolicy } from '@gizmo/protocol';
 import { parseAgentEvent, protocolVersion } from '@gizmo/protocol';
 import { describe, expect, it } from 'vitest';
 import {
@@ -23,6 +24,7 @@ function state(): AgentEventState {
 			},
 		],
 		sessionId: 'session-1',
+		compactionPolicy: defaultCompactionPolicy,
 		projectExtensions: [],
 		projectStatuses: {},
 		projectServiceErrors: {},

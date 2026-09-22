@@ -145,17 +145,6 @@ export const sessionUsageSchema = Type.Object(
 
 export type SessionUsage = Static<typeof sessionUsageSchema>;
 
-export const compactionPolicySchema = Type.Object(
-	{
-		enabled: Type.Boolean(),
-		fillPercent: Type.Integer({ minimum: 10, maximum: 95 }),
-		retainPercent: Type.Integer({ minimum: 5, maximum: 90 }),
-	},
-	{ additionalProperties: false },
-);
-
-export type CompactionPolicy = Static<typeof compactionPolicySchema>;
-
 export const agentAttachmentSchema = Type.Object(
 	{
 		name: Type.String({ minLength: 1, maxLength: 255 }),

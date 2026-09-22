@@ -82,15 +82,8 @@ export class SessionRuntimeCapability {
 		}
 		try {
 			if (attachments.length) {
-				await this.client.prompt(
-					sessionId,
-					prompt,
-					store.compactionPolicy,
-					attachments,
-				);
-			} else {
-				await this.client.prompt(sessionId, prompt, store.compactionPolicy);
-			}
+				await this.client.prompt(sessionId, prompt, attachments);
+			} else await this.client.prompt(sessionId, prompt);
 		} catch (error) {
 			store.sessionStates[sessionId] = 'error';
 			if (store.sessionId === sessionId) this.#fail('prompt', error);
@@ -106,7 +99,7 @@ export class SessionRuntimeCapability {
 		store.compacting = true;
 		store.compactingSessions[sessionId] = true;
 		try {
-			await this.client.compact(sessionId, store.compactionPolicy);
+			await this.client.compact(sessionId);
 			if (store.sessionId === sessionId) store.usage = undefined;
 		} catch (error) {
 			if (store.sessionId === sessionId) this.#fail('agent', error);

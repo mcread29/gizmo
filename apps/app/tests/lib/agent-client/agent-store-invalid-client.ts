@@ -1,5 +1,6 @@
 import {
 	builtInAgentTools,
+	defaultCompactionPolicy,
 	seededToolPolicy,
 	type AgentModelCatalog,
 	type GitCommitResult,
@@ -15,8 +16,9 @@ import {
 	type SessionTree,
 	type StoredProject,
 	type ToolPolicy,
+	type DigestOverride,
+	type DigestSettings,
 } from '@gizmo/protocol';
-import type { DigestOverride, DigestSettings } from '@gizmo/protocol';
 import type { ActionResult, ExtensionUi, View } from '@gizmo/extension-api';
 import type {
 	AgentClient,
@@ -24,14 +26,8 @@ import type {
 } from '../../../src/lib/agent-client/AgentClient';
 
 /** The one shape every memory call in these tests returns. */
-const emptyMemoryStatus = {
-	segments: 0,
-	digested: 0,
-	facts: 0,
-	factSegments: 0,
-	settings: { auto: false },
-	defaults: { auto: false },
-};
+// prettier-ignore
+const emptyMemoryStatus = { segments: 0, digested: 0, facts: 0, factSegments: 0, settings: { auto: false }, defaults: { auto: false } };
 
 // prettier-ignore
 const noUpdate: AppUpdateStatus = { install: 'source', version: 'abc1234', root: '/src', updateAvailable: false, phase: 'idle' };
@@ -218,6 +214,8 @@ export class InvalidEventClient implements AgentClient {
 		return emptyCatalog;
 	}
 	async removeProject() {}
+	getProjectCompaction = async () => defaultCompactionPolicy;
+	setProjectCompaction = this.getProjectCompaction;
 	setProjectHidden = this.addProject;
 	async reorderProjects(): Promise<StoredProject[]> {
 		return [];

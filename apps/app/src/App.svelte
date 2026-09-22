@@ -115,14 +115,6 @@
 	});
 
 	$effect(() => {
-		store.compactionPolicy = {
-			enabled: layout.autoCompact,
-			fillPercent: layout.autoCompactFillPercent,
-			retainPercent: layout.compactionRetainPercent,
-		};
-	});
-
-	$effect(() => {
 		pendingSettings = layout.settings;
 		clearTimeout(settingsSaveTimer);
 		settingsSaveTimer = setTimeout(flushSettings, 150);

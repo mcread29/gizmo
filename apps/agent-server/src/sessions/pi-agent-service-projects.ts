@@ -1,4 +1,6 @@
+import type { CompactionPolicy } from '@gizmo/protocol';
 import { reloadExtensions } from '../extensions/extension-reload';
+import { validateCompactionPolicy } from '../projects/project-config-store';
 import { PiAgentServiceResources } from './pi-agent-service-resources';
 
 /** Project catalog commands. */
@@ -58,6 +60,29 @@ export class PiAgentServiceProjects extends PiAgentServiceResources {
 		);
 		await reloadExtensions();
 		return config;
+	}
+
+	getProjectCompaction(projectPath: string) {
+		return this.context.projects.compactionFor(projectPath);
+	}
+
+	/**
+	 * Stores the workspace's policy, re-arms its resident threads, and
+	 * broadcasts the change so every client's meter and settings follow.
+	 */
+	async setProjectCompaction(projectPath: string, policy: CompactionPolicy) {
+		validateCompactionPolicy(policy);
+		const compaction = await this.context.projects.setCompaction(
+			projectPath,
+			policy,
+		);
+		this.context.operations.applyCompactionPolicy(projectPath, compaction);
+		this.context.events.emit('server', {
+			type: 'project.compaction.changed',
+			projectPath,
+			compaction,
+		});
+		return compaction;
 	}
 
 	async removeProject(projectPath: string) {

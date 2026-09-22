@@ -1,19 +1,20 @@
-import type {
-	AppUpdateStatus,
-	AgentModelOption,
-	AgentSessionSummary,
-	CompactionPolicy,
-	ComposerCommand,
-	ConversationMessage,
-	ExtensionDescriptor,
-	GitStatus,
-	ProviderStatus,
-	RegistryStatus,
-	ResourceCatalog,
-	SessionState,
-	SessionUsage,
-	StoredProject,
-	ToolPolicy,
+import {
+	defaultCompactionPolicy,
+	type AppUpdateStatus,
+	type AgentModelOption,
+	type AgentSessionSummary,
+	type CompactionPolicy,
+	type ComposerCommand,
+	type ConversationMessage,
+	type ExtensionDescriptor,
+	type GitStatus,
+	type ProviderStatus,
+	type RegistryStatus,
+	type ResourceCatalog,
+	type SessionState,
+	type SessionUsage,
+	type StoredProject,
+	type ToolPolicy,
 } from '@gizmo/protocol';
 import { emptyQueue } from '../agent-event-reducer';
 import type {
@@ -25,11 +26,8 @@ import type {
 
 /** Reactive data owned by the coordinating AgentStore facade. */
 export class AgentStoreState {
-	compactionPolicy = $state<CompactionPolicy>({
-		enabled: true,
-		fillPercent: 25,
-		retainPercent: 10,
-	});
+	/** The selected workspace's policy; the server owns it, per project. */
+	compactionPolicy = $state<CompactionPolicy>(defaultCompactionPolicy);
 	/** Model that names new threads, as `provider/id`. Empty disables naming. */
 	titleModel = $state('');
 	/** Whether the selected thread is being compacted. */

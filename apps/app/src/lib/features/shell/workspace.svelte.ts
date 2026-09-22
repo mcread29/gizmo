@@ -35,9 +35,6 @@ export class WorkspaceLayout {
 	sendOnEnter = $state(true);
 	autoFollowOutput = $state(true);
 	expandReasoning = $state(false);
-	autoCompact = $state(true);
-	autoCompactFillPercent = $state(25);
-	compactionRetainPercent = $state(10);
 	showThreadSidebar = $state(true);
 	showInspector = $state(true);
 	sidebarWidth = $state(panelWidthLimits.sidebar.default);
@@ -102,9 +99,6 @@ export class WorkspaceLayout {
 		this.sendOnEnter = settings.sendOnEnter;
 		this.autoFollowOutput = settings.autoFollowOutput;
 		this.expandReasoning = settings.expandReasoning;
-		this.autoCompact = settings.autoCompact;
-		this.autoCompactFillPercent = settings.autoCompactFillPercent;
-		this.compactionRetainPercent = settings.compactionRetainPercent;
 		this.showThreadSidebar = settings.showThreadSidebar;
 		this.showInspector = settings.showInspector;
 		this.sidebarWidth = settings.sidebarWidth;
@@ -121,9 +115,6 @@ export class WorkspaceLayout {
 			sendOnEnter: this.sendOnEnter,
 			autoFollowOutput: this.autoFollowOutput,
 			expandReasoning: this.expandReasoning,
-			autoCompact: this.autoCompact,
-			autoCompactFillPercent: this.autoCompactFillPercent,
-			compactionRetainPercent: this.compactionRetainPercent,
 			showThreadSidebar: this.showThreadSidebar,
 			showInspector: this.showInspector,
 			sidebarWidth: this.sidebarWidth,

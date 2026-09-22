@@ -1,6 +1,5 @@
 import type {
 	AgentAttachment,
-	CompactionPolicy,
 	ExtensionUiResponse,
 	SessionOptions,
 } from '@gizmo/protocol';
@@ -28,22 +27,12 @@ export class PiAgentServiceSessions extends PiAgentServiceProjects {
 		return this.context.operations.renameSession(sessionId, title);
 	}
 
-	prompt(
-		sessionId: string,
-		text: string,
-		compaction?: CompactionPolicy,
-		attachments: AgentAttachment[] = [],
-	) {
-		return this.context.operations.prompt(
-			sessionId,
-			text,
-			compaction,
-			attachments,
-		);
+	prompt(sessionId: string, text: string, attachments: AgentAttachment[] = []) {
+		return this.context.operations.prompt(sessionId, text, attachments);
 	}
 
-	compact(sessionId: string, policy: CompactionPolicy) {
-		return this.context.operations.compact(sessionId, policy);
+	compact(sessionId: string) {
+		return this.context.operations.compact(sessionId);
 	}
 
 	reloadSession(sessionId: string) {

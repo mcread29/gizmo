@@ -15,4 +15,5 @@ export * from './registry';
 export * from './requests';
 export * from './resources';
 export * from './responses';
+export * from './compaction';
 export * from './sessions';

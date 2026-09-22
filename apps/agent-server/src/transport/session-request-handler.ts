@@ -94,14 +94,13 @@ export async function handleSessionRequest(
 			await service.prompt(
 				request.sessionId,
 				request.text,
-				request.compaction,
 				request.attachments,
 			);
 			return {};
 		case 'session.commands':
 			return { result: await service.getCommands(request.sessionId) };
 		case 'session.compact':
-			await service.compact(request.sessionId, request.compaction);
+			await service.compact(request.sessionId);
 			return {};
 		case 'session.reload':
 			await service.reloadSession(request.sessionId);

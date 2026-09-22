@@ -112,22 +112,22 @@ describe('agent protocol validation', () => {
 		expect(
 			parseAgentRequest({
 				protocolVersion,
-				requestId: 'request-compact',
-				type: 'session.compact',
-				sessionId: 'session-1',
+				requestId: 'request-compaction',
+				type: 'project.compaction.set',
+				projectPath: '/workspace',
 				compaction: {
 					enabled: true,
-					fillPercent: 25,
-					retainPercent: 10,
+					fillPercent: 60,
+					retainPercent: 0,
 				},
 			}),
-		).toMatchObject({ type: 'session.compact' });
+		).toMatchObject({ type: 'project.compaction.set' });
 		expect(() =>
 			parseAgentRequest({
 				protocolVersion,
-				requestId: 'request-compact-invalid',
-				type: 'session.compact',
-				sessionId: 'session-1',
+				requestId: 'request-compaction-invalid',
+				type: 'project.compaction.set',
+				projectPath: '/workspace',
 				compaction: {
 					enabled: true,
 					fillPercent: 5,

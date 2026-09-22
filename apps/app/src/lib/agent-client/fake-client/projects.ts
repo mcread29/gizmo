@@ -1,4 +1,8 @@
-import type { ProjectConfig } from '@gizmo/protocol';
+import {
+	type CompactionPolicy,
+	defaultCompactionPolicy,
+	type ProjectConfig,
+} from '@gizmo/protocol';
 import { fakeDomains, fakeStatus } from './fixtures';
 import type { FakeClientState } from './state';
 
@@ -93,6 +97,25 @@ export class FakeProjectCapability {
 			this.state.projectExtensionPaths.set(projectPath, [...paths]);
 		else this.state.projectExtensionPaths.delete(projectPath);
 		return this.config(projectPath);
+	}
+
+	async compaction(projectPath: string) {
+		this.state.assertProject(projectPath);
+		return (
+			this.state.projectCompaction.get(projectPath) ?? defaultCompactionPolicy
+		);
+	}
+
+	async setCompaction(projectPath: string, compaction: CompactionPolicy) {
+		this.state.assertProject(projectPath);
+		this.state.projectCompaction.set(projectPath, compaction);
+		this.state.emit({
+			type: 'project.compaction.changed',
+			sessionId: 'fake-session',
+			projectPath,
+			compaction,
+		});
+		return compaction;
 	}
 
 	async remove(projectPath: string) {
@@ -194,6 +217,9 @@ export class FakeProjectCapability {
 							...this.state.projectExtensionPaths.get(projectPath)!,
 						],
 					}
+				: {}),
+			...(this.state.projectCompaction.has(projectPath)
+				? { compaction: this.state.projectCompaction.get(projectPath) }
 				: {}),
 		};
 	}

@@ -36,7 +36,7 @@ Three facts shape everything else:
   never become pull requests. A release squashes the scratch branch onto
   `main` as one commit (`git merge --squash`), so `main` is a history of
   releases and nothing else. See [AGENTS.md](../AGENTS.md).
-- **Protocol version** (`packages/protocol`, currently v30) is the app's own
+- **Protocol version** (`packages/protocol`, currently v34) is the app's own
   compatibility number between server and browser. It stays internal.
 - **Extension API version** is the major version of the published
   `@gizmo/extension-api` package, the contract between the app and every

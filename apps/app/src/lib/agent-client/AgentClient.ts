@@ -51,11 +51,11 @@ export interface ExtensionViewAddress {
 export type AgentEventListener = (event: unknown) => void;
 export type AgentDisconnectListener = (error: Error) => void;
 
-export interface AttachmentContent {
+export type AttachmentContent = {
 	name: string;
 	mimeType: string;
 	data: string;
-}
+};
 
 export interface AgentClient {
 	memoryStatus(projectPath: string): Promise<MemoryStatus>;
@@ -69,14 +69,10 @@ export interface AgentClient {
 	/** The default with no project, or that workspace's view of it. */
 	memorySettings(projectPath?: string): Promise<DigestScope>;
 	setMemoryDefaults(settings: DigestSettings): Promise<DigestSettings>;
-	setMemoryOverride(
-		projectPath: string,
-		override?: DigestOverride,
-	): Promise<DigestSettings>;
-	startMemoryBackfill(
-		projectPath: string,
-		regenerate?: boolean,
-	): Promise<MemoryStatus>;
+	// prettier-ignore
+	setMemoryOverride(projectPath: string, override?: DigestOverride): Promise<DigestSettings>;
+	// prettier-ignore
+	startMemoryBackfill(projectPath: string, regenerate?: boolean): Promise<MemoryStatus>;
 	stopMemoryBackfill(projectPath: string): Promise<MemoryStatus>;
 	listProviders(): Promise<ProviderStatus[]>;
 	reimportPiAuth(): Promise<ProviderStatus[]>;
@@ -97,11 +93,10 @@ export interface AgentClient {
 	prompt(
 		sessionId: string,
 		text: string,
-		compaction?: CompactionPolicy,
 		attachments?: AgentAttachment[],
 	): Promise<void>;
 	listCommands(sessionId: string): Promise<ComposerCommand[]>;
-	compact(sessionId: string, compaction: CompactionPolicy): Promise<void>;
+	compact(sessionId: string): Promise<void>;
 	reloadSession(sessionId: string): Promise<void>;
 	steer(
 		sessionId: string,
@@ -169,6 +164,12 @@ export interface AgentClient {
 		projectPath: string,
 		paths: string[],
 	): Promise<ProjectConfig>;
+	getProjectCompaction(projectPath: string): Promise<CompactionPolicy>;
+	/** Stored per workspace; `project.compaction.changed` tells every client. */
+	setProjectCompaction(
+		projectPath: string,
+		compaction: CompactionPolicy,
+	): Promise<CompactionPolicy>;
 	removeProject(projectPath: string): Promise<void>;
 	/** Hides or shows a workspace; nothing it owns is deleted. */
 	setProjectHidden(

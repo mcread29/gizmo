@@ -201,7 +201,7 @@
 					{:else if page === 'chat'}
 						<ChatSettings {layout} {store} />
 					{:else if page === 'context'}
-						<ContextSettings {layout} />
+						<ContextSettings {store} />
 					{:else if page === 'memory'}
 						<MemorySettings {store} />
 					{:else if page === 'connection'}

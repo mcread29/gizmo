@@ -12,6 +12,7 @@ import { toolPolicySchema, type ToolPolicy } from './core';
 import { ProtocolValidationError } from './errors';
 import { heartbeatSchema, type Heartbeat } from './heartbeat';
 import { agentEventSchema, type AgentEvent } from './events';
+import { compactionPolicySchema, type CompactionPolicy } from './compaction';
 import {
 	extensionsSchema,
 	type Extensions,
@@ -113,6 +114,9 @@ export const parseProviderStatuses = parser<ProviderStatus[]>(
 export const parseProviderApiKey = parser<ProviderApiKey>(providerApiKeySchema);
 export const parseProjectDomains = parser<ProjectDomains>(projectDomainsSchema);
 export const parseProjectConfig = parser<ProjectConfig>(projectConfigSchema);
+export const parseCompactionPolicy = parser<CompactionPolicy>(
+	compactionPolicySchema,
+);
 export const parseWorkspaceDirectoryListing = parser<WorkspaceDirectoryListing>(
 	workspaceDirectoryListingSchema,
 );

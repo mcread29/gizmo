@@ -7,7 +7,6 @@ import {
 	parseSessionSnapshot,
 	parseSessionTree,
 	type AgentAttachment,
-	type CompactionPolicy,
 	type ExtensionUiResponse,
 	type SessionOptions,
 } from '@gizmo/protocol';
@@ -102,14 +101,12 @@ export class SessionRequests extends RequestClient {
 	async prompt(
 		sessionId: string,
 		text: string,
-		compaction?: CompactionPolicy,
 		attachments?: AgentAttachment[],
 	) {
 		await this.request({
 			type: 'session.prompt',
 			sessionId,
 			text,
-			compaction,
 			attachments,
 		});
 	}
@@ -122,8 +119,8 @@ export class SessionRequests extends RequestClient {
 		return parseComposerCommands(response.result);
 	}
 
-	async compact(sessionId: string, compaction: CompactionPolicy) {
-		await this.request({ type: 'session.compact', sessionId, compaction });
+	async compact(sessionId: string) {
+		await this.request({ type: 'session.compact', sessionId });
 	}
 
 	async reloadSession(sessionId: string) {

@@ -49,7 +49,7 @@ describe('WebSocketAgentClient', () => {
 	it('sends attachments with prompts', async () => {
 		const { client, socket } = await createConnectedClient();
 
-		const prompt = client.prompt('session-1', 'Inspect', undefined, [
+		const prompt = client.prompt('session-1', 'Inspect', [
 			{ name: 'notes.txt', mimeType: 'text/plain', data: 'aGVsbG8=' },
 		]);
 		expect(socket.sent[0]).toMatchObject({

@@ -7,6 +7,7 @@ import {
 	extensionSettingsChangedEventSchema,
 	extensionUiRequestSchema,
 } from './extensions';
+import { projectCompactionChangedEventSchema } from './compaction';
 import {
 	compactionReasonSchema,
 	conversationAttachmentSchema,
@@ -149,6 +150,7 @@ export const agentEventSchema = Type.Union([
 		},
 		{ additionalProperties: false },
 	),
+	projectCompactionChangedEventSchema,
 	Type.Object(
 		{
 			...eventEnvelope,

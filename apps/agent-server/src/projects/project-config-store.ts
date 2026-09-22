@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import {
+	type CompactionPolicy,
 	type ExtensionOverride,
 	type ProjectConfig,
 	type ProjectSkill,
@@ -117,12 +118,32 @@ function normalizeConfig(input: unknown): ProjectConfig {
 			),
 		),
 	].sort();
+	const compaction = compactionPolicy(candidate.compaction);
 	return {
 		version: 1,
 		...(gizmoExtensions.length ? { gizmoExtensions } : {}),
 		...(piExtensions.length ? { piExtensions } : {}),
 		...(skills.length ? { skills } : {}),
 		...(piExtensionPaths.length ? { piExtensionPaths } : {}),
+		...(compaction ? { compaction } : {}),
+	};
+}
+
+/** Keeps only a well-formed policy; anything else falls back to the default. */
+function compactionPolicy(input: unknown): CompactionPolicy | undefined {
+	const policy = input as Partial<CompactionPolicy> | undefined;
+	if (
+		!policy ||
+		typeof policy.enabled !== 'boolean' ||
+		!Number.isInteger(policy.fillPercent) ||
+		!Number.isInteger(policy.retainPercent)
+	) {
+		return undefined;
+	}
+	return {
+		enabled: policy.enabled,
+		fillPercent: policy.fillPercent as number,
+		retainPercent: policy.retainPercent as number,
 	};
 }
 
@@ -140,6 +161,7 @@ async function validateConfig(config: ProjectConfig) {
 	for (const { id } of config.piExtensions ?? []) {
 		if (!piIds.has(id)) throw new Error(`Unknown Pi extension: ${id}`);
 	}
+	if (config.compaction) validateCompactionPolicy(config.compaction);
 	for (const path of config.piExtensionPaths ?? []) {
 		if (!isAbsolute(path)) {
 			throw new Error(`Pi extension path must be absolute: ${path}`);
@@ -149,6 +171,15 @@ async function validateConfig(config: ProjectConfig) {
 		} catch {
 			throw new Error(`Pi extension path does not exist: ${path}`);
 		}
+	}
+}
+
+export function validateCompactionPolicy(policy: CompactionPolicy) {
+	if (policy.fillPercent < 10 || policy.fillPercent > 95) {
+		throw new Error('Compaction threshold must be between 10% and 95%');
+	}
+	if (policy.retainPercent < 0 || policy.retainPercent >= policy.fillPercent) {
+		throw new Error('Retained context must be below the compaction threshold');
 	}
 }
 

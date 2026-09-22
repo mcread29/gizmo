@@ -53,7 +53,12 @@ export class PiAgentServiceCore {
 			projects,
 			pool,
 		);
-		const operations = new SessionOperations(catalog, pool, repository);
+		const operations = new SessionOperations(
+			catalog,
+			pool,
+			repository,
+			projects,
+		);
 		this.context = {
 			events,
 			pool,

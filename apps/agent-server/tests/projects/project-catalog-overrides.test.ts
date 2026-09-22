@@ -146,3 +146,49 @@ async function temporary(prefix: string) {
 	paths.push(path);
 	return path;
 }
+
+describe('ProjectCatalog compaction policy', () => {
+	it('stores the policy in the workspace config and defaults when absent', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project);
+
+		expect(await catalog.compactionFor(project)).toEqual({
+			enabled: true,
+			fillPercent: 60,
+			retainPercent: 0,
+		});
+		const policy = { enabled: false, fillPercent: 70, retainPercent: 20 };
+		expect(await catalog.setCompaction(project, policy)).toEqual(policy);
+		expect(await catalog.compactionFor(project)).toEqual(policy);
+		expect(
+			JSON.parse(
+				await readFile(join(project, '.gizmo', 'config.json'), 'utf8'),
+			),
+		).toMatchObject({ compaction: policy });
+	});
+
+	it('rejects retention at or above the threshold and drops malformed policies', async () => {
+		const data = await temporary('gizmo-data-');
+		const project = await temporary('gizmo-project-');
+		const catalog = new ProjectCatalog(data);
+		await catalog.add(project);
+
+		await expect(
+			catalog.setCompaction(project, {
+				enabled: true,
+				fillPercent: 30,
+				retainPercent: 30,
+			}),
+		).rejects.toThrow('Retained context must be below');
+		await mkdir(join(project, '.gizmo'), { recursive: true });
+		await writeFile(
+			join(project, '.gizmo', 'config.json'),
+			JSON.stringify({ version: 1, compaction: { fillPercent: 'high' } }),
+		);
+		expect(await catalog.compactionFor(project)).toMatchObject({
+			fillPercent: 60,
+		});
+	});
+});

@@ -13,7 +13,10 @@ import {
 import type { SessionRepository } from '../../src/sessions/session-repository';
 
 function fakeManager(sessionId: string): SessionManager {
-	return { getSessionId: () => sessionId } as unknown as SessionManager;
+	return {
+		getSessionId: () => sessionId,
+		getCwd: () => '/projects/sandbox',
+	} as unknown as SessionManager;
 }
 
 /** An in-memory stand-in for `PiSessionRepository`, tracking calls the tests assert on. */

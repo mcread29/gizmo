@@ -111,8 +111,8 @@ export class FakeAgentClient implements AgentClient {
 		sessionId,
 		text,
 	) => this.#sessions.generateTitle(sessionId, text);
-	prompt: AgentClient['prompt'] = (sessionId, text, compaction, attachments) =>
-		this.#prompts.prompt(sessionId, text, compaction, attachments);
+	prompt: AgentClient['prompt'] = (sessionId, text, attachments) =>
+		this.#prompts.prompt(sessionId, text, attachments);
 	listCommands: AgentClient['listCommands'] = (sessionId) =>
 		this.#sessions.listCommands(sessionId);
 	compact: AgentClient['compact'] = (sessionId) =>
@@ -161,6 +161,12 @@ export class FakeAgentClient implements AgentClient {
 		projectPath,
 		paths,
 	) => this.#projects.setExtensionPaths(projectPath, paths);
+	getProjectCompaction: AgentClient['getProjectCompaction'] = (projectPath) =>
+		this.#projects.compaction(projectPath);
+	setProjectCompaction: AgentClient['setProjectCompaction'] = (
+		projectPath,
+		compaction,
+	) => this.#projects.setCompaction(projectPath, compaction);
 	removeProject: AgentClient['removeProject'] = (projectPath) =>
 		this.#projects.remove(projectPath);
 	setProjectHidden: AgentClient['setProjectHidden'] = (projectPath, hidden) =>

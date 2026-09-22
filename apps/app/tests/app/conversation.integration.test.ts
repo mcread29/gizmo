@@ -74,7 +74,6 @@ describe('conversation integration', () => {
 			expect(prompt).toHaveBeenCalledWith(
 				expect.any(String),
 				'Please inspect the attached file.',
-				expect.any(Object),
 				[
 					{
 						name: 'reference.png',

@@ -1,4 +1,6 @@
+import type { CompactionPolicy } from '@gizmo/protocol';
 import {
+	parseCompactionPolicy,
 	parseExtensions,
 	parseProjectConfig,
 	parseProjectDomains,
@@ -93,6 +95,26 @@ export class ProjectRequests extends SessionRequests {
 
 	async removeProject(projectPath: string) {
 		await this.request({ type: 'project.remove', projectPath });
+	}
+
+	async getProjectCompaction(projectPath: string) {
+		const response = await this.request({
+			type: 'project.compaction.get',
+			projectPath,
+		});
+		return parseCompactionPolicy(response.result);
+	}
+
+	async setProjectCompaction(
+		projectPath: string,
+		compaction: CompactionPolicy,
+	) {
+		const response = await this.request({
+			type: 'project.compaction.set',
+			projectPath,
+			compaction,
+		});
+		return parseCompactionPolicy(response.result);
 	}
 
 	async setProjectHidden(projectPath: string, hidden: boolean) {

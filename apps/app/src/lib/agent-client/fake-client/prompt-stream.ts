@@ -1,4 +1,4 @@
-import type { AgentAttachment, CompactionPolicy } from '@gizmo/protocol';
+import type { AgentAttachment } from '@gizmo/protocol';
 import { fakeEditFile, fakeEditResult } from './fixtures';
 import type { FakeSessionCapability } from './sessions';
 import type { FakeClientState, FakeSession } from './state';
@@ -18,7 +18,6 @@ export class FakePromptCapability {
 	async prompt(
 		sessionId: string,
 		text: string,
-		_compaction?: CompactionPolicy,
 		_attachments?: AgentAttachment[],
 	) {
 		const session = this.state.getSession(sessionId);
@@ -89,7 +88,7 @@ export class FakePromptCapability {
 	) {
 		const session = this.state.getSession(sessionId);
 		if (!session.running) {
-			await this.prompt(sessionId, text, undefined, attachments);
+			await this.prompt(sessionId, text, attachments);
 			return;
 		}
 		this.#extras.queue(sessionId, text);

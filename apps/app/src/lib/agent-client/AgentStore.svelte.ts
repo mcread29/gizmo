@@ -93,6 +93,9 @@ export class AgentStore extends AgentStoreState {
 	refreshProjectStatus() {
 		return this.#projects.refreshProjectStatus();
 	}
+	setCompactionPolicy(policy: AgentStoreState['compactionPolicy']) {
+		return this.#projects.setCompactionPolicy(policy);
+	}
 	openProjectService(extensionId: string) {
 		return this.#projects.openProjectService(extensionId);
 	}

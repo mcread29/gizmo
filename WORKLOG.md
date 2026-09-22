@@ -1,5 +1,26 @@
 # Work log
 
+## 2026-09-22 — Compaction policy belongs to the workspace
+
+- The auto-compaction policy (on/off, compact-at, retain) moved from the
+  browser's localStorage to the workspace's `.gizmo/config.json` as a
+  `compaction` section, so a phone and a desktop driving the same project
+  compact the same way. Before, each device sent its own policy with every
+  prompt and a fresh browser silently ran on the old 25% default, which is
+  why threads compacted early on mobile.
+- New defaults: compact at 60%, retain 0%. Retaining nothing lets a cut land
+  inside the turn that crossed the threshold. `retainPercent` now accepts 0.
+- Protocol v34: `project.compaction.get`/`.set` carry the policy,
+  `project.compaction.changed` broadcasts a change, and `session.prompt` and
+  `session.compact` no longer carry one. The server reads the thread's
+  workspace policy on every prompt and manual compaction, and a change
+  re-arms every resident thread of that workspace at once.
+- Settings → Context edits the selected workspace's policy; the meter and the
+  slider follow the broadcast on every client. The slider commits on release.
+- Split to stay under the file-length gate: `project-catalog-rows.ts`,
+  `project-compaction.ts`, `protocol/compaction.ts`; `reorderProjects` moved
+  to `project-catalog-edits.ts`, `rearmWorkspace` to `compaction-fallback.ts`.
+
 ## 2026-09-22 — UI/UX pass across the thread, sidebar, settings and views
 
 - Thread header is one breadcrumb row (workspace › thread title, path as tooltip) with New thread / Tree / ⋯ on the right; the second shelf row is gone.

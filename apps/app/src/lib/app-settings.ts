@@ -57,9 +57,6 @@ export interface AppSettings {
 	autoFollowOutput: boolean;
 	/** Whether model reasoning starts expanded rather than folded away. */
 	expandReasoning: boolean;
-	autoCompact: boolean;
-	autoCompactFillPercent: number;
-	compactionRetainPercent: number;
 	showThreadSidebar: boolean;
 	showInspector: boolean;
 	sidebarWidth: number;
@@ -92,9 +89,6 @@ export const defaultAppSettings: AppSettings = {
 	sendOnEnter: true,
 	autoFollowOutput: true,
 	expandReasoning: false,
-	autoCompact: true,
-	autoCompactFillPercent: 25,
-	compactionRetainPercent: 10,
 	showThreadSidebar: true,
 	showInspector: true,
 	sidebarWidth: panelWidthLimits.sidebar.default,
@@ -130,21 +124,6 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 		const settings = value as Partial<
 			Record<keyof AppSettings | 'showUnityInspector', unknown>
 		>;
-		const fillPercent = integer(
-			settings.autoCompactFillPercent,
-			10,
-			95,
-			defaultAppSettings.autoCompactFillPercent,
-		);
-		const retainPercent = Math.min(
-			fillPercent - 5,
-			integer(
-				settings.compactionRetainPercent,
-				5,
-				90,
-				defaultAppSettings.compactionRetainPercent,
-			),
-		);
 		return {
 			theme: parseAppTheme(settings.theme) ?? fallback.theme,
 			followSystemTheme: boolean(
@@ -163,12 +142,6 @@ export function loadAppSettings(storage = browserStorage()): AppSettings {
 				settings.expandReasoning,
 				defaultAppSettings.expandReasoning,
 			),
-			autoCompact: boolean(
-				settings.autoCompact,
-				defaultAppSettings.autoCompact,
-			),
-			autoCompactFillPercent: fillPercent,
-			compactionRetainPercent: retainPercent,
 			showThreadSidebar: boolean(
 				settings.showThreadSidebar,
 				defaultAppSettings.showThreadSidebar,

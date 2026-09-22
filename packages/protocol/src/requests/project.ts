@@ -1,5 +1,6 @@
 import { Type } from 'typebox';
 import { envelope, v25Envelope } from '../envelopes';
+import { compactionPolicySchema } from '../compaction';
 
 export const projectRequestSchemas = [
 	Type.Object(
@@ -71,6 +72,23 @@ export const projectRequestSchemas = [
 			projectPath: Type.String({ minLength: 1 }),
 			/** Explicit Pi extension paths; empty clears them. */
 			paths: Type.Array(Type.String({ minLength: 1, maxLength: 1024 })),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.compaction.get'),
+			projectPath: Type.String({ minLength: 1 }),
+		},
+		{ additionalProperties: false },
+	),
+	Type.Object(
+		{
+			...envelope,
+			type: Type.Literal('project.compaction.set'),
+			projectPath: Type.String({ minLength: 1 }),
+			compaction: compactionPolicySchema,
 		},
 		{ additionalProperties: false },
 	),

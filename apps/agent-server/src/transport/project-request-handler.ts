@@ -24,6 +24,8 @@ type ProjectRequestType =
 	| 'project.gizmo-extension.set'
 	| 'project.pi-extension.set'
 	| 'project.extension-paths.set'
+	| 'project.compaction.get'
+	| 'project.compaction.set'
 	| 'project.remove'
 	| 'project.hidden.set'
 	| 'project.reorder'
@@ -84,6 +86,15 @@ export async function handleProjectRequest(
 				result: await agent.setProjectExtensionPaths(request.projectPath, [
 					...request.paths,
 				]),
+			};
+		case 'project.compaction.get':
+			return { result: await agent.getProjectCompaction(request.projectPath) };
+		case 'project.compaction.set':
+			return {
+				result: await agent.setProjectCompaction(
+					request.projectPath,
+					request.compaction,
+				),
 			};
 		case 'project.remove':
 			await agent.removeProject(request.projectPath);

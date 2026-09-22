@@ -1,5 +1,7 @@
 import { basename, resolve } from 'node:path';
 import {
+	type CompactionPolicy,
+	defaultCompactionPolicy,
 	type ProjectConfig,
 	type ProjectDomains,
 	type ProjectSkill,
@@ -19,6 +21,7 @@ import {
 	type CatalogProject,
 	ProjectCatalogStore,
 } from './project-catalog-store';
+import { withHidden, reordered } from './project-catalog-rows';
 import { ProjectConfigStore, withOverride } from './project-config-store';
 import { ProjectIntegrationResolver } from './project-integration-resolver';
 import { listPiExtensions } from '../resources/pi-global-resources';
@@ -100,47 +103,17 @@ export class ProjectCatalog {
 		});
 	}
 
-	/**
-	 * Hides or shows one workspace. Nothing is deleted: the catalog row, its
-	 * threads and its config all survive, the sidebar just stops listing it.
-	 */
 	async setHidden(path: string, hidden: boolean): Promise<StoredProject> {
-		const wanted = resolve(path);
 		return this.#catalogMutex.run(async () => {
-			const projects = await this.#catalog.read();
-			const project = projects.find((item) => item.path === wanted);
-			if (!project) {
-				throw new Error(`Workspace is not registered with Gizmo: ${wanted}`);
-			}
-			const next: CatalogProject = { ...project, hidden };
-			if (!hidden) delete next.hidden;
-			await this.#catalog.write(
-				projects.map((item) => (item === project ? next : item)),
-			);
-			return this.#storedProject(next);
+			const next = withHidden(await this.#catalog.read(), path, hidden);
+			await this.#catalog.write(next.projects);
+			return this.#storedProject(next.project);
 		});
 	}
 
-	/**
-	 * Applies a sidebar ordering. Paths the catalog does not know are ignored
-	 * and registered projects missing from `paths` keep their relative order
-	 * after the listed ones, so a stale client never drops a workspace.
-	 */
 	async reorder(paths: string[]): Promise<StoredProject[]> {
-		const wanted = paths.map((path) => resolve(path));
 		return this.#catalogMutex.run(async () => {
-			const projects = await this.#catalog.read();
-			const byPath = new Map(
-				projects.map((project) => [project.path, project]),
-			);
-			const ordered = wanted
-				.map((path) => byPath.get(path))
-				.filter((project): project is CatalogProject => Boolean(project));
-			const listed = new Set(ordered.map(({ path }) => path));
-			const next = [
-				...ordered,
-				...projects.filter(({ path }) => !listed.has(path)),
-			];
+			const next = reordered(await this.#catalog.read(), paths);
 			await this.#catalog.write(next);
 			return Promise.all(next.map((project) => this.#storedProject(project)));
 		});
@@ -217,6 +190,27 @@ export class ProjectCatalog {
 			else delete next.piExtensionPaths;
 			return next;
 		});
+	}
+
+	/** The workspace's policy, or the default when it has none of its own. */
+	async compactionFor(
+		projectPath: string | undefined,
+	): Promise<CompactionPolicy> {
+		if (!projectPath) return defaultCompactionPolicy;
+		return (
+			(await this.configFor(projectPath)).compaction ?? defaultCompactionPolicy
+		);
+	}
+
+	async setCompaction(
+		projectPath: string,
+		compaction: CompactionPolicy,
+	): Promise<CompactionPolicy> {
+		const config = await this.#updateConfig(projectPath, (current) => ({
+			...current,
+			compaction,
+		}));
+		return config.compaction ?? defaultCompactionPolicy;
 	}
 
 	/** Explicit Pi extension paths of one workspace. */

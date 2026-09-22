@@ -1,7 +1,11 @@
-import type { CompactionPolicy } from '@gizmo/protocol';
+import {
+	type CompactionPolicy,
+	defaultCompactionPolicy,
+} from '@gizmo/protocol';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { ProjectCatalog } from '../../src/projects/project-catalog';
 import { PiAgentService } from '../../src/sessions/pi-agent-service';
 import { PiSessionRepository } from '../../src/sessions/session-repository';
 import {
@@ -27,36 +31,77 @@ describe('PiAgentService commands', () => {
 		await expect.poll(() => pi.dispose).toHaveBeenCalledOnce();
 	});
 
-	it('configures automatic compaction and routes manual compaction', async () => {
+	it('compacts under the workspace policy, re-read on every prompt', async () => {
 		const pi = new FakePiSession();
-		const service = await createTestService(pi);
-		const sessionId = await service.createSession();
+		const { service, projects, workspace } = await createProjectService(pi);
 		const policy: CompactionPolicy = {
 			enabled: true,
-			fillPercent: 25,
+			fillPercent: 40,
 			retainPercent: 10,
 		};
+		await projects.setCompaction(workspace, policy);
+		const sessionId = await service.createSession({ cwd: workspace });
 
-		await service.prompt(sessionId, 'Long task', policy);
-		await service.compact(sessionId, policy);
+		await service.prompt(sessionId, 'Long task');
+		await service.compact(sessionId);
 
 		expect(pi.configureCompaction).toHaveBeenCalledTimes(2);
 		expect(pi.configureCompaction).toHaveBeenLastCalledWith(policy);
 		expect(pi.compact).toHaveBeenCalledOnce();
 	});
 
+	it('falls back to the default policy for a workspace without one', async () => {
+		const pi = new FakePiSession();
+		const service = await createTestService(pi);
+		const sessionId = await service.createSession();
+
+		await service.prompt(sessionId, 'Long task');
+
+		expect(pi.configureCompaction).toHaveBeenCalledWith(
+			defaultCompactionPolicy,
+		);
+		expect(defaultCompactionPolicy).toEqual({
+			enabled: true,
+			fillPercent: 60,
+			retainPercent: 0,
+		});
+	});
+
+	it('re-arms resident threads and broadcasts a policy change', async () => {
+		const pi = new FakePiSession();
+		const { service, workspace } = await createProjectService(pi);
+		const sessionId = await service.createSession({ cwd: workspace });
+		const listener = vi.fn();
+		service.subscribe(listener);
+		const policy: CompactionPolicy = {
+			enabled: false,
+			fillPercent: 70,
+			retainPercent: 0,
+		};
+
+		await service.setProjectCompaction(workspace, policy);
+
+		expect(pi.configureCompaction).toHaveBeenCalledWith(policy);
+		expect(listener).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: 'project.compaction.changed',
+				projectPath: workspace,
+				compaction: policy,
+			}),
+		);
+		expect(await service.getProjectCompaction(workspace)).toEqual(policy);
+		expect(await service.getProjectCompaction(sessionId)).toEqual(
+			defaultCompactionPolicy,
+		);
+	});
+
 	it('refuses a second compaction while one is running', async () => {
 		const pi = new FakePiSession();
 		const service = await createTestService(pi);
 		const sessionId = await service.createSession();
-		const policy: CompactionPolicy = {
-			enabled: true,
-			fillPercent: 25,
-			retainPercent: 10,
-		};
 
 		pi.isCompacting = true;
-		await expect(service.compact(sessionId, policy)).rejects.toThrow(
+		await expect(service.compact(sessionId)).rejects.toThrow(
 			'Compaction is already in progress',
 		);
 		expect(pi.compact).not.toHaveBeenCalled();
@@ -74,7 +119,7 @@ describe('PiAgentService commands', () => {
 		const sessionId = await service.createSession();
 		const data = Buffer.from('image bytes').toString('base64');
 
-		await service.prompt(sessionId, 'Inspect this', undefined, [
+		await service.prompt(sessionId, 'Inspect this', [
 			{ name: '../reference.png', mimeType: 'image/png', data },
 		]);
 
@@ -95,11 +140,10 @@ describe('PiAgentService commands', () => {
 
 	it('rejects retention at or above the compaction threshold', async () => {
 		const pi = new FakePiSession();
-		const service = await createTestService(pi);
-		const sessionId = await service.createSession();
+		const { service, workspace } = await createProjectService(pi);
 
 		await expect(
-			service.compact(sessionId, {
+			service.setProjectCompaction(workspace, {
 				enabled: true,
 				fillPercent: 25,
 				retainPercent: 25,
@@ -144,3 +188,20 @@ describe('PiAgentService commands', () => {
 		});
 	});
 });
+
+/** A service whose workspace is registered, so its config can be written. */
+async function createProjectService(pi: FakePiSession) {
+	const dataDir = await createTemporaryDirectory();
+	const workspace = await createTemporaryDirectory();
+	const projects = new ProjectCatalog(dataDir);
+	await projects.add(workspace);
+	const service = new PiAgentService(
+		async (_options, manager) => {
+			pi.sessionId = manager.getSessionId();
+			return pi;
+		},
+		new PiSessionRepository(dataDir),
+		projects,
+	);
+	return { service, projects, workspace };
+}

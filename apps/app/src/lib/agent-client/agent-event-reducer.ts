@@ -1,6 +1,7 @@
 import type {
 	AgentEvent,
 	AgentSessionSummary,
+	CompactionPolicy,
 	ConversationMessage,
 	SessionState,
 	SessionUsage,
@@ -22,6 +23,7 @@ export interface AgentEventState {
 	sessions: AgentSessionSummary[];
 	sessionId?: string;
 	selectedProjectPath?: string;
+	compactionPolicy: CompactionPolicy;
 	projectExtensions: ExtensionDescriptor[];
 	projectStatuses: Record<string, unknown>;
 	projectServiceErrors: Record<string, string>;
@@ -169,6 +171,11 @@ export function applyAgentEvent(
 		case 'project.extensions.changed':
 			if (event.projectPath === state.selectedProjectPath) {
 				state.projectExtensions = event.extensions;
+			}
+			break;
+		case 'project.compaction.changed':
+			if (event.projectPath === state.selectedProjectPath) {
+				state.compactionPolicy = event.compaction;
 			}
 			break;
 		case 'error':

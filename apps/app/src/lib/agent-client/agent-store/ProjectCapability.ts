@@ -1,4 +1,5 @@
 import type {
+	CompactionPolicy,
 	ProjectDomains,
 	StoredProject,
 	WorkspaceDirectoryListing,
@@ -9,8 +10,13 @@ import type { AgentStore } from '../AgentStore.svelte';
 import {
 	addProject,
 	removeProject,
+	reorderProjects,
 	setProjectHidden,
 } from './project-catalog-edits';
+import {
+	refreshCompactionPolicy,
+	setCompactionPolicy,
+} from './project-compaction';
 import { errorMessage } from './shared';
 
 /** Extensions with a live project process, in enabled order. */
@@ -45,11 +51,20 @@ export class ProjectCapability {
 					this.openSessionWorkspace() ?? store.projects[0]?.path;
 			}
 			await this.refreshProjectStatus();
+			await this.refreshCompactionPolicy();
 		} catch (error) {
 			store.projectError = errorMessage(error);
 		} finally {
 			store.projectsLoading = false;
 		}
+	}
+
+	refreshCompactionPolicy() {
+		return refreshCompactionPolicy(this.store, this.client);
+	}
+
+	setCompactionPolicy(policy: CompactionPolicy) {
+		return setCompactionPolicy(this.store, this.client, policy);
 	}
 
 	/** The workspace the thread on screen belongs to, when it names one. */
@@ -125,9 +140,7 @@ export class ProjectCapability {
 		return this.client.detectProject(projectPath);
 	}
 
-	browseProjects(path?: string): Promise<WorkspaceDirectoryListing> {
-		return this.client.browseProjects(path);
-	}
+	browseProjects = (path?: string) => this.client.browseProjects(path);
 
 	searchProjects(
 		query: string,
@@ -136,21 +149,8 @@ export class ProjectCapability {
 		return this.client.searchProjects(query, root);
 	}
 
-	async reorderProjects(paths: string[]) {
-		const previous = this.store.projects;
-		// Optimistic: the row lands where it was dropped, then the server confirms.
-		const rank = new Map(paths.map((path, index) => [path, index]));
-		this.store.projects = [...previous].sort(
-			(left, right) =>
-				(rank.get(left.path) ?? Number.POSITIVE_INFINITY) -
-				(rank.get(right.path) ?? Number.POSITIVE_INFINITY),
-		);
-		try {
-			this.store.projects = await this.client.reorderProjects(paths);
-		} catch (error) {
-			this.store.projects = previous;
-			throw error;
-		}
+	reorderProjects(paths: string[]): Promise<void> {
+		return reorderProjects(this.store, this.client, paths);
 	}
 
 	addProject(projectPath: string): Promise<StoredProject> {
@@ -170,6 +170,7 @@ export class ProjectCapability {
 		this.enterWorkspace(projectPath);
 		await Promise.all([
 			this.refreshProjectStatus(),
+			this.refreshCompactionPolicy(),
 			this.store.refreshGitStatus(),
 		]);
 	}

@@ -1,4 +1,5 @@
 import { Type, type Static } from 'typebox';
+import { compactionPolicySchema } from './compaction';
 import { workspaceProfileExtensionSchema } from './sessions';
 
 export const projectSkillSchema = Type.Object(
@@ -39,6 +40,11 @@ export const projectConfigSchema = Type.Object(
 		piExtensionPaths: Type.Optional(
 			Type.Array(Type.String({ minLength: 1, maxLength: 1024 })),
 		),
+		/**
+		 * When and how far this workspace's threads compact. Absent means
+		 * `defaultCompactionPolicy`; every client of the workspace shares it.
+		 */
+		compaction: Type.Optional(compactionPolicySchema),
 	},
 	{ additionalProperties: false },
 );

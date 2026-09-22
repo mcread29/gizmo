@@ -17,8 +17,13 @@ import { Type, type Static } from 'typebox';
  * `.set`, `extension.settings.changed`, `settingsValues` on `extensions.ui`),
  * `models.catalog` lists models without a session for `model` settings
  * fields, and `project.hidden.set` hides a workspace from the sidebar.
+ *
+ * v34: the compaction policy belongs to the workspace, stored in its
+ * `.gizmo/config.json` (`project.compaction.get`/`.set`,
+ * `project.compaction.changed`). `session.prompt` and `session.compact` no
+ * longer carry one; the server applies the thread's workspace policy.
  */
-export const protocolVersion = 33 as const;
+export const protocolVersion = 34 as const;
 
 const sessionTitleLimit = 48;
 

@@ -1,4 +1,6 @@
 import type { CompactionPolicy } from '@gizmo/protocol';
+import { resolve } from 'node:path';
+import type { SessionRuntimePool } from './session-runtime-pool';
 import type { PiSessionLike } from './pi-agent-types';
 
 /**
@@ -75,5 +77,23 @@ export async function compactOverdueRun(
 		);
 	} finally {
 		session.configureCompaction(policy);
+	}
+}
+
+/**
+ * Re-arms every resident thread of a workspace with its new policy, so a
+ * run already in flight compacts under it rather than the old one.
+ */
+export function rearmWorkspace(
+	pool: SessionRuntimePool,
+	projectPath: string,
+	policy: CompactionPolicy,
+) {
+	const path = resolve(projectPath);
+	for (const sessionId of pool.sessionIds()) {
+		const active = pool.active(sessionId);
+		if (resolve(active.manager.getCwd()) !== path) continue;
+		active.session.configureCompaction?.(policy);
+		active.compaction = policy;
 	}
 }

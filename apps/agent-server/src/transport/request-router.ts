@@ -109,6 +109,8 @@ export async function routeRequest(
 		case 'project.gizmo-extension.set':
 		case 'project.pi-extension.set':
 		case 'project.extension-paths.set':
+		case 'project.compaction.get':
+		case 'project.compaction.set':
 		case 'project.remove':
 		case 'project.hidden.set':
 		case 'project.reorder':

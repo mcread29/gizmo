@@ -1,5 +1,5 @@
 import { sessionTitle } from '@gizmo/protocol';
-import { compactRequested } from './compaction-fallback';
+import { compactRequested, rearmWorkspace } from './compaction-fallback';
 import type {
 	AgentAttachment,
 	AgentModelCatalog,
@@ -15,26 +15,37 @@ import {
 	readStoredAttachment,
 	revealStoredAttachment,
 } from '../attachments/attachment-storage';
+import type { ProjectCatalog } from '../projects/project-catalog';
 import { sessionTree } from './session-transcript';
 import type { SessionRepository } from './session-repository';
 import type { SessionCatalogService } from './session-catalog-service';
 import { reloadAllSessions, reloadRuntime } from './session-reload';
-import type { SessionRuntimePool } from './session-runtime-pool';
+import type { ActiveSession, SessionRuntimePool } from './session-runtime-pool';
 
 /** Commands that operate on a live session, transparently restoring it first. */
 export class SessionOperations {
 	readonly #catalog: SessionCatalogService;
 	readonly #pool: SessionRuntimePool;
 	readonly #repository: SessionRepository;
+	readonly #projects: ProjectCatalog;
 
 	constructor(
 		catalog: SessionCatalogService,
 		pool: SessionRuntimePool,
 		repository: SessionRepository,
+		projects: ProjectCatalog,
 	) {
 		this.#catalog = catalog;
 		this.#pool = pool;
 		this.#repository = repository;
+		this.#projects = projects;
+	}
+
+	async #armCompaction(active: ActiveSession) {
+		const policy = await this.#projects.compactionFor(active.manager.getCwd());
+		active.session.configureCompaction?.(policy);
+		active.compaction = policy;
+		return policy;
 	}
 
 	async renameSession(sessionId: string, title: string) {
@@ -45,19 +56,18 @@ export class SessionOperations {
 		} else await this.#repository.rename(sessionId, name);
 	}
 
+	/**
+	 * The thread compacts under its workspace's policy, read fresh on every
+	 * prompt so a change made from any client applies to the next turn.
+	 */
 	async prompt(
 		sessionId: string,
 		text: string,
-		compaction?: CompactionPolicy,
 		attachments: AgentAttachment[] = [],
 	) {
 		await this.#catalog.ensureActive(sessionId);
 		const active = this.#pool.active(sessionId);
-		if (compaction) {
-			validateCompactionPolicy(compaction);
-			active.session.configureCompaction?.(compaction);
-			active.compaction = compaction;
-		}
+		await this.#armCompaction(active);
 		if (
 			!active.session.sessionName ||
 			active.session.sessionName === 'New session'
@@ -71,10 +81,12 @@ export class SessionOperations {
 		} else await active.session.prompt(prompt);
 	}
 
-	async compact(sessionId: string, policy: CompactionPolicy) {
+	async compact(sessionId: string) {
 		await this.#catalog.ensureActive(sessionId);
-		const session = this.#pool.session(sessionId);
-		validateCompactionPolicy(policy);
+		const active = this.#pool.active(sessionId);
+		const session = active.session;
+		const policy = await this.#projects.compactionFor(active.manager.getCwd());
+		active.compaction = policy;
 		if (session.isStreaming) {
 			throw new Error('Cannot compact while the agent is responding');
 		}
@@ -82,6 +94,10 @@ export class SessionOperations {
 			throw new Error('Compaction is already in progress');
 		}
 		await compactRequested(session, policy);
+	}
+
+	applyCompactionPolicy(projectPath: string, policy: CompactionPolicy) {
+		rearmWorkspace(this.#pool, projectPath, policy);
 	}
 
 	async reloadSession(sessionId: string) {
@@ -278,11 +294,5 @@ export class SessionOperations {
 		// disposing, so the session is journaled before its file is archived.
 		await this.#pool.remove(sessionId);
 		await this.#repository.delete(sessionId);
-	}
-}
-
-function validateCompactionPolicy(policy: CompactionPolicy) {
-	if (policy.retainPercent >= policy.fillPercent) {
-		throw new Error('Retained context must be below the compaction threshold');
 	}
 }

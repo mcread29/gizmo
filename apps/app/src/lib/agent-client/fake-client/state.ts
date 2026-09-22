@@ -2,6 +2,7 @@ import {
 	protocolVersion,
 	type AgentEvent,
 	type AgentSessionSummary,
+	type CompactionPolicy,
 	type ComposerCommand,
 	type ConversationMessage,
 	type ExtensionUiResponse,
@@ -50,6 +51,7 @@ export class FakeClientState {
 	readonly gizmoOverrides = new Map<string, Map<string, boolean>>();
 	readonly piOverrides = new Map<string, Map<string, boolean>>();
 	readonly projectExtensionPaths = new Map<string, string[]>();
+	readonly projectCompaction = new Map<string, CompactionPolicy>();
 	readonly disabledGizmoGlobally = new Set<string>();
 	readonly projectToolPolicies = new Map<string, string[]>();
 	readonly extensionUiResponses: ExtensionUiResolution[] = [];

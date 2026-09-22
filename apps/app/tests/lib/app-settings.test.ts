@@ -71,19 +71,17 @@ describe('app settings', () => {
 		expect(loadAppSettings()).toEqual(defaultAppSettings);
 	});
 
-	it('clamps persisted compaction settings', () => {
+	it('ignores the compaction fields older builds stored in the browser', () => {
 		localStorage.setItem(
 			'gizmo.settings.v1',
 			JSON.stringify({
 				...defaultAppSettings,
-				autoCompactFillPercent: 100,
-				compactionRetainPercent: 100,
+				autoCompact: false,
+				autoCompactFillPercent: 25,
+				compactionRetainPercent: 10,
 			}),
 		);
 
-		expect(loadAppSettings()).toMatchObject({
-			autoCompactFillPercent: 95,
-			compactionRetainPercent: 90,
-		});
+		expect(loadAppSettings()).toEqual(defaultAppSettings);
 	});
 });

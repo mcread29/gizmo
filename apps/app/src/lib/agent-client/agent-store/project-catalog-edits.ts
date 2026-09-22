@@ -54,3 +54,24 @@ export async function removeProject(
 	await client.removeProject(projectPath);
 	store.projects = store.projects.filter(({ path }) => path !== projectPath);
 }
+
+/** Optimistic: the row lands where it was dropped, then the server confirms. */
+export async function reorderProjects(
+	store: AgentStore,
+	client: AgentClient,
+	paths: string[],
+): Promise<void> {
+	const previous = store.projects;
+	const rank = new Map(paths.map((path, index) => [path, index]));
+	store.projects = [...previous].sort(
+		(left, right) =>
+			(rank.get(left.path) ?? Number.POSITIVE_INFINITY) -
+			(rank.get(right.path) ?? Number.POSITIVE_INFINITY),
+	);
+	try {
+		store.projects = await client.reorderProjects(paths);
+	} catch (error) {
+		store.projects = previous;
+		throw error;
+	}
+}

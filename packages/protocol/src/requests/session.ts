@@ -1,11 +1,7 @@
 import { Type } from 'typebox';
 import { envelope } from '../envelopes';
 import { extensionUiResponseSchema } from '../extensions';
-import {
-	agentAttachmentSchema,
-	compactionPolicySchema,
-	sessionOptionsSchema,
-} from '../sessions';
+import { agentAttachmentSchema, sessionOptionsSchema } from '../sessions';
 
 export const sessionRequestSchemas = [
 	Type.Object(
@@ -125,7 +121,6 @@ export const sessionRequestSchemas = [
 			type: Type.Literal('session.prompt'),
 			sessionId: Type.String({ minLength: 1 }),
 			text: Type.String({ minLength: 1 }),
-			compaction: Type.Optional(compactionPolicySchema),
 			attachments: Type.Optional(
 				Type.Array(agentAttachmentSchema, { maxItems: 8 }),
 			),
@@ -145,7 +140,6 @@ export const sessionRequestSchemas = [
 			...envelope,
 			type: Type.Literal('session.compact'),
 			sessionId: Type.String({ minLength: 1 }),
-			compaction: compactionPolicySchema,
 		},
 		{ additionalProperties: false },
 	),

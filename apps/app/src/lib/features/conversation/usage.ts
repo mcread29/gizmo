@@ -51,9 +51,9 @@ export function emptyUsage(contextWindow?: number): SessionUsage {
  * the number that decides whether the next turn fits. A `contextUsed` of zero
  * means no response has reported usage yet, so the window share is unknown.
  *
- * The meter is read against the user's own auto-compaction threshold rather
- * than the model's wall: with compaction at 25%, a ring that only turns amber
- * at 75% describes a limit the thread will never reach.
+ * The meter is read against the workspace's own auto-compaction threshold
+ * rather than the model's wall: with compaction at 60%, a ring that only turns
+ * amber at 75% describes a limit the thread will never reach.
  */
 export function usageView(
 	usage: SessionUsage,
